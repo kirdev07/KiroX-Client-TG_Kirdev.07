@@ -59,6 +59,7 @@ fun KiroXApp() {
     val recoveryCodeSent by telegramViewModel.auth.recoveryCodeSent.collectAsStateWithLifecycle()
     val connection by telegramViewModel.connection.state.collectAsStateWithLifecycle()
     val profile by telegramViewModel.users.profile.collectAsStateWithLifecycle()
+    var welcomeSeen by remember { mutableStateOf(context.getSharedPreferences("kirox_ui", android.content.Context.MODE_PRIVATE).getBoolean("welcome_seen", false)) }
     val tdClient = remember { (context.applicationContext as com.kirox.app.KiroXApplication).telegram.client }
     val accounts by tdClient.accounts.accounts.collectAsStateWithLifecycle()
     LaunchedEffect(profile) { profile?.let { tdClient.accounts.describe(tdClient.activeSession, it.name, it.phoneNumber) } }
@@ -280,7 +281,11 @@ fun KiroXApp() {
                     label = "navigation"
                 ) { screen ->
                     when (screen) {
-                        Screen.Phone -> PhoneLoginScreen(
+                        // First sign-in in the Fusion v2 look: the welcome pages come first, once (approved auth board).
+                        Screen.Phone -> if (!welcomeSeen && accounts.size <= 1 && com.kirox.app.ui.theme.Fusion.colors.backdrop != null) com.kirox.app.ui.auth.WelcomeScreen {
+                            welcomeSeen = true
+                            runCatching { context.getSharedPreferences("kirox_ui", android.content.Context.MODE_PRIVATE).edit().putBoolean("welcome_seen", true).apply() }
+                        } else PhoneLoginScreen(
                             state,
                             onChooseCountry = { stack.push(Screen.Countries) },
                             onContinue = telegramViewModel.auth::phone,

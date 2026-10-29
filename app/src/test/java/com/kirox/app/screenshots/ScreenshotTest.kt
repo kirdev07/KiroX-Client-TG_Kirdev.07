@@ -201,6 +201,8 @@ class ScreenshotTest(private val palette: FusionPalette) {
         }
     }
 
+    @Test fun welcome() = shot("12_welcome") { com.kirox.app.ui.auth.WelcomeScreen {} }
+
     @Test fun login() = shot("08_login") {
         PhoneLoginScreen(PhoneEntryState.create(ApplicationProvider.getApplicationContext()), onChooseCountry = {})
     }
