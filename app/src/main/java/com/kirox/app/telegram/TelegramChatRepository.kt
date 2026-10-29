@@ -198,7 +198,7 @@ class TelegramChatRepository(private val client: TelegramClient) {
         val found = runCatching { client.query(TdApi.SearchChatMessages(chatId, null, "", null, 0, 0, SHARED_LIMIT, filter)) }.getOrNull() ?: return emptyList()
         return found.messages.filterNotNull().map { message ->
             when (val content = message.content) {
-                is TdApi.MessagePhoto -> TelegramSharedItem(message.id, message.date, thumb = content.photo.sizes.minByOrNull { kotlin.math.abs(it.width - 320) }?.photo?.toRef())
+                is TdApi.MessagePhoto -> TelegramSharedItem(message.id, message.date, thumb = content.photo.sizes.minByOrNull { kotlin.math.abs(it.width - 320) }?.photo?.toRef(), full = content.photo.sizes.maxByOrNull { it.width }?.photo?.toRef())
                 is TdApi.MessageVideo -> TelegramSharedItem(message.id, message.date, thumb = content.video.thumbnail?.file?.toRef(), subtitle = durationText(content.video.duration), isVideo = true)
                 is TdApi.MessageDocument -> TelegramSharedItem(message.id, message.date, title = content.document.fileName.ifBlank { "Файл" }, subtitle = sizeText(content.document.document.size))
                 is TdApi.MessageVoiceNote -> TelegramSharedItem(message.id, message.date, title = "Голосовое сообщение", subtitle = durationText(content.voiceNote.duration))
@@ -430,7 +430,9 @@ data class TelegramSharedItem(
     val thumb: TelegramFileRef? = null,
     val title: String = "",
     val subtitle: String = "",
-    val isVideo: Boolean = false
+    val isVideo: Boolean = false,
+    /** Largest size of a photo, for the full-screen viewer. */
+    val full: TelegramFileRef? = null
 )
 
 private const val SHARED_LIMIT = 60

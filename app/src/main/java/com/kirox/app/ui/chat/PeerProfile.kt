@@ -62,6 +62,8 @@ internal fun PeerProfileScreen(
     onLeave: (() -> Unit)? = null
 ) {
     var confirmLeave by remember { mutableStateOf(false) }
+    var galleryAt by remember { mutableStateOf<TelegramSharedItem?>(null) }
+    galleryAt?.let { item -> item.full?.let { full -> ChatPhotoGallery(chatId, item.messageId, full) { galleryAt = null } } }
     if (confirmLeave && onLeave != null) androidx.compose.material3.AlertDialog(
         onDismissRequest = { confirmLeave = false },
         containerColor = Fusion.colors.surface1,
@@ -155,7 +157,8 @@ internal fun PeerProfileScreen(
             }
             list == null -> item(span = { GridItemSpan(3) }) { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { CircularProgressIndicator(Modifier.size(24.dp), color = accent, strokeWidth = 2.dp) } }
             list.isEmpty() -> item(span = { GridItemSpan(3) }) { Text("Здесь пока ничего нет", color = Fusion.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(32.dp)) }
-            tab == SharedMediaKind.Media -> items(list, key = { it.messageId }) { item -> MediaTile(item) { onOpenMessage(item.messageId) } }
+            // Photos open the swipeable gallery (approved media board); videos jump to their message.
+            tab == SharedMediaKind.Media -> items(list, key = { it.messageId }) { item -> MediaTile(item) { if (item.full != null) galleryAt = item else onOpenMessage(item.messageId) } }
             else -> items(list, key = { it.messageId }, span = { GridItemSpan(3) }) { item ->
                 Row(Modifier.fillMaxWidth().clickable { onOpenMessage(item.messageId) }.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(accent.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {

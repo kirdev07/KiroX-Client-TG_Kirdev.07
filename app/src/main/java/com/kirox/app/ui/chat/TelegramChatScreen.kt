@@ -382,6 +382,7 @@ fun TelegramChatScreen(
     }
 
     // The wallpaper spans the whole screen, so a translucent Glass header and the floating composer sit over it.
+    CompositionLocalProvider(LocalGalleryChatId provides history.chatId) {
     Box(Modifier.fillMaxSize()) {
     com.kirox.app.ui.components.ChatWallpaperLayer(style.wallpaper, Modifier.matchParentSize())
     Scaffold(
@@ -565,6 +566,7 @@ fun TelegramChatScreen(
                 }
             }
         }
+    }
     }
     }
 

@@ -173,7 +173,7 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
                     val photo = message.photo
                     var open by remember(message.id) { mutableStateOf(false) }
                     if (photo != null) Box(Modifier.clickable { open = true }) { com.kirox.app.ui.components.TelegramPhoto(photo, message.photoAspect) } else MediaPlaceholder(message.kind)
-                    if (open && photo != null) FullscreenPhoto(photo) { open = false }
+                    if (open && photo != null) ChatPhotoGallery(LocalGalleryChatId.current, message.id, photo) { open = false }
                     Caption()
                 }
                 MessageKind.Video -> { if (media != null) VideoMessage(media, message.thumbnail) else MediaPlaceholder(message.kind); Caption() }
