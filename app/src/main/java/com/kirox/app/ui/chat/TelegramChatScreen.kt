@@ -90,6 +90,7 @@ interface TelegramChatActions {
     suspend fun search(query: String, fromMessageId: Long): Pair<List<TelegramMessage>, Long> = emptyList<TelegramMessage>() to 0L
     suspend fun availableReactions(messageId: Long): List<String>? = null
     suspend fun forumTopics(chatId: Long): List<com.kirox.app.telegram.TelegramForumTopic> = emptyList()
+    suspend fun createForumTopic(chatId: Long, name: String): Int = 0
     fun vote(messageId: Long, indices: List<Int>) {}
     fun sendPoll(question: String, options: List<String>, anonymous: Boolean, multipleAnswers: Boolean, correctOption: Int?) {}
     /** Bot's answer to an inline button: text to show and URL to open. */
@@ -372,7 +373,11 @@ fun TelegramChatScreen(
             onToggleMute = menu?.let { m -> { target -> muted = target; scope.launch { runCatching { m.setMuted(history.chatId, target) }.onFailure { muted = !target } } } },
             onSearch = { profileOpen = false; searching = true },
             onOpenMessage = { id -> profileOpen = false; actions.jumpTo(id) },
-            onBack = { profileOpen = false }
+            onBack = { profileOpen = false },
+            onLeave = if (menu != null && (history.peerKind == TelegramPeerKind.Group || history.peerKind == TelegramPeerKind.Channel)) ({
+                profileOpen = false
+                scope.launch { runCatching { menu.deleteChat(history.chatId) }.onSuccess { onBack() }.onFailure { notice = "Не удалось выйти" } }
+            }) else null
         )
     }
 
@@ -1060,6 +1065,23 @@ private fun SearchResults(results: List<TelegramMessage>, canLoadMore: Boolean, 
 private fun ForumTopicsList(chatId: Long, actions: TelegramChatActions, onOpen: (com.kirox.app.telegram.TelegramForumTopic) -> Unit) {
     var topics by remember(chatId) { mutableStateOf<List<com.kirox.app.telegram.TelegramForumTopic>?>(null) }
     var topicQuery by remember(chatId) { mutableStateOf("") }
+    var newTopic by remember { mutableStateOf<String?>(null) }
+    val topicScope = rememberCoroutineScope()
+    newTopic?.let { name ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { newTopic = null },
+            containerColor = Fusion.colors.surface1,
+            title = { Text("Новая тема", color = Fusion.colors.textPrimary) },
+            text = { androidx.compose.material3.OutlinedTextField(name, { newTopic = it.take(128) }, singleLine = true, label = { Text("Название темы") }) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(enabled = name.isNotBlank(), onClick = {
+                    newTopic = null
+                    topicScope.launch { runCatching { actions.createForumTopic(chatId, name.trim()) }.onSuccess { topics = actions.forumTopics(chatId) } }
+                }) { Text("Создать", color = Fusion.colors.accent) }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { newTopic = null }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+        )
+    }
     LaunchedEffect(chatId) { topics = actions.forumTopics(chatId) }
     val current = topics
     when {
@@ -1074,6 +1096,18 @@ private fun ForumTopicsList(chatId: Long, actions: TelegramChatActions, onOpen: 
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Fusion.colors.surface1).padding(horizontal = 16.dp, vertical = 12.dp),
                     decorationBox = { inner -> Box { if (topicQuery.isEmpty()) Text("Поиск по темам", color = Fusion.colors.textTertiary, fontSize = 15.sp); inner() } }
                 )
+            }
+            item {
+                Row(
+                    Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Fusion.colors.surface1).clickable { newTopic = "" }.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(Fusion.colors.accent), contentAlignment = Alignment.Center) {
+                        com.kirox.app.ui.icons.KiroXIcon(KiroXIcon.Add, null, Modifier.size(20.dp), Fusion.colors.onAccent)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text("Создать тему", color = Fusion.colors.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                }
             }
             items(current.filter { topicQuery.isBlank() || it.title.contains(topicQuery, true) }, key = { it.id }) { topic ->
                 Row(Modifier.fillMaxWidth().clickable { onOpen(topic) }.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {

@@ -91,6 +91,11 @@ class TelegramUserRepository(private val client: TelegramClient) {
      * Adds a contact by phone number. Returns the Telegram user id, or null when the number
      * is not registered in Telegram.
      */
+    /** Renames a contact on this account; the phone number is kept as Telegram has it. */
+    suspend fun renameContact(userId: Long, firstName: String, lastName: String) {
+        client.query(TdApi.AddContact(userId, TdApi.ImportedContact("", firstName, lastName, null), false))
+    }
+
     suspend fun removeContact(userId: Long) { client.query(TdApi.RemoveContacts(longArrayOf(userId))) }
 
     suspend fun setBlocked(userId: Long, blocked: Boolean) {

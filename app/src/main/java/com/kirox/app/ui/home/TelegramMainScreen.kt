@@ -804,7 +804,33 @@ private fun ContactActions(contact: TelegramContact, onDismiss: () -> Unit, onDo
     val users = (context.applicationContext as com.kirox.app.KiroXApplication).telegram.users
     val scope = rememberCoroutineScope()
     var confirm by remember { mutableStateOf<String?>(null) }
-    var done by remember { mutableStateOf<String?>(null) }
+    var renaming by remember { mutableStateOf(false) }
+    if (renaming) {
+        var first by remember { mutableStateOf(contact.name.substringBefore(' ')) }
+        var last by remember { mutableStateOf(contact.name.substringAfter(' ', "")) }
+        AlertDialog(
+            onDismissRequest = { renaming = false },
+            containerColor = Fusion.colors.surface1,
+            title = { Text("Изменить контакт", color = Fusion.colors.textPrimary) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ContactField(first, "Имя") { first = it.take(64) }
+                    ContactField(last, "Фамилия (необязательно)") { last = it.take(64) }
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = first.isNotBlank(), onClick = { renaming = false
+                    scope.launch {
+                        runCatching { users.renameContact(contact.id, first.trim(), last.trim()) }
+                            .onSuccess { android.widget.Toast.makeText(context, "Контакт сохранён", android.widget.Toast.LENGTH_SHORT).show(); onDone() }
+                            .onFailure { android.widget.Toast.makeText(context, "Не получилось, попробуйте ещё раз", android.widget.Toast.LENGTH_SHORT).show() }
+                    } }) {
+                    Text("Сохранить", color = if (first.isNotBlank()) Fusion.colors.accent else Fusion.colors.textTertiary)
+                }
+            },
+            dismissButton = { TextButton(onClick = { renaming = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+        )
+    }
     fun run(action: suspend () -> Unit, ok: String) = scope.launch {
         runCatching { action() }.onSuccess { android.widget.Toast.makeText(context, ok, android.widget.Toast.LENGTH_SHORT).show(); onDone() }
             .onFailure { android.widget.Toast.makeText(context, "Не получилось, попробуйте ещё раз", android.widget.Toast.LENGTH_SHORT).show() }
@@ -831,6 +857,7 @@ private fun ContactActions(contact: TelegramContact, onDismiss: () -> Unit, onDo
                 runCatching { context.startActivity(android.content.Intent.createChooser(android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text), "Поделиться контактом")) }
                 onDismiss()
             }
+            TileRow(KiroXIcon.Edit, "Изменить контакт", plainIcon = true) { renaming = true }
             TileRow(KiroXIcon.Delete, "Удалить контакт", plainIcon = true) { confirm = "remove" }
             TileRow(KiroXIcon.Shield, "Заблокировать", plainIcon = true) { confirm = "block" }
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text("Отмена", color = Fusion.colors.textSecondary) }

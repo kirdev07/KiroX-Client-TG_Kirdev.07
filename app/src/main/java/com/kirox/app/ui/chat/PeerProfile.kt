@@ -57,8 +57,19 @@ internal fun PeerProfileScreen(
     onToggleMute: ((Boolean) -> Unit)?,
     onSearch: () -> Unit,
     onOpenMessage: (Long) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    /** Groups and channels: leave after a confirmation. */
+    onLeave: (() -> Unit)? = null
 ) {
+    var confirmLeave by remember { mutableStateOf(false) }
+    if (confirmLeave && onLeave != null) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { confirmLeave = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Выйти из «$title»?", color = Fusion.colors.textPrimary) },
+        text = { Text("Чат пропадёт из списка. Вернуться можно будет по приглашению или ссылке.", color = Fusion.colors.textSecondary) },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { confirmLeave = false; onLeave() }) { Text("Выйти", color = Fusion.colors.danger) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { confirmLeave = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
     BackHandler(onBack = onBack)
     val chats = (LocalContext.current.applicationContext as KiroXApplication).telegram.chats
     var info by remember(chatId) { mutableStateOf(TelegramProfileInfo()) }
@@ -93,6 +104,7 @@ internal fun PeerProfileScreen(
         }
         item(span = { GridItemSpan(3) }) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (onLeave != null) ProfileAction(KiroXIcon.Back, "Выйти", Modifier.weight(1f)) { confirmLeave = true }
                 if (canCall) {
                     ProfileAction(KiroXIcon.Call, "Звонок", Modifier.weight(1f)) { onCall(false) }
                     ProfileAction(KiroXIcon.Video, "Видео", Modifier.weight(1f)) { onCall(true) }

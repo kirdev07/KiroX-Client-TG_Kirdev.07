@@ -452,6 +452,7 @@ private class TelegramMessageActions(
     override suspend fun search(query: String, fromMessageId: Long) = repository.search(query, fromMessageId)
     override suspend fun availableReactions(messageId: Long) = repository.availableReactions(messageId)
     override suspend fun forumTopics(chatId: Long) = repository.forumTopics(chatId)
+    override suspend fun createForumTopic(chatId: Long, name: String) = repository.createForumTopic(chatId, name)
     override fun vote(messageId: Long, indices: List<Int>) = repository.vote(messageId, indices)
     override fun sendPoll(question: String, options: List<String>, anonymous: Boolean, multipleAnswers: Boolean, correctOption: Int?) = repository.sendPoll(question, options, anonymous, multipleAnswers, correctOption)
     override suspend fun pressButton(messageId: Long, button: com.kirox.app.telegram.TelegramButton) = repository.pressButton(messageId, button)

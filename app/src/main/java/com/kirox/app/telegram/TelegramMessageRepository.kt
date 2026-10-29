@@ -127,6 +127,10 @@ class TelegramMessageRepository(
     }
 
     /** Topics of a forum supergroup, pinned first as Telegram orders them. */
+    /** New topic in forum [chatId]; returns its id. */
+    suspend fun createForumTopic(chatId: Long, name: String): Int =
+        client.query(TdApi.CreateForumTopic(chatId, name, false, null)).forumTopicId
+
     suspend fun forumTopics(chatId: Long): List<TelegramForumTopic> = runCatching {
         client.query(TdApi.GetForumTopics(chatId, "", 0, 0, 0, FORUM_TOPICS_LIMIT)).topics.map { t ->
             TelegramForumTopic(
