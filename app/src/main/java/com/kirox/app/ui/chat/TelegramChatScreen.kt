@@ -683,6 +683,7 @@ fun TelegramChatScreen(
         )
     }
     if (stickerPanel) StickerPanel(
+        chatId = history.chatId,
         source = stickers,
         onEmoji = { emoji ->
             // Inserted at the cursor, replacing a selection, like a keyboard would.

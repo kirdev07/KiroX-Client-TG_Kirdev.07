@@ -490,6 +490,7 @@ private class TelegramStickerSource(private val repository: com.kirox.app.telegr
     override suspend fun set(id: Long) = repository.set(id)
     override suspend fun recent() = repository.recent()
     override suspend fun savedGifs() = repository.savedGifs()
+    override suspend fun searchGifs(chatId: Long, query: String) = repository.searchGifs(chatId, query)
 }
 
 /** What Screen.Thread shows; saved with the back stack across rotation and process death. */

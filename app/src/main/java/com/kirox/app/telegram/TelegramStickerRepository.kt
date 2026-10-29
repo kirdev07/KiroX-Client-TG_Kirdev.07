@@ -40,6 +40,18 @@ class TelegramStickerRepository(private val client: TelegramClient) {
         }
     }.getOrDefault(emptyList())
 
+    private var gifBotId = 0L
+
+    /** GIFs for [query] from Telegram's own @gif bot, as the official apps search them. */
+    suspend fun searchGifs(chatId: Long, query: String): List<TelegramPanelItem> = runCatching {
+        if (gifBotId == 0L) gifBotId = (client.query(TdApi.SearchPublicChat("gif")).type as TdApi.ChatTypePrivate).userId
+        client.query(TdApi.GetInlineQueryResults(gifBotId, chatId, null, query, "")).results.mapNotNull { result ->
+            val a = (result as? TdApi.InlineQueryResultAnimation)?.animation ?: return@mapNotNull null
+            val (media, thumbnail) = mediaOf(TdApi.MessageAnimation(a, TdApi.FormattedText("", emptyArray()), false, false, false))
+            media?.let { TelegramPanelItem(a.animation.id, it, thumbnail, isGif = true) }
+        }
+    }.getOrDefault(emptyList())
+
     private fun stickerItem(sticker: TdApi.Sticker): TelegramPanelItem {
         val (media, thumbnail) = stickerMedia(sticker)
         return TelegramPanelItem(sticker.sticker.id, media, thumbnail)
