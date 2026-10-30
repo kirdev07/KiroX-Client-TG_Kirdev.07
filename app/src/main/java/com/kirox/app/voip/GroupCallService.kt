@@ -16,6 +16,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Keeps a video chat going with KiroX in the background: Android 11+ gives the microphone to a
@@ -46,7 +47,7 @@ class GroupCallService : Service() {
                 var seen = calls.call.value != null
                 launch {
                     // A join that never shows up (failed before it was published) must not keep the service.
-                    kotlinx.coroutines.delay(NO_CALL_GRACE_MS)
+                    kotlinx.coroutines.delay(NO_CALL_GRACE)
                     if (!seen) finish()
                 }
                 // Only what the notification shows: speaking levels change many times a second.
@@ -104,7 +105,7 @@ class GroupCallService : Service() {
     }
 
     companion object {
-        private const val NO_CALL_GRACE_MS = 10_000L
+        private val NO_CALL_GRACE = 10.seconds
 
         fun start(context: Context) {
             runCatching { androidx.core.content.ContextCompat.startForegroundService(context, Intent(context, GroupCallService::class.java)) }

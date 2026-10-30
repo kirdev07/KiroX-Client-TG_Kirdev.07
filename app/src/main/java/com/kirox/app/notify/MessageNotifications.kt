@@ -18,6 +18,7 @@ import com.kirox.app.telegram.TelegramClient
 import com.kirox.app.telegram.TelegramUserRepository
 import com.kirox.app.telegram.displayName
 import org.drinkless.tdlib.TdApi
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * New-message notifications from TDLib's notification API. TDLib decides what to notify about
@@ -162,7 +163,7 @@ class MessageNotifications(
     suspend fun reply(groupId: Int, chatId: Long, maxNotificationId: Int, text: String, topic: TdApi.MessageTopic? = null): Boolean {
         client.start()
         try {
-            if (kotlinx.coroutines.withTimeoutOrNull(REPLY_WAIT_MS) { client.ready.first { it } } == null) return false
+            if (kotlinx.coroutines.withTimeoutOrNull(REPLY_WAIT) { client.ready.first { it } } == null) return false
             // SendMessage answers with a local, still pending message; only UpdateMessageSendSucceeded
             // means Telegram has it, so the process is kept until then.
             val done = kotlinx.coroutines.CompletableDeferred<Boolean>()
@@ -171,7 +172,7 @@ class MessageNotifications(
                 client.query(TdApi.SendMessage(chatId, topic, null, null, null, TdApi.InputMessageText(TdApi.FormattedText(text, emptyArray()), null, true)))
             }.getOrNull() ?: return false
             if (pending.sendingState == null) done.complete(true) else sending[pending.id] = done
-            val sent = kotlinx.coroutines.withTimeoutOrNull(SEND_WAIT_MS) { done.await() } ?: false
+            val sent = kotlinx.coroutines.withTimeoutOrNull(SEND_WAIT) { done.await() } ?: false
             sending.remove(pending.id)
             if (sent) markRead(groupId, chatId, maxNotificationId)
             return sent
@@ -226,8 +227,8 @@ class MessageNotifications(
         internal const val KEY_REPLY = "reply_text"
         /** Keeps the reply and read PendingIntents of one group apart. */
         private const val REPLY_REQUEST_OFFSET = 1 shl 20
-        private const val REPLY_WAIT_MS = 15_000L
-        private const val SEND_WAIT_MS = 10_000L
+        private val REPLY_WAIT = 15.seconds
+        private val SEND_WAIT = 10.seconds
         /** Lets markRead reach Telegram before TDLib is closed. */
         private const val PAUSE_DELAY_MS = 1_500L
         internal const val EXTRA_GROUP = "group"
