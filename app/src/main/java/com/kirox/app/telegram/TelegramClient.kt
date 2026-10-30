@@ -158,7 +158,7 @@ class TelegramClient(context: Context) {
         switchTo(back.session)
     }
 
-    /** The open slot is a new account whose sign-in is not finished (it can be cancelled). */
+    /** The open slot is a new account whose sign-in is not finished (it can be canceled). */
     fun isAddingAccount(): Boolean = accounts.isPending(session.name)
 
     private fun dispatch(update: TdApi.Object) {
@@ -280,22 +280,7 @@ class TelegramClient(context: Context) {
         val (key, kind) = keyCandidates.removeFirstOrNull() ?: return
         usedKey = kind
         pendingDatabaseEncryption = kind == KeyKind.Legacy
-        val parameters = TdApi.SetTdlibParameters().apply {
-            useTestDc = BuildConfig.TELEGRAM_USE_TEST_DC
-            databaseDirectory = session.databaseDirectory
-            filesDirectory = session.filesDirectory
-            databaseEncryptionKey = key
-            useFileDatabase = true
-            useChatInfoDatabase = true
-            useMessageDatabase = true
-            useSecretChats = true
-            apiId = BuildConfig.TELEGRAM_API_ID
-            apiHash = BuildConfig.TELEGRAM_API_HASH
-            systemLanguageCode = Locale.getDefault().toLanguageTag().ifBlank { "ru" }
-            deviceModel = Build.MODEL.ifBlank { "Android" }
-            systemVersion = Build.VERSION.RELEASE.orEmpty()
-            applicationVersion = BuildConfig.VERSION_NAME
-        }
+        val parameters = tdlibParameters(session, key)
         send(parameters) { result ->
             if (result !is TdApi.Error) return@send
             when {
@@ -314,4 +299,22 @@ class TelegramClient(context: Context) {
             }
         }
     }
+}
+
+/** TDLib start parameters for an account's own database; shared by the main client and AccountPeek. */
+internal fun tdlibParameters(session: TelegramSessionManager, key: ByteArray) = TdApi.SetTdlibParameters().apply {
+    useTestDc = BuildConfig.TELEGRAM_USE_TEST_DC
+    databaseDirectory = session.databaseDirectory
+    filesDirectory = session.filesDirectory
+    databaseEncryptionKey = key
+    useFileDatabase = true
+    useChatInfoDatabase = true
+    useMessageDatabase = true
+    useSecretChats = true
+    apiId = BuildConfig.TELEGRAM_API_ID
+    apiHash = BuildConfig.TELEGRAM_API_HASH
+    systemLanguageCode = Locale.getDefault().toLanguageTag().ifBlank { "ru" }
+    deviceModel = Build.MODEL.ifBlank { "Android" }
+    systemVersion = Build.VERSION.RELEASE.orEmpty()
+    applicationVersion = BuildConfig.VERSION_NAME
 }

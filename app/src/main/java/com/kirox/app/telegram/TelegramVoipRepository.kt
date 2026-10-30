@@ -85,7 +85,7 @@ class TelegramVoipRepository(private val client: TelegramClient, private val use
         client.send(TdApi.CreateCall(userId, protocol(), isVideo)) { result ->
             if (result is TdApi.Error && com.kirox.app.BuildConfig.DEBUG) android.util.Log.d(TAG, "CreateCall: $result")
             if (result is TdApi.Error) _call.update { it?.copy(phase = CallPhase.Failed(errorText(result))) }
-            if (result is TdApi.CallId && cancelOutgoing) discardCancelled(result.id, isVideo)
+            if (result is TdApi.CallId && cancelOutgoing) discardCanceled(result.id, isVideo)
         }
     }
 
@@ -137,7 +137,7 @@ class TelegramVoipRepository(private val client: TelegramClient, private val use
         engine?.setSinks(remote, local)
     }
 
-    private fun discardCancelled(callId: Int, isVideo: Boolean) {
+    private fun discardCanceled(callId: Int, isVideo: Boolean) {
         cancelOutgoing = false
         client.send(TdApi.DiscardCall(callId, false, "", 0, isVideo, 0))
     }
@@ -146,7 +146,7 @@ class TelegramVoipRepository(private val client: TelegramClient, private val use
         val current = _call.value
         // Our outgoing call that was hung up before it had an id.
         if (cancelOutgoing && call.isOutgoing && current == null) {
-            if (call.state is TdApi.CallStatePending) discardCancelled(call.id, call.isVideo)
+            if (call.state is TdApi.CallStatePending) discardCanceled(call.id, call.isVideo)
             return
         }
         // While dialing (no id yet) an incoming call is declined like during any other call.

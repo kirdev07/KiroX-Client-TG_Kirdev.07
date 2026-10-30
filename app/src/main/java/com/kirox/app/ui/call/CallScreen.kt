@@ -386,7 +386,7 @@ private fun ToggleButton(icon: KiroXIcon, description: String, on: Boolean, onCl
 
 @Composable
 private fun RoundButton(icon: KiroXIcon, description: String, background: Color, tint: Color, size: Dp, crossed: Boolean = false, onClick: () -> Unit) {
-    // Material 3 filled icon button in the call screen's own colours.
+    // Material 3 filled icon button in the call screen's own colors.
     androidx.compose.material3.FilledIconButton(
         onClick = onClick,
         modifier = Modifier.size(size),

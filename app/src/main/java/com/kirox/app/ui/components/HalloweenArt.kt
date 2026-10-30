@@ -31,13 +31,13 @@ private val CarveDark = Color(0xFF2A1203)
 private val Glow = Color(0xFFFFD36B)
 
 /**
- * A detailed jack-o'-lantern centred at [center] with body radius [r] (px).
+ * A detailed jack-o'-lantern centered at [center] with body radius [r] (px).
  * [glow] 0..1 flickers the candle light behind the carved face; [blink] 0..1 closes the eyes.
  */
 fun DrawScope.drawPumpkin(
     center: Offset, r: Float, face: PumpkinFace, costume: PumpkinCostume,
     glow: Float = 1f, blink: Float = 0f, rotationDeg: Float = 0f, alpha: Float = 1f,
-    /** Light mode: solid colours instead of gradients, no inner glow halo. */
+    /** Light mode: solid colors instead of gradients, no inner glow halo. */
     flat: Boolean = false
 ) {
     translate(center.x, center.y) {
@@ -62,7 +62,7 @@ fun DrawScope.drawPumpkin(
 private fun DrawScope.drawBody(r: Float, alpha: Float, flat: Boolean) {
     val w = r * 1.25f
     val h = r
-    // Ribs: outer pair, inner pair, centre — each a gradient oval, outer ones darker.
+    // Ribs: outer pair, inner pair, center — each a gradient oval, outer ones darker.
     val ribs = listOf(-0.62f to 0.55f, 0.62f to 0.55f, -0.3f to 0.72f, 0.3f to 0.72f, 0f to 0.62f)
     ribs.forEachIndexed { index, (dx, widthFactor) ->
         val rw = w * widthFactor

@@ -180,7 +180,7 @@ internal fun TileRow(icon: KiroXIcon, title: String, trailing: String? = null, p
     )
 }
 
-/** List item colours on the screen background, as Fusion lists have no cards behind rows. */
+/** List item colors on the screen background, as Fusion lists have no cards behind rows. */
 @Composable
 internal fun fusionListColors() = androidx.compose.material3.ListItemDefaults.colors(
     containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -201,7 +201,7 @@ internal fun ScreenTitle(title: String, seasonal: Boolean = true, actions: @Comp
     Box(Modifier.fillMaxWidth()) {
         if (seasonal) SeasonalLayer(Modifier.matchParentSize(), freeZone = if (actionsStart > titleEnd) (titleEnd + gap)..(actionsStart - gap) else null)
         // Material 3 top app bar on a transparent container, so the seasonal layer shows through.
-        // Fusion UI v2: the title is centred and bold, like «KiroX» on the chats screen.
+        // Fusion UI v2: the title is centered and bold, like «KiroX» on the chats screen.
         if (Fusion.colors.backdrop != null) androidx.compose.material3.CenterAlignedTopAppBar(
             title = { Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis) },
             actions = { Row(content = actions) },

@@ -56,7 +56,7 @@ data class FusionColors(
     val onSelectedPill: Color = textPrimary,
     /** Screen backdrop: vertical gradient behind the main screens; null paints [background]. */
     val backdrop: List<Color>? = null,
-    /** Soft colour glows on the backdrop (Expressive bloom, Glass sky). */
+    /** Soft color glows on the backdrop (Expressive bloom, Glass sky). */
     val glow: List<Color> = emptyList(),
     /** Glass style: bars and cards are translucent over the backdrop, with a light stroke. */
     val glass: Boolean = false,
@@ -92,7 +92,7 @@ data class FusionColors(
         )
 
         /**
-         * Fusion Expressive: near-black base with violet accents, colours sampled from the approved
+         * Fusion Expressive: near-black base with violet accents, colors sampled from the approved
          * PNG (design-reference/fusion-v2/assets); violet only in accents, pills and the chat wallpaper.
          */
         val Expressive = FusionColors(
@@ -154,7 +154,7 @@ object KiroXFeatures {
 /** User animation level: 1 = normal, 0.5 = reduced, 0 = off. Multiplies every Fusion duration. */
 val LocalMotionFactor = staticCompositionLocalOf { 1f }
 
-/** True when decorative effects must be light (fewer particles, flat colours, ~30 fps). */
+/** True when decorative effects must be light (fewer particles, flat colors, ~30 fps). */
 val LocalLightEffects = staticCompositionLocalOf { false }
 
 /** Corner radius of chat bubbles in dp (KiroX «Форма пузырей»). */
@@ -173,7 +173,7 @@ object Fusion {
 }
 
 /**
- * Material 3 colour roles from a Fusion palette: stock M3 components (top bars, lists, buttons,
+ * Material 3 color roles from a Fusion palette: stock M3 components (top bars, lists, buttons,
  * fields, navigation with its pill indicator, dialogs, sheets) render in the monochrome KiroX look.
  */
 internal fun fusionColorScheme(colors: FusionColors) = darkColorScheme(

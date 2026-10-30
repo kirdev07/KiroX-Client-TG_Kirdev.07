@@ -7,25 +7,24 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.kirox.app.BuildConfig
+import com.kirox.app.telegram.tdlibParameters
 import com.kirox.app.MainActivity
 import com.kirox.app.telegram.TelegramAccount
 import com.kirox.app.telegram.TelegramSessionManager
 import com.kirox.app.telegram.messagePreview
 import org.drinkless.tdlib.Client
 import org.drinkless.tdlib.TdApi
-import java.util.Locale
 
 /**
  * Notifications of signed-in accounts that are not open right now. Telegram keeps pushing for every
  * account that registered this device; on a push KiroX briefly opens each inactive account's own
  * TDLib database (one client per account, never two for the same one), lets it sync, shows its new
- * messages labelled with the account, and closes it again. The open account is handled as before.
+ * messages labeled with the account, and closes it again. The open account is handled as before.
  */
 class AccountPeek(context: Context) {
     private val appContext = context.applicationContext
 
-    /** Peeks [accounts] (all but the open one) for [windowMs]; each closes itself afterwards. */
+    /** Peeks [accounts] (all but the open one) for [windowMs]; each closes itself afterward. */
     fun peek(accounts: List<TelegramAccount>, windowMs: Long) {
         // With KiroX on screen the user may switch accounts at any moment; peeks are for the background.
         if (AppVisibility.visible) return
@@ -49,7 +48,7 @@ class AccountPeek(context: Context) {
                 is TdApi.UpdateAuthorizationState -> when (update.authorizationState) {
                     is TdApi.AuthorizationStateWaitTdlibParameters -> {
                         wantsParameters.set(true)
-                        client.get()?.let { if (wantsParameters.compareAndSet(true, false)) it.send(parameters(session, key), null) }
+                        client.get()?.let { if (wantsParameters.compareAndSet(true, false)) it.send(tdlibParameters(session, key), null) }
                     }
                     is TdApi.AuthorizationStateReady -> client.get()?.let { c ->
                         c.send(TdApi.SetOption("online", TdApi.OptionValueBoolean(false)), null)
@@ -83,31 +82,15 @@ class AccountPeek(context: Context) {
         val created = runCatching { Client.create(handler, null, null) }.getOrNull()
         if (created == null) { com.kirox.app.telegram.SessionLocks.release(account.session, handle); return }
         client.set(created)
-        if (wantsParameters.compareAndSet(true, false)) created.send(parameters(session, key), null)
+        if (wantsParameters.compareAndSet(true, false)) created.send(tdlibParameters(session, key), null)
         // A close asked for before the client existed could not be sent: send it now.
         if (closeRequested.get()) created.send(TdApi.Close(), null)
         else android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ close() }, windowMs)
     }
 
-    private fun parameters(session: TelegramSessionManager, key: ByteArray) = TdApi.SetTdlibParameters().apply {
-        useTestDc = BuildConfig.TELEGRAM_USE_TEST_DC
-        databaseDirectory = session.databaseDirectory
-        filesDirectory = session.filesDirectory
-        databaseEncryptionKey = key
-        useFileDatabase = true
-        useChatInfoDatabase = true
-        useMessageDatabase = true
-        useSecretChats = true
-        apiId = BuildConfig.TELEGRAM_API_ID
-        apiHash = BuildConfig.TELEGRAM_API_HASH
-        systemLanguageCode = Locale.getDefault().toLanguageTag().ifBlank { "ru" }
-        deviceModel = Build.MODEL.ifBlank { "Android" }
-        systemVersion = Build.VERSION.RELEASE.orEmpty()
-        applicationVersion = BuildConfig.VERSION_NAME
-    }
-
+    // The POST_NOTIFICATIONS check is right before notify(); lint cannot follow the Android 13+ branch.
+    @android.annotation.SuppressLint("MissingPermission")
     private fun show(account: TelegramAccount, groupId: Int, chatTitle: String, text: String) {
-        if (Build.VERSION.SDK_INT >= 33 && androidx.core.content.ContextCompat.checkSelfPermission(appContext, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) return
         val accountLabel = account.title.ifBlank { account.phone.ifBlank { "Другой аккаунт" } }
         val tag = tagOf(account)
         val open = PendingIntent.getActivity(
@@ -124,7 +107,10 @@ class AccountPeek(context: Context) {
             .setAutoCancel(true)
             .setContentIntent(open)
             .build()
-        runCatching { NotificationManagerCompat.from(appContext).notify(tag, groupId, notification) }
+        // Without the notification permission (Android 13+) the other account's messages simply wait in the app.
+        if (androidx.core.content.ContextCompat.checkSelfPermission(appContext, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED &&
+            Build.VERSION.SDK_INT >= 33) return
+        try { NotificationManagerCompat.from(appContext).notify(tag, groupId, notification) } catch (_: SecurityException) {}
     }
 
     private fun tagOf(account: TelegramAccount) = "kirox-account-${account.session}"

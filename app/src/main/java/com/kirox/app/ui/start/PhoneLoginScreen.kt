@@ -84,7 +84,7 @@ fun PhoneLoginScreen(
         Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
             if (Fusion.colors.backdrop != null) {
-                // Fusion UI v2 (approved auth board): centred mark, title and hint.
+                // Fusion UI v2 (approved auth board): centered mark, title and hint.
                 Spacer(Modifier.height(40.dp))
                 Box(
                     Modifier.align(Alignment.CenterHorizontally).size(76.dp).clip(androidx.compose.foundation.shape.CircleShape)

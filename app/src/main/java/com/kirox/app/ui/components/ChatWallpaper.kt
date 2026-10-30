@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.kirox.app.settings.ChatWallpaper
 import com.kirox.app.ui.theme.Fusion
 
-/** Chat background drawn in the current theme's colours; quiet enough to keep messages readable. */
+/** Chat background drawn in the current theme's colors; quiet enough to keep messages readable. */
 @Composable
 fun ChatWallpaperLayer(wallpaper: ChatWallpaper, modifier: Modifier = Modifier, /** Smaller pattern for thumbnails. */ patternScale: Float = 1f) {
     val colors = Fusion.colors

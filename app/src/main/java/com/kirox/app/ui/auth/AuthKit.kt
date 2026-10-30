@@ -40,7 +40,7 @@ internal fun Modifier.authBackdrop(): Modifier {
     }
 }
 
-/** Mark in the centre of a step: icon in the accent colour over a glow. */
+/** Mark in the center of a step: icon in the accent color over a glow. */
 @Composable
 internal fun AuthMark(icon: KiroXIcon, modifier: Modifier = Modifier) {
     Box(
@@ -68,7 +68,7 @@ internal fun AuthPill(modifier: Modifier = Modifier, focused: Boolean = false, o
     )
 }
 
-/** Wide button with the board's violet gradient; grey while it cannot be pressed. */
+/** Wide button with the board's violet gradient; gray while it cannot be pressed. */
 @Composable
 internal fun AuthGradientButton(text: String, enabled: Boolean, busy: Boolean = false, onClick: () -> Unit) {
     val accent = Fusion.colors.accent

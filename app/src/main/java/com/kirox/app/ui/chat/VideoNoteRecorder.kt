@@ -123,10 +123,10 @@ internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: ()
     // Leaving the recorder in any other way than «Отправить» drops the clip.
     DisposableEffect(Unit) { onDispose { if (!processing) { discard = true; recording?.close(); raw.delete() } } }
 
-    fun finish(cancelled: Boolean) {
+    fun finish(canceled: Boolean) {
         val active = recording ?: return
-        discard = cancelled
-        if (!cancelled) processing = true
+        discard = canceled
+        if (!canceled) processing = true
         active.stop()
         recording = null
     }
@@ -153,12 +153,12 @@ internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: ()
     LaunchedEffect(recording) {
         while (recording != null) {
             elapsed = System.currentTimeMillis() - startedAt
-            if (elapsed >= MAX_NOTE_MS) finish(cancelled = false)
+            if (elapsed >= MAX_NOTE_MS) finish(canceled = false)
             delay(100)
         }
     }
 
-    Dialog(onDismissRequest = { if (recording != null) finish(cancelled = true) else if (!processing) onCancel() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    Dialog(onDismissRequest = { if (recording != null) finish(canceled = true) else if (!processing) onCancel() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(Modifier.fillMaxSize().background(Color.Black).navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Box(contentAlignment = Alignment.Center) {
                 // Ring fills as the minute runs out.
@@ -182,13 +182,13 @@ internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: ()
             Row(Modifier.fillMaxWidth().padding(horizontal = 32.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "Отмена", color = Color.White, fontSize = 15.sp,
-                    modifier = Modifier.clip(CircleShape).clickable(enabled = !processing) { if (recording != null) finish(cancelled = true) else onCancel() }.padding(12.dp)
+                    modifier = Modifier.clip(CircleShape).clickable(enabled = !processing) { if (recording != null) finish(canceled = true) else onCancel() }.padding(12.dp)
                 )
                 Box(
                     Modifier.size(76.dp).border(4.dp, Color.White, CircleShape).padding(8.dp).clip(CircleShape)
                         .background(if (recording != null) Fusion.colors.danger else Color.White)
                         .clickable(enabled = !processing, onClickLabel = if (recording != null) "Отправить" else "Записать") {
-                            if (recording != null) finish(cancelled = false) else start()
+                            if (recording != null) finish(canceled = false) else start()
                         }
                 )
                 Text(
@@ -200,7 +200,7 @@ internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: ()
     }
 }
 
-/** Crops the recording to a centred square and re-encodes it as H.264, as video notes must be. */
+/** Crops the recording to a centered square and re-encodes it as H.264, as video notes must be. */
 @OptIn(UnstableApi::class)
 private fun cropToSquare(context: Context, raw: File, durationMs: Long, onDone: (RecordedVideoNote) -> Unit, onError: (String) -> Unit) {
     val out = File(raw.parentFile, raw.name.replace("note_raw_", "note_"))

@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.kirox.app.ui.theme.Fusion
 
 /**
- * Main action of a screen: Material 3 filled button, full width. While [busy] it keeps its colour,
+ * Main action of a screen: Material 3 filled button, full width. While [busy] it keeps its color,
  * shows progress and ignores taps.
  */
 @Composable
@@ -60,7 +60,7 @@ fun <T> FusionSegmented(options: List<T>, selected: T, label: (T) -> String, onS
 
 /**
  * Search field in the Material 3 search bar style: a full-height pill with a search icon and a clear
- * button, on the Fusion surface colour.
+ * button, on the Fusion surface color.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable

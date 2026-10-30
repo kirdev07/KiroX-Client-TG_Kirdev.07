@@ -140,14 +140,14 @@ fun TelegramAuthStepScreen(state: TelegramAuthState, repository: TelegramAuthRep
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 com.kirox.app.ui.components.SeasonalLayer(Modifier.matchParentSize(), freeZoneFraction = 0.35f..0.98f)
-                // v2 (approved auth board): only the back arrow in the bar; the mark is in the centre below.
+                // v2 (approved auth board): only the back arrow in the bar; the mark is in the center below.
                 if (Fusion.colors.backdrop == null) Text("kiroX", color = Fusion.colors.textPrimary, fontSize = 26.sp, fontWeight = FontWeight.Light, modifier = Modifier.align(Alignment.CenterStart))
             }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
             val v2 = Fusion.colors.backdrop != null
             if (v2) {
-                // Fusion UI v2 (approved auth board): centred mark — plane for codes, lock for passwords.
+                // Fusion UI v2 (approved auth board): centered mark — plane for codes, lock for passwords.
                 Spacer(Modifier.height(24.dp))
                 Box(
                     Modifier.align(Alignment.CenterHorizontally).size(76.dp).clip(CircleShape)
@@ -334,7 +334,7 @@ private fun AuthField(value: String, onValueChange: (String) -> Unit, hint: Stri
 
 @Composable
 private fun AuthButton(text: String, disabled: Boolean, busy: Boolean, onClick: () -> Unit) {
-    // Material 3 filled button; while busy it keeps its colour and shows progress.
+    // Material 3 filled button; while busy it keeps its color and shows progress.
     androidx.compose.material3.Button(
         onClick = { if (!busy) onClick() },
         enabled = !disabled || busy,

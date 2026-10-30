@@ -42,7 +42,7 @@ data class FusionNavItem(val title: String, val icon: KiroXIcon)
 fun FusionBottomBar(items: List<FusionNavItem>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, showLabels: Boolean = false) {
     val colors = Fusion.colors
     if (colors.backdrop != null) {
-        // Fusion UI v2: a floating dock over the backdrop with labels, the active tab on a coloured pill.
+        // Fusion UI v2: a floating dock over the backdrop with labels, the active tab on a colored pill.
         // Expressive: a full-width dark bar; Glass: a floating translucent dock. The active tab sits on
         // a wide rounded plate holding icon and label, as in the approved PNG.
         val shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)

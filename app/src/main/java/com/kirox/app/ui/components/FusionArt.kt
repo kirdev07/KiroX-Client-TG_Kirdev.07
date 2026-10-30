@@ -39,7 +39,7 @@ private fun DrawScope.drawFlowers(base: List<Color>) {
     drawRect(Brush.verticalGradient(base))
     val w = size.width
     val h = size.height
-    // Flower centre (fractions of the size), radius in widths, petal colour.
+    // Flower center (fractions of the size), radius in widths, petal color.
     val flowers = listOf(
         Triple(Offset(0.18f, 0.16f), 0.42f, Color(0xFF8A55E8)),
         Triple(Offset(0.92f, 0.38f), 0.50f, Color(0xFF6C3FD6)),
@@ -47,20 +47,20 @@ private fun DrawScope.drawFlowers(base: List<Color>) {
         Triple(Offset(0.86f, 0.90f), 0.40f, Color(0xFF5E3BC4)),
         Triple(Offset(0.55f, 0.02f), 0.30f, Color(0xFF7448D2))
     )
-    flowers.forEachIndexed { index, (centreFraction, radiusFraction, tint) ->
-        val centre = Offset(centreFraction.x * w, centreFraction.y * h)
+    flowers.forEachIndexed { index, (centerFraction, radiusFraction, tint) ->
+        val center = Offset(centerFraction.x * w, centerFraction.y * h)
         val r = radiusFraction * w
         val petals = 7 + index % 3
         repeat(petals) { i ->
-            rotate(360f / petals * i + index * 17f, centre) {
-                val petal = Offset(centre.x, centre.y - r * 0.48f)
+            rotate(360f / petals * i + index * 17f, center) {
+                val petal = Offset(center.x, center.y - r * 0.48f)
                 drawOval(
                     Brush.radialGradient(listOf(tint.copy(alpha = 0.55f), tint.copy(alpha = 0.18f), Color.Transparent), center = petal, radius = r * 0.5f),
                     topLeft = Offset(petal.x - r * 0.22f, petal.y - r * 0.5f), size = Size(r * 0.44f, r)
                 )
             }
         }
-        drawCircle(Brush.radialGradient(listOf(Color(0x66E0B8FF), Color.Transparent), center = centre, radius = r * 0.22f), r * 0.22f, centre)
+        drawCircle(Brush.radialGradient(listOf(Color(0x66E0B8FF), Color.Transparent), center = center, radius = r * 0.22f), r * 0.22f, center)
     }
     // Dark veil: the art stays a background, bubbles stay readable.
     drawRect(Color(0x40070512))

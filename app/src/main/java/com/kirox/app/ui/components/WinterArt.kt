@@ -24,7 +24,7 @@ private val SnowShadow = Color(0xFFC9DAEA)
 private val PineDark = Color(0xFF1F3A2E)
 private val PineMid = Color(0xFF2C5141)
 
-/** A six-fold snowflake of radius [r] centred at the origin. */
+/** A six-fold snowflake of radius [r] centered at the origin. */
 private fun DrawScope.drawFlake(r: Float, shape: FlakeShape) {
     val stroke = (r * 0.11f).coerceAtLeast(1.2f)
     repeat(6) { i ->

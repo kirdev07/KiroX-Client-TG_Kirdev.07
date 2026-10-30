@@ -165,7 +165,7 @@ internal fun ForumTopicsList(chatId: Long, actions: TelegramChatActions, onOpen:
         current == null -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(Modifier.size(26.dp), color = Fusion.colors.textSecondary, strokeWidth = 2.dp) }
         current.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Темы не загрузились", color = Fusion.colors.textSecondary) }
         else -> LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.background)) {
-            // Approved groups board: search over topics and coloured square marks.
+            // Approved groups board: search over topics and colored square marks.
             item {
                 androidx.compose.foundation.text.BasicTextField(
                     topicQuery, { topicQuery = it }, singleLine = true,
@@ -299,7 +299,7 @@ private fun PollToggle(title: String, checked: Boolean, enabled: Boolean = true,
 /** ARGB as the Long that [ChatAppearance] stores. */
 internal fun androidx.compose.ui.graphics.Color.argb(): Long = toArgb().toLong() and 0xFFFFFFFFL
 
-/** Stable colour for a forum topic mark (approved groups board). */
+/** Stable color for a forum topic mark (approved groups board). */
 private fun topicTint(id: Int): androidx.compose.ui.graphics.Color = listOf(0xFFE5484D, 0xFF2E9F6B, 0xFF6E56CF, 0xFFE38D2B, 0xFF3B82F6, 0xFFD6409F).map { androidx.compose.ui.graphics.Color(it) }[Math.floorMod(id, 6)]
 
 /** Telegram contacts to share as a card (attachment «Контакт»). */

@@ -56,7 +56,7 @@ internal fun MessageText(text: String, entities: List<TelegramTextEntity>, scale
     Text(annotated, color = color, fontSize = (15f * scale).sp, lineHeight = (20f * scale).sp, onTextLayout = onTextLayout)
 }
 
-/** Fusion keeps links monochrome: the text colour, underlined. */
+/** Fusion keeps links monochrome: the text color, underlined. */
 private data class TextPalette(val link: Color, val secondary: Color, val hidden: Color)
 
 private val CodeStyle = SpanStyle(fontFamily = FontFamily.Monospace, background = Color(0x26808080))

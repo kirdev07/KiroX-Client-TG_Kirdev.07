@@ -50,7 +50,7 @@ private val ShowcaseLanterns = listOf(
     Lantern(0.62f, 0.26f, 0.5f, PumpkinFace.Happy, PumpkinCostume.None, 0.15f)
 )
 
-/** Launch screen: a small parade under the logo, leaving the centre and the bottom copy clear. */
+/** Launch screen: a small parade under the logo, leaving the center and the bottom copy clear. */
 private val SplashLanterns = listOf(
     Lantern(0.22f, 0.66f, 0.85f, PumpkinFace.Happy, PumpkinCostume.WitchHat, 0.2f),
     Lantern(0.50f, 0.68f, 1.0f, PumpkinFace.Classic, PumpkinCostume.None, 0.55f),
@@ -59,7 +59,7 @@ private val SplashLanterns = listOf(
     Lantern(0.72f, 0.33f, 0.5f, PumpkinFace.Spooky, PumpkinCostume.TopHat, 0.7f)
 )
 
-/** Customization banner: lanterns at the sides, the centre stays free for the logo. */
+/** Customization banner: lanterns at the sides, the center stays free for the logo. */
 private val BannerLanterns = listOf(
     Lantern(0.11f, 0.66f, 1f, PumpkinFace.Classic, PumpkinCostume.WitchHat, 0.15f),
     Lantern(0.89f, 0.66f, 1f, PumpkinFace.Cute, PumpkinCostume.Vampire, 0.65f),

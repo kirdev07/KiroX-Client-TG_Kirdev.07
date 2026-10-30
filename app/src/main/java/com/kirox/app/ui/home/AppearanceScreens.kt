@@ -244,7 +244,7 @@ private fun OptionCard(selected: Boolean, modifier: Modifier, onClick: () -> Uni
 private fun ThemeCard(palette: FusionPalette, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val colors = com.kirox.app.ui.theme.FusionColors.of(palette)
     OptionCard(selected, modifier, onClick) {
-        // Mini chat painted with that theme's own colours.
+        // Mini chat painted with that theme's own colors.
         Column(
             Modifier.fillMaxWidth().height(86.dp).clip(RoundedCornerShape(10.dp))
                 .background(colors.backdrop?.let { androidx.compose.ui.graphics.Brush.verticalGradient(it) } ?: androidx.compose.ui.graphics.SolidColor(colors.background))

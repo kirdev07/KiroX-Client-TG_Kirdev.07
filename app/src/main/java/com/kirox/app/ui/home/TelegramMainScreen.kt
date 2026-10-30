@@ -464,7 +464,7 @@ private fun FolderChip(title: String, selected: Boolean, onLongClick: (() -> Uni
     )
 }
 
-/** Chats header from the approved Fusion PNG: menu left, KiroX in the centre, search and new message right. */
+/** Chats header from the approved Fusion PNG: menu left, KiroX in the center, search and new message right. */
 @Composable
 private fun ChatsHeader(status: String?, onSearch: () -> Unit, onNewMessage: () -> Unit, onOpenContacts: () -> Unit, onReadAll: () -> Unit) {
     Box(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 4.dp)) {

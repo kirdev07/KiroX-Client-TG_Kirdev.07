@@ -387,7 +387,7 @@ internal fun ChatComposer(value: TextFieldValue, reply: MessageUi?, editing: Mes
         Text("Вложения", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
         top?.invoke()
         if (Fusion.colors.backdrop != null) {
-            // Approved media board: a card of rounded square tiles with coloured icons.
+            // Approved media board: a card of rounded square tiles with colored icons.
             Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).fusionPanel(Fusion.colors, RoundedCornerShape(22.dp)).padding(vertical = 6.dp)) {
                 actions.chunked(3).forEach { row ->
                     Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
@@ -573,7 +573,7 @@ private fun bubbleBrush(outgoing: Boolean, appearance: ChatAppearance): androidx
     else androidx.compose.ui.graphics.SolidColor(base.copy(alpha = minOf(base.alpha, 0.86f)))
 }
 
-/** Icon colours of the attachment tiles (approved media board). */
+/** Icon colors of the attachment tiles (approved media board). */
 private fun attachmentTint(title: String): Color = when (title) {
     "Галерея", "Фото и видео" -> Color(0xFF6E8BFF)
     "Камера", "Видеосообщение" -> Color(0xFFB085FF)

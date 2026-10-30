@@ -18,7 +18,7 @@ import com.kirox.app.ui.theme.Fusion
 import com.kirox.app.ui.theme.LocalGlassBlur
 
 /**
- * Background of the main screens: the style's vertical gradient with two soft colour glows
+ * Background of the main screens: the style's vertical gradient with two soft color glows
  * (Expressive violet bloom, Glass blue sky). Static: drawn once, nothing animates. On Android 12+
  * with blur on, the glows are blurred further; elsewhere radial gradients alone keep them soft.
  */

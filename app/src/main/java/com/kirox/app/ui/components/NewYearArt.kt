@@ -21,7 +21,7 @@ private val Gold = Color(0xFFFFD45C)
 private val TreeDark = Color(0xFF1E4D36)
 private val TreeMid = Color(0xFF2A6446)
 
-/** Soft round glow of [color]; cached per size and colour. */
+/** Soft round glow of [color]; cached per size and color. */
 private fun DrawScope.drawGlowCached(center: Offset, radius: Float, color: Color, alpha: Float) {
     val r = radius.toInt().coerceAtLeast(2)
     val sprite = SpriteCache.get(this, SpriteKey("glow", r, color.toArgb(), false), r * 2, r * 2) {
