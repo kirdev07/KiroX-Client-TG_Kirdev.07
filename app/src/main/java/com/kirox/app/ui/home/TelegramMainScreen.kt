@@ -38,7 +38,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kirox.app.BuildConfig
 import com.kirox.app.telegram.LastMessageState
 import com.kirox.app.telegram.TelegramChatItem
 import com.kirox.app.telegram.TelegramChatListKey
@@ -54,7 +53,6 @@ import androidx.compose.foundation.border
 import com.kirox.app.ui.components.FusionNavigationRail
 import com.kirox.app.ui.theme.FusionPalette
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.ui.focus.focusRequester
 import com.kirox.app.ui.components.FusionNavItem
 import com.kirox.app.ui.components.TelegramAvatar
 import com.kirox.app.ui.format.TelegramFormat
@@ -316,7 +314,6 @@ private fun ChatsTab(
             onSearch = { searching = true }, onNewMessage = onNewMessage,
             onOpenContacts = onOpenContacts, onReadAll = { confirmReadAll = true }
         )
-        SearchPill("Поиск") { searching = true }
         val postStory = rememberStoryPoster { onNotice(UiNotice(it)) }
         StoriesRow(storyChats, profile?.name.orEmpty(), profile?.photo, onOpenStories) { postStory() }
         // The owner's Архив / Сообщения tabs stay exactly as they were.
@@ -479,20 +476,6 @@ private fun ChatsHeader(status: String?, onSearch: () -> Unit, onNewMessage: () 
             TitleAction(KiroXIcon.Search, "Поиск", onClick = onSearch)
             TitleAction(KiroXIcon.Compose, "Новое сообщение", onClick = onNewMessage)
         }
-    }
-}
-
-/** Always-visible rounded search bar under the header; opens the chat search. */
-@Composable
-private fun SearchPill(hint: String, onClick: () -> Unit) {
-    Row(
-        Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth().heightIn(min = 46.dp).clip(CircleShape)
-            .fusionPanel(Fusion.colors, CircleShape, opaque = Fusion.colors.surface2).clickable(onClickLabel = "Открыть поиск", onClick = onClick).padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconGlyph(KiroXIcon.Search, null, Modifier.size(20.dp), Fusion.colors.textSecondary)
-        Spacer(Modifier.width(10.dp))
-        Text(hint, color = Fusion.colors.textTertiary, fontSize = 16.sp)
     }
 }
 
