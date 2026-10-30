@@ -10,9 +10,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 /**
- * Ties calls to the rest of the system: an incoming call while the app is off screen becomes a
+ * Ties calls to the rest of the system: an incoming call while the app is off-screen becomes a
  * full-screen notification, and a call in progress runs in [CallService] so it survives leaving the app.
  */
 class CallController(private val app: Application, private val voip: TelegramVoipRepository, private val client: com.kirox.app.telegram.TelegramClient) {
@@ -46,7 +47,7 @@ class CallController(private val app: Application, private val voip: TelegramVoi
         CallMedia.sync(app, call)
         // Background without a call: close TDLib after a grace period so Telegram sends pushes.
         if (appVisible) { pauseJob?.cancel(); pauseJob = null; client.start(); com.kirox.app.notify.KeepConnectedService.start(app) }
-        else if (call == null && pauseJob?.isActive != true) pauseJob = scope.launch { kotlinx.coroutines.delay(BACKGROUND_GRACE_MS); client.pauseIfIdle() }
+        else if (call == null && pauseJob?.isActive != true) pauseJob = scope.launch { kotlinx.coroutines.delay(BACKGROUND_GRACE); client.pauseIfIdle() }
         val notifications = CallNotifications.manager(app)
         if (call?.phase == CallPhase.Incoming && !appVisible) {
             runCatching { notifications.notify(CallNotifications.INCOMING_ID, CallNotifications.incoming(app, call)) }
@@ -59,4 +60,4 @@ class CallController(private val app: Application, private val voip: TelegramVoi
 }
 
 /** How long TDLib stays connected after the app leaves the screen. */
-private const val BACKGROUND_GRACE_MS = 30_000L
+private val BACKGROUND_GRACE = 30.seconds
