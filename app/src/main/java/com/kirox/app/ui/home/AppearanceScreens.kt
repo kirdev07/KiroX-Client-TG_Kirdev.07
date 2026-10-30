@@ -101,12 +101,13 @@ internal fun ThemesScreen(palette: FusionPalette, onPalette: (FusionPalette) -> 
     BackHandler(onBack = onBack)
     val settings = (androidx.compose.ui.platform.LocalContext.current.applicationContext as com.kirox.app.KiroXApplication).settings
     val blur by settings.glassBlur.collectAsState()
-    val v2 = listOf(FusionPalette.Expressive, FusionPalette.Glass)
+    val v2 = listOf(FusionPalette.Expressive, FusionPalette.Glass).filter { it in com.kirox.app.ui.theme.KiroXFeatures.THEMES }
+    val classic = com.kirox.app.ui.theme.KiroXFeatures.THEMES - v2.toSet()
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Темы", onBack) }
         item { SectionCaption("Fusion UI v2") }
-        listOf(v2, FusionPalette.entries - v2.toSet()).forEachIndexed { group, options ->
-            if (group == 1) item { SectionCaption("Классические монохромные") }
+        listOf(v2, classic).forEachIndexed { group, options ->
+            if (group == 1 && options.isNotEmpty()) item { SectionCaption("Классические монохромные") }
             options.chunked(2).forEach { pair ->
                 item(key = pair.first().name) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -119,12 +120,12 @@ internal fun ThemesScreen(palette: FusionPalette, onPalette: (FusionPalette) -> 
         item { SectionCaption("Стекло") }
         item {
             ToggleRow(
-                "Размытие фона", if (android.os.Build.VERSION.SDK_INT >= 31) "Мягкое свечение за панелями Fusion Glass и Expressive" else "Нужен Android 12 или новее; без него свечение остаётся без размытия",
+                "Размытие фона", if (android.os.Build.VERSION.SDK_INT >= 31) "Мягкое свечение за панелями Fusion Glass" else "Нужен Android 12 или новее; без него свечение остаётся без размытия",
                 checked = blur, onChange = settings::setGlassBlur
             )
         }
         item {
-            Text("Сохранённая тема не меняется при обновлении; Fusion Expressive — тема по умолчанию для новых установок.", color = Fusion.colors.textTertiary, fontSize = 12.sp,
+            Text("В этой версии доступна тема Fusion Glass, остальные вернутся в следующих обновлениях.", color = Fusion.colors.textTertiary, fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp))
         }
     }

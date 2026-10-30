@@ -85,9 +85,9 @@ class KiroXSettingsRepository(context: Context) {
 
     val palette: StateFlow<FusionPalette> = store.data
         .catch { emit(androidx.datastore.preferences.core.emptyPreferences()) }
-        // A saved palette (old or new) is kept; only a fresh install starts with Fusion Expressive.
-        .map { prefs -> FusionPalette.entries.firstOrNull { it.name == prefs[paletteKey] } ?: FusionPalette.Expressive }
-        .stateIn(scope, SharingStarted.Eagerly, FusionPalette.Expressive)
+        // A saved palette is kept while this version offers it; otherwise the first offered theme is used.
+        .map { prefs -> com.kirox.app.ui.theme.KiroXFeatures.THEMES.firstOrNull { it.name == prefs[paletteKey] } ?: com.kirox.app.ui.theme.KiroXFeatures.THEMES.first() }
+        .stateIn(scope, SharingStarted.Eagerly, com.kirox.app.ui.theme.KiroXFeatures.THEMES.first())
 
     /** Light seasonal particles in screen headers; on by default, like the old Fusion. */
     val seasonalEffects: StateFlow<Boolean> = store.data

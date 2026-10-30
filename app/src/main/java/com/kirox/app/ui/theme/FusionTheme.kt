@@ -149,6 +149,12 @@ object KiroXFeatures {
      * setting (Обычные / Меньше / Выкл.) still applies on top.
      */
     const val ANIMATIONS = false
+
+    /**
+     * Themes offered in this version; the first is the default. The other palettes stay in the code,
+     * and a saved choice outside this list falls back to the first until it is offered again.
+     */
+    val THEMES = listOf(FusionPalette.Glass)
 }
 
 /** User animation level: 1 = normal, 0.5 = reduced, 0 = off. Multiplies every Fusion duration. */
