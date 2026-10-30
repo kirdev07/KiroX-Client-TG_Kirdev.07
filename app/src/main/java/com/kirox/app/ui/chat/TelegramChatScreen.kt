@@ -633,7 +633,13 @@ fun TelegramChatScreen(
             add(KiroXIcon.Music to "Музыка")
             if (!history.isSecret) add(KiroXIcon.Sliders to "Опрос")
         },
-        footer = if (input.text.isNotBlank()) "Текст из поля ввода станет подписью" else null
+        footer = if (input.text.isNotBlank()) "Текст из поля ввода станет подписью" else null,
+        top = if (history.isSecret) null else ({
+            RecentMediaStrip(ALBUM_LIMIT) { uris ->
+                attachments = false
+                if (uris.size == 1) sendPicked(uris[0], asPhoto = true) else sendAlbum(uris)
+            }
+        })
     )
     selected?.let { message ->
         val source = byId[message.id]

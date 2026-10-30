@@ -380,10 +380,12 @@ internal fun ChatComposer(value: TextFieldValue, reply: MessageUi?, editing: Mes
     onDismiss: () -> Unit,
     onPick: (String) -> Unit,
     actions: List<Pair<KiroXIcon, String>> = listOf(KiroXIcon.Media to "Галерея", KiroXIcon.Camera to "Камера", KiroXIcon.File to "Документ", KiroXIcon.Music to "Музыка", KiroXIcon.Contacts to "Контакт", KiroXIcon.Location to "Местоположение"),
-    footer: String? = null
+    footer: String? = null,
+    top: (@Composable () -> Unit)? = null
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Fusion.colors.surface1, contentColor = ChatWhite) {
         Text("Вложения", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        top?.invoke()
         if (Fusion.colors.backdrop != null) {
             // Approved media board: a card of rounded square tiles with coloured icons.
             Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).fusionPanel(Fusion.colors, RoundedCornerShape(22.dp)).padding(vertical = 6.dp)) {
