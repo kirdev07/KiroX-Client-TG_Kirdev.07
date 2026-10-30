@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 private data class WelcomePage(val icon: KiroXIcon, val title: String, val text: String)
 
 private val pages = listOf(
-    WelcomePage(KiroXIcon.Send, "Добро пожаловать\nв kiroX", "Быстрый, удобный и красивый\nклиент Telegram"),
+    WelcomePage(KiroXIcon.Send, "Добро пожаловать\nв kiroX", "Быстрый, удобный и красивый\nнеофициальный клиент Telegram"),
     WelcomePage(KiroXIcon.Lock, "Ваши данные\nв безопасности", "Вход через Telegram, база на телефоне\nзашифрована"),
     WelcomePage(KiroXIcon.Palette, "Свой стиль", "Темы Expressive и Glass, обои\nи праздничные сцены"),
     WelcomePage(KiroXIcon.Contacts, "Несколько\nаккаунтов", "До трёх аккаунтов и быстрое\nпереключение между ними")
@@ -58,6 +58,10 @@ internal fun WelcomeScreen(onContinue: () -> Unit) {
             }
         }
         AuthLink("Пропустить", onClick = onContinue)
-        Spacer(Modifier.height(8.dp))
+        Text(
+            "Неофициальное приложение, не связано с Telegram",
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+            color = Fusion.colors.textTertiary, fontSize = 12.sp, textAlign = TextAlign.Center
+        )
     }
 }
