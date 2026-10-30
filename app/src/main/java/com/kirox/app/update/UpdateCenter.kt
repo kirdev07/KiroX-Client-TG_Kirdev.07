@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import com.kirox.app.BuildConfig
@@ -49,9 +48,9 @@ sealed interface UpdateState {
 }
 
 /**
- * Updates from the project's GitHub releases. Anonymous HTTPS to api.github.com with ETag caching;
+ * Updates from the project's GitHub releases. Anonymous HTTPS to `api.github.com` with ETag caching;
  * nothing about the Telegram account is sent. A download is installed only after its size, SHA-256,
- * package name, signing certificate and version code are checked, and the user confirms the install.
+ * package name, signing certificate and version code are checked, and the user confirms the installation.
  */
 class UpdateCenter(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -119,8 +118,7 @@ class UpdateCenter(private val context: Context) {
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         // Go straight to the system installer instead of an "open with" chooser (file managers, editors).
         context.packageManager.queryIntentActivities(intent, 0)
-            .map { it.activityInfo.packageName }
-            .firstOrNull { it.endsWith("packageinstaller") }
+            .firstNotNullOfOrNull { it.activityInfo.packageName.takeIf { name -> name.endsWith("packageinstaller") } }
             ?.let(intent::setPackage)
         context.startActivity(intent)
     }
