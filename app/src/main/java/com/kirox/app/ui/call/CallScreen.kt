@@ -93,6 +93,9 @@ fun CallScreen(call: TelegramActiveCall, actions: CallActions, onMinimize: (() -
     val routes by router.available.collectAsState()
     CallWindow(live = live, earMode = talking && route == CallAudioRoute.Earpiece && !call.cameraOn && !call.remoteVideo)
     val showVideo = TelegramVoipRepository.mediaAvailable && talking && (call.remoteVideo || call.cameraOn)
+    // With a headset or Bluetooth connected the sound button opens a list instead of cycling blindly.
+    var pickingRoute by remember { mutableStateOf(false) }
+    if (pickingRoute) AudioRouteSheet(route, routes, onPick = { router.select(it); pickingRoute = false }, onDismiss = { pickingRoute = false })
 
     Box(
         Modifier.fillMaxSize()
@@ -106,6 +109,7 @@ fun CallScreen(call: TelegramActiveCall, actions: CallActions, onMinimize: (() -
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(Modifier.height(16.dp))
             TopLabel(call)
+            if (talking && call.emojis.isNotEmpty()) { Spacer(Modifier.height(10.dp)); EmojiKey(call.emojis, call.signalBars, call.phase is CallPhase.Active) }
             if (call.remoteVideo && talking) {
                 Spacer(Modifier.height(12.dp))
                 Text(call.name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -134,7 +138,7 @@ fun CallScreen(call: TelegramActiveCall, actions: CallActions, onMinimize: (() -
                 call.phase == CallPhase.Incoming -> IncomingControls(call, actions, onMessage)
                 live -> ActiveControls(
                     call.isVideo || call.cameraOn, call.micMuted, route, routes.size > 2, call.cameraOn,
-                    { actions.setMuted(!call.micMuted) }, router::toggle, { actions.setCamera(!call.cameraOn) }, actions::switchCamera, actions::hangUp
+                    { actions.setMuted(!call.micMuted) }, { if (routes.size > 2) pickingRoute = true else router.toggle() }, { actions.setCamera(!call.cameraOn) }, actions::switchCamera, actions::hangUp
                 )
                 else -> RoundButton(KiroXIcon.Check, "Закрыть", Color.White, Color(0xFF10151C), size = 64.dp, onClick = actions::dismiss)
             }
@@ -461,5 +465,75 @@ private fun VoiceWave(active: Boolean) {
             val h = size.height * (0.15f + 0.85f * edge * swing)
             drawLine(accent.copy(alpha = 0.55f + 0.45f * edge), androidx.compose.ui.geometry.Offset(x, (size.height - h) / 2), androidx.compose.ui.geometry.Offset(x, (size.height + h) / 2), step * 0.45f, androidx.compose.ui.graphics.StrokeCap.Round)
         }
+    }
+}
+
+/**
+ * The four emojis of the call's encryption key with the signal strength. Tap explains them: when the
+ * other side sees the same four, nobody is listening in between.
+ */
+@Composable
+private fun EmojiKey(emojis: List<String>, bars: Int, active: Boolean) {
+    var explain by remember { mutableStateOf(false) }
+    Row(
+        Modifier.clip(RoundedCornerShape(50)).background(Color(0x1FFFFFFF)).clickable(onClickLabel = "Что значат эмодзи") { explain = true }.padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(emojis.joinToString(" "), fontSize = 20.sp)
+        if (active) { Spacer(Modifier.width(10.dp)); SignalBars(bars) }
+    }
+    if (explain) androidx.compose.ui.window.Dialog(onDismissRequest = { explain = false }) {
+        Column(
+            Modifier.clip(RoundedCornerShape(28.dp)).background(com.kirox.app.ui.theme.Fusion.colors.surface1).padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(emojis.joinToString("  "), fontSize = 34.sp)
+            Spacer(Modifier.height(16.dp))
+            Text("Звонок зашифрован", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Если у собеседника на экране те же четыре эмодзи, звонок защищён сквозным шифрованием и его никто не слышит, кроме вас двоих.",
+                color = Color(0xB3FFFFFF), fontSize = 14.sp, textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(20.dp))
+            Text(
+                "Понятно", color = com.kirox.app.ui.theme.Fusion.colors.onAccent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(com.kirox.app.ui.theme.Fusion.colors.accent).clickable { explain = false }.padding(vertical = 12.dp)
+            )
+        }
+    }
+}
+
+/** Four rising bars; the ones above [bars] are dimmed. */
+@Composable
+private fun SignalBars(bars: Int) {
+    Canvas(Modifier.size(16.dp, 12.dp)) {
+        val w = size.width / 7f
+        repeat(4) { i ->
+            val h = size.height * (i + 1) / 4f
+            drawRoundRect(
+                if (i < bars) Color.White else Color(0x4DFFFFFF),
+                topLeft = androidx.compose.ui.geometry.Offset(i * 2 * w, size.height - h),
+                size = androidx.compose.ui.geometry.Size(w, h), cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 2)
+            )
+        }
+    }
+}
+
+/** Where the call sound goes: phone, speaker, wired headset or Bluetooth, the current one ticked. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun AudioRouteSheet(current: CallAudioRoute, routes: Set<CallAudioRoute>, onPick: (CallAudioRoute) -> Unit, onDismiss: () -> Unit) {
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = com.kirox.app.ui.theme.Fusion.colors.surface1) {
+        Text("Звук звонка", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        CallAudioRoute.entries.filter { it in routes }.forEach { route ->
+            Row(Modifier.fillMaxWidth().clickable { onPick(route) }.padding(horizontal = 20.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconGlyph(if (route == CallAudioRoute.Earpiece) KiroXIcon.Call else KiroXIcon.Speaker, null, Modifier.size(22.dp), Color.White)
+                Spacer(Modifier.width(16.dp))
+                Text(route.label, color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                if (route == current) IconGlyph(KiroXIcon.Check, "Выбрано", Modifier.size(20.dp), com.kirox.app.ui.theme.Fusion.colors.accent)
+            }
+        }
+        Spacer(Modifier.navigationBarsPadding().height(12.dp))
     }
 }
