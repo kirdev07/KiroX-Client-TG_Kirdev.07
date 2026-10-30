@@ -33,6 +33,22 @@ class TelegramStickerRepository(private val client: TelegramClient) {
         client.query(TdApi.GetRecentStickers(false)).stickers.map(::stickerItem)
     }.getOrDefault(emptyList())
 
+    suspend fun favorites(): List<TelegramPanelItem> = runCatching {
+        client.query(TdApi.GetFavoriteStickers()).stickers.map(::stickerItem)
+    }.getOrDefault(emptyList())
+
+    /** Adds or removes a sticker in «Избранные», or a GIF in the saved GIFs; false when Telegram refuses. */
+    suspend fun setFavorite(item: TelegramPanelItem, favorite: Boolean): Boolean = runCatching {
+        val file = TdApi.InputFileId(item.fileId)
+        client.query(when {
+            item.isGif && favorite -> TdApi.AddSavedAnimation(file)
+            item.isGif -> TdApi.RemoveSavedAnimation(file)
+            favorite -> TdApi.AddFavoriteSticker(file)
+            else -> TdApi.RemoveFavoriteSticker(file)
+        })
+        true
+    }.getOrDefault(false)
+
     suspend fun savedGifs(): List<TelegramPanelItem> = runCatching {
         client.query(TdApi.GetSavedAnimations()).animations.map { a ->
             val (media, thumbnail) = mediaOf(TdApi.MessageAnimation(a, TdApi.FormattedText("", emptyArray()), false, false, false))

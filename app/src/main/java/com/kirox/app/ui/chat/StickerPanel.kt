@@ -2,6 +2,8 @@ package com.kirox.app.ui.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,11 +48,14 @@ interface StickerPanelSource {
     suspend fun recent(): List<TelegramPanelItem>
     suspend fun savedGifs(): List<TelegramPanelItem>
     suspend fun searchGifs(chatId: Long, query: String): List<TelegramPanelItem> = emptyList()
+    suspend fun favorites(): List<TelegramPanelItem> = emptyList()
+    suspend fun setFavorite(item: TelegramPanelItem, favorite: Boolean): Boolean = false
 }
 
 private sealed interface PanelTab {
     data object Emoji : PanelTab
     data object Recent : PanelTab
+    data object Favorites : PanelTab
     data object Gifs : PanelTab
     data class Set(val info: TelegramStickerSetInfo) : PanelTab
 }
@@ -68,12 +73,16 @@ internal fun StickerPanel(source: StickerPanelSource?, onEmoji: (String) -> Unit
     var items by remember { mutableStateOf<List<TelegramPanelItem>?>(null) }
     LaunchedEffect(source) { sets = source?.installedSets().orEmpty() }
     var gifQuery by remember { mutableStateOf("") }
-    LaunchedEffect(tab, source, gifQuery) {
+    var reload by remember { mutableStateOf(0) }
+    var menuFor by remember { mutableStateOf<TelegramPanelItem?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    LaunchedEffect(tab, source, gifQuery, reload) {
         items = null
         if (tab == PanelTab.Gifs && gifQuery.isNotBlank()) kotlinx.coroutines.delay(400)
         items = when (val current = tab) {
             PanelTab.Emoji -> emptyList()
             PanelTab.Recent -> source?.recent().orEmpty()
+            PanelTab.Favorites -> source?.favorites().orEmpty()
             PanelTab.Gifs -> if (gifQuery.isBlank()) source?.savedGifs().orEmpty() else source?.searchGifs(chatId, gifQuery.trim()).orEmpty()
             is PanelTab.Set -> source?.set(current.info.id).orEmpty()
         }
@@ -81,7 +90,7 @@ internal fun StickerPanel(source: StickerPanelSource?, onEmoji: (String) -> Unit
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Fusion.colors.surface1, contentColor = Fusion.colors.textPrimary) {
         Column(Modifier.fillMaxWidth().height(420.dp).navigationBarsPadding()) {
             // Approved media board: Стикеры · GIF · Эмодзи on top, sticker sets as round covers below.
-            val stickersOn = tab == PanelTab.Recent || tab is PanelTab.Set
+            val stickersOn = tab == PanelTab.Recent || tab == PanelTab.Favorites || tab is PanelTab.Set
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (source != null) {
                     Box(Modifier.weight(1f)) { SegmentTab("Стикеры", stickersOn) { tab = PanelTab.Recent } }
@@ -95,8 +104,14 @@ internal fun StickerPanel(source: StickerPanelSource?, onEmoji: (String) -> Unit
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Fusion.colors.surface2).padding(horizontal = 16.dp, vertical = 11.dp),
                 decorationBox = { inner -> Box { if (gifQuery.isEmpty()) Text("Поиск GIF", color = Fusion.colors.textTertiary, fontSize = 15.sp); inner() } }
             )
+            // GIF categories: one tap searches the @gif bot for the word; «Сохранённые» goes back to saved GIFs.
+            if (tab == PanelTab.Gifs && source != null) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                PanelPill("Сохранённые", gifQuery.isBlank()) { gifQuery = "" }
+                GIF_CATEGORIES.forEach { (label, query) -> PanelPill(label, gifQuery == query) { gifQuery = query } }
+            }
             if (stickersOn) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (source != null) {
+                    PanelPill("Избранные", tab == PanelTab.Favorites) { tab = PanelTab.Favorites }
                     PanelPill("Недавние", tab == PanelTab.Recent) { tab = PanelTab.Recent }
                     sets.forEach { set ->
                         val selected = (tab as? PanelTab.Set)?.info?.id == set.id
@@ -124,14 +139,35 @@ internal fun StickerPanel(source: StickerPanelSource?, onEmoji: (String) -> Unit
                     CircularProgressIndicator(Modifier.size(24.dp), color = Fusion.colors.textPrimary, strokeWidth = 2.dp)
                 }
                 current.isEmpty() -> Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    Text(if (tab == PanelTab.Gifs) (if (gifQuery.isBlank()) "Сохранённых GIF пока нет — найдите в поиске" else "Ничего не найдено") else "Здесь пока пусто", color = Fusion.colors.textSecondary, fontSize = 14.sp)
+                    Text(
+                        when {
+                            tab == PanelTab.Gifs -> if (gifQuery.isBlank()) "Сохранённых GIF пока нет — найдите в поиске" else "Ничего не найдено"
+                            tab == PanelTab.Favorites -> "Избранных пока нет — удерживайте стикер,\nчтобы добавить"
+                            else -> "Здесь пока пусто"
+                        },
+                        color = Fusion.colors.textSecondary, fontSize = 14.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
                 }
                 else -> LazyVerticalGrid(GridCells.Adaptive(if (tab == PanelTab.Gifs) 110.dp else 76.dp), Modifier.fillMaxWidth().weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp)) {
                     items(current, key = { it.fileId }) { item ->
-                        Box(Modifier.padding(3.dp).aspectRatio(1f).clip(RoundedCornerShape(12.dp)).clickable { onSend(item) }, contentAlignment = Alignment.Center) {
+                        // Long press: add to or remove from «Избранные» (stickers) or saved GIFs.
+                        val inFavorites = tab == PanelTab.Favorites || (tab == PanelTab.Gifs && gifQuery.isBlank())
+                        Box(Modifier.padding(3.dp).aspectRatio(1f).clip(RoundedCornerShape(12.dp)).combinedClickable(onLongClick = { menuFor = item }) { onSend(item) }, contentAlignment = Alignment.Center) {
                             if (item.isGif) AnimationMessage(item.media, item.thumbnail, preview = true)
                             // TGS animate in the panel too; WEBM would need one video player per tile, so they stay still here.
                             else StickerMessage(item.media, item.thumbnail, size = 70.dp, animate = item.media.lottieSticker)
+                            androidx.compose.material3.DropdownMenu(menuFor == item, onDismissRequest = { menuFor = null }, containerColor = Fusion.colors.surface2) {
+                                val label = when {
+                                    item.isGif && inFavorites -> "Убрать из сохранённых"
+                                    item.isGif -> "Сохранить GIF"
+                                    inFavorites -> "Убрать из избранного"
+                                    else -> "В избранное"
+                                }
+                                androidx.compose.material3.DropdownMenuItem(text = { Text(label, color = Fusion.colors.textPrimary) }, onClick = {
+                                    menuFor = null
+                                    scope.launch { if (source?.setFavorite(item, !inFavorites) == true && inFavorites) reload++ }
+                                })
+                            }
                         }
                     }
                 }
@@ -173,3 +209,9 @@ private fun SegmentTab(title: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(if (selected) Fusion.colors.accent else Fusion.colors.surface2).clickable(onClick = onClick).padding(vertical = 9.dp)
     )
 }
+
+/** GIF categories under the search field: label and the word sent to the @gif bot. */
+private val GIF_CATEGORIES = listOf(
+    "👋 Привет" to "привет", "😂 Смех" to "смех", "❤️ Любовь" to "любовь", "👍 Да" to "да", "👎 Нет" to "нет",
+    "😢 Грусть" to "грусть", "😮 Вау" to "вау", "🙏 Спасибо" to "спасибо", "🎉 Ура" to "ура", "💃 Танец" to "танец", "😴 Сон" to "сон"
+)
