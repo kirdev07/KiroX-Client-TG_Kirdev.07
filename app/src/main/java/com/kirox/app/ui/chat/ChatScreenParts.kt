@@ -241,7 +241,7 @@ internal fun PollCreateDialog(onDismiss: () -> Unit, onCreate: (String, List<Str
     var anonymous by remember { mutableStateOf(true) }
     var multiple by remember { mutableStateOf(false) }
     var quiz by remember { mutableStateOf(false) }
-    var correct by remember { mutableStateOf(0) }
+    var correct by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     val filled = options.map { it.trim() }.filter { it.isNotEmpty() }
     AlertDialog(
         onDismissRequest = onDismiss,

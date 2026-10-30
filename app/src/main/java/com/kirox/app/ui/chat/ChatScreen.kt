@@ -265,7 +265,7 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
     val speed by VoicePlayer.speed.collectAsState()
     val playing = path != null && playingPath == path
     var progress by remember(path) { mutableFloatStateOf(0f) }
-    var positionMs by remember(path) { mutableStateOf(0) }
+    var positionMs by remember(path) { androidx.compose.runtime.mutableIntStateOf(0) }
     LaunchedEffect(playing) {
         while (playing) { progress = VoicePlayer.progress; positionMs = VoicePlayer.positionMs; kotlinx.coroutines.delay(50) }
         progress = 0f
