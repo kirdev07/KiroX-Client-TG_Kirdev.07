@@ -108,7 +108,7 @@ class MessageNotifications(
             .setPublicVersion(
                 NotificationCompat.Builder(context, CHANNEL)
                     .setSmallIcon(android.R.drawable.stat_notify_chat)
-                    .setContentTitle("KiroX")
+                    .setContentTitle("kiroX")
                     .setContentText("Новое сообщение")
                     .build()
             )

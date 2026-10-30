@@ -72,14 +72,14 @@ internal fun AccountsSheet(onDismiss: () -> Unit) {
         onDismissRequest = { confirmLogOut = false },
         containerColor = Fusion.colors.surface1,
         title = { Text("Выйти из аккаунта?", color = Fusion.colors.textPrimary) },
-        text = { Text(if (accounts.size > 1) "KiroX переключится на другой аккаунт на этом устройстве." else "Чтобы вернуться, нужно будет снова войти по номеру или QR-коду.", color = Fusion.colors.textSecondary) },
+        text = { Text(if (accounts.size > 1) "kiroX переключится на другой аккаунт на этом устройстве." else "Чтобы вернуться, нужно будет снова войти по номеру или QR-коду.", color = Fusion.colors.textSecondary) },
         confirmButton = { TextButton(onClick = { confirmLogOut = false; onDismiss(); app.telegram.auth.logOut() }) { Text("Выйти", color = Fusion.colors.danger) } },
         dismissButton = { TextButton(onClick = { confirmLogOut = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
     )
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = androidx.compose.ui.graphics.Color(0xFF0B0812)) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             com.kirox.app.ui.auth.AuthMark(if (adding) KiroXIcon.Add else KiroXIcon.Send, Modifier.size(56.dp))
-            Text(if (adding) "Добавить аккаунт" else "KiroX", color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+            Text(if (adding) "Добавить аккаунт" else "kiroX", color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
         }
         if (adding) {
             // Ways in for a new account; both open the sign-in of a fresh slot.

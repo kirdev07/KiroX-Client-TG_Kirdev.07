@@ -228,7 +228,7 @@ fun TelegramAuthStepScreen(state: TelegramAuthState, repository: TelegramAuthRep
             }
             if (recoveryUnavailable) {
                 Spacer(Modifier.height(12.dp))
-                Text("К аккаунту не привязана резервная почта, восстановить пароль в KiroX нельзя.", color = Fusion.colors.textSecondary, fontSize = 13.sp)
+                Text("К аккаунту не привязана резервная почта, восстановить пароль в kiroX нельзя.", color = Fusion.colors.textSecondary, fontSize = 13.sp)
             }
             Spacer(Modifier.height(12.dp))
             if (state is TelegramAuthState.WaitCode && state.canResend) {
@@ -477,7 +477,7 @@ private fun FusionPasswordStep(
                 }
             }
             if (error != null) Text(error, color = Fusion.colors.danger, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp))
-            if (recoveryUnavailable) Text("К аккаунту не привязана резервная почта, восстановить пароль в KiroX нельзя.", color = Fusion.colors.textSecondary, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 10.dp))
+            if (recoveryUnavailable) Text("К аккаунту не привязана резервная почта, восстановить пароль в kiroX нельзя.", color = Fusion.colors.textSecondary, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 10.dp))
             Spacer(Modifier.height(16.dp))
             AuthLink("Забыли пароль?", enabled = !busy, onClick = onForgot)
         }

@@ -65,7 +65,7 @@ internal fun SettingsTab(profile: TelegramUserProfile?, onOpenProfile: () -> Uni
     val groups = listOf(
         listOf(KiroXIcon.Profile to "Изменить профиль", KiroXIcon.Star to "Telegram Premium"),
         listOf(KiroXIcon.Bell to "Уведомления и звуки", KiroXIcon.Shield to "Конфиденциальность", KiroXIcon.Storage to "Данные и память", KiroXIcon.Palette to "Оформление", KiroXIcon.Link to "Язык"),
-        listOf(KiroXIcon.Sliders to "KiroX Настройки", KiroXIcon.Info to "Помощь", KiroXIcon.Refresh to "О приложении")
+        listOf(KiroXIcon.Sliders to "kiroX Настройки", KiroXIcon.Info to "Помощь", KiroXIcon.Refresh to "О приложении")
     )
     // Search filters the rows by name and by what each section contains.
     var searching by rememberSaveable { mutableStateOf(false) }
@@ -76,7 +76,7 @@ internal fun SettingsTab(profile: TelegramUserProfile?, onOpenProfile: () -> Uni
         "Уведомления и звуки" to "звук вибрация превью",
         "Конфиденциальность" to "приватность номер телефона время захода фото звонки приглашения",
         "Данные и память" to "кэш память хранилище очистить",
-        "KiroX Настройки" to "сброс журнал ошибок выход лицензии",
+        "kiroX Настройки" to "сброс журнал ошибок выход лицензии",
         "О приложении" to "версия обновления бета github"
     )
     fun matches(title: String) = query.isBlank() || title.contains(query, true) || keywords[title]?.contains(query, true) == true
@@ -88,7 +88,7 @@ internal fun SettingsTab(profile: TelegramUserProfile?, onOpenProfile: () -> Uni
         "Конфиденциальность" -> onOpenSection("Конфиденциальность")
         "Данные и память" -> onOpenSection("Данные и память")
         "Оформление" -> onOpenCustomization()
-        "Язык", "KiroX Настройки" -> onOpenSection("Дополнительно")
+        "Язык", "kiroX Настройки" -> onOpenSection("Дополнительно")
         "Помощь" -> runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, "https://telegram.org/faq".toUri())) }
             .getOrElse { onNotice("Не удалось открыть telegram.org/faq") }.let { }
         else -> onOpenUpdates()

@@ -202,7 +202,7 @@ object VoicePlayer {
      * Plays [path], or pauses it when it is the one playing; a paused file resumes where it was.
      * [title] and [artist] are shown in the media notification.
      */
-    fun toggle(context: Context, path: String, title: String = "Голосовое сообщение", artist: String = "KiroX") {
+    fun toggle(context: Context, path: String, title: String = "Голосовое сообщение", artist: String = "kiroX") {
         val p = player(context)
         if (currentPath == path) {
             if (p.playWhenReady) p.pause() else { if (p.playbackState == androidx.media3.common.Player.STATE_ENDED) p.seekTo(0); p.play() }

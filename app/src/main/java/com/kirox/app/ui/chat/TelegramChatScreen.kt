@@ -310,7 +310,7 @@ fun TelegramChatScreen(
             val path = kotlinx.coroutines.withTimeoutOrNull(5 * 60_000L) { files.state(file).first { it.path != null } }?.path
             notice = when {
                 path == null -> "Не удалось скачать файл"
-                saveToDownloads(context, path, name, mime) -> "Сохранено в «Загрузки/KiroX»"
+                saveToDownloads(context, path, name, mime) -> "Сохранено в «Загрузки/kiroX»"
                 else -> "Не удалось сохранить файл"
             }
         }

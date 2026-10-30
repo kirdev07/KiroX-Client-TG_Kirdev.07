@@ -76,10 +76,10 @@ internal fun BackgroundIntroSheet(onDone: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             Text("Чтобы сообщения приходили сразу", color = Fusion.colors.textPrimary, fontSize = 21.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             Spacer(Modifier.height(18.dp))
-            Reason(KiroXIcon.Bell, "Уведомления", "Показывать новые сообщения и входящие звонки, когда KiroX свёрнут.")
+            Reason(KiroXIcon.Bell, "Уведомления", "Показывать новые сообщения и входящие звонки, когда kiroX свёрнут.")
             Reason(
                 KiroXIcon.Refresh, "Работа в фоне",
-                "Telegram присылает пуши только своему приложению. Поэтому KiroX сам держит связь, пока закрыт, — система не должна его усыплять. Батарея тратится немного, в шторке будет тихое «KiroX на связи»."
+                "Telegram присылает пуши только своему приложению. Поэтому kiroX сам держит связь, пока закрыт, — система не должна его усыплять. Батарея тратится немного, в шторке будет тихое «kiroX на связи»."
             )
             Text(
                 "Сообщения и звонки не уходят никуда, кроме Telegram. Режим можно поменять в «Уведомления → Фоновое соединение».",

@@ -194,7 +194,7 @@ fun TelegramMainScreen(
                             "Данные и память" -> SubScreen.Storage
                             "Telegram Premium" -> SubScreen.Premium
                             "Чаты и папки" -> SubScreen.ChatStyle
-                            "Возможности KiroX" -> SubScreen.Customization
+                            "Возможности kiroX" -> SubScreen.Customization
                             else -> SubScreen.Advanced
                         }
                     }, onNotice = showNotice)
@@ -471,7 +471,7 @@ private fun ChatsHeader(status: String?, onSearch: () -> Unit, onNewMessage: () 
         // Mark-all-read sits where it was before v2; Contacts moved to the dock.
         Box(Modifier.align(Alignment.CenterStart)) { TitleAction(KiroXIcon.ReadAll, "Отметить всё прочитанным", onClick = onReadAll) }
         Text(
-            status ?: "KiroX", color = Fusion.colors.textPrimary, maxLines = 1,
+            status ?: "kiroX", color = Fusion.colors.textPrimary, maxLines = 1,
             style = if (status == null) androidx.compose.material3.MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold) else androidx.compose.material3.MaterialTheme.typography.titleMedium,
             modifier = Modifier.align(Alignment.Center)
         )
@@ -512,7 +512,7 @@ private val KindFilters = listOf(
     com.kirox.app.telegram.TelegramChatKind.Group to "Группы"
 )
 
-private val noCallsText = "Звонки из KiroX пока недоступны: нужен отдельный VoIP-модуль"
+private val noCallsText = "Звонки из kiroX пока недоступны: нужен отдельный VoIP-модуль"
 
 @Composable
 private fun ContactsTab(

@@ -208,7 +208,7 @@ internal fun AudioMessage(media: TelegramMedia) {
     val playingPath by VoicePlayer.playingPath.collectAsState()
     var wantPlay by remember(media.file.id) { mutableStateOf(false) }
     val title = media.title.ifBlank { "Аудио" }
-    val artist = media.performer.ifBlank { "KiroX" }
+    val artist = media.performer.ifBlank { "kiroX" }
     LaunchedEffect(state.path, wantPlay) { val path = state.path; if (wantPlay && path != null) { VoicePlayer.toggle(context, path, title, artist); wantPlay = false } }
     val playing = state.path != null && playingPath == state.path
     Row(
@@ -353,7 +353,7 @@ internal fun FullscreenPhoto(file: TelegramFileRef, onClose: () -> Unit) {
             path?.let { local ->
                 Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     ViewerAction(com.kirox.app.ui.icons.KiroXIcon.Storage, "Сохранить") {
-                        scope.launch { status = if (saveToDownloads(context, local, "photo.jpg", "image/jpeg")) "Сохранено в Загрузки/KiroX" else "Не удалось сохранить" }
+                        scope.launch { status = if (saveToDownloads(context, local, "photo.jpg", "image/jpeg")) "Сохранено в Загрузки/kiroX" else "Не удалось сохранить" }
                     }
                     ViewerAction(com.kirox.app.ui.icons.KiroXIcon.Forward, "Поделиться") {
                         scope.launch { if (!shareFile(context, local, "photo.jpg", "image/jpeg")) status = "Нет приложения, чтобы поделиться" }

@@ -113,7 +113,7 @@ private fun GalleryActions(file: TelegramFileRef, modifier: Modifier) {
         status?.let { Text(it, color = Color.White, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp)).background(Color(0x99000000)).padding(horizontal = 14.dp, vertical = 8.dp)) }
         path?.let { local ->
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                GalleryButton(KiroXIcon.Storage, "Сохранить") { scope.launch { status = if (saveToDownloads(context, local, "photo.jpg", "image/jpeg")) "Сохранено в Загрузки/KiroX" else "Не удалось сохранить" } }
+                GalleryButton(KiroXIcon.Storage, "Сохранить") { scope.launch { status = if (saveToDownloads(context, local, "photo.jpg", "image/jpeg")) "Сохранено в Загрузки/kiroX" else "Не удалось сохранить" } }
                 GalleryButton(KiroXIcon.Forward, "Поделиться") { scope.launch { if (!shareFile(context, local, "photo.jpg", "image/jpeg")) status = "Нет приложения, чтобы поделиться" } }
                 GalleryButton(KiroXIcon.Link, "Открыть в…") { scope.launch { if (!openFile(context, local, "photo.jpg", "image/jpeg")) status = "Нет приложения для открытия" } }
             }

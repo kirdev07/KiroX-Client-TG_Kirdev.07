@@ -116,9 +116,9 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
                 })
                 Text(
                     when (mode) {
-                        com.kirox.app.notify.KeepMode.Auto -> if (pushApp) "Сейчас выключено: пуши приходят через ntfy." else "Сейчас включено: приложения для пушей (ntfy) нет, поэтому KiroX сам держит связь. В шторке тихое уведомление «KiroX на связи»."
-                        com.kirox.app.notify.KeepMode.On -> "KiroX всегда на связи, сообщения приходят сразу. В шторке тихое уведомление «KiroX на связи»."
-                        com.kirox.app.notify.KeepMode.Off -> if (pushApp) "Сообщения приходят только по пушу через ntfy." else "Приложения для пушей нет: пока KiroX закрыт, сообщения не придут."
+                        com.kirox.app.notify.KeepMode.Auto -> if (pushApp) "Сейчас выключено: пуши приходят через ntfy." else "Сейчас включено: приложения для пушей (ntfy) нет, поэтому kiroX сам держит связь. В шторке тихое уведомление «kiroX на связи»."
+                        com.kirox.app.notify.KeepMode.On -> "kiroX всегда на связи, сообщения приходят сразу. В шторке тихое уведомление «kiroX на связи»."
+                        com.kirox.app.notify.KeepMode.Off -> if (pushApp) "Сообщения приходят только по пушу через ntfy." else "Приложения для пушей нет: пока kiroX закрыт, сообщения не придут."
                     },
                     color = if (mode == com.kirox.app.notify.KeepMode.Off && !pushApp) Fusion.colors.danger else Fusion.colors.textSecondary,
                     fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(start = 4.dp, top = 8.dp)
@@ -128,7 +128,7 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
         item { LinkRow("Исключения", "Чаты, где уведомления настроены отдельно") { exceptionsPage = true } }
         item { SmallCaption("Система") }
         item {
-            LinkRow("Звук и вибрация", "Системные настройки уведомлений KiroX") {
+            LinkRow("Звук и вибрация", "Системные настройки уведомлений kiroX") {
                 context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
         }
@@ -140,7 +140,7 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
             val unrestricted = remember(resumes) { power?.isIgnoringBatteryOptimizations(context.packageName) == true }
             LinkRow(
                 "Без ограничений батареи",
-                if (unrestricted) "Включено: система не усыпляет KiroX" else "Чтобы звонки и сообщения не задерживались в режиме экономии"
+                if (unrestricted) "Включено: система не усыпляет kiroX" else "Чтобы звонки и сообщения не задерживались в режиме экономии"
             ) {
                 if (!unrestricted) runCatching {
                     @android.annotation.SuppressLint("BatteryLife")
@@ -163,7 +163,7 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
             }
         }
         item {
-            LinkRow("Работа в фоне", "Чтобы уведомления и звонки приходили, когда KiroX свёрнут") {
+            LinkRow("Работа в фоне", "Чтобы уведомления и звонки приходили, когда kiroX свёрнут") {
                 runCatching {
                     context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
@@ -171,7 +171,7 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
         }
         if (android.os.Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) item {
             Text(
-                "На Xiaomi включите для KiroX «Автозапуск» и в «Контроле активности» выберите «Нет ограничений».",
+                "На Xiaomi включите для kiroX «Автозапуск» и в «Контроле активности» выберите «Нет ограничений».",
                 color = Fusion.colors.textTertiary, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
             )
         }
@@ -328,7 +328,7 @@ internal fun PremiumScreen(profile: TelegramUserProfile?, onBack: () -> Unit) {
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Подписка оформляется и управляется в официальном приложении Telegram. Возможности Premium работают и в KiroX там, где их поддерживает TDLib.",
+                    "Подписка оформляется и управляется в официальном приложении Telegram. Возможности Premium работают и в kiroX там, где их поддерживает TDLib.",
                     color = Fusion.colors.textSecondary, fontSize = 14.sp, lineHeight = 20.sp, textAlign = TextAlign.Center
                 )
             }
@@ -353,7 +353,7 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Дополнительно", onBack) }
         item { SmallCaption("О приложении") }
-        item { LinkRow("KiroX ${BuildConfig.VERSION_NAME}", "Независимый клиент Telegram на TDLib") {} }
+        item { LinkRow("kiroX ${BuildConfig.VERSION_NAME}", "Независимый клиент Telegram на TDLib") {} }
         item {
             LinkRow("Исходный код и лицензии", "github.com/kirdev07/KiroX-Client-TG_Kirdev.07") {
                 context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/kirdev07/KiroX-Client-TG_Kirdev.07".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -376,13 +376,13 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
             if (crashes > 0) LinkRow("Очистить журнал", null, Fusion.colors.textSecondary) { com.kirox.app.CrashLog.clear(context); crashes = 0; onNotice("Журнал очищен") }
         }
         item { SmallCaption("Сброс") }
-        item { LinkRow("Сбросить настройки KiroX", "Тема, анимации, чаты — к значениям по умолчанию. Telegram не затрагивается", Fusion.colors.danger) { confirmReset = true } }
+        item { LinkRow("Сбросить настройки kiroX", "Тема, анимации, чаты — к значениям по умолчанию. Telegram не затрагивается", Fusion.colors.danger) { confirmReset = true } }
         item { LinkRow("Выйти из аккаунта", null, Fusion.colors.danger) { confirmLogout = true } }
     }
     if (confirmReset) AlertDialog(
         onDismissRequest = { confirmReset = false },
         containerColor = Fusion.colors.surface1,
-        title = { Text("Сбросить настройки KiroX?", color = Fusion.colors.textPrimary) },
+        title = { Text("Сбросить настройки kiroX?", color = Fusion.colors.textPrimary) },
         text = { Text("Тема, пузыри, обои, анимации и размер текста вернутся к значениям по умолчанию.", color = Fusion.colors.textSecondary) },
         confirmButton = {
             TextButton(onClick = {
@@ -397,7 +397,7 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
         onDismissRequest = { confirmLogout = false },
         containerColor = Fusion.colors.surface1,
         title = { Text("Выйти из аккаунта?", color = Fusion.colors.textPrimary) },
-        text = { Text("Сеанс KiroX на этом устройстве будет завершён.", color = Fusion.colors.textSecondary) },
+        text = { Text("Сеанс kiroX на этом устройстве будет завершён.", color = Fusion.colors.textSecondary) },
         confirmButton = { TextButton(onClick = { confirmLogout = false; onLogOut() }) { Text("Выйти", color = Fusion.colors.danger) } },
         dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
     )

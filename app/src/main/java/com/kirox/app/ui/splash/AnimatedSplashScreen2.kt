@@ -128,7 +128,7 @@ fun AnimatedSplashScreen2(
             Column(Modifier.align(Alignment.Center).graphicsLayer { alpha = logoReveal; scaleX = .94f + .06f * logoReveal; scaleY = .94f + .06f * logoReveal }, horizontalAlignment = Alignment.CenterHorizontally) {
                 com.kirox.app.ui.icons.KiroXIcon(com.kirox.app.ui.icons.KiroXIcon.Send, null, Modifier.size(72.dp), Color.White)
                 Spacer(Modifier.height(14.dp))
-                Text("KiroX", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Bold)
+                Text("kiroX", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Bold)
                 Text("Telegram Client", color = Color(0xFFB9B3C9), fontSize = 16.sp)
             }
             Column(

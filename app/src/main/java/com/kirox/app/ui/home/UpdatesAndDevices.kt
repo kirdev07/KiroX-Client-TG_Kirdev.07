@@ -63,7 +63,7 @@ internal fun UpdatesScreen(updates: com.kirox.app.update.UpdateCenter, onBack: (
         item { BackTitle("Обновления", onBack) }
         item {
             Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                Text("KiroX ${updates.currentVersion}", color = Fusion.colors.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                Text("kiroX ${updates.currentVersion}", color = Fusion.colors.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
                 val status = when (val s = state) {
                     com.kirox.app.update.UpdateState.Idle -> "Нажмите «Проверить», чтобы узнать о новой версии"

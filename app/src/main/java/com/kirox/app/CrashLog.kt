@@ -70,7 +70,7 @@ object CrashLog {
     private fun dir(context: Context) = File(context.filesDir, "crashes").apply { mkdirs() }
 
     private fun write(context: Context, title: String, body: String, time: Long = System.currentTimeMillis()) {
-        val header = "$title\nKiroX ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · ${Build.MANUFACTURER} ${Build.MODEL}\n${format(time)}\n"
+        val header = "$title\nkiroX ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · ${Build.MANUFACTURER} ${Build.MODEL}\n${format(time)}\n"
         File(dir(context), "crash_$time.txt").writeText(header + "\n" + body)
         dir(context).listFiles()?.sortedByDescending { it.name }?.drop(MAX_FILES)?.forEach { it.delete() }
     }
@@ -87,7 +87,7 @@ object CrashLog {
     fun share(context: Context) {
         val text = read(context).ifBlank { return }
         val intent = Intent(Intent.ACTION_SEND).setType("text/plain")
-            .putExtra(Intent.EXTRA_SUBJECT, "Журнал ошибок KiroX ${BuildConfig.VERSION_NAME}")
+            .putExtra(Intent.EXTRA_SUBJECT, "Журнал ошибок kiroX ${BuildConfig.VERSION_NAME}")
             .putExtra(Intent.EXTRA_TEXT, text.take(90_000))
         context.startActivity(Intent.createChooser(intent, "Отправить журнал").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
