@@ -374,20 +374,3 @@ private fun <T> CompactSegment(title: String, options: List<T>, selected: T, lab
 private fun Hint(text: String) {
     Text(text, color = Fusion.colors.textTertiary, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(start = 70.dp, end = 16.dp, bottom = 10.dp))
 }
-
-@Composable
-private fun <T> SegmentRow(icon: KiroXIcon, title: String, options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(Fusion.colors.iconContainer), contentAlignment = Alignment.Center) {
-                IconGlyph(icon, null, Modifier.size(21.dp), Fusion.colors.textPrimary)
-            }
-            Spacer(Modifier.width(14.dp))
-            Text(title, color = Fusion.colors.textPrimary, fontSize = 16.sp)
-        }
-        Spacer(Modifier.height(10.dp))
-        com.kirox.app.ui.components.FusionSegmented(options, selected, label, onSelect)
-    }
-}
-
-// ---------- My profile (old Fusion layout) ----------

@@ -5,7 +5,6 @@ import androidx.compose.runtime.Immutable
 enum class MessageDirection { Incoming, Outgoing, System }
 enum class MessageKind { Text, Photo, Video, Animation, VideoNote, Voice, Audio, Document, Sticker }
 enum class DeliveryState { None, Sending, Sent, Delivered, Read, Failed }
-enum class ChatLoadState { Loading, Ready, Empty, Error, Offline }
 
 @Immutable
 data class QuoteUi(val author: String, val text: String, val messageId: Long = 0)
@@ -67,8 +66,3 @@ data class ChatAppearance(
     val animationSpeed: Float = 1f
 )
 
-/** Boundary for the future real implementation. Mapping TDLib objects belongs here, not in Compose UI. */
-interface TdLibChatAdapter {
-    suspend fun loadHistory(chatId: Long, beforeMessageId: Long?, limit: Int): Result<List<MessageUi>>
-    suspend fun sendText(chatId: Long, text: String, replyToMessageId: Long?): Result<MessageUi>
-}

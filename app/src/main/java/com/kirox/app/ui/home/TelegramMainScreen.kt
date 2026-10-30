@@ -938,18 +938,12 @@ private fun HeaderAction(icon: KiroXIcon, description: String, onClick: () -> Un
     }
 }
 
-
 @Composable
 private fun SearchField(value: String, hint: String, autoFocus: Boolean = false, focusTrigger: Int = 0, onChange: (String) -> Unit) {
     val focus = remember { androidx.compose.ui.focus.FocusRequester() }
     if (autoFocus) LaunchedEffect(Unit) { focus.requestFocus() }
     LaunchedEffect(focusTrigger) { if (focusTrigger > 0) focus.requestFocus() }
     com.kirox.app.ui.components.FusionSearchField(value, onChange, hint, Modifier.padding(horizontal = 16.dp, vertical = 6.dp), focus)
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(text, color = Fusion.colors.textSecondary, fontSize = 11.sp, letterSpacing = 1.sp, modifier = Modifier.padding(start = 18.dp, top = 20.dp, bottom = 6.dp))
 }
 
 @Composable

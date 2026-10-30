@@ -137,11 +137,3 @@ private fun CountryRow(country: Country, selected: Country, onSelect: (Country) 
     }
 }
 
-@Composable
-private fun BackButton(onClick: () -> Unit) {
-    val glyph = KiroXWhite
-    Canvas(Modifier.size(32.dp).clickable(onClick = onClick).padding(6.dp)) {
-        drawLine(glyph, Offset(size.width * .68f, size.height * .1f), Offset(size.width * .28f, size.height * .5f), 2.dp.toPx())
-        drawLine(glyph, Offset(size.width * .28f, size.height * .5f), Offset(size.width * .68f, size.height * .9f), 2.dp.toPx())
-    }
-}
