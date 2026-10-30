@@ -122,14 +122,14 @@ fun AnimatedSplashScreen2(
         )
 
         if (com.kirox.app.ui.theme.Fusion.colors.backdrop != null) {
-            // Fusion v2 «Заставка» (approved auth board): glow, plane mark, KiroX, progress and version.
+            // Fusion v2 «Заставка» (approved auth board): glow, kiroX logo, name, progress and version.
             val violet = com.kirox.app.ui.theme.Fusion.colors.accent
             Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.radialGradient(listOf(violet.copy(alpha = .30f * particleIntro), Color.Transparent), radius = 1400f)))
             Column(Modifier.align(Alignment.Center).graphicsLayer { alpha = logoReveal; scaleX = .94f + .06f * logoReveal; scaleY = .94f + .06f * logoReveal }, horizontalAlignment = Alignment.CenterHorizontally) {
-                com.kirox.app.ui.icons.KiroXIcon(com.kirox.app.ui.icons.KiroXIcon.Send, null, Modifier.size(72.dp), Color.White)
+                androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.kirox.app.R.drawable.kirox_logo), null, Modifier.size(96.dp))
                 Spacer(Modifier.height(14.dp))
                 Text("kiroX", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Bold)
-                Text("Telegram Client", color = Color(0xFFB9B3C9), fontSize = 16.sp)
+                Text("Неофициальный клиент Telegram", color = Color(0xFFB9B3C9), fontSize = 16.sp)
             }
             Column(
                 Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(horizontal = 56.dp, vertical = 48.dp).graphicsLayer { alpha = indicatorIntro },

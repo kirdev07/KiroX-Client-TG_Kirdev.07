@@ -148,7 +148,7 @@ object KiroXFeatures {
      * factor 0: no seasonal particles, no list/swipe/button animations. The user's own speed
      * setting (Обычные / Меньше / Выкл.) still applies on top.
      */
-    const val ANIMATIONS = true
+    const val ANIMATIONS = false
 }
 
 /** User animation level: 1 = normal, 0.5 = reduced, 0 = off. Multiplies every Fusion duration. */
