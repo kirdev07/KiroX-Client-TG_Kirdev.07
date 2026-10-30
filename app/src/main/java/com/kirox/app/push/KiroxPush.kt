@@ -141,9 +141,14 @@ class KiroxFirebaseService : FirebaseMessagingService() {
 object UnifiedPush {
     private const val ACTION_REGISTER = "org.unifiedpush.android.distributor.REGISTER"
 
+    /** Package of an installed UnifiedPush distributor (ntfy and the like), or null. */
+    fun distributor(context: Context): String? = context.packageManager.queryBroadcastReceivers(Intent(ACTION_REGISTER), 0)
+        .map { it.activityInfo.packageName }.firstOrNull { it != context.packageName }
+
+    fun hasDistributor(context: Context) = distributor(context) != null
+
     fun register(context: Context, token: String) {
-        val distributor = context.packageManager.queryBroadcastReceivers(Intent(ACTION_REGISTER), 0)
-            .map { it.activityInfo.packageName }.firstOrNull { it != context.packageName } ?: return
+        val distributor = distributor(context) ?: return
         // The PendingIntent lets the distributor verify which app is registering.
         val identity = PendingIntent.getBroadcast(context, 0, Intent("com.kirox.app.push.IDENTITY").setPackage(context.packageName), PendingIntent.FLAG_IMMUTABLE)
         context.sendBroadcast(

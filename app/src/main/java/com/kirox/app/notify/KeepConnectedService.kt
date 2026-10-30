@@ -16,9 +16,10 @@ import com.kirox.app.KiroXApplication
 import com.kirox.app.MainActivity
 
 /**
- * Optional "background connection": a quiet foreground service keeps the process, and so TDLib,
- * alive while KiroX is off screen. Messages then arrive over TDLib's own connection, without
- * waiting for a push; the price is a permanent low-priority notification.
+ * "Background connection": a quiet foreground service keeps the process, and so TDLib, alive while
+ * KiroX is off screen. Messages then arrive over TDLib's own connection, without waiting for a push;
+ * the price is a permanent low-priority notification. In [KeepMode.Auto] it runs only when no
+ * UnifiedPush distributor (ntfy) is installed, since Telegram does not send FCM pushes to KiroX.
  */
 class KeepConnectedService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
@@ -70,16 +71,28 @@ class KeepConnectedService : Service() {
         private const val ID = 7301
         private const val PREFS = "kirox_push"
         private const val KEY = "keep_connected"
+        private const val KEY_MODE = "keep_mode"
 
         /** True while the service really runs in the foreground; the setting alone does not keep TDLib alive. */
         @Volatile var running = false
             private set
 
-        fun isEnabled(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, false)
+        /** Chosen mode; a switch turned on before modes existed counts as [KeepMode.On]. */
+        fun mode(context: Context): KeepMode {
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            return KeepMode.entries.firstOrNull { it.name == prefs.getString(KEY_MODE, null) }
+                ?: if (prefs.getBoolean(KEY, false)) KeepMode.On else KeepMode.Auto
+        }
 
-        fun setEnabled(context: Context, enabled: Boolean) {
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY, enabled) }
-            if (enabled) start(context) else context.stopService(Intent(context, KeepConnectedService::class.java))
+        fun isEnabled(context: Context) = when (mode(context)) {
+            KeepMode.On -> true
+            KeepMode.Off -> false
+            KeepMode.Auto -> !com.kirox.app.push.UnifiedPush.hasDistributor(context)
+        }
+
+        fun setMode(context: Context, mode: KeepMode) {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putString(KEY_MODE, mode.name) }
+            if (isEnabled(context)) start(context) else context.stopService(Intent(context, KeepConnectedService::class.java))
         }
 
         /** Allowed while KiroX is on screen and after boot; a refused start waits for the next launch. */
@@ -96,3 +109,6 @@ class KeepConnectedBootReceiver : BroadcastReceiver() {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) KeepConnectedService.start(context)
     }
 }
+
+/** Background connection: on when no push app is installed, always, or never. */
+enum class KeepMode(val title: String) { Auto("Авто"), On("Вкл."), Off("Выкл.") }

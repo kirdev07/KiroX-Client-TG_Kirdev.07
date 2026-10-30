@@ -106,9 +106,23 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
         }
         item { SmallCaption("Доставка") }
         item {
-            var keep by remember { mutableStateOf(com.kirox.app.notify.KeepConnectedService.isEnabled(context)) }
-            ToggleRow("Фоновое соединение", "Сообщения приходят сразу, даже если система не будит KiroX по пушу. В шторке будет тихое уведомление «KiroX на связи».", keep) {
-                keep = it; com.kirox.app.notify.KeepConnectedService.setEnabled(context, it)
+            // Auto: on when there is no push app (ntfy), which is the only way pushes reach KiroX.
+            var mode by remember { mutableStateOf(com.kirox.app.notify.KeepConnectedService.mode(context)) }
+            val pushApp = remember(mode) { com.kirox.app.push.UnifiedPush.hasDistributor(context) }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
+                Text("Фоновое соединение", color = Fusion.colors.textPrimary, fontSize = 16.sp, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
+                com.kirox.app.ui.components.FusionSegmented(com.kirox.app.notify.KeepMode.entries, mode, { it.title }, onSelect = {
+                    mode = it; com.kirox.app.notify.KeepConnectedService.setMode(context, it)
+                })
+                Text(
+                    when (mode) {
+                        com.kirox.app.notify.KeepMode.Auto -> if (pushApp) "Сейчас выключено: пуши приходят через ntfy." else "Сейчас включено: приложения для пушей (ntfy) нет, поэтому KiroX сам держит связь. В шторке тихое уведомление «KiroX на связи»."
+                        com.kirox.app.notify.KeepMode.On -> "KiroX всегда на связи, сообщения приходят сразу. В шторке тихое уведомление «KiroX на связи»."
+                        com.kirox.app.notify.KeepMode.Off -> if (pushApp) "Сообщения приходят только по пушу через ntfy." else "Приложения для пушей нет: пока KiroX закрыт, сообщения не придут."
+                    },
+                    color = if (mode == com.kirox.app.notify.KeepMode.Off && !pushApp) Fusion.colors.danger else Fusion.colors.textSecondary,
+                    fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(start = 4.dp, top = 8.dp)
+                )
             }
         }
         item { LinkRow("Исключения", "Чаты, где уведомления настроены отдельно") { exceptionsPage = true } }
