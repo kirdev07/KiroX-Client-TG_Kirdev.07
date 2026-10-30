@@ -56,6 +56,8 @@ interface TelegramChatListActions {
     suspend fun searchMessages(query: String): List<com.kirox.app.telegram.TelegramFoundMessage> = emptyList()
     /** After opening a chat from a message result: scroll it to that message. */
     fun jumpToMessage(messageId: Long) {}
+    /** Deletes a private chat for both sides where allowed, or leaves a group or channel. */
+    suspend fun deleteChat(chatId: Long) {}
 }
 
 /** Bottom toast; [actionLabel] adds a tappable action such as «Отменить». */
@@ -113,24 +115,32 @@ internal fun SwipeableChatRow(chat: TelegramChatItem, onSwipeRight: () -> Unit, 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun ChatContextSheet(chat: TelegramChatItem, onDismiss: () -> Unit, onPin: () -> Unit, onRead: () -> Unit, onArchive: () -> Unit) {
+internal fun ChatContextSheet(chat: TelegramChatItem, onDismiss: () -> Unit, onPin: () -> Unit, onRead: () -> Unit, onArchive: () -> Unit, onDelete: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Fusion.colors.surface1) {
         Text(chat.title, color = Fusion.colors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
         val unread = chat.unreadCount > 0 || chat.isMarkedUnread
         SheetAction(KiroXIcon.Pin, if (chat.isPinned) "Открепить" else "Закрепить") { onPin(); onDismiss() }
         SheetAction(KiroXIcon.ReadAll, if (unread) "Отметить прочитанным" else "Отметить непрочитанным") { onRead(); onDismiss() }
         SheetAction(KiroXIcon.Folder, if (chat.archived) "Вернуть из архива" else "В архив") { onArchive(); onDismiss() }
+        SheetAction(KiroXIcon.Delete, chat.deleteLabel(), Fusion.colors.danger) { onDelete(); onDismiss() }
         Spacer(Modifier.navigationBarsPadding().height(12.dp))
     }
 }
 
+/** «Удалить чат» for people and bots, «Покинуть канал/группу» otherwise. */
+internal fun TelegramChatItem.deleteLabel() = when (kind) {
+    com.kirox.app.telegram.TelegramChatKind.Private -> "Удалить чат"
+    com.kirox.app.telegram.TelegramChatKind.Channel -> "Покинуть канал"
+    com.kirox.app.telegram.TelegramChatKind.Group -> "Покинуть группу"
+}
+
 @Composable
-private fun SheetAction(icon: KiroXIcon, title: String, onClick: () -> Unit) {
+private fun SheetAction(icon: KiroXIcon, title: String, color: androidx.compose.ui.graphics.Color = Fusion.colors.textPrimary, onClick: () -> Unit) {
     // Material 3 list item on the sheet surface.
     androidx.compose.material3.ListItem(
         headlineContent = { Text(title) },
-        leadingContent = { IconGlyph(icon, null, Modifier.size(22.dp), Fusion.colors.textPrimary) },
-        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Fusion.colors.surface1, headlineColor = Fusion.colors.textPrimary),
+        leadingContent = { IconGlyph(icon, null, Modifier.size(22.dp), color) },
+        colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Fusion.colors.surface1, headlineColor = color),
         modifier = Modifier.clickable(onClick = onClick)
     )
 }

@@ -244,6 +244,8 @@ private fun ChatsTab(
     var searching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var menuFor by remember { mutableStateOf<TelegramChatItem?>(null) }
+    var deleteFor by remember { mutableStateOf<TelegramChatItem?>(null) }
+    val scope = rememberCoroutineScope()
     androidx.activity.compose.BackHandler(enabled = searching) { searching = false; query = "" }
     fun archive(chat: TelegramChatItem) {
         val archived = !chat.archived
@@ -280,7 +282,28 @@ private fun ChatsTab(
             chat, onDismiss = { menuFor = null },
             onPin = { actions.setPinned(if (chat.archived) TelegramChatListKey.Archive else listKey, chat.id, !chat.isPinned) },
             onRead = { toggleRead(chat) },
-            onArchive = { archive(chat) }
+            onArchive = { archive(chat) },
+            onDelete = { deleteFor = chat }
+        )
+    }
+    deleteFor?.let { chat ->
+        val leaving = chat.kind != com.kirox.app.telegram.TelegramChatKind.Private
+        AlertDialog(
+            onDismissRequest = { deleteFor = null },
+            containerColor = Fusion.colors.surface2,
+            title = { Text(if (leaving) "${chat.deleteLabel()} «${chat.title}»?" else "Удалить чат с «${chat.title}»?", color = Fusion.colors.textPrimary) },
+            text = { Text(if (leaving) "Чат пропадёт из списка, вернуться можно по ссылке или приглашению." else "Переписка удалится из вашего аккаунта, у собеседника она останется.", color = Fusion.colors.textSecondary) },
+            confirmButton = {
+                TextButton(onClick = {
+                    deleteFor = null
+                    scope.launch {
+                        runCatching { actions.deleteChat(chat.id) }
+                            .onSuccess { onNotice(UiNotice(if (leaving) "Вы покинули «${chat.title}»" else "Чат удалён")) }
+                            .onFailure { onNotice(UiNotice(if (leaving) "Не удалось выйти" else "Не удалось удалить чат")) }
+                    }
+                }) { Text(if (leaving) "Покинуть" else "Удалить", color = Fusion.colors.danger) }
+            },
+            dismissButton = { TextButton(onClick = { deleteFor = null }) { Text("Отмена", color = Fusion.colors.textPrimary) } }
         )
     }
     val loaded = lists[listKey]

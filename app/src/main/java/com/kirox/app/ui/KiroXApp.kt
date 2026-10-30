@@ -486,6 +486,7 @@ private class TelegramChatListActionsImpl(private val repository: TelegramChatRe
     override fun markRead(chatId: Long) = repository.markRead(chatId)
     override fun markUnread(chatId: Long) = repository.markUnread(chatId)
     override suspend fun search(query: String): List<TelegramChatItem> = repository.search(query)
+    override suspend fun deleteChat(chatId: Long) = repository.deleteChat(chatId)
 }
 
 private class TelegramStickerSource(private val repository: com.kirox.app.telegram.TelegramStickerRepository) : com.kirox.app.ui.chat.StickerPanelSource {
