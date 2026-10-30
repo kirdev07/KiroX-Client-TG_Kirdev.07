@@ -1,5 +1,6 @@
 package com.kirox.app.ui.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,10 +19,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kirox.app.R
 import com.kirox.app.ui.icons.KiroXIcon
 import com.kirox.app.ui.theme.Fusion
 
@@ -40,13 +44,19 @@ internal fun Modifier.authBackdrop(): Modifier {
     }
 }
 
-/** Mark in the center of a step: icon in the accent color over a glow. */
+/** Mark in the center of a step: a white icon on the logo's violet tile, so every step matches the kiroX logo. */
 @Composable
 internal fun AuthMark(icon: KiroXIcon, modifier: Modifier = Modifier) {
-    Box(
-        modifier.size(72.dp).clip(CircleShape).background(Brush.radialGradient(listOf(Fusion.colors.accent.copy(alpha = 0.42f), Color.Transparent))),
+    BoxWithConstraints(
+        modifier.size(72.dp).clip(RoundedCornerShape(24)).background(colorResource(R.color.ic_launcher_background)),
         contentAlignment = Alignment.Center
-    ) { KiroXIcon(icon, null, Modifier.size(34.dp), Fusion.colors.accent) }
+    ) { KiroXIcon(icon, null, Modifier.size(maxWidth * 0.48f), Color.White) }
+}
+
+/** The kiroX logo itself, for the first welcome page and the sign-in start. */
+@Composable
+internal fun AuthLogo(modifier: Modifier = Modifier) {
+    Image(painterResource(R.drawable.kirox_logo), "kiroX", modifier.size(72.dp))
 }
 
 @Composable

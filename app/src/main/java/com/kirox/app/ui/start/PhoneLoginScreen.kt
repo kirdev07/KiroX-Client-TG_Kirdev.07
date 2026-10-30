@@ -311,7 +311,7 @@ private fun PhoneLoginFusion(
             }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            com.kirox.app.ui.auth.AuthMark(com.kirox.app.ui.icons.KiroXIcon.Send)
+            com.kirox.app.ui.auth.AuthLogo()
             Spacer(Modifier.height(14.dp))
             com.kirox.app.ui.auth.AuthHeading("Введите номер", "Ваш номер телефона\nдля входа в Telegram")
             Spacer(Modifier.height(24.dp))
