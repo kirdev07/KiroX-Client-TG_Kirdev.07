@@ -119,15 +119,16 @@ fun KiroXApp() {
             }
         }
     }
-    // Android 13+: ask once after sign-in, so new-message notifications can be shown.
-    val notificationPermission = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-    ) { }
+    // Once after sign-in: why KiroX needs notifications and background work, then the system dialogs;
+    // background mode starts right away.
+    var backgroundIntro by remember { mutableStateOf(false) }
     LaunchedEffect(telegramAuth) {
-        if (telegramAuth == TelegramAuthState.Ready && android.os.Build.VERSION.SDK_INT >= 33 &&
-            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        if (telegramAuth == TelegramAuthState.Ready) {
+            com.kirox.app.notify.KeepConnectedService.start(context)
+            backgroundIntro = com.kirox.app.ui.home.shouldShowBackgroundIntro(context)
+        }
     }
+    if (backgroundIntro) com.kirox.app.ui.home.BackgroundIntroSheet { backgroundIntro = false }
     fun withCallPermissions(video: Boolean, cameraOnly: Boolean = false, action: () -> Unit) {
         val needed = listOfNotNull(
             android.Manifest.permission.RECORD_AUDIO,
