@@ -143,7 +143,7 @@ class UpdateCenter(private val context: Context) {
             val list = JSONArray(body)
             // GitHub orders releases by the tagged commit's date, which is wrong when a tag points at an
             // older commit, so pick the highest version rather than the first entry.
-            return (0 until list.length()).map { list.getJSONObject(it) }
+            return (0 until list.length()).asSequence().map { list.getJSONObject(it) }
                 .filterNot { it.optBoolean("draft") || (it.optBoolean("prerelease") && !betaChannel) }
                 .filter { AppVersion.isNewer(it.optString("tag_name").removePrefix("v"), currentVersion) }
                 .sortedWith { a, b -> if (AppVersion.isNewer(a.optString("tag_name").removePrefix("v"), b.optString("tag_name").removePrefix("v"))) -1 else 1 }
