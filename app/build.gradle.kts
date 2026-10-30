@@ -42,7 +42,11 @@ android {
         // TDLib ships arm64 only; the call engine is built for the same ABI.
         ndk { abiFilters += "arm64-v8a" }
         externalNativeBuild {
-            cmake { arguments += listOf("-DANDROID_STL=c++_static", "-DANDROID_ARM_NEON=TRUE") }
+            cmake {
+                arguments += listOf("-DANDROID_STL=c++_static", "-DANDROID_ARM_NEON=TRUE")
+                // Only the call engine: libyuv is linked into it statically, its own shared build (libyuv.so) is unused.
+                targets += "kiroxvoip"
+            }
         }
     }
 
