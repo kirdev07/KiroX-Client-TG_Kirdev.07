@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import kotlin.time.Duration.Companion.seconds
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -52,7 +53,7 @@ fun TelegramAuthStepScreen(state: TelegramAuthState, repository: TelegramAuthRep
     var resendSeconds by remember(state) { mutableIntStateOf((state as? TelegramAuthState.WaitCode)?.timeout ?: 0) }
     LaunchedEffect(state, resendSeconds) {
         if (resendSeconds > 0) {
-            kotlinx.coroutines.delay(1_000)
+            kotlinx.coroutines.delay(1.seconds)
             resendSeconds--
         }
     }
@@ -151,7 +152,7 @@ fun TelegramAuthStepScreen(state: TelegramAuthState, repository: TelegramAuthRep
                 Spacer(Modifier.height(24.dp))
                 Box(
                     Modifier.align(Alignment.CenterHorizontally).size(76.dp).clip(CircleShape)
-                        .background(androidx.compose.ui.graphics.Brush.radialGradient(listOf(Fusion.colors.accent.copy(alpha = 0.45f), androidx.compose.ui.graphics.Color.Transparent))),
+                        .background(androidx.compose.ui.graphics.Brush.radialGradient(listOf(Fusion.colors.accent.copy(alpha = 0.45f), Color.Transparent))),
                     contentAlignment = Alignment.Center
                 ) {
                     com.kirox.app.ui.icons.KiroXIcon(
