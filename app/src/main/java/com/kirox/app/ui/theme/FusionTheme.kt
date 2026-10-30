@@ -145,10 +145,11 @@ val LocalGlassBlur = staticCompositionLocalOf { true }
 /** App-wide switches the owner turns on and off between versions. */
 object KiroXFeatures {
     /**
-     * Decorative and UI animations. Off for now at the owner's request: motion factor 0, no seasonal
-     * particles, no list/swipe/button animations. One line turns them back on.
+     * Decorative and UI animations («Плавные анимации» of the approved design). Off makes motion
+     * factor 0: no seasonal particles, no list/swipe/button animations. The user's own speed
+     * setting (Обычные / Меньше / Выкл.) still applies on top.
      */
-    const val ANIMATIONS = false
+    const val ANIMATIONS = true
 }
 
 /** User animation level: 1 = normal, 0.5 = reduced, 0 = off. Multiplies every Fusion duration. */

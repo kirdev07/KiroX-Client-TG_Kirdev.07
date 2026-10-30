@@ -46,8 +46,7 @@ class MainActivity : ComponentActivity() {
             val weakDevice = remember { prefersLightEffects(this@MainActivity) }
             val lightEffects = quality == EffectsQuality.Light || (quality == EffectsQuality.Auto && weakDevice)
             val glassBlur by settings.glassBlur.collectAsStateWithLifecycle()
-            // Animations are switched off app-wide for now (KiroXFeatures.ANIMATIONS); the saved
-            // motion and seasonal settings stay as they are and apply again once it is turned on.
+            // KiroXFeatures.ANIMATIONS is the app-wide switch; the user's motion and seasonal settings apply under it.
             val animate = com.kirox.app.ui.theme.KiroXFeatures.ANIMATIONS
             val motionFactor = if (animate) motion.factor else 0f
             sceneClock.Drive(speed = motionFactor, light = lightEffects)
