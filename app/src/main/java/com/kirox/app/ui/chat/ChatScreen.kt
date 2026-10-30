@@ -57,6 +57,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.time.Duration.Companion.milliseconds
 
 private val ChatWhite: Color @Composable @ReadOnlyComposable get() = Fusion.colors.textPrimary
 private val ChatSecondary: Color @Composable @ReadOnlyComposable get() = Fusion.colors.textSecondary
@@ -267,7 +268,7 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
     var progress by remember(path) { mutableFloatStateOf(0f) }
     var positionMs by remember(path) { androidx.compose.runtime.mutableIntStateOf(0) }
     LaunchedEffect(playing) {
-        while (playing) { progress = VoicePlayer.progress; positionMs = VoicePlayer.positionMs; kotlinx.coroutines.delay(50) }
+        while (playing) { progress = VoicePlayer.progress; positionMs = VoicePlayer.positionMs; kotlinx.coroutines.delay(50.milliseconds) }
         progress = 0f
     }
     val bars = remember(waveform) { voiceBars(waveform) }

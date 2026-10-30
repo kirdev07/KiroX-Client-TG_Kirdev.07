@@ -49,6 +49,7 @@ import com.kirox.app.ui.icons.KiroXIcon
 import com.kirox.app.ui.icons.KiroXIcon as IconGlyph
 import com.kirox.app.ui.theme.Fusion
 import com.kirox.app.ui.theme.FusionPalette
+import kotlin.time.Duration.Companion.seconds
 
 // Accounts on this device: switch, add, sign out.
 
@@ -93,7 +94,7 @@ internal fun AccountsSheet(onDismiss: () -> Unit) {
                         client.addAccount()
                         if (qr) kotlinx.coroutines.MainScope().launch {
                             // Ask for the QR once the new slot reaches its phone-number step.
-                            kotlinx.coroutines.withTimeoutOrNull(20_000) { app.telegram.auth.state.first<com.kirox.app.telegram.TelegramAuthState> { it == com.kirox.app.telegram.TelegramAuthState.WaitPhoneNumber } }
+                            kotlinx.coroutines.withTimeoutOrNull(20.seconds) { app.telegram.auth.state.first<com.kirox.app.telegram.TelegramAuthState> { it == com.kirox.app.telegram.TelegramAuthState.WaitPhoneNumber } }
                                 ?.let { app.telegram.auth.requestQr() }
                         }
                     }.padding(horizontal = 16.dp, vertical = 14.dp),

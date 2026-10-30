@@ -52,6 +52,7 @@ import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Viewer data source for stories; implemented over the story repository. */
 interface TelegramStoryActions {
@@ -275,10 +276,10 @@ internal fun StoryViewer(chat: TelegramStoryChat, actions: TelegramStoryActions,
         if (current == null && !failed) return@LaunchedEffect
         if (current?.isVideo == true || paused) return@LaunchedEffect
         val step = 50L
-        while (progress < 1f) { kotlinx.coroutines.delay(step); progress += step.toFloat() / STORY_MS }
+        while (progress < 1f) { kotlinx.coroutines.delay(step.milliseconds); progress += step.toFloat() / STORY_MS }
         next()
     }
-    LaunchedEffect(notice) { if (notice != null) { kotlinx.coroutines.delay(2200); notice = null } }
+    LaunchedEffect(notice) { if (notice != null) { kotlinx.coroutines.delay(2200.milliseconds); notice = null } }
 
     Box(
         Modifier.fillMaxSize().background(Color.Black).pointerInput(storyId) {
@@ -407,7 +408,7 @@ private fun StoryVideo(file: com.kirox.app.telegram.TelegramFileRef, durationS: 
         while (true) {
             val total = player.duration.takeIf { it > 0 } ?: (durationS * 1000).toLong().coerceAtLeast(1)
             onProgress(player.currentPosition.toFloat() / total)
-            kotlinx.coroutines.delay(50)
+            kotlinx.coroutines.delay(50.milliseconds)
         }
     }
     androidx.compose.ui.viewinterop.AndroidView(

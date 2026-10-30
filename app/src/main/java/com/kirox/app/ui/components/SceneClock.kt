@@ -10,6 +10,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * One animation clock for every decorative scene on screen.
@@ -56,7 +57,7 @@ class SceneClock {
                 val tickMs = 1000L / fps
                 var last = System.nanoTime()
                 while (android.os.SystemClock.uptimeMillis() < idleAt) {
-                    delay(tickMs)
+                    delay(tickMs.milliseconds)
                     val now = System.nanoTime()
                     seconds.floatValue += (now - last) / 1_000_000_000f * speed
                     last = now

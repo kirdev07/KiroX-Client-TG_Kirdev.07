@@ -51,6 +51,8 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 
 /** Actions the real chat screen can perform; implemented by the message repository. */
 /** Chat-level actions behind the ⋮ menu. */
@@ -177,7 +179,7 @@ fun TelegramChatScreen(
             recordMs = recorder.elapsedMs
             // Throttled by the repository to one request every few seconds.
             if (chatId != 0L) actions.setActivity(chatId, com.kirox.app.telegram.ChatActivity.RecordingVoice)
-            kotlinx.coroutines.delay(100)
+            kotlinx.coroutines.delay(100.milliseconds)
         }
         if (chatId != 0L) actions.setActivity(chatId, null)
     }
@@ -235,7 +237,7 @@ fun TelegramChatScreen(
         searchResults = null
         searchNext = 0
         if (!searching || q.length < 2) return@LaunchedEffect
-        kotlinx.coroutines.delay(400)
+        kotlinx.coroutines.delay(400.milliseconds)
         runCatching { actions.search(q, 0) }
             .onSuccess { (found, next) -> searchResults = found; searchNext = next }
             .onFailure { searchResults = emptyList() }
@@ -260,7 +262,7 @@ fun TelegramChatScreen(
     // Own effect: jumpDone() restarts the one above, which would cancel this delay.
     LaunchedEffect(highlighted) {
         if (highlighted == 0L) return@LaunchedEffect
-        kotlinx.coroutines.delay(1600)
+        kotlinx.coroutines.delay(1600.milliseconds)
         highlighted = 0
     }
     LaunchedEffect(listState, history.chatId) {
@@ -307,7 +309,7 @@ fun TelegramChatScreen(
             notice = "Сохраняю…"
             files.download(file)
             // GetFile and DownloadFile answers can arrive in either order: wait for the file itself.
-            val path = kotlinx.coroutines.withTimeoutOrNull(5 * 60_000L) { files.state(file).first { it.path != null } }?.path
+            val path = kotlinx.coroutines.withTimeoutOrNull(5.minutes) { files.state(file).first { it.path != null } }?.path
             notice = when {
                 path == null -> "Не удалось скачать файл"
                 saveToDownloads(context, path, name, mime) -> "Сохранено в «Загрузки/kiroX»"
@@ -564,7 +566,7 @@ fun TelegramChatScreen(
                     message, color = Fusion.colors.textPrimary, fontSize = 13.sp,
                     modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp).clip(RoundedCornerShape(12.dp)).background(Fusion.colors.surface3).padding(horizontal = 16.dp, vertical = 11.dp)
                 )
-                LaunchedEffect(message) { kotlinx.coroutines.delay(2200); notice = null }
+                LaunchedEffect(message) { kotlinx.coroutines.delay(2200.milliseconds); notice = null }
             }
                     // Read-only channel (approved board 6): a notifications switch where the composer would be.
             if (history.peerKind == TelegramPeerKind.Channel && history.threadTitle == null && menu != null && history.chatId != 0L) {

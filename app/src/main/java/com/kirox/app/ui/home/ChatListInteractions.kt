@@ -42,6 +42,7 @@ import com.kirox.app.ui.theme.FusionPalette
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Chat list operations the main screen can trigger; implemented over the chat repository. */
 interface TelegramChatListActions {
@@ -153,7 +154,7 @@ internal fun ChatSearchResults(
         messages = emptyList()
         if (q.isEmpty()) { results = emptyList(); return@LaunchedEffect }
         results = null
-        delay(250)
+        delay(250.milliseconds)
         results = search(q)
         if (q.length >= 2) messages = searchMessages(q)
     }

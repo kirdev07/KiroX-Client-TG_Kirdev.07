@@ -73,6 +73,7 @@ import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 
 // Media inside message bubbles. Files download on tap (videos, music, documents) or by themselves
 // when small (GIFs, stickers, previews); playback uses one Media3 player per visible item.
@@ -365,7 +366,7 @@ internal fun FullscreenPhoto(file: TelegramFileRef, onClose: () -> Unit) {
             }
             status?.let { text ->
                 Text(text, color = Color.White, fontSize = 13.sp, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 96.dp).clip(RoundedCornerShape(12.dp)).background(Color(0x99000000)).padding(horizontal = 14.dp, vertical = 8.dp))
-                LaunchedEffect(text) { kotlinx.coroutines.delay(2200); status = null }
+                LaunchedEffect(text) { kotlinx.coroutines.delay(2200.milliseconds); status = null }
             }
         }
     }

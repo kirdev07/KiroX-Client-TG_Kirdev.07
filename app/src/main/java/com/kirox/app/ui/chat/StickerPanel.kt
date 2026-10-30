@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import com.kirox.app.telegram.TelegramPanelItem
 import com.kirox.app.telegram.TelegramStickerSetInfo
 import com.kirox.app.ui.theme.Fusion
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Where the panel gets stickers and GIFs; implemented over the TDLib sticker repository. */
 interface StickerPanelSource {
@@ -78,7 +79,7 @@ internal fun StickerPanel(source: StickerPanelSource?, onEmoji: (String) -> Unit
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     LaunchedEffect(tab, source, gifQuery, reload) {
         items = null
-        if (tab == PanelTab.Gifs && gifQuery.isNotBlank()) kotlinx.coroutines.delay(400)
+        if (tab == PanelTab.Gifs && gifQuery.isNotBlank()) kotlinx.coroutines.delay(400.milliseconds)
         items = when (val current = tab) {
             PanelTab.Emoji -> emptyList()
             PanelTab.Recent -> source?.recent().orEmpty()

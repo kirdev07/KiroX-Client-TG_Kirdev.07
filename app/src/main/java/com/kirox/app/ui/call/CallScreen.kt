@@ -62,6 +62,8 @@ import com.kirox.app.voip.CallAudioRouter
 import com.kirox.app.ui.icons.KiroXIcon as IconGlyph
 import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 private val CallGreen = Color(0xFF34C759)
 private val CallRed = Color(0xFFFF453A)
@@ -270,7 +272,7 @@ private fun StatusLine(call: TelegramActiveCall) {
         CallPhase.Connecting -> "Соединение…"
         is CallPhase.Active -> {
             var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-            LaunchedEffect(phase.sinceMillis) { while (true) { now = System.currentTimeMillis(); delay(500) } }
+            LaunchedEffect(phase.sinceMillis) { while (true) { now = System.currentTimeMillis(); delay(500.milliseconds) } }
             when {
                 phase.reconnecting -> "Переподключение…"
                 call.signalBars <= 1 -> formatDuration(((now - phase.sinceMillis) / 1000).toInt()) + " · плохая связь"
@@ -425,7 +427,7 @@ internal fun formatDuration(seconds: Int): String {
 fun MiniCallChip(call: TelegramActiveCall, onOpen: () -> Unit, onHangUp: () -> Unit, modifier: Modifier = Modifier) {
     val phase = call.phase
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    if (phase is CallPhase.Active) LaunchedEffect(phase.sinceMillis) { while (true) { now = System.currentTimeMillis(); delay(1000) } }
+    if (phase is CallPhase.Active) LaunchedEffect(phase.sinceMillis) { while (true) { now = System.currentTimeMillis(); delay(1.seconds) } }
     val status = when (phase) {
         is CallPhase.Active -> if (phase.reconnecting) "Переподключение…" else formatDuration(((now - phase.sinceMillis) / 1000).toInt())
         is CallPhase.Calling -> "Вызов…"

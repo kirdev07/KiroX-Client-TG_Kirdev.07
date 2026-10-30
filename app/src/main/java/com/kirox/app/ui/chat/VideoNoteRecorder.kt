@@ -67,6 +67,7 @@ import androidx.media3.transformer.Transformer
 import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.delay
 import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Telegram limits video notes to one minute. */
 private const val MAX_NOTE_MS = 60_000L
@@ -154,7 +155,7 @@ internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: ()
         while (recording != null) {
             elapsed = System.currentTimeMillis() - startedAt
             if (elapsed >= MAX_NOTE_MS) finish(canceled = false)
-            delay(100)
+            delay(100.milliseconds)
         }
     }
 

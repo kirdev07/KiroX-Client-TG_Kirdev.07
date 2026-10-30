@@ -17,6 +17,7 @@ import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.time.Duration.Companion.milliseconds
 
 class TdException(val error: TdApi.Error) : Exception(error.message)
 
@@ -114,7 +115,7 @@ class TelegramClient(context: Context) {
 
     /** Runs [block] on the TDLib dispatcher after [delayMs]; repositories use it to coalesce work. */
     fun post(delayMs: Long = 0, block: () -> Unit) {
-        scope.launch { if (delayMs > 0) kotlinx.coroutines.delay(delayMs); block() }
+        scope.launch { if (delayMs > 0) kotlinx.coroutines.delay(delayMs.milliseconds); block() }
     }
 
     @Suppress("UNCHECKED_CAST")
