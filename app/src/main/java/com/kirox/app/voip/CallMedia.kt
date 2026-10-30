@@ -39,7 +39,7 @@ object CallMedia {
     fun sync(context: Context, call: TelegramActiveCall?) {
         if (call?.phase != CallPhase.Incoming) stopRinging()
         val talking = call != null && (call.phase is CallPhase.Active || call.phase == CallPhase.Connecting)
-        if (talking) router(context, call!!.id).let { if (!it.isRunning) it.start(call.isVideo) }
+        if (talking) router(context, call.id).let { if (!it.isRunning) it.start(call.isVideo) }
         else { router?.stop(); if (call == null || !call.phase.isLive()) { router = null; routerCallId = -1 } }
         if (call == null || !call.phase.isLive()) setProximity(context, false)
     }
