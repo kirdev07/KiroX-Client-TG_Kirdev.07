@@ -97,8 +97,6 @@ android {
     lint {
         // Generated TDLib bindings (5 MB) exceed lint's file size limit; the code is not ours to fix.
         disable += "LintError"
-        // AGP stays at 9.1 on purpose: newer versions are not supported by the IntelliJ Android plugin yet.
-        disable += "AndroidGradlePluginVersion"
         // Plain-text report, turned into CI annotations by the workflow.
         textReport = true
         textOutput = file("build/reports/lint-results-debug.txt")
