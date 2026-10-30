@@ -99,7 +99,7 @@ class AccountPeek(context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(appContext, MessageNotifications.CHANNEL)
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
             .setContentTitle(chatTitle.ifBlank { "Telegram" })
             .setContentText(text)
             .setSubText(accountLabel)

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status bar icon for message notifications: the plane alone, white, as Android requires. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M6,52 L94,6 L46,64 Z" />
+    <path
+        android:fillColor="#B3FFFFFF"
+        android:pathData="M46,64 L94,6 L60,96 Z" />
+</vector>

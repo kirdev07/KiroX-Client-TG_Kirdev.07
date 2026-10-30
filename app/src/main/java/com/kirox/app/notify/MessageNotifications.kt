@@ -100,7 +100,7 @@ class MessageNotifications(
             style.addMessage(item.text, item.date * 1000L, Person.Builder().setName(item.sender.ifBlank { title }).build())
         }
         val notification = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setOnlyAlertOnce(!alert)
@@ -108,7 +108,7 @@ class MessageNotifications(
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
                 NotificationCompat.Builder(context, CHANNEL)
-                    .setSmallIcon(android.R.drawable.stat_notify_chat)
+                    .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
                     .setContentTitle("kiroX")
                     .setContentText("Новое сообщение")
                     .build()

@@ -49,7 +49,7 @@ class KeepConnectedService : Service() {
         manager.createNotificationChannel(NotificationChannel(CHANNEL, "Фоновое соединение", NotificationManager.IMPORTANCE_MIN).apply { setShowBadge(false) })
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
         val notification = Notification.Builder(this, CHANNEL)
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
             .setContentTitle("kiroX на связи")
             .setContentText("Сообщения приходят сразу")
             .setOngoing(true)
