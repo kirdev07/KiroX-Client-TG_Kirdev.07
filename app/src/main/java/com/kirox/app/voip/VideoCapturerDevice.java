@@ -1,5 +1,6 @@
 package com.kirox.app.voip;
 
+import android.content.Context;
 import android.content.Intent;
 import android.media.projection.MediaProjection;
 import android.os.Handler;
@@ -28,7 +29,7 @@ public final class VideoCapturerDevice {
     private static final int CAPTURE_HEIGHT = 720;
     private static final int CAPTURE_FPS = 30;
     private static final int STATE_ACTIVE = 2;
-    /** Screen sharing: long side of the sent picture and its frame rate. */
+    /** Screen sharing: long side of the outgoing picture and its frame rate. */
     private static final int SCREEN_MAX_SIDE = 1280;
     private static final int SCREEN_FPS = 15;
 
@@ -95,11 +96,11 @@ public final class VideoCapturerDevice {
         if (capturer == null) {
             String name = cameraName();
             if (name == null) return;
-            CameraEnumerator enumerator = new Camera2Enumerator(ContextUtils.getApplicationContext());
+            CameraEnumerator enumerator = new Camera2Enumerator(appContext());
             capturer = enumerator.createCapturer(name, null);
             textureHelper = SurfaceTextureHelper.create("KiroxCameraTexture", getSharedEGLContext());
             CapturerObserver observer = (CapturerObserver) nativeGetJavaVideoCapturerObserver(nativePtr);
-            capturer.initialize(textureHelper, ContextUtils.getApplicationContext(), observer);
+            capturer.initialize(textureHelper, appContext(), observer);
         }
         capturer.startCapture(CAPTURE_WIDTH, CAPTURE_HEIGHT, CAPTURE_FPS);
         capturing = true;
@@ -115,9 +116,9 @@ public final class VideoCapturerDevice {
             });
             textureHelper = SurfaceTextureHelper.create("KiroxScreenTexture", getSharedEGLContext());
             CapturerObserver observer = (CapturerObserver) nativeGetJavaVideoCapturerObserver(nativePtr);
-            capturer.initialize(textureHelper, ContextUtils.getApplicationContext(), observer);
+            capturer.initialize(textureHelper, appContext(), observer);
         }
-        DisplayMetrics metrics = ContextUtils.getApplicationContext().getResources().getDisplayMetrics();
+        DisplayMetrics metrics = appContext().getResources().getDisplayMetrics();
         int width = metrics.widthPixels;
         int height = metrics.heightPixels;
         float scale = Math.min(1f, (float) SCREEN_MAX_SIDE / Math.max(width, height));
@@ -143,8 +144,14 @@ public final class VideoCapturerDevice {
         capturing = false;
     }
 
+    /** WebRTC deprecated this getter, but the call engine still reads its context from there (set by NativeCall). */
+    @SuppressWarnings("deprecation")
+    private static Context appContext() {
+        return ContextUtils.getApplicationContext();
+    }
+
     private String cameraName() {
-        CameraEnumerator enumerator = new Camera2Enumerator(ContextUtils.getApplicationContext());
+        CameraEnumerator enumerator = new Camera2Enumerator(appContext());
         boolean front = !"back".equals(deviceId);
         String fallback = null;
         for (String name : enumerator.getDeviceNames()) {
