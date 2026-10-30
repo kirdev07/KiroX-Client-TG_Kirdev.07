@@ -67,6 +67,8 @@ interface TelegramChatActions {
     fun sendText(text: String, replyToMessageId: Long?)
     fun sendPhoto(path: String, caption: String)
     fun sendDocument(path: String, caption: String)
+    fun sendLocation(latitude: Double, longitude: Double) {}
+    fun sendContact(userId: Long, firstName: String, lastName: String, phone: String) {}
     fun sendVoice(path: String, durationSeconds: Int, waveform: ByteArray)
     fun toggleReaction(messageId: Long, emoji: String)
     fun sendVideo(path: String, caption: String, durationSeconds: Int, width: Int, height: Int)
@@ -340,6 +342,20 @@ fun TelegramChatScreen(
     val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> uri?.let { sendPicked(it, asPhoto = false) } }
     // Camera tile: the photo goes to a cache file shared through the FileProvider, then is sent like a gallery pick.
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
+    var pickingContact by remember { mutableStateOf(false) }
+    // «Локация»: the last known position from the system, asked once for permission; sent as a map point.
+    fun sendCurrentLocation() {
+        val manager = context.getSystemService(android.location.LocationManager::class.java)
+        val last = runCatching {
+            listOf(android.location.LocationManager.GPS_PROVIDER, android.location.LocationManager.NETWORK_PROVIDER, android.location.LocationManager.PASSIVE_PROVIDER)
+                .mapNotNull { manager.getLastKnownLocation(it) }.maxByOrNull { it.time }
+        }.getOrNull()
+        if (last != null) { actions.sendLocation(last.latitude, last.longitude); notice = "Геопозиция отправлена" }
+        else notice = "Не удалось определить местоположение — включите геолокацию"
+    }
+    val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+        if (granted.values.any { it }) sendCurrentLocation() else notice = "Нет доступа к местоположению"
+    }
     val takePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok -> cameraUri?.takeIf { ok }?.let { sendPicked(it, asPhoto = true) } }
     val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) cameraUri?.let(takePhoto::launch) else notice = "Нет доступа к камере"
@@ -570,6 +586,11 @@ fun TelegramChatScreen(
     }
     }
 
+    if (pickingContact) ContactPickerSheet(onDismiss = { pickingContact = false }) { contact ->
+        pickingContact = false
+        val first = contact.name.substringBefore(' ')
+        actions.sendContact(contact.id, first, contact.name.substringAfter(' ', ""), contact.phone)
+    }
     if (attachments) AttachmentSheet(
         onDismiss = { attachments = false },
         onPick = { choice ->
@@ -579,6 +600,11 @@ fun TelegramChatScreen(
                 "Галерея" -> pickPhoto.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 "Видео" -> pickPhoto.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
                 "Музыка" -> pickFile.launch("audio/*")
+                "Контакт" -> pickingContact = true
+                "Локация" -> {
+                    if (context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED) sendCurrentLocation()
+                    else locationPermission.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+                }
                 "Камера" -> {
                     val file = java.io.File(context.cacheDir, "camera").apply { mkdirs() }.let { java.io.File(it, "photo_${System.currentTimeMillis()}.jpg") }
                     val uri = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", file)
@@ -601,6 +627,8 @@ fun TelegramChatScreen(
             add(KiroXIcon.Video to "Видео")
             add(KiroXIcon.File to "Файл")
             add(KiroXIcon.Camera to "Камера")
+            add(KiroXIcon.Location to "Локация")
+            add(KiroXIcon.Contacts to "Контакт")
             if (history.peerKind != TelegramPeerKind.Channel) add(KiroXIcon.Voice to "Видеосообщение")
             add(KiroXIcon.Music to "Музыка")
             if (!history.isSecret) add(KiroXIcon.Sliders to "Опрос")
@@ -1228,3 +1256,25 @@ private fun androidx.compose.ui.graphics.Color.argb(): Long = toArgb().toLong() 
 
 /** Stable colour for a forum topic mark (approved groups board). */
 private fun topicTint(id: Int): androidx.compose.ui.graphics.Color = listOf(0xFFE5484D, 0xFF2E9F6B, 0xFF6E56CF, 0xFFE38D2B, 0xFF3B82F6, 0xFFD6409F).map { androidx.compose.ui.graphics.Color(it) }[Math.floorMod(id, 6)]
+
+/** Telegram contacts to share as a card (attachment «Контакт»). */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ContactPickerSheet(onDismiss: () -> Unit, onPick: (com.kirox.app.telegram.TelegramContact) -> Unit) {
+    val users = (LocalContext.current.applicationContext as com.kirox.app.KiroXApplication).telegram.users
+    val contacts by users.contacts.collectAsState()
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Fusion.colors.surface1) {
+        Text("Отправить контакт", color = Fusion.colors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        if (contacts.isEmpty()) Text("Контактов пока нет", color = Fusion.colors.textSecondary, modifier = Modifier.padding(20.dp))
+        LazyColumn(Modifier.heightIn(max = 480.dp)) {
+            items(contacts, key = { it.id }) { contact ->
+                Row(Modifier.fillMaxWidth().clickable { onPick(contact) }.padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    com.kirox.app.ui.components.TelegramAvatar(contact.name, contact.photo, 42.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Text(contact.name, color = Fusion.colors.textPrimary, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+        Spacer(Modifier.navigationBarsPadding().height(8.dp))
+    }
+}

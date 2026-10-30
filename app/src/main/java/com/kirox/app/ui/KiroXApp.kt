@@ -439,6 +439,8 @@ private class TelegramMessageActions(
     override fun sendText(text: String, replyToMessageId: Long?) = repository.sendText(text, replyToMessageId)
     override fun sendPhoto(path: String, caption: String) = repository.sendPhoto(path, caption)
     override fun sendDocument(path: String, caption: String) = repository.sendDocument(path, caption)
+    override fun sendLocation(latitude: Double, longitude: Double) = repository.sendLocation(latitude, longitude)
+    override fun sendContact(userId: Long, firstName: String, lastName: String, phone: String) = repository.sendContact(userId, firstName, lastName, phone)
     override fun sendVoice(path: String, durationSeconds: Int, waveform: ByteArray) = repository.sendVoice(path, durationSeconds, waveform)
     override fun toggleReaction(messageId: Long, emoji: String) = repository.toggleReaction(messageId, emoji)
     override fun sendVideo(path: String, caption: String, durationSeconds: Int, width: Int, height: Int) = repository.sendVideo(path, caption, durationSeconds, width, height)

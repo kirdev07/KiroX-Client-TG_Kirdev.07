@@ -560,6 +560,7 @@ private fun attachmentTint(title: String): Color = when (title) {
     "Документ", "Файл" -> Color(0xFFFFC24A)
     "Музыка" -> Color(0xFF4FD1A5)
     "Контакт" -> Color(0xFF8FB4FF)
+    "Локация" -> Color(0xFFFF7A8A)
     "Местоположение" -> Color(0xFFFF7A8A)
     "Опрос" -> Color(0xFFFF9F5A)
     else -> Color(0xFFC7B8FF)

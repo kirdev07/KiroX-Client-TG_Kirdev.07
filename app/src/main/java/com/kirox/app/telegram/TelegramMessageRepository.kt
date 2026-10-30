@@ -264,6 +264,15 @@ class TelegramMessageRepository(
         ))
     }
 
+    fun sendLocation(latitude: Double, longitude: Double) = act { id ->
+        TdApi.SendMessage(id, topic, null, null, null, TdApi.InputMessageLocation(TdApi.Location(latitude, longitude, 0.0)))
+    }
+
+    /** Shares a Telegram user as a contact card. */
+    fun sendContact(userId: Long, firstName: String, lastName: String, phone: String) = act { id ->
+        TdApi.SendMessage(id, topic, null, null, null, TdApi.InputMessageContact(TdApi.Contact(phone, firstName, lastName, "", userId)))
+    }
+
     fun sendDocument(path: String, caption: String) = act { id ->
         TdApi.SendMessage(id, topic, null, null, null, TdApi.InputMessageDocument().apply {
             document = TdApi.InputDocument().apply { document = TdApi.InputFileLocal(path) }
@@ -525,6 +534,10 @@ class TelegramMessageRepository(
             kind = kindOf(content),
             text = when (content) {
                 is TdApi.MessageVoiceNote -> "%d:%02d".format(content.voiceNote.duration / 60, content.voiceNote.duration % 60)
+                // Shared place and contact: readable text with a map link and the number.
+                is TdApi.MessageLocation -> "📍 Геопозиция\nhttps://maps.google.com/?q=%.6f,%.6f".format(java.util.Locale.US, content.location.latitude, content.location.longitude)
+                is TdApi.MessageContact -> "👤 " + listOf(content.contact.firstName, content.contact.lastName).filter { it.isNotBlank() }.joinToString(" ") +
+                    (content.contact.phoneNumber.takeIf { it.isNotBlank() }?.let { "\n+" + it.trimStart('+') } ?: "")
                 // Media without a caption shows nothing under it; other contents a text preview.
                 is TdApi.MessageVideo, is TdApi.MessageAnimation, is TdApi.MessageAudio, is TdApi.MessageVideoNote, is TdApi.MessageSticker -> formatted?.text.orEmpty()
                 else -> formatted?.text ?: messagePreview(this)
