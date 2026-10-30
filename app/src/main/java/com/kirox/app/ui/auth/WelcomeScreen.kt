@@ -1,5 +1,6 @@
 package com.kirox.app.ui.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -11,19 +12,23 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kirox.app.R
 import com.kirox.app.ui.icons.KiroXIcon
 import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.launch
 
-private data class WelcomePage(val icon: KiroXIcon, val title: String, val text: String)
+/** A page shows [icon], or the kiroX logo when it is null. */
+private data class WelcomePage(val icon: KiroXIcon?, val title: String, val text: String)
 
 private val pages = listOf(
-    WelcomePage(KiroXIcon.Send, "Добро пожаловать\nв kiroX", "Быстрый, удобный и красивый\nнеофициальный клиент Telegram"),
+    WelcomePage(null, "Добро пожаловать\nв kiroX", "Быстрый, удобный и красивый\nнеофициальный клиент Telegram"),
     WelcomePage(KiroXIcon.Lock, "Ваши данные\nв безопасности", "Вход через Telegram, база на телефоне\nзашифрована"),
     WelcomePage(KiroXIcon.Palette, "Свой стиль", "Темы Expressive и Glass, обои\nи праздничные сцены"),
     WelcomePage(KiroXIcon.Contacts, "Несколько\nаккаунтов", "До трёх аккаунтов и быстрое\nпереключение между ними")
@@ -38,7 +43,12 @@ internal fun WelcomeScreen(onContinue: () -> Unit) {
         HorizontalPager(pager, Modifier.weight(1f)) { index ->
             val page = pages[index]
             Column(Modifier.fillMaxSize().padding(horizontal = 32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                AuthMark(page.icon, Modifier.size(112.dp))
+                if (page.icon != null) AuthMark(page.icon, Modifier.size(112.dp))
+                else Image(
+                    painterResource(R.mipmap.ic_launcher_foreground), "kiroX",
+                    // The launcher layer has adaptive-icon padding around the round logo: zoom it to the edge.
+                    Modifier.size(112.dp).clip(CircleShape).graphicsLayer { scaleX = 1.45f; scaleY = 1.45f }
+                )
                 Spacer(Modifier.height(28.dp))
                 Text(page.title, color = Fusion.colors.textPrimary, fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(12.dp))
