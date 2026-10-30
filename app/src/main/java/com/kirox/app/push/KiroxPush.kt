@@ -156,11 +156,24 @@ object UnifiedPush {
 }
 
 class UnifiedPushReceiver : BroadcastReceiver() {
+    private companion object {
+        const val FOREIGN_WAKE_MS = 20_000L
+        @Volatile var lastForeignWake = 0L
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         val push = context.push
-        // The receiver is exported, so any app can send to it: only broadcasts carrying the secret
-        // token we gave the distributor are trusted. Others could redirect pushes or drain the battery.
-        if (intent.getStringExtra("token") != push.unifiedToken()) return
+        // The receiver is exported, so any app can send to it. Endpoint changes need the secret token we
+        // gave the distributor, or another app could redirect pushes. A message only wakes TDLib, so one
+        // with another token (a registration left from an earlier install) still counts, at most once
+        // per FOREIGN_WAKE_MS so a stray sender cannot drain the battery.
+        val ours = intent.getStringExtra("token") == push.unifiedToken()
+        if (!ours) {
+            if (intent.action != "org.unifiedpush.android.connector.MESSAGE") return
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastForeignWake < FOREIGN_WAKE_MS) return
+            lastForeignWake = now
+        }
         when (intent.action) {
             "org.unifiedpush.android.connector.NEW_ENDPOINT" -> intent.getStringExtra("endpoint")
                 ?.takeIf { it.startsWith("https://") }?.let(push::onUnifiedEndpoint)

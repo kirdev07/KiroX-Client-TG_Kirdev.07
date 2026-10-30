@@ -251,7 +251,7 @@ class UpdateCenter(private val context: Context) {
     }.getOrNull()
 
     companion object {
-        const val REPO = "kirdev07/KiroX-Client-TG"
+        const val REPO = "kirdev07/KiroX-Client-TG_Kirdev.07"
         const val RELEASES_URL = "https://github.com/$REPO/releases"
         private const val KEY_BETA = "beta_channel"
         private const val KEY_LAST_CHECK = "last_check"

@@ -341,8 +341,8 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
         item { SmallCaption("О приложении") }
         item { LinkRow("KiroX ${BuildConfig.VERSION_NAME}", "Независимый клиент Telegram на TDLib") {} }
         item {
-            LinkRow("Исходный код и лицензии", "github.com/kirdev07/KiroX-Client-TG") {
-                context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/kirdev07/KiroX-Client-TG".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            LinkRow("Исходный код и лицензии", "github.com/kirdev07/KiroX-Client-TG_Kirdev.07") {
+                context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/kirdev07/KiroX-Client-TG_Kirdev.07".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
         }
         item {
