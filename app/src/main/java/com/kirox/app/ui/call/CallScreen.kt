@@ -35,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,11 +58,32 @@ import com.kirox.app.ui.components.TelegramAvatar
 import com.kirox.app.ui.icons.KiroXIcon
 import com.kirox.app.voip.CallAudioRoute
 import com.kirox.app.voip.CallAudioRouter
-import com.kirox.app.ui.icons.KiroXIcon as IconGlyph
 import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import com.kirox.app.ui.theme.LocalMotionFactor
+import com.kirox.app.voip.CallMedia
+import com.kirox.app.voip.NativeCall
+import com.kirox.app.voip.VideoCapturerDevice
 
 private val CallGreen = Color(0xFF34C759)
 private val CallRed = Color(0xFFFF453A)
@@ -101,13 +121,13 @@ fun CallScreen(call: TelegramActiveCall, actions: CallActions, onMinimize: (() -
 
     Box(
         Modifier.fillMaxSize()
-            .background(Brush.verticalGradient(com.kirox.app.ui.theme.Fusion.colors.backdrop ?: listOf(Color(0xFF1C2633), Color(0xFF10151C), Color(0xFF050608))))
+            .background(Brush.verticalGradient(Fusion.colors.backdrop ?: listOf(Color(0xFF1C2633), Color(0xFF10151C), Color(0xFF050608))))
             .clickable(enabled = false) {}
     ) {
         if (showVideo) CallVideo(call, actions)
-        if (onMinimize != null) androidx.compose.material3.IconButton(
+        if (onMinimize != null) IconButton(
             onClick = onMinimize, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(4.dp).size(48.dp)
-        ) { IconGlyph(KiroXIcon.Back, "Свернуть звонок", Modifier.size(24.dp), Color.White) }
+        ) { KiroXIcon(KiroXIcon.Back, "Свернуть звонок", Modifier.size(24.dp), Color.White) }
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(Modifier.height(16.dp))
             TopLabel(call)
@@ -117,7 +137,7 @@ fun CallScreen(call: TelegramActiveCall, actions: CallActions, onMinimize: (() -
                 Text(call.name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 StatusLine(call)
                 Spacer(Modifier.weight(1f))
-            } else if (com.kirox.app.ui.theme.Fusion.colors.backdrop != null && call.phase is CallPhase.Active) {
+            } else if (Fusion.colors.backdrop != null && call.phase is CallPhase.Active) {
                 // v2 active audio call (approved calls board): name and timer on top, avatar, a voice wave.
                 Spacer(Modifier.height(12.dp))
                 Text(call.name, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
@@ -156,7 +176,7 @@ private fun CallVideo(call: TelegramActiveCall, actions: CallActions) {
     val remote = remember { org.webrtc.TextureViewRenderer(context) }
     val local = remember { org.webrtc.TextureViewRenderer(context) }
     DisposableEffect(Unit) {
-        val egl = com.kirox.app.voip.VideoCapturerDevice.getSharedEGLContext()
+        val egl = VideoCapturerDevice.getSharedEGLContext()
         remote.init(egl, null)
         local.init(egl, null)
         remote.setScalingType(org.webrtc.RendererCommon.ScalingType.SCALE_ASPECT_FILL)
@@ -170,11 +190,11 @@ private fun CallVideo(call: TelegramActiveCall, actions: CallActions) {
     }
     LaunchedEffect(call.frontCamera) { local.setMirror(call.frontCamera) }
     Box(Modifier.fillMaxSize()) {
-        if (call.remoteVideo) androidx.compose.ui.viewinterop.AndroidView({ remote }, Modifier.fillMaxSize())
+        if (call.remoteVideo) AndroidView({ remote }, Modifier.fillMaxSize())
         if (call.cameraOn) Box(
             Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 56.dp, end = 16.dp)
                 .size(104.dp, 148.dp).clip(RoundedCornerShape(18.dp)).border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(18.dp))
-        ) { androidx.compose.ui.viewinterop.AndroidView({ local }, Modifier.fillMaxSize()) }
+        ) { AndroidView({ local }, Modifier.fillMaxSize()) }
     }
 }
 
@@ -182,7 +202,7 @@ private fun CallVideo(call: TelegramActiveCall, actions: CallActions) {
 @Composable
 private fun CallWindow(live: Boolean, earMode: Boolean) {
     val context = LocalContext.current
-    val activity = context as? android.app.Activity
+    val activity = context as? Activity
     DisposableEffect(live) {
         if (live && activity != null) { activity.setShowWhenLocked(true); activity.setTurnScreenOn(true) }
         onDispose {
@@ -191,8 +211,8 @@ private fun CallWindow(live: Boolean, earMode: Boolean) {
     }
     // Held by CallMedia, which also lets it go when the call ends while this screen is not updating.
     DisposableEffect(earMode) {
-        com.kirox.app.voip.CallMedia.setProximity(context, earMode)
-        onDispose { com.kirox.app.voip.CallMedia.setProximity(context, false) }
+        CallMedia.setProximity(context, earMode)
+        onDispose { CallMedia.setProximity(context, false) }
     }
 }
 
@@ -204,15 +224,15 @@ private fun CallWindow(live: Boolean, earMode: Boolean) {
 private fun callAudioRouter(callId: Int, active: Boolean, video: Boolean): CallAudioRouter {
     val context = LocalContext.current
     // Owned by CallMedia for the whole call: started and stopped with the call, not with this screen.
-    val router = remember(callId) { com.kirox.app.voip.CallMedia.router(context, callId) }
-    val bluetoothPermission = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    val router = remember(callId) { CallMedia.router(context, callId) }
+    val bluetoothPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
     ) { granted -> if (granted && active) { router.stop(); router.start(video) } }
     LaunchedEffect(router, active) {
         if (active) {
             if (!router.isRunning) router.start(video)
-            if (android.os.Build.VERSION.SDK_INT >= 31 &&
-                context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (Build.VERSION.SDK_INT >= 31 &&
+                context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
             ) runCatching { bluetoothPermission.launch(android.Manifest.permission.BLUETOOTH_CONNECT) }
         }
     }
@@ -226,8 +246,8 @@ private fun TopLabel(call: TelegramActiveCall) {
             Canvas(Modifier.size(12.dp)) {
                 // Small lock: end-to-end encrypted call.
                 val w = size.width
-                drawRoundRect(Color(0xB3FFFFFF), topLeft = androidx.compose.ui.geometry.Offset(w * 0.1f, w * 0.45f), size = androidx.compose.ui.geometry.Size(w * 0.8f, w * 0.55f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.12f))
-                drawArc(Color(0xB3FFFFFF), 180f, 180f, false, topLeft = androidx.compose.ui.geometry.Offset(w * 0.25f, w * 0.08f), size = androidx.compose.ui.geometry.Size(w * 0.5f, w * 0.7f), style = androidx.compose.ui.graphics.drawscope.Stroke(w * 0.12f))
+                drawRoundRect(Color(0xB3FFFFFF), topLeft = Offset(w * 0.1f, w * 0.45f), size = Size(w * 0.8f, w * 0.55f), cornerRadius = CornerRadius(w * 0.12f))
+                drawArc(Color(0xB3FFFFFF), 180f, 180f, false, topLeft = Offset(w * 0.25f, w * 0.08f), size = Size(w * 0.5f, w * 0.7f), style = Stroke(w * 0.12f))
             }
             Spacer(Modifier.width(6.dp))
             Text(if (call.isVideo) "Видеозвонок kiroX" else "Звонок kiroX", color = Color(0xB3FFFFFF), fontSize = 13.sp)
@@ -245,11 +265,11 @@ private fun TopLabel(call: TelegramActiveCall) {
 @Composable
 private fun PulsingAvatar(call: TelegramActiveCall, pulsing: Boolean) {
     // Fusion UI v2: the avatar glows in the style accent (violet / blue); classic palettes stay white.
-    val glow = if (com.kirox.app.ui.theme.Fusion.colors.backdrop != null) com.kirox.app.ui.theme.Fusion.colors.accent.copy(alpha = 0.38f) else Color(0x33FFFFFF)
+    val glow = if (Fusion.colors.backdrop != null) Fusion.colors.accent.copy(alpha = 0.38f) else Color(0x33FFFFFF)
     val transition = rememberInfiniteTransition(label = "call_pulse")
     val wave by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, easing = LinearEasing), RepeatMode.Restart), label = "wave")
     Box(Modifier.size(220.dp), contentAlignment = Alignment.Center) {
-        if (pulsing && com.kirox.app.ui.theme.LocalMotionFactor.current > 0f) Canvas(Modifier.fillMaxSize()) {
+        if (pulsing && LocalMotionFactor.current > 0f) Canvas(Modifier.fillMaxSize()) {
             repeat(2) { i ->
                 val p = (wave + i * 0.5f) % 1f
                 drawCircle(Color.White.copy(alpha = 0.16f * (1f - p)), radius = size.minDimension * (0.3f + 0.2f * p))
@@ -258,7 +278,7 @@ private fun PulsingAvatar(call: TelegramActiveCall, pulsing: Boolean) {
             drawCircle(Brush.radialGradient(listOf(glow, Color.Transparent)), radius = size.minDimension * 0.5f)
         }
         // v2: the avatar sits in an accent ring (approved calls board).
-        if (com.kirox.app.ui.theme.Fusion.colors.backdrop != null) Box(Modifier.size(160.dp).border(3.dp, com.kirox.app.ui.theme.Fusion.colors.accent, CircleShape).padding(6.dp), contentAlignment = Alignment.Center) {
+        if (Fusion.colors.backdrop != null) Box(Modifier.size(160.dp).border(3.dp, Fusion.colors.accent, CircleShape).padding(6.dp), contentAlignment = Alignment.Center) {
             TelegramAvatar(call.name, call.photo, 148.dp)
         } else TelegramAvatar(call.name, call.photo, 128.dp)
     }
@@ -298,22 +318,22 @@ private fun StatusLine(call: TelegramActiveCall) {
 @Composable
 private fun IncomingControls(call: TelegramActiveCall, actions: CallActions, onMessage: (() -> Unit)?) {
     // v2 (approved calls board): «Сообщение» above the answer buttons.
-    if (onMessage != null && com.kirox.app.ui.theme.Fusion.colors.backdrop != null) {
+    if (onMessage != null && Fusion.colors.backdrop != null) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(bottom = 28.dp).clip(RoundedCornerShape(18.dp)).clickable(onClick = onMessage).padding(horizontal = 18.dp, vertical = 8.dp)) {
-            Box(Modifier.size(52.dp).clip(CircleShape).background(Color(0x29FFFFFF)), contentAlignment = Alignment.Center) { IconGlyph(KiroXIcon.Chat, null, Modifier.size(24.dp), Color.White) }
+            Box(Modifier.size(52.dp).clip(CircleShape).background(Color(0x29FFFFFF)), contentAlignment = Alignment.Center) { KiroXIcon(KiroXIcon.Chat, null, Modifier.size(24.dp), Color.White) }
             Spacer(Modifier.height(6.dp))
             Text("Сообщение", color = Color(0xDDFFFFFF), fontSize = 13.sp)
         }
     }
     // After a cold start from a push the engine may still be loading: the Accept button appears then.
-    val engineReady by com.kirox.app.voip.NativeCall.ready.collectAsState()
+    val engineReady by NativeCall.ready.collectAsState()
     val canAnswer = engineReady || callsEnabled
     val transition = rememberInfiniteTransition(label = "accept")
     val bounce by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "bounce")
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
         LabeledButton("Отклонить") { RoundButton(KiroXIcon.CallEnd, "Отклонить", CallRed, Color.White, size = 72.dp, onClick = actions::hangUp) }
         if (canAnswer) LabeledButton(if (call.isVideo) "С видео" else "Принять") {
-            Box(Modifier.padding(bottom = (if (com.kirox.app.ui.theme.LocalMotionFactor.current > 0f) 6 * bounce else 0f).dp)) {
+            Box(Modifier.padding(bottom = (if (LocalMotionFactor.current > 0f) 6 * bounce else 0f).dp)) {
                 RoundButton(if (call.isVideo) KiroXIcon.Video else KiroXIcon.Call, "Принять", CallGreen, Color.White, size = 72.dp, onClick = actions::accept)
             }
         } else Text("Ответьте на другом устройстве", color = Color(0x99FFFFFF), fontSize = 13.sp, modifier = Modifier.width(140.dp), textAlign = TextAlign.Center)
@@ -325,7 +345,7 @@ private fun ActiveControls(
     isVideo: Boolean, micOff: Boolean, route: CallAudioRoute, manyRoutes: Boolean, camera: Boolean,
     onMic: () -> Unit, onSpeaker: () -> Unit, onCamera: () -> Unit, onFlip: () -> Unit, onEnd: () -> Unit
 ) {
-    if (com.kirox.app.ui.theme.Fusion.colors.backdrop != null) {
+    if (Fusion.colors.backdrop != null) {
         // Fusion UI v2 (approved calls board): rounded square tiles with labels, the red end button below.
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -354,17 +374,17 @@ private fun ActiveControls(
 /** v2 call control: a 72 dp rounded square, accent when on, translucent when off, label under it. */
 @Composable
 private fun TileButton(icon: KiroXIcon, label: String, on: Boolean, onClick: () -> Unit, crossed: Boolean = false) {
-    val colors = com.kirox.app.ui.theme.Fusion.colors
+    val colors = Fusion.colors
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(88.dp)) {
         Box(
             Modifier.size(72.dp).clip(RoundedCornerShape(24.dp)).background(if (on) colors.accent else Color(0x29FFFFFF))
                 .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(24.dp))
-                .clickable(onClickLabel = label, role = androidx.compose.ui.semantics.Role.Button, onClick = onClick),
+                .clickable(onClickLabel = label, role = Role.Button, onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
-            IconGlyph(icon, label, Modifier.size(28.dp), Color.White)
+            KiroXIcon(icon, label, Modifier.size(28.dp), Color.White)
             if (crossed) Canvas(Modifier.size(34.dp)) {
-                drawLine(Color.White, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(size.width, size.height), 2.dp.toPx())
+                drawLine(Color.White, Offset(0f, 0f), Offset(size.width, size.height), 2.dp.toPx())
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -389,15 +409,15 @@ private fun ToggleButton(icon: KiroXIcon, description: String, on: Boolean, onCl
 @Composable
 private fun RoundButton(icon: KiroXIcon, description: String, background: Color, tint: Color, size: Dp, crossed: Boolean = false, onClick: () -> Unit) {
     // Material 3 filled icon button in the call screen's own colors.
-    androidx.compose.material3.FilledIconButton(
+    FilledIconButton(
         onClick = onClick,
         modifier = Modifier.size(size),
-        colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(containerColor = background, contentColor = tint)
+        colors = IconButtonDefaults.filledIconButtonColors(containerColor = background, contentColor = tint)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            IconGlyph(icon, description, Modifier.size(size * 0.42f), tint)
+            KiroXIcon(icon, description, Modifier.size(size * 0.42f), tint)
             if (crossed) Canvas(Modifier.size(size * 0.5f)) {
-                drawLine(tint, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(this.size.width, this.size.height), 2.dp.toPx())
+                drawLine(tint, Offset(0f, 0f), Offset(this.size.width, this.size.height), 2.dp.toPx())
             }
         }
     }
@@ -409,8 +429,8 @@ private fun IncomingAlert(active: Boolean) {
     val context = LocalContext.current
     // CallMedia also stops it when the call stops ringing while this screen is in the background.
     DisposableEffect(active) {
-        if (active) com.kirox.app.voip.CallMedia.startRinging(context)
-        onDispose { com.kirox.app.voip.CallMedia.stopRinging() }
+        if (active) CallMedia.startRinging(context)
+        onDispose { CallMedia.stopRinging() }
     }
 }
 
@@ -439,13 +459,13 @@ fun MiniCallChip(call: TelegramActiveCall, onOpen: () -> Unit, onHangUp: () -> U
             .background(Color(0xFF1F8F4E)).clickable(onClick = onOpen).padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconGlyph(if (call.isVideo) KiroXIcon.Video else KiroXIcon.Call, null, Modifier.size(18.dp), Color.White)
+        KiroXIcon(if (call.isVideo) KiroXIcon.Video else KiroXIcon.Call, null, Modifier.size(18.dp), Color.White)
         Spacer(Modifier.width(10.dp))
         Text(call.name, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
         if (status.isNotEmpty()) Text(" · $status", color = Color(0xE6FFFFFF), fontSize = 14.sp, maxLines = 1)
         Spacer(Modifier.weight(1f))
-        androidx.compose.material3.IconButton(onClick = onHangUp, modifier = Modifier.size(44.dp)) {
-            IconGlyph(KiroXIcon.CallEnd, "Завершить звонок", Modifier.size(22.dp), Color.White)
+        IconButton(onClick = onHangUp, modifier = Modifier.size(44.dp)) {
+            KiroXIcon(KiroXIcon.CallEnd, "Завершить звонок", Modifier.size(22.dp), Color.White)
         }
     }
 }
@@ -453,8 +473,8 @@ fun MiniCallChip(call: TelegramActiveCall, onOpen: () -> Unit, onHangUp: () -> U
 /** Soft accent bars under the avatar while a call is live (approved calls board); still when animations are off. */
 @Composable
 private fun VoiceWave(active: Boolean) {
-    val accent = com.kirox.app.ui.theme.Fusion.colors.accent
-    val animate = active && com.kirox.app.ui.theme.LocalMotionFactor.current > 0f
+    val accent = Fusion.colors.accent
+    val animate = active && LocalMotionFactor.current > 0f
     val transition = rememberInfiniteTransition(label = "voice_wave")
     val phase by transition.animateFloat(0f, (2 * Math.PI).toFloat(), infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Restart), label = "phase")
     Canvas(Modifier.fillMaxWidth(0.8f).height(44.dp)) {
@@ -465,7 +485,7 @@ private fun VoiceWave(active: Boolean) {
             val edge = 1f - kotlin.math.abs(i - bars / 2f) / (bars / 2f)
             val swing = if (animate) (0.5f + 0.5f * kotlin.math.sin(phase + i * 0.55f)) else 0.35f
             val h = size.height * (0.15f + 0.85f * edge * swing)
-            drawLine(accent.copy(alpha = 0.55f + 0.45f * edge), androidx.compose.ui.geometry.Offset(x, (size.height - h) / 2), androidx.compose.ui.geometry.Offset(x, (size.height + h) / 2), step * 0.45f, androidx.compose.ui.graphics.StrokeCap.Round)
+            drawLine(accent.copy(alpha = 0.55f + 0.45f * edge), Offset(x, (size.height - h) / 2), Offset(x, (size.height + h) / 2), step * 0.45f, StrokeCap.Round)
         }
     }
 }
@@ -484,9 +504,9 @@ private fun EmojiKey(emojis: List<String>, bars: Int, active: Boolean) {
         Text(emojis.joinToString(" "), fontSize = 20.sp)
         if (active) { Spacer(Modifier.width(10.dp)); SignalBars(bars) }
     }
-    if (explain) androidx.compose.ui.window.Dialog(onDismissRequest = { explain = false }) {
+    if (explain) Dialog(onDismissRequest = { explain = false }) {
         Column(
-            Modifier.clip(RoundedCornerShape(28.dp)).background(com.kirox.app.ui.theme.Fusion.colors.surface1).padding(24.dp),
+            Modifier.clip(RoundedCornerShape(28.dp)).background(Fusion.colors.surface1).padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(emojis.joinToString("  "), fontSize = 34.sp)
@@ -499,8 +519,8 @@ private fun EmojiKey(emojis: List<String>, bars: Int, active: Boolean) {
             )
             Spacer(Modifier.height(20.dp))
             Text(
-                "Понятно", color = com.kirox.app.ui.theme.Fusion.colors.onAccent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(com.kirox.app.ui.theme.Fusion.colors.accent).clickable { explain = false }.padding(vertical = 12.dp)
+                "Понятно", color = Fusion.colors.onAccent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(Fusion.colors.accent).clickable { explain = false }.padding(vertical = 12.dp)
             )
         }
     }
@@ -515,25 +535,25 @@ private fun SignalBars(bars: Int) {
             val h = size.height * (i + 1) / 4f
             drawRoundRect(
                 if (i < bars) Color.White else Color(0x4DFFFFFF),
-                topLeft = androidx.compose.ui.geometry.Offset(i * 2 * w, size.height - h),
-                size = androidx.compose.ui.geometry.Size(w, h), cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 2)
+                topLeft = Offset(i * 2 * w, size.height - h),
+                size = Size(w, h), cornerRadius = CornerRadius(w / 2)
             )
         }
     }
 }
 
 /** Where the call sound goes: phone, speaker, wired headset or Bluetooth, the current one ticked. */
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AudioRouteSheet(current: CallAudioRoute, routes: Set<CallAudioRoute>, onPick: (CallAudioRoute) -> Unit, onDismiss: () -> Unit) {
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = com.kirox.app.ui.theme.Fusion.colors.surface1) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Fusion.colors.surface1) {
         Text("Звук звонка", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
         CallAudioRoute.entries.filter { it in routes }.forEach { route ->
             Row(Modifier.fillMaxWidth().clickable { onPick(route) }.padding(horizontal = 20.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconGlyph(if (route == CallAudioRoute.Earpiece) KiroXIcon.Call else KiroXIcon.Speaker, null, Modifier.size(22.dp), Color.White)
+                KiroXIcon(if (route == CallAudioRoute.Earpiece) KiroXIcon.Call else KiroXIcon.Speaker, null, Modifier.size(22.dp), Color.White)
                 Spacer(Modifier.width(16.dp))
                 Text(route.label, color = Color.White, fontSize = 16.sp, modifier = Modifier.weight(1f))
-                if (route == current) IconGlyph(KiroXIcon.Check, "Выбрано", Modifier.size(20.dp), com.kirox.app.ui.theme.Fusion.colors.accent)
+                if (route == current) KiroXIcon(KiroXIcon.Check, "Выбрано", Modifier.size(20.dp), Fusion.colors.accent)
             }
         }
         Spacer(Modifier.navigationBarsPadding().height(12.dp))
