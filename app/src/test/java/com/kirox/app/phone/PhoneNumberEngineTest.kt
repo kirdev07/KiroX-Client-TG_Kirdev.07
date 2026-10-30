@@ -55,6 +55,22 @@ class PhoneNumberEngineTest {
     }
 
     @Test
+    fun `shared code falls back to its main country when the current one does not fit`() {
+        assertEquals("RU", engine.detectInternationalRegion("+7", "US"))
+    }
+
+    @Test
+    fun `unknown country code is not detected`() {
+        assertEquals(null, engine.detectInternationalRegion("+0", "KZ"))
+    }
+
+    @Test
+    fun `whole number is grouped as it is typed`() {
+        assertEquals("+7", engine.formatInternational("7"))
+        assertEquals("+7 701 123 4567", engine.formatInternational("77011234567"))
+    }
+
+    @Test
     fun `Italian leading zero is kept`() {
         val it = Country("IT", "Италия", 39)
         assertEquals("0612345678", engine.nationalDigits("+39 06 1234 5678", it))

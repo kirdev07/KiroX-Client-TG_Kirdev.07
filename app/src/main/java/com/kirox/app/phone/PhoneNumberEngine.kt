@@ -21,7 +21,18 @@ internal class PhoneNumberEngine(
         }.getOrNull()
         if (!parsedRegion.isNullOrBlank()) return parsedRegion
 
+        // Shared code while the number is still short (+7 → Russia or Kazakhstan): keep the current
+        // country if it fits, otherwise the code's main country until more digits tell them apart.
         return currentRegion.takeIf { phoneUtil.getCountryCodeForRegion(it) == callingCode }
+            ?: phoneUtil.getRegionCodeForCountryCode(callingCode).takeIf { it != "ZZ" }
+    }
+
+    /** "+77011234567" typed digit by digit, grouped the way that country writes it: "+7 701 123 4567". */
+    fun formatInternational(digits: String): String {
+        val formatter = phoneUtil.getAsYouTypeFormatter("ZZ")
+        var formatted = formatter.inputDigit('+')
+        digits.filter(Char::isDigit).forEach { formatted = formatter.inputDigit(it) }
+        return formatted
     }
 
     fun nationalDigits(raw: String, country: Country): String {

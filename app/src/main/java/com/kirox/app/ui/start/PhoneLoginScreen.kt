@@ -67,7 +67,7 @@ fun PhoneLoginScreen(
 ) {
     if (onCancel != null) androidx.activity.compose.BackHandler(onBack = onCancel)
     if (Fusion.colors.backdrop != null) {
-        PhoneLoginFusion(state, onChooseCountry, onContinue, onQrLogin, externalStatus, busy, onCancel)
+        PhoneLoginFusion(state, onContinue, onQrLogin, externalStatus, busy, onCancel)
         return
     }
     val focusManager = LocalFocusManager.current
@@ -297,7 +297,6 @@ internal fun ChevronRight(color: Color = KiroXSecondary) {
 @Composable
 private fun PhoneLoginFusion(
     state: PhoneEntryState,
-    onChooseCountry: () -> Unit,
     onContinue: (String) -> Unit,
     onQrLogin: () -> Unit,
     externalStatus: String?,
@@ -315,31 +314,34 @@ private fun PhoneLoginFusion(
             Spacer(Modifier.height(14.dp))
             com.kirox.app.ui.auth.AuthHeading("Введите номер", "Ваш номер телефона\nдля входа в Telegram")
             Spacer(Modifier.height(24.dp))
-            com.kirox.app.ui.auth.AuthPill(onClick = onChooseCountry) {
-                Text(state.country.flag, fontSize = 20.sp)
-                Spacer(Modifier.width(10.dp))
-                Text("${state.country.name} ${state.country.dialCode}", color = Fusion.colors.textPrimary, fontSize = 16.sp, modifier = Modifier.weight(1f), maxLines = 1)
-                com.kirox.app.ui.icons.KiroXIcon(com.kirox.app.ui.icons.KiroXIcon.Chevron, null, Modifier.size(18.dp).rotate(90f), Fusion.colors.textSecondary)
-            }
-            Spacer(Modifier.height(12.dp))
+            // One field for the whole number: the country comes from its code, shown under the field.
             com.kirox.app.ui.auth.AuthPill(focused = true) {
                 com.kirox.app.ui.icons.KiroXIcon(com.kirox.app.ui.icons.KiroXIcon.Phone, null, Modifier.size(20.dp), Fusion.colors.textSecondary)
                 Spacer(Modifier.width(12.dp))
-                Text(state.country.dialCode + " ", color = Fusion.colors.textSecondary, fontSize = 17.sp)
-                if (state.digits.isEmpty()) Text("700 000 00 00", color = Fusion.colors.textTertiary, fontSize = 17.sp)
-                else Text(state.formattedNumber, color = Fusion.colors.textPrimary, fontSize = 17.sp, maxLines = 1)
+                if (state.entered.isEmpty()) Text("+7 700 000 00 00", color = Fusion.colors.textTertiary, fontSize = 17.sp)
+                else Text(state.formattedEntered, color = Fusion.colors.textPrimary, fontSize = 17.sp, maxLines = 1)
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (state.countryKnown) {
+                    Text(state.country.flag, fontSize = 16.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(state.country.name, color = Fusion.colors.textSecondary, fontSize = 14.sp, maxLines = 1)
+                } else {
+                    Text("Начните с кода страны: +7, +375, +380…", color = Fusion.colors.textTertiary, fontSize = 14.sp, maxLines = 1)
+                }
             }
             Spacer(Modifier.height(8.dp))
             StatusMessage(state.status)
             if (externalStatus != null) Text(externalStatus, color = Fusion.colors.danger, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            com.kirox.app.ui.auth.AuthGradientButton(if (busy) "Подключение…" else "Продолжить", enabled = state.digits.isNotEmpty(), busy = busy) {
+            com.kirox.app.ui.auth.AuthGradientButton(if (busy) "Подключение…" else "Продолжить", enabled = state.countryKnown && state.digits.isNotEmpty(), busy = busy) {
                 if (state.validate()) onContinue(state.internationalNumber)
             }
             com.kirox.app.ui.auth.AuthLink("Войти по QR-коду", enabled = !busy, onClick = onQrLogin)
             if (onCancel != null) com.kirox.app.ui.auth.AuthLink("Вернуться к аккаунту", onClick = onCancel)
         }
-        com.kirox.app.ui.auth.AuthKeypad(enabled = !busy, onDigit = { state.updateNumber(state.digits + it) }, onDelete = { state.updateNumber(state.digits.dropLast(1)) })
+        com.kirox.app.ui.auth.AuthKeypad(enabled = !busy, onDigit = { state.updateEntered(state.entered + it) }, onDelete = { state.updateEntered(state.entered.dropLast(1)) })
         Spacer(Modifier.height(12.dp))
     }
 }

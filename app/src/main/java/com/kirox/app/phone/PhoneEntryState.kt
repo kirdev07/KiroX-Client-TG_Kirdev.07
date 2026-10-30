@@ -14,6 +14,13 @@ class PhoneEntryState private constructor(
         private set
     var status by mutableStateOf<PhoneStatus>(PhoneStatus.Idle)
         private set
+    /** The whole number after «+», country code included; starts with the SIM or system country's code. */
+    var entered by mutableStateOf(initialCountry.callingCode.toString())
+        private set
+    /** False while [entered] does not begin with a known country code. */
+    var countryKnown by mutableStateOf(true)
+        private set
+    val formattedEntered: String get() = resolver.formatInternational(entered)
     val formattedNumber: String get() = resolver.formatNational(digits, country)
     val internationalNumber: String get() = resolver.international(country, digits) ?: (country.dialCode + digits)
 
@@ -39,7 +46,28 @@ class PhoneEntryState private constructor(
         status = PhoneStatus.Idle
     }
 
+    /** The country follows the typed code, so there is nothing to pick by hand. */
+    fun updateEntered(raw: String) {
+        entered = raw.filter(Char::isDigit).take(18)
+        val detected = resolver.detectInternational("+$entered", country)
+        countryKnown = detected != null
+        if (detected != null) {
+            if (detected.regionCode != country.regionCode) {
+                country = detected
+                resolver.save(detected)
+            }
+            digits = resolver.nationalDigits("+$entered", detected)
+        } else {
+            digits = ""
+        }
+        status = PhoneStatus.Idle
+    }
+
     fun validate(): Boolean {
+        if (!countryKnown) {
+            status = PhoneStatus.Error("Начните номер с кода страны, например +7.")
+            return false
+        }
         val validation = resolver.validation(country, digits)
         status = when (validation) {
             PhoneValidation.Empty -> PhoneStatus.Error("Введите номер телефона.")

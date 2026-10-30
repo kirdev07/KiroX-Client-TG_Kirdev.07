@@ -58,6 +58,8 @@ class CountryResolver(private val context: Context) {
         return phoneEngine.nationalDigits(raw, country)
     }
 
+    fun formatInternational(digits: String): String = phoneEngine.formatInternational(digits)
+
     fun formatNational(digits: String, country: Country): String {
         return phoneEngine.formatNational(digits, country.regionCode)
     }
