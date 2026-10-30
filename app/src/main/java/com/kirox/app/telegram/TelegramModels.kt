@@ -146,6 +146,8 @@ data class TelegramMessage(
     val albumId: Long = 0,
     /** Comments under a channel post; null when the post has no comments. */
     val commentCount: Int? = null,
+    /** Views of a channel post; null outside channels. */
+    val viewCount: Int? = null,
     val poll: TelegramPoll? = null,
     /** Inline buttons under a bot message, by rows. */
     val buttons: List<List<TelegramButton>> = emptyList(),

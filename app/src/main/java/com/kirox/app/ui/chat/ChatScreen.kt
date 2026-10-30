@@ -37,6 +37,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -146,8 +147,10 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
         },
         horizontalArrangement = if (outgoing) Arrangement.End else Arrangement.Start
     ) {
+        // Channel post (approved media board): wider card, photo edge to edge on top, views next to the time.
+        val post = message.viewCount != null
         Column(
-            Modifier.widthIn(max = windowWidthDp().coerceAtLeast(320).dp * .84f)
+            (if (post) Modifier.widthIn(max = windowWidthDp().coerceAtLeast(320).dp * .94f).fillMaxWidth() else Modifier.widthIn(max = windowWidthDp().coerceAtLeast(320).dp * .84f))
                 .clip(shape)
                 .background(bubbleBrush(outgoing, appearance))
                 .then(if (Fusion.colors.glass) Modifier.border(1.dp, Color(0x29FFFFFF), shape) else Modifier)
@@ -159,20 +162,36 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
             message.forwardedFrom?.let { Text("Переслано от $it", color = Fusion.colors.textPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold); Spacer(Modifier.height(4.dp)) }
             message.quote?.let { quote -> Box(Modifier.clickable(enabled = quote.messageId != 0L) { onQuote(quote.messageId) }) { QuoteBlock(quote) }; Spacer(Modifier.height(6.dp)) }
             val textScale = appearance.textScale
+            val photoFirst = post && message.forwardedFrom == null && message.quote == null && !pinned && (!showAuthor || outgoing || grouped)
             @Composable fun Meta() = Row(verticalAlignment = Alignment.CenterVertically) {
+                message.viewCount?.let { views ->
+                    IconGlyph(KiroXIcon.Eye, "Просмотры", Modifier.size(13.dp), ChatSecondary)
+                    Spacer(Modifier.width(3.dp))
+                    Text(compactCount(views), color = ChatSecondary, fontSize = 10.sp)
+                    Spacer(Modifier.width(8.dp))
+                }
                 Text(if (message.edited) "изм. ${message.time}" else message.time, color = ChatSecondary, fontSize = 10.sp)
                 if (outgoing && message.delivery != DeliveryState.None) { Spacer(Modifier.width(4.dp)); Text(deliveryGlyph(message.delivery), color = ChatSecondary, fontSize = 10.sp) }
             }
-            @Composable fun Caption() { if (message.text.isNotBlank()) { Spacer(Modifier.height(6.dp)); MessageText(message.text, message.entities, textScale) } }
             val media = message.media
+            // In a post the caption carries the time on its last line, as plain text does; elsewhere
+            // the bubble is as wide as its media, so the time stays on its own line at the end.
+            val captionMeta = post && message.text.isNotBlank() && (album.size > 1 || message.kind in setOf(MessageKind.Photo, MessageKind.Video, MessageKind.Animation, MessageKind.Audio) || (message.kind == MessageKind.Document && media != null))
+            @Composable fun Caption() {
+                if (message.text.isBlank()) return
+                Spacer(Modifier.height(6.dp))
+                if (captionMeta) TextWithMeta({ onLayout -> MessageText(message.text, message.entities, textScale, onTextLayout = onLayout) }, Modifier.fillMaxWidth()) { Meta() }
+                else MessageText(message.text, message.entities, textScale)
+            }
             if (album.size > 1) {
-                AlbumGrid(album)
+                AlbumGrid(album, if (photoFirst) Modifier.bleed(12.dp, appearance.bubblePaddingDp.dp) else Modifier, wide = post)
                 Caption()
             } else when (message.kind) {
                 MessageKind.Photo -> {
                     val photo = message.photo
                     var open by remember(message.id) { mutableStateOf(false) }
-                    if (photo != null) Box(Modifier.clickable { open = true }) { com.kirox.app.ui.components.TelegramPhoto(photo, message.photoAspect) } else MediaPlaceholder(message.kind)
+                    if (photo != null && photoFirst) Box(Modifier.bleed(12.dp, appearance.bubblePaddingDp.dp).clickable { open = true }) { com.kirox.app.ui.components.TelegramPhoto(photo, message.photoAspect, maxWidth = 640.dp, corner = 0.dp) }
+                    else if (photo != null) Box(Modifier.clickable { open = true }) { com.kirox.app.ui.components.TelegramPhoto(photo, message.photoAspect, maxWidth = if (post) 640.dp else 280.dp) } else MediaPlaceholder(message.kind)
                     if (open && photo != null) ChatPhotoGallery(LocalGalleryChatId.current, message.id, photo) { open = false }
                     Caption()
                 }
@@ -187,10 +206,10 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
                     val poll = message.poll
                     if (poll != null) PollView(poll, onVote)
                     // Plain text: the time sits at the end of the last line when it fits, as on the approved board.
-                    else TextWithMeta({ onLayout -> MessageText(message.text, message.entities, textScale, onTextLayout = onLayout) }) { Meta() }
+                    else TextWithMeta({ onLayout -> MessageText(message.text, message.entities, textScale, onTextLayout = onLayout) }, if (post) Modifier.fillMaxWidth() else Modifier) { Meta() }
                 }
             }
-            if (!(message.kind == MessageKind.Text && message.poll == null && album.size <= 1)) {
+            if (!(message.kind == MessageKind.Text && message.poll == null && album.size <= 1) && !captionMeta) {
                 Spacer(Modifier.height(4.dp))
                 Box(Modifier.align(Alignment.End)) { Meta() }
             }
@@ -485,9 +504,9 @@ internal fun pollVotersLabel(count: Int): String {
 
 /** Photos and videos of one album in a grid (2 per row, 3 when there are many), each opens full screen. */
 @Composable
-private fun AlbumGrid(items: List<MessageUi>) {
+private fun AlbumGrid(items: List<MessageUi>, modifier: Modifier = Modifier, wide: Boolean = false) {
     val columns = if (items.size >= 5) 3 else 2
-    Column(Modifier.widthIn(max = 280.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    Column(modifier.then(if (wide) Modifier.fillMaxWidth() else Modifier.widthIn(max = 280.dp)), verticalArrangement = Arrangement.spacedBy(3.dp)) {
         items.chunked(columns).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 row.forEach { item ->
@@ -571,9 +590,9 @@ private fun attachmentTint(title: String): Color = when (title) {
  * their own at the bottom right (as in Telegram and the approved Fusion board).
  */
 @Composable
-private fun TextWithMeta(text: @Composable ((androidx.compose.ui.text.TextLayoutResult) -> Unit) -> Unit, meta: @Composable () -> Unit) {
+private fun TextWithMeta(text: @Composable ((androidx.compose.ui.text.TextLayoutResult) -> Unit) -> Unit, modifier: Modifier = Modifier, meta: @Composable () -> Unit) {
     val lastLine = remember { FloatArray(1) }
-    androidx.compose.ui.layout.Layout(content = {
+    androidx.compose.ui.layout.Layout(modifier = modifier, content = {
         text { layout -> lastLine[0] = if (layout.lineCount > 0) layout.getLineRight(layout.lineCount - 1) else 0f }
         meta()
     }) { measurables, constraints ->
@@ -590,4 +609,19 @@ private fun TextWithMeta(text: @Composable ((androidx.compose.ui.text.TextLayout
             metaPlaceable.place(width - metaPlaceable.width, height - metaPlaceable.height)
         }
     }
+}
+
+/** Lets a child reach the bubble's edges: [horizontal] on both sides and [top] above it. */
+private fun Modifier.bleed(horizontal: androidx.compose.ui.unit.Dp, top: androidx.compose.ui.unit.Dp) = layout { measurable, constraints ->
+    val side = horizontal.roundToPx(); val up = top.roundToPx()
+    val placeable = measurable.measure(constraints.copy(minWidth = constraints.minWidth + 2 * side, maxWidth = constraints.maxWidth + 2 * side))
+    layout(placeable.width - 2 * side, (placeable.height - up).coerceAtLeast(0)) { placeable.place(-side, -up) }
+}
+
+/** 950, 1,2K, 3,4M — the short view count under channel posts. */
+internal fun compactCount(value: Int): String = when {
+    value >= 1_000_000 -> "%.1fM".format(value / 1_000_000f).replace(".0M", "M")
+    value >= 10_000 -> "${value / 1000}K"
+    value >= 1000 -> "%.1fK".format(value / 1000f).replace(".0K", "K")
+    else -> value.toString()
 }

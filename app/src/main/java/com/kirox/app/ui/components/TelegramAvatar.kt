@@ -77,10 +77,10 @@ fun rememberTelegramBitmap(file: TelegramFileRef?, sizePx: Int, priority: Int = 
 
 /** Message photo with a stable aspect-ratio box, so the list does not jump while it loads. */
 @Composable
-fun TelegramPhoto(file: TelegramFileRef, aspect: Float, modifier: Modifier = Modifier) {
+fun TelegramPhoto(file: TelegramFileRef, aspect: Float, modifier: Modifier = Modifier, maxWidth: androidx.compose.ui.unit.Dp = 280.dp, corner: androidx.compose.ui.unit.Dp = 12.dp) {
     val ratio = aspect.takeIf { it > 0f }?.coerceIn(0.5f, 2.2f) ?: 1.3f
-    val bitmap = rememberTelegramBitmap(file, with(LocalDensity.current) { 280.dp.roundToPx() }, priority = 16)
-    Box(modifier.widthIn(max = 280.dp).fillMaxWidth().aspectRatio(ratio).clip(RoundedCornerShape(12.dp)).background(Fusion.colors.surface3)) {
+    val bitmap = rememberTelegramBitmap(file, with(LocalDensity.current) { maxWidth.coerceAtMost(420.dp).roundToPx() }, priority = 16)
+    Box(modifier.widthIn(max = maxWidth).fillMaxWidth().aspectRatio(ratio).clip(RoundedCornerShape(corner)).background(Fusion.colors.surface3)) {
         bitmap?.let { Image(it, contentDescription = "Фотография", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
     }
 }

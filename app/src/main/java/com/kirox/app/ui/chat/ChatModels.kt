@@ -37,6 +37,8 @@ data class MessageUi(
     val entities: List<com.kirox.app.telegram.TelegramTextEntity> = emptyList(),
     /** Comments under a channel post; null when comments are off. */
     val commentCount: Int? = null,
+    /** Views of a channel post; null outside channels. */
+    val viewCount: Int? = null,
     val poll: com.kirox.app.telegram.TelegramPoll? = null,
     val buttons: List<List<com.kirox.app.telegram.TelegramButton>> = emptyList()
 )

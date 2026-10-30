@@ -549,6 +549,7 @@ class TelegramMessageRepository(
             poll = pollOf(content),
             buttons = inlineButtonsOf(replyMarkup),
             commentCount = interactionInfo?.replyInfo?.replyCount?.takeIf { isChannelPost },
+            viewCount = interactionInfo?.viewCount?.takeIf { isChannelPost },
             replyToMessageId = reply?.takeIf { it.chatId == 0L || it.chatId == chatId }?.messageId ?: 0L,
             date = date,
             edited = editDate > 0,

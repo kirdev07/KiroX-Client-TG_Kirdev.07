@@ -944,6 +944,7 @@ internal fun TelegramMessage.toUi(time: String) = MessageUi(
     thumbnail = thumbnail,
     entities = entities,
     commentCount = commentCount,
+    viewCount = viewCount,
     poll = poll,
     buttons = buttons
 )
