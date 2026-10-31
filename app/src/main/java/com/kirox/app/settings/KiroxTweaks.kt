@@ -40,7 +40,17 @@ data class Tweaks(
     val keepEdits: Boolean = false,
     /** Web links open inside kiroX instead of the browser app. */
     val inAppBrowser: Boolean = true,
-    val powerSaving: PowerSaving = PowerSaving.Auto
+    val powerSaving: PowerSaving = PowerSaving.Auto,
+    /** Browser: no pictures over mobile data. */
+    val browserSaveTraffic: Boolean = false,
+    /** Browser: cookies, cache and site data are wiped when it closes. */
+    val browserPrivate: Boolean = false,
+    /** Browser: sites may run scripts. */
+    val browserJs: Boolean = true,
+    /** Browser: cookies of other sites (trackers, ads) are allowed. */
+    val browserThirdPartyCookies: Boolean = false,
+    /** «Проверка файлов»: documents are checked by FileGuard when opened. */
+    val fileGuard: Boolean = true
 ) {
     /** Opened chats are not marked read for the other side. */
     val ghostRead get() = ghost && ghostNoRead
@@ -81,6 +91,11 @@ object KiroxTweaks {
             keepDeleted = prefs.getBoolean("keep_deleted", false),
             keepEdits = prefs.getBoolean("keep_edits", false),
             inAppBrowser = prefs.getBoolean("in_app_browser", true),
+            browserSaveTraffic = prefs.getBoolean("browser_save_traffic", false),
+            browserPrivate = prefs.getBoolean("browser_private", false),
+            browserJs = prefs.getBoolean("browser_js", true),
+            browserThirdPartyCookies = prefs.getBoolean("browser_3p_cookies", false),
+            fileGuard = prefs.getBoolean("file_guard", true),
             powerSaving = PowerSaving.entries.firstOrNull { it.name == prefs.getString("power_saving", null) } ?: PowerSaving.Auto
         )
     }
@@ -106,6 +121,11 @@ object KiroxTweaks {
             putBoolean("keep_deleted", value.keepDeleted)
             putBoolean("keep_edits", value.keepEdits)
             putBoolean("in_app_browser", value.inAppBrowser)
+            putBoolean("browser_save_traffic", value.browserSaveTraffic)
+            putBoolean("browser_private", value.browserPrivate)
+            putBoolean("browser_js", value.browserJs)
+            putBoolean("browser_3p_cookies", value.browserThirdPartyCookies)
+            putBoolean("file_guard", value.fileGuard)
             putString("power_saving", value.powerSaving.name)
         }
     }

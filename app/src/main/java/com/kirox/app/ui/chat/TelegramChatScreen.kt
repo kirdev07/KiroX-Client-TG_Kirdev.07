@@ -502,7 +502,11 @@ fun TelegramChatScreen(
         TelegramPeerKind.Channel -> com.kirox.app.telegram.TelegramChatKind.Channel
         else -> null
     }
-    CompositionLocalProvider(LocalGalleryChatId provides history.chatId, LocalSaveToGallery provides (galleryKind in galleryKinds)) {
+    // The chat's music, oldest first: tapping one plays the rest after it.
+    val chatTracks = remember(history.messages) {
+        history.messages.filter { it.kind == com.kirox.app.telegram.TelegramMessageKind.Audio }.mapNotNull { it.media?.toTrack() }
+    }
+    CompositionLocalProvider(LocalGalleryChatId provides history.chatId, LocalSaveToGallery provides (galleryKind in galleryKinds), LocalChatTracks provides chatTracks) {
     Box(Modifier.fillMaxSize()) {
     com.kirox.app.ui.components.ChatWallpaperLayer(chatWallpaper ?: style.wallpaper, Modifier.matchParentSize())
     Scaffold(
@@ -536,6 +540,7 @@ fun TelegramChatScreen(
                 }
             })
                 history.pinned?.let { pinned -> PinnedBar(pinned, count = history.pinnedIds.size) { actions.jumpTo(pinned.id) } }
+                MiniPlayerBar()
             }
         },
         bottomBar = {

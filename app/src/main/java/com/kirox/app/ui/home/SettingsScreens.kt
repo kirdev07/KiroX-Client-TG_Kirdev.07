@@ -1475,6 +1475,48 @@ private fun MessageFiltersScreen(onBack: () -> Unit) {
     }
 }
 
+// ---------- Browser ----------
+
+/** «Встроенный браузер»: on / off, what it may load and keep, and wiping its data. */
+@Composable
+private fun BrowserSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
+    BackHandler(onBack = onBack)
+    val context = LocalContext.current
+    val tweaks by com.kirox.app.settings.KiroxTweaks.state.collectAsState()
+    fun set(value: com.kirox.app.settings.Tweaks) = com.kirox.app.settings.KiroxTweaks.update(value)
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Встроенный браузер", onBack) }
+        item {
+            SettingsCard {
+                ToggleRow("Открывать ссылки в kiroX", "Ссылки из чатов открываются внутри kiroX, без перехода в браузер", tweaks.inAppBrowser) { set(tweaks.copy(inAppBrowser = it)) }
+            }
+        }
+        item { SmallCaption("Трафик и данные") }
+        item {
+            SettingsCard {
+                ToggleRow("Экономия трафика", "По мобильной сети картинки на сайтах не загружаются — только текст. По Wi-Fi всё как обычно", tweaks.browserSaveTraffic) { set(tweaks.copy(browserSaveTraffic = it)) }
+                ToggleRow("Приватный режим", "Cookies, кэш и данные сайтов стираются, когда браузер закрывается: входы на сайты не запоминаются", tweaks.browserPrivate) { set(tweaks.copy(browserPrivate = it)) }
+                ToggleRow("Сторонние cookies", "Cookies чужих сайтов на странице — обычно это реклама и счётчики. Выключено — меньше слежки", tweaks.browserThirdPartyCookies) { set(tweaks.copy(browserThirdPartyCookies = it)) }
+                ToggleRow("JavaScript", "Без него сайты легче и быстрее, но многие перестают работать", tweaks.browserJs) { set(tweaks.copy(browserJs = it)) }
+            }
+        }
+        item {
+            SettingsCard {
+                LinkRow("Очистить данные браузера", "Cookies, кэш, сохранённые формы и данные сайтов. Мини-приложения ботов тоже выйдут из аккаунтов", Fusion.colors.danger) {
+                    com.kirox.app.ui.chat.BrowserData.clear(context)
+                    onNotice("Данные браузера очищены")
+                }
+            }
+        }
+        item {
+            Text(
+                "Местоположение, камеру и микрофон сайты во встроенном браузере не получают. Файлы со страниц скачиваются в «Загрузки».",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+        }
+    }
+}
+
 // ---------- Power saving ----------
 
 /** «Энергосбережение»: when kiroX drops animations, blur and GIF autoplay. */
@@ -1734,6 +1776,10 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
     if (filtersPage) { MessageFiltersScreen(onBack = { filtersPage = false }); return }
     var powerPage by remember { mutableStateOf(false) }
     if (powerPage) { PowerSavingScreen(onBack = { powerPage = false }); return }
+    var filesPage by remember { mutableStateOf(false) }
+    if (filesPage) { com.kirox.app.ui.files.FilesExplorerScreen(onBack = { filesPage = false }, onNotice = onNotice); return }
+    var browserPage by remember { mutableStateOf(false) }
+    if (browserPage) { BrowserSettingsScreen(onBack = { browserPage = false }, onNotice = onNotice); return }
     BackHandler(onBack = onBack)
     val context = LocalContext.current
     var confirmReset by remember { mutableStateOf(false) }
@@ -1800,6 +1846,8 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
             val filtersInfo = if (filters.enabled) "Слов: ${filters.words.size} · людей: ${filters.people.size}" else "Выключены"
             SettingsCard {
                 LinkRow("Фильтры сообщений", "Прятать в группах и каналах сообщения со словами или от людей · $filtersInfo") { filtersPage = true }
+                LinkRow("Файлы Telegram", "Всё скачанное: документы, архивы, музыка, видео — просмотр и проверка") { filesPage = true }
+                ToggleRow("Проверка файлов", "Перед открытием документ проверяется на программы, маскировку, макросы и опасные архивы", tweaks.fileGuard) { set(tweaks.copy(fileGuard = it)) }
             }
         }
         item { SmallCaption("Сохранение сообщений") }
@@ -1846,7 +1894,7 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
                 ToggleRow("Вкладка «Истории»", "Показывать в нижней панели", !tweaks.hideStoriesTab) { set(tweaks.copy(hideStoriesTab = !it)) }
                 ToggleRow("ID в профилях", "Номер пользователя или чата в Telegram; нажатие копирует его", tweaks.showIds) { set(tweaks.copy(showIds = it)) }
                 ToggleRow("Скрывать клавиатуру при прокрутке", "Проведите по переписке — клавиатура закроется", tweaks.hideKeyboardOnScroll) { set(tweaks.copy(hideKeyboardOnScroll = it)) }
-                ToggleRow("Встроенный браузер", "Ссылки из чатов открываются внутри kiroX, без перехода в браузер", tweaks.inAppBrowser) { set(tweaks.copy(inAppBrowser = it)) }
+                LinkRow("Встроенный браузер", if (tweaks.inAppBrowser) "Включён" else "Выключен") { browserPage = true }
                 LinkRow("Энергосбережение", tweaks.powerSaving.title) { powerPage = true }
                 CardDivider()
                 IconRow(IconGlyphs.Palette, Color(0xFF6C4CE0), "Иконка приложения", null, trailing = appIcon.title) { choosingIcon = true }

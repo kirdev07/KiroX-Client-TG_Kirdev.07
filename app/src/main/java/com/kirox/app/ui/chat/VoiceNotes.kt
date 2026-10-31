@@ -2,7 +2,10 @@ package com.kirox.app.ui.chat
 
 import android.content.Context
 import android.media.MediaRecorder
+import androidx.core.content.edit
 import com.kirox.app.voip.PlaybackService
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -128,16 +131,29 @@ class VoiceRecorder(private val context: Context) {
     private companion object { const val MIN_DURATION_MS = 700L }
 }
 
+/** A music file in the player's queue; it is downloaded when its turn comes. */
+data class Track(val file: com.kirox.app.telegram.TelegramFileRef, val title: String, val artist: String, val durationSec: Int)
+
+/** «Повтор» in the music player: off, the whole queue, or one track. */
+enum class RepeatMode { Off, All, One }
+
 /**
  * Plays one voice note or music file at a time (main thread). Media3 ExoPlayer handles audio focus
  * (music pauses, a call pauses us) and headphones being unplugged; [PlaybackService] puts the player in a
  * media session with a notification, so playback goes on when KiroX leaves the screen, on Android 10–17.
  * Every row observes [playingPath]: starting one note shows the previous one as stopped.
+ *
+ * Music plays as a queue — the chat's music files in order — with next / previous, repeat, shuffle,
+ * a sleep timer and the cover from the file in the notification. Long files (podcasts, audiobooks)
+ * continue from where they were left.
  */
 object VoicePlayer {
     private var player: androidx.media3.exoplayer.ExoPlayer? = null
     private var appContext: Context? = null
     private var currentPath: String? = null
+    private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main.immediate)
+    private var loadJob: kotlinx.coroutines.Job? = null
+    private var sleepJob: kotlinx.coroutines.Job? = null
 
     private val _playingPath = MutableStateFlow<String?>(null)
     val playingPath: StateFlow<String?> = _playingPath.asStateFlow()
@@ -146,6 +162,26 @@ object VoicePlayer {
     private val _speed = MutableStateFlow(1f)
     val speed: StateFlow<Float> = _speed.asStateFlow()
     private val speeds = listOf(1f, 1.5f, 2f)
+
+    private val _queue = MutableStateFlow<List<Track>>(emptyList())
+    val queue: StateFlow<List<Track>> = _queue.asStateFlow()
+    private val _index = MutableStateFlow(-1)
+    /** The music track playing or paused now; null for voice notes and when nothing is loaded. */
+    private val _track = MutableStateFlow<Track?>(null)
+    val track: StateFlow<Track?> = _track.asStateFlow()
+    private val _cover = MutableStateFlow<android.graphics.Bitmap?>(null)
+    /** The current track's embedded cover, when the file has one. */
+    val cover: StateFlow<android.graphics.Bitmap?> = _cover.asStateFlow()
+    private val _repeat = MutableStateFlow(RepeatMode.Off)
+    val repeat: StateFlow<RepeatMode> = _repeat.asStateFlow()
+    private val _shuffle = MutableStateFlow(false)
+    val shuffle: StateFlow<Boolean> = _shuffle.asStateFlow()
+    /** Wall-clock time the sleep timer stops playback, 0 when it is off. */
+    private val _sleepAt = MutableStateFlow(0L)
+    val sleepAt: StateFlow<Long> = _sleepAt.asStateFlow()
+    /** True while the next track is being downloaded. */
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
     /** The player for [PlaybackService]'s media session; null when nothing was played yet. */
     internal val sessionPlayer: androidx.media3.common.Player? get() = player
@@ -156,16 +192,53 @@ object VoicePlayer {
     /** Milliseconds played of the current file. */
     val positionMs: Int get() = player?.currentPosition?.toInt() ?: 0
 
+    /** Length of the current file in milliseconds; 0 while unknown. */
+    val durationMs: Long get() = player?.duration?.takeIf { it > 0 } ?: 0L
+
+    /** Whether something plays (or is about to) right now. */
+    val isPlaying: Boolean get() = player?.playWhenReady == true && currentPath != null
+
     fun cycleSpeed() {
         _speed.value = speeds[(speeds.indexOf(_speed.value) + 1) % speeds.size]
         player?.setPlaybackSpeed(_speed.value)
     }
+
+    fun cycleRepeat() { _repeat.value = RepeatMode.entries[(_repeat.value.ordinal + 1) % RepeatMode.entries.size] }
+
+    fun toggleShuffle() { _shuffle.value = !_shuffle.value }
 
     /** Jumps to [fraction] of [path] if it is the file playing now. */
     fun seek(path: String, fraction: Float) {
         val p = player ?: return
         if (currentPath != path || p.duration <= 0) return
         p.seekTo((p.duration * fraction.coerceIn(0f, 1f)).toLong())
+    }
+
+    /** Jumps to [fraction] of whatever is loaded. */
+    fun seekTo(fraction: Float) { currentPath?.let { seek(it, fraction) } }
+
+    /** Moves by [deltaMs] within the current file. */
+    fun skipBy(deltaMs: Long) {
+        val p = player ?: return
+        p.seekTo((p.currentPosition + deltaMs).coerceIn(0L, p.duration.coerceAtLeast(0L)))
+    }
+
+    /** Pauses or resumes whatever is loaded. */
+    fun playPause() {
+        val p = player ?: return
+        if (p.playWhenReady) p.pause() else { if (p.playbackState == androidx.media3.common.Player.STATE_ENDED) p.seekTo(0); p.play() }
+    }
+
+    /** Stops playback after [minutes]; 0 turns the timer off. */
+    fun sleepIn(minutes: Int) {
+        sleepJob?.cancel()
+        if (minutes <= 0) { _sleepAt.value = 0; return }
+        _sleepAt.value = System.currentTimeMillis() + minutes * 60_000L
+        sleepJob = scope.launch {
+            kotlinx.coroutines.delay(minutes * 60_000L)
+            _sleepAt.value = 0
+            player?.pause()
+        }
     }
 
     private fun player(context: Context): androidx.media3.exoplayer.ExoPlayer {
@@ -177,14 +250,15 @@ object VoicePlayer {
             .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_SPEECH)
             .build()
         return androidx.media3.exoplayer.ExoPlayer.Builder(app)
+            .setMediaSourceFactory(com.kirox.app.media.TelegramStream.mediaSourceFactory(app))
             .setAudioAttributes(attributes, /* handleAudioFocus = */ true)
             .setHandleAudioBecomingNoisy(true)
             .build().also { created ->
                 created.addListener(object : androidx.media3.common.Player.Listener {
-                    override fun onIsPlayingChanged(isPlaying: Boolean) = publish()
+                    override fun onIsPlayingChanged(isPlaying: Boolean) { publish(); if (!isPlaying) rememberPosition() }
                     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = publish()
                     override fun onPlaybackStateChanged(state: Int) {
-                        if (state == androidx.media3.common.Player.STATE_ENDED) stop() else publish()
+                        if (state == androidx.media3.common.Player.STATE_ENDED) { forgetPosition(); onEnded() } else publish()
                     }
                     override fun onPlayerError(error: androidx.media3.common.PlaybackException) = stop()
                 })
@@ -198,22 +272,115 @@ object VoicePlayer {
         _playingPath.value = if (p != null && p.playWhenReady && p.playbackState != androidx.media3.common.Player.STATE_IDLE) currentPath else null
     }
 
+    /** A music track ended: the same again, the next one, or the end of the queue. */
+    private fun onEnded() {
+        val queue = _queue.value
+        val context = appContext
+        if (_track.value == null || queue.isEmpty() || context == null) { stop(); return }
+        when {
+            _repeat.value == RepeatMode.One -> { player?.seekTo(0); player?.play() }
+            else -> {
+                val next = nextIndex(forward = true)
+                if (next == null) { player?.pause(); player?.seekTo(0); publish() } else playAt(context, next)
+            }
+        }
+    }
+
+    private fun nextIndex(forward: Boolean): Int? {
+        val size = _queue.value.size
+        if (size == 0) return null
+        val i = _index.value
+        if (_shuffle.value && size > 1) return (0 until size).filter { it != i }.random()
+        val next = if (forward) i + 1 else i - 1
+        return when {
+            next in 0 until size -> next
+            _repeat.value == RepeatMode.All -> (next + size) % size
+            else -> null
+        }
+    }
+
+    fun next(context: Context) { nextIndex(forward = true)?.let { playAt(context, it) } }
+
+    /** Back to the start of the track after 3 seconds of it, otherwise the previous track. */
+    fun previous(context: Context) {
+        if ((player?.currentPosition ?: 0) > 3000) { player?.seekTo(0); return }
+        nextIndex(forward = false)?.let { playAt(context, it) } ?: player?.seekTo(0)
+    }
+
+    /**
+     * Plays [tracks] as a queue from [index] (the chat's music in order); a tap on the track that
+     * is already loaded pauses or resumes it instead. Tracks download on their turn.
+     */
+    fun playQueue(context: Context, tracks: List<Track>, index: Int) {
+        if (index !in tracks.indices) return
+        if (_track.value?.file?.id == tracks[index].file.id && currentPath != null) {
+            _queue.value = tracks; _index.value = index
+            playPause(); return
+        }
+        _queue.value = tracks
+        playAt(context, index)
+    }
+
+    private fun playAt(context: Context, index: Int) {
+        val track = _queue.value.getOrNull(index) ?: return
+        val files = (context.applicationContext as? com.kirox.app.KiroXApplication)?.telegram?.files ?: return
+        _index.value = index
+        _track.value = track
+        loadJob?.cancel()
+        _cover.value = null
+        loadJob = scope.launch {
+            val state = files.state(track.file)
+            val key = "tg:${track.file.id}"
+            val path = state.value.path
+            if (path != null) {
+                val cover = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { embeddedCover(path) }
+                _cover.value = cover?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
+                start(context, android.net.Uri.fromFile(File(path)), key, track.title, track.artist, cover)
+                return@launch
+            }
+            // Not on the phone yet: play online while it downloads; the cover appears once it is saved.
+            files.download(track.file)
+            start(context, com.kirox.app.media.TelegramStream.uri(track.file.id), key, track.title, track.artist, null)
+            val saved = runCatching { kotlinx.coroutines.withTimeout(30 * 60_000L) { state.first { it.path != null }.path } }.getOrNull() ?: return@launch
+            val cover = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { embeddedCover(saved) }
+            if (_track.value?.file?.id == track.file.id) _cover.value = cover?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
+        }
+    }
+
+    /** The picture stored inside a music file (ID3 / MP4 cover), or null. */
+    private fun embeddedCover(path: String): ByteArray? = runCatching {
+        android.media.MediaMetadataRetriever().run {
+            try { setDataSource(path); embeddedPicture } finally { release() }
+        }
+    }.getOrNull()
+
     /**
      * Plays [path], or pauses it when it is the one playing; a paused file resumes where it was.
-     * [title] and [artist] are shown in the media notification.
+     * [title] and [artist] are shown in the media notification. For voice notes; music goes
+     * through [playQueue].
      */
     fun toggle(context: Context, path: String, title: String = "Голосовое сообщение", artist: String = "kiroX") {
         val p = player(context)
-        if (currentPath == path) {
-            if (p.playWhenReady) p.pause() else { if (p.playbackState == androidx.media3.common.Player.STATE_ENDED) p.seekTo(0); p.play() }
-            return
-        }
-        currentPath = path
+        if (currentPath == path) { playPause(); return }
+        loadJob?.cancel()
+        _track.value = null
+        _queue.value = emptyList()
+        _cover.value = null
+        start(context, android.net.Uri.fromFile(File(path)), path, title, artist, null)
+    }
+
+    /** Plays [source]; [key] names it for the rows ([playingPath]) and for «продолжить с места». */
+    private fun start(context: Context, source: android.net.Uri, key: String, title: String, artist: String, cover: ByteArray?) {
+        val p = player(context)
+        rememberPosition()
+        currentPath = key
+        val metadata = androidx.media3.common.MediaMetadata.Builder().setTitle(title).setArtist(artist)
+        if (cover != null) metadata.setArtworkData(cover, androidx.media3.common.MediaMetadata.PICTURE_TYPE_FRONT_COVER)
         val item = androidx.media3.common.MediaItem.Builder()
-            .setUri(android.net.Uri.fromFile(java.io.File(path)))
-            .setMediaMetadata(androidx.media3.common.MediaMetadata.Builder().setTitle(title).setArtist(artist).build())
+            .setUri(source)
+            .setMediaMetadata(metadata.build())
             .build()
-        p.setMediaItem(item)
+        p.setMediaItem(item, savedPosition(context, key))
         p.setPlaybackSpeed(_speed.value)
         p.prepare()
         p.play()
@@ -222,9 +389,39 @@ object VoicePlayer {
         publish()
     }
 
+    // ---- «Продолжить с места»: only for files longer than 10 minutes ----
+
+    private const val RESUME_PREFS = "player_positions"
+    private const val RESUME_MIN_MS = 10 * 60_000L
+
+    private fun positions(context: Context) = context.getSharedPreferences(RESUME_PREFS, Context.MODE_PRIVATE)
+
+    private fun savedPosition(context: Context, path: String): Long = positions(context).getLong(path, 0L)
+
+    private fun rememberPosition() {
+        val p = player ?: return
+        val path = currentPath ?: return
+        val context = appContext ?: return
+        if (p.duration < RESUME_MIN_MS) return
+        val at = p.currentPosition
+        positions(context).edit {
+            if (at < 5_000 || at > p.duration - 10_000) remove(path) else putLong(path, at)
+        }
+    }
+
+    private fun forgetPosition() {
+        val path = currentPath ?: return
+        appContext?.let { positions(it).edit { remove(path) } }
+    }
+
     fun stop() {
+        rememberPosition()
+        loadJob?.cancel()
         player?.let { it.stop(); it.clearMediaItems() }
         currentPath = null
+        _track.value = null
+        _cover.value = null
+        _loading.value = false
         _playingPath.value = null
         appContext?.let(PlaybackService::stop)
     }

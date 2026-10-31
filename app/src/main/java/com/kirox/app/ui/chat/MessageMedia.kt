@@ -44,6 +44,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.core.content.edit
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -149,17 +154,15 @@ private fun MediaFrame(thumbnail: TelegramFileRef?, aspect: Float, content: @Com
 internal fun VideoMessage(media: TelegramMedia, thumbnail: TelegramFileRef?) {
     val files = LocalTelegramFiles.current
     val state = rememberFileState(media.file)
-    var wantPlay by remember(media.file.id) { mutableStateOf(false) }
-    var playing by remember(media.file.id) { mutableStateOf<String?>(null) }
+    var playing by remember(media.file.id) { mutableStateOf<android.net.Uri?>(null) }
     val rule = LocalAutoDownload.current
     LaunchedEffect(media.file.id, rule) { if (state.path == null && !state.downloading && media.size in 1..rule.maxVideoBytes) files?.download(media.file) }
-    // A tap on a video that is still downloading opens it as soon as it is complete.
-    LaunchedEffect(state.path, wantPlay) { if (wantPlay && state.path != null) { playing = state.path; wantPlay = false } }
+    // A tap plays at once: a saved video from the phone, otherwise online while it downloads.
     Box(Modifier.clickable {
-        when {
-            state.path != null -> playing = state.path
-            state.downloading -> { files?.cancel(media.file); wantPlay = false }
-            else -> { files?.download(media.file); wantPlay = true }
+        val path = state.path
+        playing = if (path != null) android.net.Uri.fromFile(File(path)) else {
+            files?.download(media.file)
+            com.kirox.app.media.TelegramStream.uri(media.file.id)
         }
     }) {
         MediaFrame(thumbnail, mediaAspect(media)) { MediaStateBadge(state, playIcon = true) }
@@ -167,7 +170,7 @@ internal fun VideoMessage(media: TelegramMedia, thumbnail: TelegramFileRef?) {
             .filter { it.isNotBlank() }.joinToString(" · ")
         Text(label, color = Color.White, fontSize = 11.sp, modifier = Modifier.align(Alignment.TopStart).padding(6.dp).clip(RoundedCornerShape(8.dp)).background(Color(0x99000000)).padding(horizontal = 6.dp, vertical = 2.dp))
     }
-    playing?.let { path -> FullscreenVideo(path) { playing = null } }
+    playing?.let { uri -> FullscreenVideo(uri, key = "tg:${media.file.id}") { playing = null } }
 }
 
 @Composable
@@ -227,18 +230,20 @@ internal fun AudioMessage(media: TelegramMedia) {
     val files = LocalTelegramFiles.current
     val state = rememberFileState(media.file)
     val playingPath by VoicePlayer.playingPath.collectAsState()
-    var wantPlay by remember(media.file.id) { mutableStateOf(false) }
-    val title = media.title.ifBlank { "Аудио" }
-    val artist = media.performer.ifBlank { "kiroX" }
-    LaunchedEffect(state.path, wantPlay) { val path = state.path; if (wantPlay && path != null) { VoicePlayer.toggle(context, path, title, artist); wantPlay = false } }
-    val playing = state.path != null && playingPath == state.path
+    val current by VoicePlayer.track.collectAsState()
+    // The chat's music in order: a tap plays from here on, like a playlist.
+    val chatTracks = LocalChatTracks.current
+    val isCurrent = current?.file?.id == media.file.id
+    val playing = isCurrent && playingPath != null
     Row(
         Modifier.clip(RoundedCornerShape(12.dp)).clickable {
-            val path = state.path
             when {
-                path != null -> VoicePlayer.toggle(context, path, title, artist)
-                state.downloading -> { files?.cancel(media.file); wantPlay = false }
-                else -> { files?.download(media.file); wantPlay = true }
+                state.downloading && !isCurrent && current == null -> files?.cancel(media.file)
+                else -> {
+                    val queue = chatTracks.ifEmpty { listOf(media.toTrack()) }
+                    val index = queue.indexOfFirst { it.file.id == media.file.id }.takeIf { it >= 0 }
+                    if (index != null) VoicePlayer.playQueue(context, queue, index) else VoicePlayer.playQueue(context, listOf(media.toTrack()), 0)
+                }
             }
         },
         verticalAlignment = Alignment.CenterVertically
@@ -252,8 +257,8 @@ internal fun AudioMessage(media: TelegramMedia) {
             }
         }
         Spacer(Modifier.width(10.dp))
-        Column(Modifier.widthIn(max = 220.dp)) {
-            Text(media.title.ifBlank { "Аудио" }, color = Fusion.colors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.widthIn(max = 220.dp).then(if (isCurrent) Modifier.clickable { MusicPlayerUi.open() } else Modifier)) {
+            Text(media.title.ifBlank { "Аудио" }, color = if (isCurrent) Fusion.colors.accent else Fusion.colors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val details = listOf(media.performer, formatDuration(media.duration), formatFileSize(media.size)).filter { it.isNotBlank() }.joinToString(" · ")
             Text(details, color = Fusion.colors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -263,9 +268,9 @@ internal fun AudioMessage(media: TelegramMedia) {
 /** Document: tap downloads it (tap again cancels), then opens it in another app. */
 @Composable
 internal fun DocumentMessage(media: TelegramMedia, onNotice: (String) -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val files = LocalTelegramFiles.current
+    var viewing by remember(media.file.id) { mutableStateOf<String?>(null) }
+    viewing?.let { path -> com.kirox.app.ui.files.FileViewer(path, media.title.ifBlank { java.io.File(path).name }, media.mimeType) { viewing = null } }
     val state = rememberFileState(media.file)
     val rule = LocalAutoDownload.current
     LaunchedEffect(media.file.id, rule) { if (state.path == null && !state.downloading && media.size in 1..rule.maxOtherBytes) files?.download(media.file) }
@@ -273,7 +278,7 @@ internal fun DocumentMessage(media: TelegramMedia, onNotice: (String) -> Unit) {
         Modifier.clip(RoundedCornerShape(12.dp)).clickable {
             val path = state.path
             when {
-                path != null -> scope.launch { if (!openFile(context, path, media.title, media.mimeType)) onNotice("Нет приложения, чтобы открыть этот файл") }
+                path != null -> viewing = path
                 state.downloading -> files?.cancel(media.file)
                 else -> files?.download(media.file)
             }
@@ -408,27 +413,120 @@ private fun CloseButton(onClose: () -> Unit, modifier: Modifier) {
     }
 }
 
-/** Video opened full screen with the Media3 controls (seek, pause); sound takes audio focus. */
-@OptIn(UnstableApi::class)
-@Composable
-internal fun FullscreenVideo(path: String, onClose: () -> Unit) {
-    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        val player = rememberPlayer(path, loop = false, muted = false, autoPlay = true)
-        Box(Modifier.fillMaxSize().background(Color.Black)) {
-            AndroidView(
-                factory = { context -> PlayerView(context).apply { useController = true; this.player = player; setShowNextButton(false); setShowPreviousButton(false) } },
-                modifier = Modifier.fillMaxSize()
-            )
-            CloseButton(onClose, Modifier.align(Alignment.TopStart))
+/** Where each long video was left, so it opens there next time. */
+private object VideoPositions {
+    private const val PREFS = "video_positions"
+    private const val MIN_MS = 60_000L
+    fun get(context: android.content.Context, key: String): Long = context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).getLong(key, 0L)
+    fun put(context: android.content.Context, key: String, position: Long, duration: Long) {
+        if (duration < MIN_MS) return
+        context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).edit {
+            if (position < 5_000 || position > duration - 10_000) remove(key) else putLong(key, position)
         }
     }
+}
+
+/**
+ * Video opened full screen with the Media3 controls (seek, pause, speed in ⚙). Double tap on the left
+ * or right half skips 10 seconds; the top bar turns the screen, switches fit / fill and repeat. Long
+ * videos open where they were left. [source] is a file or an online [com.kirox.app.media.TelegramStream] address.
+ */
+@OptIn(UnstableApi::class)
+@Composable
+internal fun FullscreenVideo(source: Uri, key: String = source.toString(), onClose: () -> Unit) {
+    val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        val player = rememberPlayer(source, loop = false, muted = false, autoPlay = true, startAt = remember(key) { VideoPositions.get(context, key) })
+        var view by remember { mutableStateOf<PlayerView?>(null) }
+        var fill by remember { mutableStateOf(false) }
+        var loop by remember { mutableStateOf(false) }
+        var landscape by remember { mutableStateOf(false) }
+        var controls by remember { mutableStateOf(true) }
+        var skipHint by remember { mutableStateOf<Pair<Boolean, Int>?>(null) }
+        var buffering by remember { mutableStateOf(false) }
+        LaunchedEffect(skipHint) { if (skipHint != null) { kotlinx.coroutines.delay(700); skipHint = null } }
+        DisposableEffect(player) {
+            val listener = object : Player.Listener {
+                override fun onPlaybackStateChanged(state: Int) { buffering = state == Player.STATE_BUFFERING }
+            }
+            player.addListener(listener)
+            onDispose {
+                player.removeListener(listener)
+                VideoPositions.put(context, key, player.currentPosition, player.duration)
+                activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            }
+        }
+        BackHandler(onBack = onClose)
+        Box(Modifier.fillMaxSize().background(Color.Black)) {
+            AndroidView(
+                factory = { ctx ->
+                    PlayerView(ctx).apply {
+                        useController = true; this.player = player; keepScreenOn = true
+                        setShowNextButton(false); setShowPreviousButton(false)
+                        setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility -> controls = visibility == android.view.View.VISIBLE })
+                        view = this
+                    }
+                },
+                update = { it.resizeMode = if (fill) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT },
+                modifier = Modifier.fillMaxSize()
+            )
+            // Double tap: ±10 s on that side; single tap shows or hides the controls.
+            Row(Modifier.fillMaxSize().padding(vertical = 96.dp)) {
+                listOf(false, true).forEach { forward ->
+                    Box(
+                        Modifier.weight(1f).fillMaxHeight().pointerInput(player) {
+                            detectTapGestures(
+                                onTap = { view?.let { if (it.isControllerFullyVisible) it.hideController() else it.showController() } },
+                                onDoubleTap = {
+                                    player.seekTo((player.currentPosition + if (forward) 10_000 else -10_000).coerceIn(0L, player.duration.coerceAtLeast(0L)))
+                                    skipHint = forward to ((skipHint?.takeIf { h -> h.first == forward }?.second ?: 0) + 10)
+                                }
+                            )
+                        },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        skipHint?.takeIf { it.first == forward }?.let { (_, seconds) ->
+                            Text(if (forward) "+$seconds с ▶▶" else "◀◀ −$seconds с", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(Color(0x66000000)).padding(horizontal = 14.dp, vertical = 8.dp))
+                        }
+                    }
+                }
+            }
+            if (buffering) CircularProgressIndicator(Modifier.align(Alignment.Center).size(44.dp), color = Color.White, strokeWidth = 3.dp)
+            if (controls) Row(
+                Modifier.fillMaxWidth().align(Alignment.TopStart).background(Color(0x55000000)).statusBarsPadding().padding(horizontal = 4.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CloseButton(onClose, Modifier)
+                Spacer(Modifier.weight(1f))
+                VideoBarButton(if (loop) "Повтор: вкл" else "Повтор") { loop = !loop; player.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF }
+                VideoBarButton(if (fill) "Вписать" else "Заполнить") { fill = !fill }
+                VideoBarButton("Повернуть") {
+                    landscape = !landscape
+                    activity?.requestedOrientation = if (landscape) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoBarButton(label: String, onClick: () -> Unit) {
+    Text(label, color = Color.White, fontSize = 13.sp, modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp))
+}
+
+private tailrec fun android.content.Context.findActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 /** Muted endless playback, for GIFs. */
 @OptIn(UnstableApi::class)
 @Composable
 internal fun LoopingVideo(path: String, modifier: Modifier) {
-    val player = rememberPlayer(path, loop = true, muted = true, autoPlay = true)
+    val player = rememberPlayer(Uri.fromFile(File(path)), loop = true, muted = true, autoPlay = true)
     AndroidView(
         factory = { context -> PlayerView(context).apply { useController = false; resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM; this.player = player } },
         modifier = modifier
@@ -439,7 +537,7 @@ internal fun LoopingVideo(path: String, modifier: Modifier) {
 @OptIn(UnstableApi::class)
 @Composable
 private fun OneShotVideo(path: String, modifier: Modifier, onEnd: () -> Unit) {
-    val player = rememberPlayer(path, loop = false, muted = false, autoPlay = true)
+    val player = rememberPlayer(Uri.fromFile(File(path)), loop = false, muted = false, autoPlay = true)
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) { if (state == Player.STATE_ENDED) onEnd() }
@@ -458,18 +556,20 @@ private fun OneShotVideo(path: String, modifier: Modifier, onEnd: () -> Unit) {
  * focus (music pauses) and stop the voice player; muted GIF players never touch audio focus.
  */
 @Composable
-private fun rememberPlayer(path: String, loop: Boolean, muted: Boolean, autoPlay: Boolean): ExoPlayer {
+private fun rememberPlayer(source: Uri, loop: Boolean, muted: Boolean, autoPlay: Boolean, startAt: Long = 0L): ExoPlayer {
     val context = LocalContext.current
-    val player = remember(path) {
+    val player = remember(source) {
         if (!muted) VoicePlayer.stop()
-        ExoPlayer.Builder(context.applicationContext).build().apply {
+        ExoPlayer.Builder(context.applicationContext)
+            .setMediaSourceFactory(com.kirox.app.media.TelegramStream.mediaSourceFactory(context))
+            .build().apply {
             setAudioAttributes(
                 AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
                 /* handleAudioFocus = */ !muted
             )
             volume = if (muted) 0f else 1f
             repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
-            setMediaItem(MediaItem.fromUri(Uri.fromFile(File(path))))
+            setMediaItem(MediaItem.fromUri(source), startAt)
             playWhenReady = autoPlay
             prepare()
         }

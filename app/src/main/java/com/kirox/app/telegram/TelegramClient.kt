@@ -135,6 +135,9 @@ class TelegramClient(context: Context) {
         send(TdApi.Close())
     }
 
+    /** Where TDLib keeps the active account's downloaded files. */
+    val filesDirectory: String get() = session.filesDirectory
+
     /** Active account's session folder name. */
     val activeSession: String get() = session.name
 
