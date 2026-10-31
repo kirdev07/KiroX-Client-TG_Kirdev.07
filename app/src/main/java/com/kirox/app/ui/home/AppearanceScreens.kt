@@ -373,6 +373,7 @@ private fun OptionCard(selected: Boolean, modifier: Modifier, onClick: () -> Uni
 
 @Composable
 private fun ThemeCard(palette: FusionPalette, selected: Boolean, modifier: Modifier, onClick: () -> Unit) =
+
     ColorsCard(palette.title, palette.subtitle, com.kirox.app.ui.theme.FusionColors.of(palette), selected, modifier, onClick = onClick)
 
 /** A theme card: a small chat painted with [colors], the name and a line under it. */
@@ -570,13 +571,6 @@ private fun SceneRow(scene: com.kirox.app.settings.EffectScene, selected: Boolea
             contentAlignment = Alignment.Center
         ) { if (selected) Box(Modifier.size(11.dp).clip(CircleShape).background(Fusion.colors.accent)) }
     }
-}
-
-@Composable
-internal fun SmallCaption(text: String) {
-    // Material 3 list subheader.
-    Text(text, style = MaterialTheme.typography.titleSmall, color = Fusion.colors.textSecondary,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp))
 }
 
 /** Label with a slim segmented control under it. */

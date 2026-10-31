@@ -366,20 +366,3 @@ private fun profileError(message: String): String = when {
     message.contains("ABOUT_TOO_LONG", true) -> "Слишком длинное «О себе»"
     else -> "Не удалось сохранить профиль"
 }
-
-@Composable
-internal fun EditField(value: String, hint: String, singleLine: Boolean = true, prefix: String? = null, onChange: (String) -> Unit) {
-    androidx.compose.foundation.text.BasicTextField(
-        value, onChange, singleLine = singleLine,
-        textStyle = androidx.compose.ui.text.TextStyle(Fusion.colors.textPrimary, 16.sp),
-        cursorBrush = androidx.compose.ui.graphics.SolidColor(Fusion.colors.textPrimary),
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth().heightIn(min = 52.dp)
-            .clip(RoundedCornerShape(14.dp)).background(Fusion.colors.surface1).padding(horizontal = 16.dp, vertical = 15.dp),
-        decorationBox = { inner ->
-            androidx.compose.foundation.layout.Row {
-                prefix?.let { Text(it, color = Fusion.colors.textSecondary, fontSize = 16.sp) }
-                Box { if (value.isEmpty()) Text(hint, color = Fusion.colors.textTertiary, fontSize = 16.sp); inner() }
-            }
-        }
-    )
-}

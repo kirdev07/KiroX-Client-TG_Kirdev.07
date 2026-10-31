@@ -59,6 +59,8 @@ import com.kirox.app.ui.theme.FusionPalette
  */
 @Composable
 internal fun UpdatesScreen(updates: com.kirox.app.update.UpdateCenter, onBack: () -> Unit) {
+    var whatsNew by remember { mutableStateOf(false) }
+    if (whatsNew) WhatsNewSheet { whatsNew = false }
     BackHandler(onBack = onBack)
     val context = androidx.compose.ui.platform.LocalContext.current
     val linkOpener = com.kirox.app.ui.chat.LocalLinkOpener.current
@@ -130,6 +132,11 @@ internal fun UpdatesScreen(updates: com.kirox.app.update.UpdateCenter, onBack: (
                 "kiroX сам проверяет обновления раз в день. Файл скачивается с GitHub и устанавливается, только если его контрольная сумма и подпись совпали.",
                 color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
             )
+        }
+        item {
+            SettingsCard {
+                IconRow(KiroXIcon.Star, androidx.compose.ui.graphics.Color(0xFF6C8CFF), "Что нового в этой версии", "Главное, что появилось в kiroX ${com.kirox.app.BuildConfig.VERSION_NAME}") { whatsNew = true }
+            }
         }
         item { SmallCaption("Проект") }
         item {

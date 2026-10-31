@@ -941,25 +941,7 @@ fun TelegramChatScreen(
         actions.sendPoll(question, options, anonymous, multiple, correct)
     }
     translation?.let { (original, translated) ->
-        AlertDialog(
-            onDismissRequest = { translation = null },
-            containerColor = Fusion.colors.surface2,
-            title = { Text("Перевод", color = Fusion.colors.textPrimary) },
-            text = {
-                Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
-                    if (translated == null) CircularProgressIndicator(Modifier.size(22.dp), color = Fusion.colors.textPrimary, strokeWidth = 2.dp)
-                    else Text(translated, color = Fusion.colors.textPrimary, fontSize = 15.sp)
-                    Spacer(Modifier.height(12.dp))
-                    Text(original, color = Fusion.colors.textSecondary, fontSize = 13.sp)
-                }
-            },
-            confirmButton = {
-                Row {
-                    if (translated != null) TextButton(onClick = { clipboard.setText(AnnotatedString(translated)); notice = "Перевод скопирован"; translation = null }) { Text("Копировать", color = Fusion.colors.textPrimary) }
-                    TextButton(onClick = { translation = null }) { Text("Закрыть", color = Fusion.colors.textSecondary) }
-                }
-            }
-        )
+        TranslationDialog(original, translated, onCopy = { clipboard.setText(AnnotatedString(it)); notice = "Перевод скопирован"; translation = null }) { translation = null }
     }
     if (videoNote) {
         val chatId = history.chatId
@@ -1126,77 +1108,14 @@ fun TelegramChatScreen(
         chatWallpaper = picked
         com.kirox.app.settings.ChatWallpapers.set(context, history.chatId, picked)
     }
-    if (keptOpen) ModalBottomSheet(onDismissRequest = { keptOpen = false }, containerColor = Fusion.colors.surface1) {
-        val kept by produceState<List<com.kirox.app.telegram.KeptMessage>?>(null, history.chatId) {
-            value = withContext(Dispatchers.IO) { runCatching { archive.deleted(history.chatId) }.getOrDefault(emptyList()) }
-        }
-        Text("Удалённые сообщения", color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
-        val list = kept
-        LazyColumn(Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
-            if (list == null) item { Box(Modifier.fillMaxWidth().padding(24.dp), Alignment.Center) { CircularProgressIndicator(Modifier.size(22.dp), color = Fusion.colors.textSecondary, strokeWidth = 2.dp) } }
-            else if (list.isEmpty()) item {
-                Text("Здесь появятся сообщения, которые удалят после включения сохранения.", color = Fusion.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(24.dp))
-            } else items(list, key = { it.id }) { kept ->
-                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
-                    Text(listOf(kept.sender, scheduledTime(kept.date)).filter { it.isNotBlank() }.joinToString(" · "), color = Fusion.colors.accent, fontSize = 13.sp)
-                    androidx.compose.material3.Text(kept.text, color = Fusion.colors.textPrimary, fontSize = 15.sp)
-                    Text("удалено ${scheduledTime(kept.deletedAt)}", color = Fusion.colors.danger, fontSize = 12.sp)
-                }
-            }
-        }
-        Spacer(Modifier.navigationBarsPadding().height(8.dp))
-    }
-    versionsOf?.let { message ->
-        val versions by produceState<List<com.kirox.app.telegram.MessageVersion>?>(null, message.id) {
-            value = withContext(Dispatchers.IO) { runCatching { archive.versions(history.chatId, message.id) }.getOrDefault(emptyList()) }
-        }
-        AlertDialog(
-            onDismissRequest = { versionsOf = null },
-            containerColor = Fusion.colors.surface1,
-            title = { Text("История изменений", color = Fusion.colors.textPrimary) },
-            text = {
-                val list = versions
-                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                    when {
-                        list == null -> CircularProgressIndicator(Modifier.size(22.dp), color = Fusion.colors.textSecondary, strokeWidth = 2.dp)
-                        list.isEmpty() -> Text("Прежний текст не сохранён: сообщение изменили до включения сохранения.", color = Fusion.colors.textSecondary)
-                        else -> {
-                            list.forEach { version ->
-                                Text("до ${scheduledTime(version.editedAt)}", color = Fusion.colors.textTertiary, fontSize = 12.sp)
-                                androidx.compose.material3.Text(version.text, color = Fusion.colors.textSecondary, fontSize = 15.sp)
-                                Spacer(Modifier.height(10.dp))
-                            }
-                            Text("Сейчас", color = Fusion.colors.accent, fontSize = 12.sp)
-                            androidx.compose.material3.Text(message.text, color = Fusion.colors.textPrimary, fontSize = 15.sp)
-                        }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { versionsOf = null }) { Text("Закрыть", color = Fusion.colors.textSecondary) } }
-        )
-    }
+    if (keptOpen) KeptMessagesSheet(history.chatId, archive) { keptOpen = false }
+    versionsOf?.let { message -> EditHistoryDialog(history.chatId, message.id, message.text, archive) { versionsOf = null } }
     if (schedulePicking) ScheduleSendDialog(onDismiss = { schedulePicking = false }) { at -> schedulePicking = false; sendScheduled(at) }
-    if (scheduledOpen) ModalBottomSheet(onDismissRequest = { scheduledOpen = false }, containerColor = Fusion.colors.surface1) {
-        Text("Отложенные сообщения", color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
-        LazyColumn(Modifier.fillMaxWidth().heightIn(max = 480.dp)) {
-            items(scheduled, key = { it.id }) { item ->
-                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
-                    Text(if (item.sendAt == 0) "Когда собеседник будет в сети" else scheduledTime(item.sendAt), color = Fusion.colors.accent, fontSize = 13.sp)
-                    Text(item.text, color = Fusion.colors.textPrimary, fontSize = 15.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = {
-                            scope.launch { runCatching { actions.sendScheduledNow(item.id) }.onSuccess { notice = "Отправлено" }.onFailure { notice = "Не удалось отправить" }; scheduledReload++ }
-                        }) { Text("Отправить сейчас", color = Fusion.colors.accent) }
-                        TextButton(onClick = {
-                            scope.launch { runCatching { actions.deleteScheduled(item.id) }.onFailure { notice = "Не удалось удалить" }; scheduledReload++ }
-                        }) { Text("Удалить", color = Fusion.colors.danger) }
-                    }
-                }
-            }
-            if (scheduled.isEmpty()) item { Text("Отложенных сообщений нет", color = Fusion.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(24.dp)) }
-        }
-        Spacer(Modifier.navigationBarsPadding().height(8.dp))
-    }
+    if (scheduledOpen) ScheduledSheet(
+        scheduled,
+        onSendNow = { id -> scope.launch { runCatching { actions.sendScheduledNow(id) }.onSuccess { notice = "Отправлено" }.onFailure { notice = "Не удалось отправить" }; scheduledReload++ } },
+        onDelete = { id -> scope.launch { runCatching { actions.deleteScheduled(id) }.onFailure { notice = "Не удалось удалить" }; scheduledReload++ } }
+    ) { scheduledOpen = false }
     confirmAction?.let { (question, action) ->
         AlertDialog(
             onDismissRequest = { confirmAction = null },
@@ -1312,55 +1231,5 @@ fun TelegramChatScreen(
             }) { Text("Удалить", color = Fusion.colors.danger) }
         },
         dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
-    )
-}
-
-
-/** «12 нояб., 18:30» — when a scheduled message goes out. */
-private fun scheduledTime(unixSeconds: Int): String =
-    java.text.SimpleDateFormat("d MMM, HH:mm", java.util.Locale.getDefault()).format(java.util.Date(unixSeconds * 1000L))
-
-/** «Отправить позже»: a date, then a time; [onPick] gets unix seconds, at least a minute ahead. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ScheduleSendDialog(onDismiss: () -> Unit, onPick: (Int) -> Unit) {
-    val now = remember { java.util.Calendar.getInstance() }
-    val dateState = rememberDatePickerState(
-        initialSelectedDateMillis = System.currentTimeMillis(),
-        // Telegram keeps scheduled messages for up to a year.
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis >= System.currentTimeMillis() - 24 * 3600_000L && utcTimeMillis <= System.currentTimeMillis() + 365L * 24 * 3600_000L
-        }
-    )
-    val timeState = rememberTimePickerState(now.get(java.util.Calendar.HOUR_OF_DAY), (now.get(java.util.Calendar.MINUTE) + 5).coerceAtMost(59), is24Hour = true)
-    var pickingTime by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    if (!pickingTime) DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = { pickingTime = true }, enabled = dateState.selectedDateMillis != null) { Text("Далее", color = Fusion.colors.accent) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена", color = Fusion.colors.textSecondary) } }
-    ) { DatePicker(dateState, title = { Text("Когда отправить", modifier = Modifier.padding(start = 24.dp, top = 16.dp)) }) }
-    else AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Fusion.colors.surface1,
-        title = { Text("Время отправки", color = Fusion.colors.textPrimary) },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                TimePicker(timeState)
-                error?.let { Text(it, color = Fusion.colors.danger, fontSize = 13.sp) }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                // The date picker gives midnight UTC of the chosen day; the time is local.
-                val utc = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")).apply { timeInMillis = dateState.selectedDateMillis ?: System.currentTimeMillis() }
-                val at = java.util.Calendar.getInstance().apply {
-                    set(utc.get(java.util.Calendar.YEAR), utc.get(java.util.Calendar.MONTH), utc.get(java.util.Calendar.DAY_OF_MONTH), timeState.hour, timeState.minute, 0)
-                }.timeInMillis / 1000
-                if (at < System.currentTimeMillis() / 1000 + 60) error = "Выберите время хотя бы через минуту"
-                else onPick(at.toInt())
-            }) { Text("Запланировать", color = Fusion.colors.accent) }
-        },
-        dismissButton = { TextButton(onClick = { pickingTime = false }) { Text("Назад", color = Fusion.colors.textSecondary) } }
     )
 }

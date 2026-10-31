@@ -72,13 +72,13 @@ internal fun SettingsTab(profile: TelegramUserProfile?, onOpenProfile: () -> Uni
     var query by rememberSaveable { mutableStateOf("") }
     val keywords = mapOf(
         "Изменить профиль" to "имя фото username био",
-        "Оформление" to "тема цвет пузыри анимации обои шрифт стекло expressive glass чаты папки",
-        "Уведомления и звуки" to "звук вибрация превью",
-        "Конфиденциальность" to "приватность номер телефона время захода фото звонки приглашения",
-        "Данные и память" to "кэш память хранилище очистить",
-        "Музыка" to "плейлисты треки песни плеер любимое",
-        "kiroX Настройки" to "сброс журнал ошибок выход лицензии",
-        "О приложении" to "версия обновления бета github"
+        "Оформление" to "тема цвет пузыри анимации обои шрифт стекло expressive glass чаты папки своя тема иконка приложения",
+        "Уведомления и звуки" to "звук вибрация превью исключения реакции каналы группы",
+        "Конфиденциальность" to "приватность номер телефона время захода фото звонки приглашения код-пароль pin графический ключ блокировка облачный пароль чёрный список устройства",
+        "Данные и память" to "кэш память хранилище очистить автозагрузка трафик прокси",
+        "Музыка" to "плейлисты треки песни плеер любимое аудио mp3",
+        "kiroX Настройки" to "сброс журнал ошибок выход лицензии фильтры сообщений встроенный браузер cookies энергосбережение батарея файлы telegram проводник проверка файлов антивирус вирусы удалённые сообщения история изменений призрак стикеры своя иконка резервная копия",
+        "О приложении" to "версия обновления бета github что нового канал"
     )
     fun matches(title: String) = query.isBlank() || title.contains(query, true) || keywords[title]?.contains(query, true) == true
     val shown = groups.map { rows -> rows.filter { matches(it.second) } }.filter { it.isNotEmpty() }
@@ -183,16 +183,6 @@ internal fun TileRow(icon: KiroXIcon, title: String, trailing: String? = null, p
     )
 }
 
-/** List item colors on the screen background, as Fusion lists have no cards behind rows. */
-@Composable
-internal fun fusionListColors() = androidx.compose.material3.ListItemDefaults.colors(
-    containerColor = androidx.compose.ui.graphics.Color.Transparent,
-    headlineColor = Fusion.colors.textPrimary,
-    supportingColor = Fusion.colors.textSecondary,
-    leadingIconColor = Fusion.colors.textPrimary,
-    trailingIconColor = Fusion.colors.textTertiary
-)
-
 /** Large screen title (old Fusion: ~32 sp) with optional seasonal particles behind it. */
 @Composable
 internal fun ScreenTitle(title: String, seasonal: Boolean = true, actions: @Composable RowScope.() -> Unit = {}) {
@@ -231,18 +221,6 @@ internal fun TitleAction(icon: KiroXIcon, description: String, size: Dp = 24.dp,
     }
 }
 
-/** Material 3 top app bar with a back button. */
-@Composable
-internal fun BackTitle(title: String, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit = {}) {
-    androidx.compose.material3.TopAppBar(
-        title = { Text(title, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        navigationIcon = { TitleAction(KiroXIcon.Back, "Назад", onClick = onBack) },
-        actions = actions,
-        windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-        colors = fusionTopBarColors()
-    )
-}
-
 @Composable
 internal fun fusionTopBarColors() = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
     containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -251,4 +229,3 @@ internal fun fusionTopBarColors() = androidx.compose.material3.TopAppBarDefaults
     navigationIconContentColor = Fusion.colors.textPrimary,
     actionIconContentColor = Fusion.colors.textPrimary
 )
-

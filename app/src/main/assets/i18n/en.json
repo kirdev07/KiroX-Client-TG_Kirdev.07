@@ -1751,5 +1751,18 @@
  "Удалить «{}»?": "Delete «{}»?",
  "Удалится только список — музыка останется в чатах.": "Only the list is deleted — the music stays in the chats.",
  "Музыка чата": "Chat music",
- "Музыки нет": "No music"
+ "Музыки нет": "No music",
+ "Что нового в этой версии": "What's new in this version",
+ "Главное, что появилось в kiroX {}": "The main things new in kiroX {}",
+ "Вся музыка из чатов, плейлисты и «Любимое», полноэкранный плеер с очередью, повтором и таймером сна": "All music from chats, playlists and «Liked», a full-screen player with a queue, repeat and sleep timer",
+ "Онлайн-воспроизведение": "Online playback",
+ "Видео и музыка играют сразу, пока скачиваются; двойное касание перематывает видео на 10 секунд": "Video and music play right away while downloading; a double tap skips video by 10 seconds",
+ "Всё скачанное в одном месте: PDF, документы, архивы, APK открываются прямо в kiroX": "Everything downloaded in one place: PDFs, documents, archives and APKs open right in kiroX",
+ "Перед открытием kiroX ищет замаскированные программы, макросы и опасные архивы": "Before opening, kiroX looks for disguised programs, macros and dangerous archives",
+ "Ссылки открываются внутри kiroX: приватный режим, экономия трафика, поиск на странице": "Links open inside kiroX: private mode, traffic saving, find on page",
+ "Прячьте в группах сообщения с нужными словами или от выбранных людей": "Hide messages in groups with chosen words or from chosen people",
+ "kiroX можно закрыть не только PIN-кодом, но и графическим ключом": "kiroX can be locked with a pattern, not only a PIN",
+ "Вместе с экономией заряда телефона kiroX отключает анимации и тяжёлые эффекты": "Together with the phone's battery saver, kiroX turns off animations and heavy effects",
+ "Что нового в kiroX": "What's new in kiroX",
+ "Не удалось загрузить музыку: {}": "Could not load music: {}"
 }

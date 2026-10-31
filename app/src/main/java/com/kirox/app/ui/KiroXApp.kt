@@ -223,6 +223,8 @@ fun KiroXApp() {
     var folderInvite by remember { mutableStateOf<com.kirox.app.telegram.FolderInvite?>(null) }
     // «Встроенный браузер»: the web page open over the app, null when none.
     var browserUrl by remember { mutableStateOf<String?>(null) }
+    // «Что нового» once after an update, when the splash is gone.
+    var whatsNew by remember { mutableStateOf(false) }
     val linkOpener: (String) -> Unit = remember(uriHandler) {
         { url ->
             val link = com.kirox.app.telegram.telegramLinkOf(url)
@@ -434,6 +436,8 @@ fun KiroXApp() {
             CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.call.GroupCallScreen(call, groupCallActions) }
         }
         com.kirox.app.ui.music.MusicLibraryHost(onOpenChat = { openChat(it) })
+        LaunchedEffect(splashVisible) { if (!splashVisible && com.kirox.app.ui.home.WhatsNew.shouldShow(context)) whatsNew = true }
+        if (whatsNew) com.kirox.app.ui.home.WhatsNewSheet { whatsNew = false }
         com.kirox.app.ui.chat.MusicPlayerSheet()
         browserUrl?.let { url -> com.kirox.app.ui.chat.InAppBrowser(url, onTelegramLink = { browserUrl = null; linkOpener(it) }) { browserUrl = null } }
         folderInvite?.let { invite ->
