@@ -179,12 +179,6 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
                     context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
             }
-            // Delivery is chosen by itself: pushes through ntfy when it is installed, otherwise kiroX keeps the connection.
-            val pushApp = remember(resumes) { com.kirox.app.push.UnifiedPush.hasDistributor(context) }
-            Text(
-                if (pushApp) "Сообщения приходят по пушу через ntfy." else "Приложения для пушей (ntfy) нет, поэтому kiroX сам держит связь — в шторке тихое уведомление «kiroX на связи».",
-                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
         }
         item { SmallCaption("Сброс") }
         item { LinkRow("Сбросить все уведомления", "Настройки Telegram по умолчанию, исключения удалятся", Fusion.colors.danger) { confirmReset = true } }
