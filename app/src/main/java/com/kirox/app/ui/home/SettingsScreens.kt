@@ -39,7 +39,9 @@ import com.kirox.app.telegram.TelegramProxy
 import com.kirox.app.telegram.PrivacyItem
 import com.kirox.app.telegram.PrivacyLevel
 import com.kirox.app.telegram.ScopeNotifications
-import com.kirox.app.telegram.StorageUsage
+import com.kirox.app.telegram.ChatStorage
+import com.kirox.app.telegram.StorageBreakdown
+import com.kirox.app.telegram.StorageCategory
 import com.kirox.app.telegram.CacheLimit
 import com.kirox.app.telegram.CallDataSaving
 import com.kirox.app.telegram.TelegramChatKind
@@ -275,41 +277,65 @@ internal fun StorageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
     val gallery by media.saveToGallery.collectAsState()
     val callSaving by media.callDataSaving.collectAsState()
     val scope = rememberCoroutineScope()
-    var usage by remember { mutableStateOf<StorageUsage?>(null) }
+    var usage by remember { mutableStateOf<StorageBreakdown?>(null) }
+    var selected by remember { mutableStateOf(StorageCategory.entries.toSet()) }
     var clearing by remember { mutableStateOf(false) }
     var confirm by remember { mutableStateOf(false) }
+    var chatToClear by remember { mutableStateOf<ChatStorage?>(null) }
     var choosing by remember { mutableStateOf<String?>(null) }
     var confirmReset by remember { mutableStateOf(false) }
-    fun reload() { scope.launch { runCatching { repo.storage() }.onSuccess { usage = it } } }
+    fun reload() { scope.launch { runCatching { repo.storageBreakdown() }.onSuccess { usage = it } } }
+    val selectedBytes = usage?.let { u -> selected.sumOf { u.byCategory[it] ?: 0L } } ?: 0L
     LaunchedEffect(Unit) { reload() }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Данные и память", onBack) }
         item { SmallCaption("Использование памяти") }
         item {
             val u = usage
-            if (u == null) Loading() else Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                Text(formatBytes(u.filesBytes + u.databaseBytes), color = Fusion.colors.textPrimary, fontSize = 28.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(4.dp))
-                Text("Медиа и файлы: ${formatBytes(u.filesBytes)} (${u.fileCount}) · база: ${formatBytes(u.databaseBytes)}", color = Fusion.colors.textSecondary, fontSize = 13.sp)
-            }
+            if (u == null) Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Loading()
+                Text("Считаем, сколько занимает кэш…", color = Fusion.colors.textSecondary, fontSize = 13.sp)
+            } else StorageUsageCard(u, selected) { category -> selected = if (category in selected) selected - category else selected + category }
         }
-        item { LinkRow("Хранить медиа", keepMedia.title) { choosing = "keep" } }
-        item { LinkRow("Максимальный размер кэша", cacheLimit.title) { choosing = "limit" } }
         item {
             Box(
                 Modifier.padding(16.dp).fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(26.dp))
-                    .background(Fusion.colors.surface2).clickable(enabled = !clearing && (usage?.filesBytes ?: 0) > 0) { confirm = true },
+                    .background(Fusion.colors.surface2).clickable(enabled = !clearing && selectedBytes > 0) { confirm = true },
                 contentAlignment = Alignment.Center
             ) {
                 if (clearing) CircularProgressIndicator(Modifier.size(22.dp), color = Fusion.colors.textPrimary, strokeWidth = 2.dp)
-                else Text("Очистить кэш", color = Fusion.colors.danger, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                else Text(
+                    if (selectedBytes > 0) "Очистить выбранное · ${formatBytes(selectedBytes)}" else "Нечего очищать",
+                    color = if (selectedBytes > 0) Fusion.colors.danger else Fusion.colors.textTertiary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold
+                )
             }
         }
         item {
             Text(
-                "Фото, видео и файлы, которые вы не открывали дольше выбранного срока, удаляются с устройства. Сообщения остаются в облаке Telegram и загрузятся снова при открытии.",
+                "Сообщения остаются в облаке Telegram: удалённые фото, видео и файлы загрузятся снова, когда вы их откроете.",
                 color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp)
             )
+        }
+        item { SmallCaption("Автоочистка") }
+        item { LinkRow("Хранить медиа", keepMedia.title) { choosing = "keep" } }
+        item { LinkRow("Максимальный размер кэша", cacheLimit.title) { choosing = "limit" } }
+        item {
+            Text(
+                "Фото, видео и файлы, которые вы не открывали дольше выбранного срока, удаляются с устройства.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp)
+            )
+        }
+        val chats = usage?.chats.orEmpty()
+        if (chats.isNotEmpty()) {
+            item { SmallCaption("Больше всего занимают") }
+            items(chats, key = { "chat_${it.chatId}" }) { chat ->
+                androidx.compose.material3.ListItem(
+                    headlineContent = { Text(chat.title, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                    trailingContent = { Text(formatBytes(chat.bytes), color = Fusion.colors.textSecondary, fontSize = 14.sp) },
+                    colors = fusionListColors(),
+                    modifier = Modifier.clickable { chatToClear = chat }
+                )
+            }
         }
         item { SmallCaption("Использование трафика") }
         item { LinkRow("Использование сети", "Сколько отправлено и получено через мобильную сеть, Wi-Fi и в роуминге") { page = "traffic" } }
@@ -344,18 +370,41 @@ internal fun StorageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
         onDismissRequest = { confirm = false },
         containerColor = Fusion.colors.surface1,
         title = { Text("Очистить кэш?", color = Fusion.colors.textPrimary) },
-        text = { Text("Будет освобождено около ${formatBytes(usage?.filesBytes ?: 0)}.", color = Fusion.colors.textSecondary) },
+        text = {
+            Text(
+                "Будет освобождено около ${formatBytes(selectedBytes)}: " + selected.filter { (usage?.byCategory?.get(it) ?: 0L) > 0 }.joinToString { it.title.lowercase() } + ".",
+                color = Fusion.colors.textSecondary
+            )
+        },
         confirmButton = {
             TextButton(onClick = {
                 confirm = false; clearing = true
                 scope.launch {
-                    runCatching { repo.clearCache() }.onSuccess { onNotice("Кэш очищен") }.onFailure { onNotice("Не удалось очистить кэш") }
+                    runCatching { repo.clearStorage(selected) }.onSuccess { onNotice("Освобождено ${formatBytes(selectedBytes)}") }.onFailure { onNotice("Не удалось очистить кэш") }
                     clearing = false; reload()
                 }
             }) { Text("Очистить", color = Fusion.colors.danger) }
         },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
     )
+    chatToClear?.let { chat ->
+        AlertDialog(
+            onDismissRequest = { chatToClear = null },
+            containerColor = Fusion.colors.surface1,
+            title = { Text("Очистить кэш «${chat.title}»?", color = Fusion.colors.textPrimary) },
+            text = { Text("Будет освобождено около ${formatBytes(chat.bytes)}. Сообщения останутся.", color = Fusion.colors.textSecondary) },
+            confirmButton = {
+                TextButton(onClick = {
+                    chatToClear = null; clearing = true
+                    scope.launch {
+                        runCatching { repo.clearStorage(StorageCategory.entries.toSet(), chat.chatId) }.onSuccess { onNotice("Освобождено ${formatBytes(chat.bytes)}") }.onFailure { onNotice("Не удалось очистить кэш") }
+                        clearing = false; reload()
+                    }
+                }) { Text("Очистить", color = Fusion.colors.danger) }
+            },
+            dismissButton = { TextButton(onClick = { chatToClear = null }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+        )
+    }
     if (confirmReset) AlertDialog(
         onDismissRequest = { confirmReset = false },
         containerColor = Fusion.colors.surface1,
@@ -364,6 +413,78 @@ internal fun StorageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
         confirmButton = { TextButton(onClick = { confirmReset = false; autoDownload.reset(); onNotice("Настройки автозагрузки сброшены") }) { Text("Сбросить", color = Fusion.colors.danger) } },
         dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
     )
+}
+
+/** Colors of the storage chart, one per category; fixed, so the same type keeps its color in every theme. */
+private fun StorageCategory.color(): Color = when (this) {
+    StorageCategory.Photos -> Color(0xFF4F8DF7)
+    StorageCategory.Videos -> Color(0xFF9B6BFF)
+    StorageCategory.Files -> Color(0xFF34C38F)
+    StorageCategory.Music -> Color(0xFFFF6B6B)
+    StorageCategory.Voice -> Color(0xFFFFA94D)
+    StorageCategory.Stories -> Color(0xFFF06595)
+    StorageCategory.Stickers -> Color(0xFFFFD43B)
+    StorageCategory.Other -> Color(0xFF8E8E93)
+}
+
+/**
+ * Telegram-style storage usage: a ring split by type with the cache size inside, and below it every
+ * type with its share and size; a checked type is cleared by «Очистить выбранное».
+ */
+@Composable
+private fun StorageUsageCard(usage: StorageBreakdown, selected: Set<StorageCategory>, onToggle: (StorageCategory) -> Unit) {
+    val parts = StorageCategory.entries.map { it to (usage.byCategory[it] ?: 0L) }.filter { it.second > 0 }
+    val total = parts.sumOf { it.second }.coerceAtLeast(1)
+    val track = Fusion.colors.surface3
+    Column(
+        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Fusion.colors.surface1).padding(vertical = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(Modifier.size(184.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) {
+                val stroke = 22.dp.toPx()
+                val topLeft = Offset(stroke / 2, stroke / 2)
+                val arc = Size(size.width - stroke, size.height - stroke)
+                drawArc(track, 0f, 360f, false, topLeft, arc, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                // Small gaps between the parts, as in Telegram; a lone part is a full ring.
+                val gap = if (parts.size > 1) 2f else 0f
+                var start = -90f
+                parts.forEach { (category, bytes) ->
+                    val sweep = 360f * bytes / total
+                    val color = category.color().copy(alpha = if (category in selected) 1f else 0.3f)
+                    drawArc(color, start + gap / 2, (sweep - gap).coerceAtLeast(0.6f), false, topLeft, arc, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    start += sweep
+                }
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(formatBytes(usage.filesBytes), color = Fusion.colors.textPrimary, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                Text("кэш на устройстве", color = Fusion.colors.textSecondary, fontSize = 12.sp)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        if (parts.isEmpty()) Text("Кэш пуст", color = Fusion.colors.textSecondary, fontSize = 14.sp, modifier = Modifier.padding(8.dp))
+        parts.forEach { (category, bytes) ->
+            val percent = (bytes * 100 / total).toInt()
+            Row(
+                Modifier.fillMaxWidth().clickable { onToggle(category) }.padding(start = 8.dp, end = 20.dp).heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.material3.Checkbox(
+                    checked = category in selected, onCheckedChange = { onToggle(category) },
+                    colors = androidx.compose.material3.CheckboxDefaults.colors(checkedColor = category.color(), uncheckedColor = category.color(), checkmarkColor = Color.White)
+                )
+                Text(category.title, color = Fusion.colors.textPrimary, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                Text(if (percent < 1) "<1%" else "$percent%", color = Fusion.colors.textSecondary, fontSize = 14.sp)
+                Spacer(Modifier.width(12.dp))
+                Text(formatBytes(bytes), color = Fusion.colors.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            }
+        }
+        androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 20.dp, vertical = 8.dp), color = Fusion.colors.outline)
+        Text(
+            "База данных: ${formatBytes(usage.databaseBytes)} — сообщения и списки чатов. Очистка кэша её не затрагивает.",
+            color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp)
+        )
+    }
 }
 
 private fun NetworkDownload.summary(): String = when {

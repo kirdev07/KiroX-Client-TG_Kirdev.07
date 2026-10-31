@@ -75,6 +75,29 @@ fun parseProxyLink(link: String): Triple<String, Int, Pair<ProxyKind, String>>? 
 
 data class StorageUsage(val filesBytes: Long, val fileCount: Int, val databaseBytes: Long)
 
+/** What the cache holds, grouped as in Telegram's storage usage; [types] are what clearing deletes. */
+enum class StorageCategory(val title: String, val types: () -> Array<TdApi.FileType>) {
+    Photos("Фото", { arrayOf(TdApi.FileTypePhoto(), TdApi.FileTypeSelfDestructingPhoto()) }),
+    Videos("Видео", { arrayOf(TdApi.FileTypeVideo(), TdApi.FileTypeSelfDestructingVideo(), TdApi.FileTypeLivePhotoVideo(), TdApi.FileTypeSelfDestructingLivePhotoVideo()) }),
+    Files("Файлы", { arrayOf(TdApi.FileTypeDocument(), TdApi.FileTypeSecure()) }),
+    Music("Музыка", { arrayOf(TdApi.FileTypeAudio(), TdApi.FileTypeNotificationSound()) }),
+    Voice("Голосовые и кружки", { arrayOf(TdApi.FileTypeVoiceNote(), TdApi.FileTypeVideoNote(), TdApi.FileTypeSelfDestructingVoiceNote(), TdApi.FileTypeSelfDestructingVideoNote()) }),
+    Stories("Истории", { arrayOf(TdApi.FileTypePhotoStory(), TdApi.FileTypeVideoStory()) }),
+    Stickers("Стикеры и GIF", { arrayOf(TdApi.FileTypeSticker(), TdApi.FileTypeAnimation()) }),
+    Other("Прочее", { arrayOf(TdApi.FileTypeThumbnail(), TdApi.FileTypeProfilePhoto(), TdApi.FileTypeWallpaper(), TdApi.FileTypeSecret(), TdApi.FileTypeSecretThumbnail(), TdApi.FileTypeUnknown(), TdApi.FileTypeNone()) });
+
+    companion object {
+        fun of(type: TdApi.FileType): StorageCategory =
+            entries.firstOrNull { category -> category.types().any { it.constructor == type.constructor } } ?: Other
+    }
+}
+
+/** Cached bytes of one chat; [chatId] 0 is files that belong to no chat (avatars, wallpapers). */
+data class ChatStorage(val chatId: Long, val title: String, val bytes: Long)
+
+/** Full breakdown of the cache by type and by the chats that take the most. */
+data class StorageBreakdown(val filesBytes: Long, val databaseBytes: Long, val byCategory: Map<StorageCategory, Long>, val chats: List<ChatStorage>)
+
 /** Sent and received bytes per network since [sinceDate] (unix seconds). */
 data class NetworkUsage(val sinceDate: Int, val bytes: Map<DownloadNetwork, Pair<Long, Long>>)
 
@@ -117,6 +140,26 @@ class TelegramSettingsRepository(private val client: TelegramClient) {
 
     suspend fun storage(): StorageUsage =
         client.query(TdApi.GetStorageStatisticsFast()).let { StorageUsage(it.filesSize, it.fileCount, it.databaseSize) }
+
+    /** Cache by type and the [chatLimit] chats that take the most; TDLib scans the files, so it takes a moment. */
+    suspend fun storageBreakdown(chatLimit: Int = 20): StorageBreakdown {
+        val stats = client.query(TdApi.GetStorageStatistics(chatLimit))
+        val database = runCatching { client.query(TdApi.GetStorageStatisticsFast()).databaseSize }.getOrDefault(0)
+        val byCategory = HashMap<StorageCategory, Long>()
+        stats.byChat.forEach { chat -> chat.byFileType.forEach { byCategory.merge(StorageCategory.of(it.fileType), it.size, Long::plus) } }
+        val chats = stats.byChat.filter { it.size > 0 }.sortedByDescending { it.size }.map { chat ->
+            val title = if (chat.chatId == 0L) "Прочие файлы" else runCatching { client.query(TdApi.GetChat(chat.chatId)).title }.getOrNull()?.ifBlank { null } ?: "Чат"
+            ChatStorage(chat.chatId, title, chat.size)
+        }
+        return StorageBreakdown(stats.size, database, byCategory, chats)
+    }
+
+    /** Deletes cached files of [categories], only in [chatId] when given; messages stay in the cloud. */
+    suspend fun clearStorage(categories: Set<StorageCategory>, chatId: Long? = null) {
+        if (categories.isEmpty()) return
+        val types = categories.flatMap { it.types().toList() }.toTypedArray()
+        client.query(TdApi.OptimizeStorage(0, 0, 0, 0, types, chatId?.let { longArrayOf(it) }, null, false, 0))
+    }
 
     /** Deletes all cached media and files; messages stay in the cloud and download again when opened. */
     suspend fun clearCache() {
