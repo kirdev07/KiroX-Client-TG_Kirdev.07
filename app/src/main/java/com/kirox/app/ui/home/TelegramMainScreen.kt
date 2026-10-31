@@ -126,6 +126,7 @@ fun TelegramMainScreen(
     var viewingStoriesOf by rememberSaveable { mutableStateOf<Long?>(null) }
     val keyboardOpen = WindowInsets.isImeVisible
     val showNotice: (String) -> Unit = { notice = UiNotice(it) }
+    val linkOpener = com.kirox.app.ui.chat.LocalLinkOpener.current
     LaunchedEffect(chatError) { if (chatError != null) { notice = UiNotice(chatError); onChatErrorShown() } }
     val navItems = MainTab.entries.map { it.item }
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -186,6 +187,8 @@ fun TelegramMainScreen(
                     current == MainTab.Calls -> CallsTab(calls, onLoadCalls, onOpenChat, showNotice, onStartCall, onOpenContacts = { tab = MainTab.Contacts; sub = SubScreen.None })
                     current == MainTab.Stories -> StoriesTab(storyChats, profile, onOpen = { viewingStoriesOf = it.chatId }, onNotice = { notice = it })
                     else -> SettingsTab(profile, onOpenProfile = { sub = SubScreen.Profile }, onOpenContacts = { tab = MainTab.Contacts; sub = SubScreen.None }, onOpenCustomization = { sub = SubScreen.Customization }, onOpenUpdates = { sub = SubScreen.Updates }, onOpenDevices = { sub = SubScreen.Devices }, onEditProfile = { sub = SubScreen.ProfileEdit }, onOpenSection = { section ->
+                        // Premium is bought through Telegram's own bot: open its chat right away.
+                        if (section == "Telegram Premium" && linkOpener != null) { linkOpener("https://t.me/PremiumBot"); return@SettingsTab }
                         sub = when (section) {
                             "Уведомления" -> SubScreen.Notifications
                             "Конфиденциальность" -> SubScreen.Privacy

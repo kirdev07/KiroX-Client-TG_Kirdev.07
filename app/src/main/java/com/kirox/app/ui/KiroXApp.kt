@@ -299,6 +299,7 @@ fun KiroXApp() {
                         Screen.AuthStep -> TelegramAuthStepScreen(telegramAuth, telegramViewModel.auth, telegramBusy, telegramError, recoveryCodeSent)
                         Screen.Chats -> CompositionLocalProvider(
                             LocalTelegramFiles provides telegramViewModel.files,
+                            com.kirox.app.ui.chat.LocalLinkOpener provides linkOpener,
                             com.kirox.app.ui.home.LocalChatActivityLines provides telegramViewModel.activity.lines.collectAsStateWithLifecycle().value
                         ) {
                             TelegramMainScreen(
