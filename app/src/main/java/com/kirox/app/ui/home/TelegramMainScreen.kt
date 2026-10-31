@@ -346,7 +346,7 @@ private fun ChatsTab(
         StoriesRow(storyChats, profile?.name.orEmpty(), profile?.photo, onOpenStories) { postStory() }
         // The owner's Архив / Сообщения tabs stay exactly as they were.
         val archiveUnread = lists.archive.chats.count { it.unreadCount > 0 || it.isMarkedUnread }
-        SectionTabs(listOf((if (archiveUnread > 0) "Архив · $archiveUnread" else "Архив") to RealChatSection.Archive, "Сообщения" to RealChatSection.Messages), section) { section = it }
+        SectionTabs(listOf((if (archiveUnread > 0) "${com.kirox.app.i18n.I18n.t("Архив")} · $archiveUnread" else "Архив") to RealChatSection.Archive, "Сообщения" to RealChatSection.Messages), section) { section = it }
         // «Папки чатов» board: «+ Папка» opens the folders screen, a long press edits that folder.
         var foldersOpen by remember { mutableStateOf(false) }
         var editFolder by remember { mutableStateOf<Int?>(null) }
@@ -355,7 +355,8 @@ private fun ChatsTab(
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Unread chats per folder, like Telegram's folder tabs.
                 fun unreadIn(state: com.kirox.app.telegram.TelegramChatListState) = state.chats.count { it.unreadCount > 0 || it.isMarkedUnread }
-                fun withCount(title: String, count: Int) = if (count > 0) "$title · $count" else title
+                // The name goes through the text engine before the count, so an own name for «Все» shows here too.
+                fun withCount(title: String, count: Int) = if (count > 0) "${com.kirox.app.i18n.I18n.t(title)} · $count" else title
                 item { FolderChip(withCount("Все", unreadIn(lists.main)), folderId == null && kindFilter == null) { folderId = null; kindFilter = null } }
                 items(KindFilters, key = { "kind_" + it.first.name }) { (kind, title) ->
                     FolderChip(title, folderId == null && kindFilter == kind) { folderId = null; kindFilter = if (kindFilter == kind) null else kind }

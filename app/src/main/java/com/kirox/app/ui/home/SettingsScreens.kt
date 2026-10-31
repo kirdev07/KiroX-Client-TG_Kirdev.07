@@ -1037,88 +1037,138 @@ internal fun LanguageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
         item {
             SettingsCard {
                 IconRow(
-                    IconGlyphs.Edit, Color(0xFF9B6BFF), "Переименовать надписи",
-                    if (i18n.overrides.isEmpty()) "Любую кнопку, пункт или заголовок можно назвать по-своему" else "Своих названий: ${i18n.overrides.size}"
+                    IconGlyphs.Edit, Color(0xFF9B6BFF), "Переименовать разделы",
+                    if (i18n.overrides.isEmpty()) "Вкладки, разделы настроек и главные кнопки — как вам удобно" else "Своих названий: ${i18n.overrides.size}"
                 ) { renaming = true }
             }
         }
     }
 }
 
-/** «Свои названия»: every text of kiroX with search; tap one to give it your own name. */
+/** A name the user may change: the source text, where it is shown and what it does. */
+private class RenameItem(val key: String, val about: String)
+
+/** The main names of kiroX, grouped by where they are; everything else keeps its normal text. */
+private val renameGroups: List<Pair<String, List<RenameItem>>> = listOf(
+    "Нижняя панель" to listOf(
+        RenameItem("Чаты", "Вкладка со списком всех ваших переписок"),
+        RenameItem("Контакты", "Вкладка с людьми из вашей телефонной книги в Telegram"),
+        RenameItem("Звонки", "Вкладка с историей звонков"),
+        RenameItem("Истории", "Вкладка с историями контактов и каналов"),
+        RenameItem("Настройки", "Вкладка с настройками kiroX и аккаунта")
+    ),
+    "Список чатов" to listOf(
+        RenameItem("Все", "Первая вкладка над чатами — показывает все чаты сразу"),
+        RenameItem("Личные", "Фильтр: только переписки с людьми и ботами"),
+        RenameItem("Группы", "Фильтр: только группы"),
+        RenameItem("Каналы", "Фильтр: только каналы"),
+        RenameItem("Архив", "Раздел со скрытыми чатами вверху списка"),
+        RenameItem("Сообщения", "Раздел с обычными чатами рядом с «Архивом»"),
+        RenameItem("Избранное", "Ваш личный чат с самим собой для заметок и файлов")
+    ),
+    "Создание" to listOf(
+        RenameItem("Новая группа", "Кнопка в меню ✏️ — создать группу"),
+        RenameItem("Новый канал", "Кнопка в меню ✏️ — создать канал"),
+        RenameItem("Секретный чат", "Кнопка в меню ✏️ — зашифрованный чат только на двух устройствах"),
+        RenameItem("Новый контакт", "Добавить человека по номеру телефона")
+    ),
+    "Настройки" to listOf(
+        RenameItem("Изменить профиль", "Имя, фото, имя пользователя и «О себе»"),
+        RenameItem("Уведомления и звуки", "Уведомления о сообщениях, звуки, баннеры"),
+        RenameItem("Конфиденциальность", "Кто что видит, код-пароль, чёрный список"),
+        RenameItem("Данные и память", "Кэш, автозагрузка медиа, трафик, прокси"),
+        RenameItem("Оформление", "Тема, пузыри сообщений, обои, анимации"),
+        RenameItem("Язык", "Язык интерфейса и свои названия"),
+        RenameItem("Устройства", "Где выполнен вход в ваш аккаунт"),
+        RenameItem("kiroX Настройки", "Журнал ошибок, сброс настроек, выход"),
+        RenameItem("О приложении", "Версия kiroX и обновления")
+    ),
+    "В чате" to listOf(
+        RenameItem("Сообщение", "Подсказка в поле ввода внизу чата"),
+        RenameItem("Ответить", "Пункт меню сообщения — ответить на него"),
+        RenameItem("Переслать", "Пункт меню сообщения — отправить в другой чат"),
+        RenameItem("Копировать", "Пункт меню сообщения — скопировать текст"),
+        RenameItem("Закрепить", "Пункт меню сообщения — закрепить вверху чата"),
+        RenameItem("Удалить", "Пункт меню сообщения — удалить его")
+    )
+)
+
+/**
+ * «Свои названия»: the main names of kiroX with what each one is; tap one to name it your way.
+ * The new name replaces it everywhere in the app, in any language.
+ */
 @Composable
 private fun RenameTextsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
     BackHandler(onBack = onBack)
     val i18n = com.kirox.app.i18n.I18n
-    var query by rememberSaveable { mutableStateOf("") }
-    var onlyMine by rememberSaveable { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<String?>(null) }
+    var editing by remember { mutableStateOf<RenameItem?>(null) }
     var confirmReset by remember { mutableStateOf(false) }
-    val all = remember { i18n.keys.filter { it.isNotBlank() && "{\"" !in it && "\${" !in it } }
     val overrides = i18n.overrides
-    val shown = remember(query, onlyMine, overrides, i18n.language) {
-        val q = query.trim()
-        all.filter { key -> (!onlyMine || key in overrides) && (q.isEmpty() || key.contains(q, true) || i18n.shown(key).contains(q, true)) }
-    }
+    val mine = renameGroups.sumOf { (_, items) -> items.count { it.key in overrides } }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Свои названия", onBack) }
-        item { com.kirox.app.ui.components.FusionSearchField(query, { query = it }, "Найти надпись", Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) }
         item {
-            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(false to "Все надписи", true to "Мои (${overrides.size})").forEach { (mine, title) ->
-                    androidx.compose.material3.FilterChip(onlyMine == mine, onClick = { onlyMine = mine }, label = { Text(title) })
+            Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(Color(0xFF9B6BFF)), contentAlignment = Alignment.Center) {
+                    IconGlyph(IconGlyphs.Edit, null, Modifier.size(32.dp), Color.White)
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Назовите главные разделы и кнопки kiroX по-своему. Например, «Избранное» — «Мои заметки», а «Чаты» — «Переписки». Новое название появится везде, где есть этот пункт, на любом языке.",
+                    color = Fusion.colors.textSecondary, fontSize = 14.sp, lineHeight = 20.sp, textAlign = TextAlign.Center
+                )
+            }
+        }
+        renameGroups.forEach { (group, items) ->
+            item(key = group) {
+                SmallCaption(group)
+                SettingsCard {
+                    items.forEachIndexed { index, rename ->
+                        if (index > 0) androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 20.dp), color = Fusion.colors.outline)
+                        val own = overrides[rename.key]
+                        Row(
+                            Modifier.fillMaxWidth().clickable { editing = rename }.heightIn(min = 60.dp).padding(horizontal = 20.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                // Raw material3 Text: the list shows names as they are, not run through the engine again.
+                                androidx.compose.material3.Text(own ?: i18n.base(rename.key), color = if (own != null) Fusion.colors.accent else Fusion.colors.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                                Text(rename.about, color = Fusion.colors.textSecondary, fontSize = 13.sp, lineHeight = 17.sp)
+                                if (own != null) androidx.compose.material3.Text("было: ${i18n.base(rename.key)}", color = Fusion.colors.textTertiary, fontSize = 12.sp)
+                            }
+                            IconGlyph(IconGlyphs.Edit, null, Modifier.size(18.dp), Fusion.colors.textTertiary)
+                        }
+                    }
                 }
             }
         }
-        item {
-            Text(
-                "Нажмите на надпись и впишите своё название — оно заменит её во всём приложении на любом языке. {} — место для имени, числа или даты.",
-                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-            )
-        }
-        if (shown.isEmpty()) item {
-            Text(if (onlyMine) "Своих названий пока нет" else "Ничего не найдено", color = Fusion.colors.textSecondary, modifier = Modifier.fillMaxWidth().padding(32.dp), textAlign = TextAlign.Center)
-        }
-        items(shown, key = { it }) { key ->
-            val own = overrides[key]
-            androidx.compose.material3.ListItem(
-                // Raw material3 Text: the list shows the texts as they are, not run through the engine again.
-                headlineContent = { androidx.compose.material3.Text(own ?: i18n.base(key), color = if (own != null) Fusion.colors.accent else Fusion.colors.textPrimary, maxLines = 2) },
-                supportingContent = if (own != null || i18n.base(key) != key) ({ androidx.compose.material3.Text(if (own != null) "было: ${i18n.base(key)}" else key, maxLines = 2) }) else null,
-                colors = fusionListColors(),
-                modifier = Modifier.clickable { editing = key }
-            )
-        }
-        if (overrides.isNotEmpty()) item {
-            LinkRow("Сбросить все свои названия", null, Fusion.colors.danger) { confirmReset = true }
+        if (mine > 0) item {
+            Spacer(Modifier.height(8.dp))
+            SettingsCard { LinkRow("Вернуть все названия", "Своих названий: $mine", Fusion.colors.danger) { confirmReset = true } }
         }
     }
-    editing?.let { key ->
-        var value by remember(key) { mutableStateOf(overrides[key] ?: i18n.base(key)) }
+    editing?.let { rename ->
+        var value by remember(rename.key) { mutableStateOf(overrides[rename.key] ?: i18n.base(rename.key)) }
         AlertDialog(
             onDismissRequest = { editing = null },
             containerColor = Fusion.colors.surface1,
-            title = { Text("Своё название", color = Fusion.colors.textPrimary) },
+            title = { androidx.compose.material3.Text(i18n.base(rename.key), color = Fusion.colors.textPrimary) },
             text = {
                 Column {
-                    androidx.compose.material3.Text(i18n.base(key), color = Fusion.colors.textSecondary, fontSize = 13.sp)
-                    Spacer(Modifier.height(10.dp))
-                    EditField(value, "Новое название", singleLine = false) { value = it.take(200) }
-                    if ("{}" in key && "{}" !in value) Text(
-                        "В исходной надписи есть {} — без него имя или число не покажется.",
-                        color = Fusion.colors.danger, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
-                    )
+                    Text(rename.about, color = Fusion.colors.textSecondary, fontSize = 13.sp, lineHeight = 18.sp)
+                    Spacer(Modifier.height(12.dp))
+                    EditField(value, "Своё название") { value = it.replace("\n", " ").take(40) }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    i18n.setOverride(key, value.trim().takeIf { it != i18n.base(key) })
+                    i18n.setOverride(rename.key, value.trim().takeIf { it.isNotEmpty() && it != i18n.base(rename.key) })
                     editing = null
                 }) { Text("Сохранить", color = Fusion.colors.accent) }
             },
             dismissButton = {
                 Row {
-                    if (key in overrides) TextButton(onClick = { i18n.setOverride(key, null); editing = null }) { Text("Вернуть", color = Fusion.colors.danger) }
+                    if (rename.key in overrides) TextButton(onClick = { i18n.setOverride(rename.key, null); editing = null }) { Text("Вернуть", color = Fusion.colors.danger) }
                     TextButton(onClick = { editing = null }) { Text("Отмена", color = Fusion.colors.textSecondary) }
                 }
             }
@@ -1127,9 +1177,9 @@ private fun RenameTextsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
     if (confirmReset) AlertDialog(
         onDismissRequest = { confirmReset = false },
         containerColor = Fusion.colors.surface1,
-        title = { Text("Сбросить свои названия?", color = Fusion.colors.textPrimary) },
-        text = { Text("Все надписи вернутся к обычным для выбранного языка.", color = Fusion.colors.textSecondary) },
-        confirmButton = { TextButton(onClick = { confirmReset = false; i18n.clearOverrides(); onNotice("Свои названия сброшены") }) { Text("Сбросить", color = Fusion.colors.danger) } },
+        title = { Text("Вернуть все названия?", color = Fusion.colors.textPrimary) },
+        text = { Text("Разделы и кнопки снова будут называться как обычно.", color = Fusion.colors.textSecondary) },
+        confirmButton = { TextButton(onClick = { confirmReset = false; i18n.clearOverrides(); onNotice("Названия возвращены") }) { Text("Вернуть", color = Fusion.colors.danger) } },
         dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
     )
 }
