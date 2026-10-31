@@ -298,7 +298,7 @@ class TelegramMessageRepository(
     fun sendPhoto(path: String, caption: String) = act { id ->
         TdApi.SendMessage(id, topic, null, null, null, TdApi.InputMessagePhoto().apply {
             photo = TdApi.InputPhoto().apply { photo = TdApi.InputFileLocal(path); addedStickerFileIds = IntArray(0) }
-            this.caption = TdApi.FormattedText(caption, emptyArray())
+            this.caption = formatted(caption)
         })
     }
 
@@ -311,7 +311,7 @@ class TelegramMessageRepository(
     fun sendVideo(path: String, caption: String, durationSeconds: Int, width: Int, height: Int) = act { id ->
         TdApi.SendMessage(id, topic, null, null, null, TdApi.InputMessageVideo(
             TdApi.InputVideo(TdApi.InputFileLocal(path), null, null, 0, IntArray(0), durationSeconds, width, height, true),
-            TdApi.FormattedText(caption, emptyArray()), false, null, false
+            formatted(caption), false, null, false
         ))
     }
 
@@ -327,7 +327,7 @@ class TelegramMessageRepository(
     fun sendDocument(path: String, caption: String) = act { id ->
         TdApi.SendMessage(id, topic, null, null, null, TdApi.InputMessageDocument().apply {
             document = TdApi.InputDocument().apply { document = TdApi.InputFileLocal(path) }
-            this.caption = TdApi.FormattedText(caption, emptyArray())
+            this.caption = formatted(caption)
         })
     }
 
@@ -349,14 +349,14 @@ class TelegramMessageRepository(
     /** Edits a text message, or the caption of a media message. */
     fun edit(messageId: Long, text: String) = act { id ->
         if (messages[messageId]?.content is TdApi.MessageText) TdApi.EditMessageText(id, messageId, null, inputText(text))
-        else TdApi.EditMessageCaption(id, messageId, null, TdApi.FormattedText(text, emptyArray()), false)
+        else TdApi.EditMessageCaption(id, messageId, null, formatted(text), false)
     }
 
     /** Sends 2–10 photos and videos as one album; [items] are local paths with video metadata or null for photos. */
     fun sendAlbum(items: List<Pair<String, VideoMeta?>>, caption: String) = act { id ->
         val contents = items.mapIndexed { index, (path, video) ->
             // Telegram shows the album caption from its first item.
-            val text = TdApi.FormattedText(if (index == 0) caption else "", emptyArray())
+            val text = formatted(if (index == 0) caption else "")
             if (video == null) TdApi.InputMessagePhoto().apply {
                 photo = TdApi.InputPhoto().apply { photo = TdApi.InputFileLocal(path); addedStickerFileIds = IntArray(0) }
                 this.caption = text
@@ -496,7 +496,30 @@ class TelegramMessageRepository(
         client.query(TdApi.DeleteMessages(id, longArrayOf(messageId), true))
     }
 
-    private fun inputText(text: String) = TdApi.InputMessageText(TdApi.FormattedText(text, emptyArray()), null, true)
+    private fun inputText(text: String) = TdApi.InputMessageText(formatted(text), null, true)
+
+    /**
+     * Text as Telegram's apps send it: **жирный**, __курсив__, ~~зачёркнутый~~, ||спойлер||, `код`,
+     * ```блок кода``` and [текст](ссылка) become formatting; anything else stays as typed.
+     */
+    private fun formatted(text: String): TdApi.FormattedText =
+        runCatching { org.drinkless.tdlib.Client.execute(TdApi.ParseMarkdown(TdApi.FormattedText(text, emptyArray()))) }.getOrNull()
+            ?: TdApi.FormattedText(text, emptyArray())
+
+    /** The text of [messageId] with its formatting written back as markdown, for editing. */
+    fun editableText(messageId: Long): String? {
+        val content = messages[messageId]?.content ?: return null
+        val text = when (content) {
+            is TdApi.MessageText -> content.text
+            is TdApi.MessagePhoto -> content.caption
+            is TdApi.MessageVideo -> content.caption
+            is TdApi.MessageDocument -> content.caption
+            is TdApi.MessageAnimation -> content.caption
+            is TdApi.MessageAudio -> content.caption
+            else -> return null
+        }
+        return runCatching { org.drinkless.tdlib.Client.execute(TdApi.GetMarkdownText(text)).text }.getOrNull() ?: text.text
+    }
 
     private fun requestOlder() {
         val id = chatId

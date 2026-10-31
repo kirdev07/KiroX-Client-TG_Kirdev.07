@@ -70,6 +70,8 @@ interface TelegramChatMenuActions {
 }
 
 interface TelegramChatActions {
+    /** The message text with its formatting as markdown, for editing; null keeps the plain text. */
+    fun editableText(messageId: Long): String? = null
     fun loadOlder()
     fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false, scheduleAt: Int = 0)
     suspend fun scheduledMessages(): List<com.kirox.app.telegram.ScheduledMessage> = emptyList()
@@ -157,6 +159,10 @@ fun TelegramChatScreen(
     // «Сохранять удалённые и изменённые»: the kept list of this chat and one message's earlier versions.
     val archive = remember { (context.applicationContext as com.kirox.app.KiroXApplication).telegram.archive }
     val admin = remember { (context.applicationContext as com.kirox.app.KiroXApplication).telegram.admin }
+    val telegram = remember { (context.applicationContext as com.kirox.app.KiroXApplication).telegram }
+    // Unread «@» and reactions: buttons that jump to them.
+    var mentionCounts by remember(history.chatId) { mutableStateOf(0 to 0) }
+    LaunchedEffect(history.chatId, history.messages.size) { if (history.chatId != 0L) mentionCounts = telegram.mentions.counts(history.chatId) }
     var keptOpen by remember { mutableStateOf(false) }
     // «Пожаловаться» on the chat (empty list) or on messages.
     var reportIds by remember { mutableStateOf<List<Long>?>(null) }
@@ -802,6 +808,14 @@ fun TelegramChatScreen(
                 )
                 LaunchedEffect(message) { kotlinx.coroutines.delay(2200.milliseconds); notice = null }
             }
+            // «@» and ♥: jump to the oldest unread mention or reaction; a long press marks all read.
+            Column(Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 90.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(true to mentionCounts.second, false to mentionCounts.first).forEach { (reactions, count) ->
+                    if (count > 0) JumpBubble(if (reactions) "♥" else "@", count,
+                        onClick = { scope.launch { telegram.mentions.firstUnread(history.chatId, reactions)?.let { actions.jumpTo(it) }; kotlinx.coroutines.delay(1500); mentionCounts = telegram.mentions.counts(history.chatId) } },
+                        onLongClick = { scope.launch { telegram.mentions.readAll(history.chatId, reactions); mentionCounts = telegram.mentions.counts(history.chatId) } })
+                }
+            }
                     // Read-only channel (approved board 6): a notifications switch where the composer would be.
             if (history.peerKind == TelegramPeerKind.Channel && history.threadTitle == null && menu != null && history.chatId != 0L) {
                 LaunchedEffect(history.chatId) { muted = runCatching { menu.isMuted(history.chatId) }.getOrNull() }
@@ -889,7 +903,7 @@ fun TelegramChatScreen(
                 selected = null
                 when (action) {
                     "Копировать" -> { clipboard.setText(AnnotatedString(message.text)); notice = "Сообщение скопировано" }
-                    "Редактировать" -> { editing = message; replyTo = null; input = TextFieldValue(message.text) }
+                    "Редактировать" -> { editing = message; replyTo = null; input = (actions.editableText(message.id) ?: message.text).let { TextFieldValue(it, androidx.compose.ui.text.TextRange(it.length)) } }
                     "Удалить" -> if (albumIds.containsKey(message.id)) deletingMany = idsOf(message) else deleting = message
                     "Переслать" -> forwarding = idsOf(message)
                     // «+1»: the same message once more in this chat, as your own (a copy, no «Переслано от»).

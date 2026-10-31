@@ -2,6 +2,7 @@ package com.kirox.app.ui.chat
 
 // Shared Fusion chat components used by TelegramChatScreen.
 
+import androidx.compose.foundation.horizontalScroll
 import com.kirox.app.ui.components.fusionPanel
 import androidx.compose.runtime.ReadOnlyComposable
 import com.kirox.app.ui.theme.Fusion
@@ -355,6 +356,8 @@ internal fun ChatComposer(value: TextFieldValue, reply: MessageUi?, editing: Mes
     Surface(color = if (Fusion.colors.backdrop != null) Color.Transparent else Fusion.colors.background) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding()) {
             AnimatedVisibility(reply != null || editing != null, enter = if (animate) fadeIn() + expandVertically() else EnterTransition.None, exit = if (animate) fadeOut() + shrinkVertically() else ExitTransition.None) { (editing ?: reply)?.let { context -> Row(Modifier.fillMaxWidth().background(Fusion.colors.surface1).padding(horizontal = 14.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) { Box(Modifier.width(2.dp).height(34.dp).background(ChatWhite)); Spacer(Modifier.width(8.dp)); Column(Modifier.weight(1f)) { Text(if (editing != null) "Редактирование сообщения" else "Ответ: ${context.author}", color = ChatWhite, fontSize = 11.sp); Text(context.text, color = ChatSecondary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }; androidx.compose.material3.IconButton(onClick = onCancelContext) { Text("×", color = ChatSecondary, fontSize = 22.sp) } } } }
+            // Text selected: bold, italic and the rest wrap it in Telegram's markdown.
+            if (!value.selection.collapsed) FormatBar(value, onValueChange)
             // Fusion UI v2 (approved PNG): a rounded field with emoji and attach, the mic / send button
             // as a separate accent circle beside it; classic palettes keep everything in one pill.
             val v2 = Fusion.colors.backdrop != null
@@ -671,4 +674,51 @@ internal fun compactCount(value: Int): String = when {
     value >= 10_000 -> "${value / 1000}K"
     value >= 1000 -> "%.1fK".format(value / 1000f).replace(".0K", "K")
     else -> value.toString()
+}
+
+/** Wraps the selected text in [left] … [right], keeping it selected. */
+private fun TextFieldValue.wrapped(left: String, right: String = left): TextFieldValue {
+    val start = selection.min
+    val end = selection.max
+    val text = text.substring(0, start) + left + text.substring(start, end) + right + text.substring(end)
+    return TextFieldValue(text, androidx.compose.ui.text.TextRange(start + left.length, end + left.length))
+}
+
+/**
+ * The formatting bar over the composer while text is selected: Telegram's markdown is written
+ * around the selection and becomes formatting when the message is sent.
+ */
+@Composable
+private fun FormatBar(value: TextFieldValue, onValueChange: (TextFieldValue) -> Unit) {
+    var linking by remember { mutableStateOf(false) }
+    var url by remember { mutableStateOf("https://") }
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 10.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        @Composable fun Format(label: String, weight: FontWeight = FontWeight.Normal, style: androidx.compose.ui.text.font.FontStyle? = null, onClick: () -> Unit) {
+            Text(label, color = Fusion.colors.textPrimary, fontSize = 14.sp, fontWeight = weight, fontStyle = style,
+                modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Fusion.colors.surface2).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp))
+        }
+        Format("Ж", FontWeight.Bold) { onValueChange(value.wrapped("**")) }
+        Format("К", style = androidx.compose.ui.text.font.FontStyle.Italic) { onValueChange(value.wrapped("__")) }
+        Format("Зачеркнуть") { onValueChange(value.wrapped("~~")) }
+        Format("Моно") { onValueChange(value.wrapped("`")) }
+        Format("Спойлер") { onValueChange(value.wrapped("||")) }
+        Format("Ссылка") { linking = true }
+    }
+    if (linking) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { linking = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Ссылка", color = Fusion.colors.textPrimary) },
+        text = {
+            androidx.compose.material3.OutlinedTextField(url, { url = it.trim() }, singleLine = true, label = { Text("Адрес") })
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(enabled = url.length > 8, onClick = { linking = false; onValueChange(value.wrapped("[", "]($url)")); url = "https://" }) {
+                Text("Готово", color = Fusion.colors.accent)
+            }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { linking = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
 }

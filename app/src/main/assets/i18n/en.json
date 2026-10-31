@@ -1770,5 +1770,12 @@
  "Плейлист загружен": "Playlist loaded",
  "Загрузить плейлист": "Load playlist",
  "Файл плейлиста kiroX от друга": "A kiroX playlist file from a friend",
- "Поделиться плейлистом": "Share playlist"
+ "Поделиться плейлистом": "Share playlist",
+ "Ж": "B",
+ "К": "I",
+ "Зачеркнуть": "Strike",
+ "Моно": "Mono",
+ "Спойлер": "Spoiler",
+ "Ссылка": "Link",
+ "Адрес": "Address"
 }

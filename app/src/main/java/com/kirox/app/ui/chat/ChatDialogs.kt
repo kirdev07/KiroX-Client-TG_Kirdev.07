@@ -1,5 +1,6 @@
 package com.kirox.app.ui.chat
 
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.toArgb
 import android.content.Context
 import android.net.Uri
@@ -214,4 +215,20 @@ internal fun ScheduleSendDialog(onDismiss: () -> Unit, onPick: (Int) -> Unit) {
         },
         dismissButton = { TextButton(onClick = { pickingTime = false }) { Text("Назад", color = Fusion.colors.textSecondary) } }
     )
+}
+
+/** A round button with a count over the chat: «@» to unread mentions, «♥» to unread reactions. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+internal fun JumpBubble(label: String, count: Int, onClick: () -> Unit, onLongClick: () -> Unit) {
+    Box {
+        Box(
+            Modifier.size(48.dp).clip(CircleShape).background(Fusion.colors.surface1).combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            contentAlignment = Alignment.Center
+        ) { Text(label, color = Fusion.colors.accent, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+        Text(
+            if (count > 99) "99+" else "$count", color = Fusion.colors.onAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp).clip(CircleShape).background(Fusion.colors.accent).padding(horizontal = 6.dp, vertical = 1.dp)
+        )
+    }
 }

@@ -491,6 +491,7 @@ private class TelegramMessageActions(
     private val repository: TelegramMessageRepository,
     private val activityRepository: com.kirox.app.telegram.TelegramChatActionRepository
 ) : TelegramChatActions {
+    override fun editableText(messageId: Long): String? = repository.editableText(messageId)
     override fun loadOlder() = repository.loadOlder()
     override fun sendText(text: String, replyToMessageId: Long?, silent: Boolean, scheduleAt: Int) = repository.sendText(text, replyToMessageId, silent, scheduleAt)
     override suspend fun scheduledMessages() = repository.scheduledMessages()
