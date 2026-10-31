@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Backgrounds of the app icons offered in kiroX settings. -->
+    <color name="ic_launcher_background_dark">#121214</color>
+    <color name="ic_launcher_background_light">#FFFFFF</color>
+</resources>

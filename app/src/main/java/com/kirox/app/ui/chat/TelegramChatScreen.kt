@@ -47,6 +47,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
@@ -576,7 +577,15 @@ fun TelegramChatScreen(
                 }
             } else if (shownMessages.isEmpty()) {
                 Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Ничего не найдено", color = Fusion.colors.textSecondary) }
-            } else LazyColumn(
+            } else {
+            // «Скрывать клавиатуру при прокрутке» from kiroX settings: a finger drag on the list closes it.
+            if (tweaks.hideKeyboardOnScroll) {
+                val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+                val focus = androidx.compose.ui.platform.LocalFocusManager.current
+                val dragged by listState.interactionSource.collectIsDraggedAsState()
+                LaunchedEffect(dragged) { if (dragged) { keyboard?.hide(); focus.clearFocus() } }
+            }
+            LazyColumn(
                 state = listState,
                 reverseLayout = true,
                 modifier = Modifier.fillMaxSize(),
@@ -638,6 +647,7 @@ fun TelegramChatScreen(
                 if (history.loadingOlder) item(key = "loading") {
                     Box(Modifier.fillMaxWidth().padding(12.dp), Alignment.Center) { CircularProgressIndicator(Modifier.size(20.dp), color = Fusion.colors.textSecondary, strokeWidth = 2.dp) }
                 }
+            }
             }
             notice?.let { message ->
                 Text(
@@ -739,6 +749,8 @@ fun TelegramChatScreen(
                     "Редактировать" -> { editing = message; replyTo = null; input = TextFieldValue(message.text) }
                     "Удалить" -> if (albumIds.containsKey(message.id)) deletingMany = idsOf(message) else deleting = message
                     "Переслать" -> forwarding = idsOf(message)
+                    // «+1»: the same message once more in this chat, as your own (a copy, no «Переслано от»).
+                    "Повторить" -> { actions.forward(history.chatId, idsOf(message), asCopy = true); notice = "Отправлено ещё раз" }
                     "Сохранить" -> saveMedia(message)
                     "Закрепить" -> { actions.pin(message.id); notice = "Сообщение закреплено" }
                     "Открепить" -> actions.unpin(message.id)
@@ -758,7 +770,9 @@ fun TelegramChatScreen(
             hidden = buildSet {
                 if (history.isSecret) add("Закрепить")
                 if (source?.canEdit != true) add("Редактировать")
-                if (source?.delivery == TelegramDelivery.Sending) { add("Переслать"); add("Ответить") }
+                if (source?.delivery == TelegramDelivery.Sending) { add("Переслать"); add("Ответить"); add("Повторить") }
+                // Only content that can be sent again: no polls, calls or service messages.
+                if (message.poll != null || message.direction == MessageDirection.System) add("Повторить")
             }
         )
     }

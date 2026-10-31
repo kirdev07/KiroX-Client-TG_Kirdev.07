@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -586,6 +587,48 @@ private fun PasscodeSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Uni
     if (choosingAuto) ChoiceDialog("Автоблокировка", com.kirox.app.security.AutoLock.entries, settings.autoLock, { it.title }, onDismiss = { choosingAuto = false }) {
         com.kirox.app.security.PasscodeLock.setAutoLock(it); choosingAuto = false
     }
+}
+
+/** «Иконка приложения»: the four launcher icons drawn as they look on the home screen. */
+@Composable
+private fun AppIconDialog(current: com.kirox.app.settings.AppIcon, onDismiss: () -> Unit, onPick: (com.kirox.app.settings.AppIcon) -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Иконка приложения", color = Fusion.colors.textPrimary) },
+        text = {
+            Column {
+                Text("Так kiroX будет выглядеть на рабочем столе. Если иконка пропадёт, найдите kiroX в списке приложений — лаунчер обновит её.", color = Fusion.colors.textSecondary, fontSize = 13.sp, lineHeight = 18.sp)
+                Spacer(Modifier.height(16.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    com.kirox.app.settings.AppIcon.entries.forEach { icon ->
+                        val selected = icon == current
+                        Column(Modifier.clip(RoundedCornerShape(14.dp)).clickable { onPick(icon) }.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            val background = when (icon) {
+                                com.kirox.app.settings.AppIcon.Violet -> androidx.compose.ui.graphics.SolidColor(Color(0xFF6C4CE0))
+                                com.kirox.app.settings.AppIcon.Dark -> androidx.compose.ui.graphics.SolidColor(Color(0xFF121214))
+                                com.kirox.app.settings.AppIcon.Light -> androidx.compose.ui.graphics.SolidColor(Color.White)
+                                com.kirox.app.settings.AppIcon.Cosmos -> androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFF7B4CE0), Color(0xFF1B2A6B)))
+                            }
+                            Box(
+                                Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(background)
+                                    .then(if (selected) Modifier.border(2.5.dp, Fusion.colors.accent, RoundedCornerShape(16.dp)) else Modifier),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                androidx.compose.foundation.Image(
+                                    androidx.compose.ui.res.painterResource(if (icon == com.kirox.app.settings.AppIcon.Light) com.kirox.app.R.drawable.ic_launcher_foreground_violet else com.kirox.app.R.drawable.ic_launcher_foreground),
+                                    null, Modifier.size(84.dp)
+                                )
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Text(icon.title, color = if (selected) Fusion.colors.accent else Fusion.colors.textPrimary, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть", color = Fusion.colors.textSecondary) } }
+    )
 }
 
 @Composable
@@ -1386,6 +1429,8 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
     val tweaks by com.kirox.app.settings.KiroxTweaks.state.collectAsState()
     fun set(value: com.kirox.app.settings.Tweaks) = com.kirox.app.settings.KiroxTweaks.update(value)
     var choosingDoubleTap by remember { mutableStateOf(false) }
+    var appIcon by remember { mutableStateOf(com.kirox.app.settings.AppIcons.current(context)) }
+    var choosingIcon by remember { mutableStateOf(false) }
     var restoreText by remember { mutableStateOf<String?>(null) }
     val pickBackup = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -1450,6 +1495,9 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
                 ToggleRow("Вкладка «Звонки»", "Показывать в нижней панели", !tweaks.hideCallsTab) { set(tweaks.copy(hideCallsTab = !it)) }
                 ToggleRow("Вкладка «Истории»", "Показывать в нижней панели", !tweaks.hideStoriesTab) { set(tweaks.copy(hideStoriesTab = !it)) }
                 ToggleRow("ID в профилях", "Номер пользователя или чата в Telegram; нажатие копирует его", tweaks.showIds) { set(tweaks.copy(showIds = it)) }
+                ToggleRow("Скрывать клавиатуру при прокрутке", "Проведите по переписке — клавиатура закроется", tweaks.hideKeyboardOnScroll) { set(tweaks.copy(hideKeyboardOnScroll = it)) }
+                CardDivider()
+                IconRow(IconGlyphs.Palette, Color(0xFF6C4CE0), "Иконка приложения", null, trailing = appIcon.title) { choosingIcon = true }
             }
         }
         item { SmallCaption("Резервная копия") }
@@ -1500,6 +1548,14 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
         item { SmallCaption("Сброс") }
         item { LinkRow("Сбросить настройки kiroX", "Тема, анимации, чаты — к значениям по умолчанию. Telegram не затрагивается", Fusion.colors.danger) { confirmReset = true } }
         item { LinkRow("Выйти из аккаунта", null, Fusion.colors.danger) { confirmLogout = true } }
+    }
+    if (choosingIcon) AppIconDialog(appIcon, onDismiss = { choosingIcon = false }) { icon ->
+        choosingIcon = false
+        if (icon != appIcon) {
+            com.kirox.app.settings.AppIcons.set(context, icon)
+            appIcon = icon
+            onNotice("Иконка изменится на рабочем столе через несколько секунд")
+        }
     }
     if (choosingDoubleTap) ChoiceDialog("Двойной тап по сообщению", com.kirox.app.settings.DoubleTapAction.entries, tweaks.doubleTap, { it.title }, onDismiss = { choosingDoubleTap = false }) {
         set(tweaks.copy(doubleTap = it)); choosingDoubleTap = false

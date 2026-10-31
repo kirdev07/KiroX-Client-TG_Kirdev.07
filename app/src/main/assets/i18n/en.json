@@ -1291,5 +1291,15 @@
  "Смотреть истории незаметно": "View stories unseen",
  "Автор не увидит вас среди просмотревших": "The author won't see you among viewers",
  "Работает на стороне kiroX. Когда вы сами отправите сообщение в чат, Telegram отметит его прочитанным, а вас — «в сети» на минуту, — так устроен сервер.": "Works on the kiroX side. When you send a message to a chat yourself, Telegram marks it read and shows you «online» for a minute — that's how the server works.",
- "Удерживайте кнопку «Отправить»: без звука, позже в выбранное время или когда собеседник будет в сети.": "Hold the «Send» button: without sound, later at a chosen time, or when the other person comes online."
+ "Удерживайте кнопку «Отправить»: без звука, позже в выбранное время или когда собеседник будет в сети.": "Hold the «Send» button: without sound, later at a chosen time, or when the other person comes online.",
+ "Фиолетовая": "Violet",
+ "Тёмная": "Dark",
+ "Светлая": "Light",
+ "Космос": "Cosmos",
+ "Отправлено ещё раз": "Sent once more",
+ "Иконка приложения": "App icon",
+ "Так kiroX будет выглядеть на рабочем столе. Если иконка пропадёт, найдите kiroX в списке приложений — лаунчер обновит её.": "This is how kiroX will look on the home screen. If the icon disappears, find kiroX in the app list — the launcher will refresh it.",
+ "Скрывать клавиатуру при прокрутке": "Hide keyboard when scrolling",
+ "Проведите по переписке — клавиатура закроется": "Swipe the conversation — the keyboard closes",
+ "Иконка изменится на рабочем столе через несколько секунд": "The home screen icon will change in a few seconds"
 }
