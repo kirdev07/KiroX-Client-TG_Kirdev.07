@@ -1533,5 +1533,18 @@
  "Сообщения собеседника": "Their messages",
  "Так будет выглядеть": "This is how it looks",
  "Цвета": "Colors",
- "Зелёная и белая иконки красят в свой цвет и нижнюю панель — выбранную вкладку и кнопки.": "The green and white icons also paint the bottom bar — the selected tab and buttons."
+ "Зелёная и белая иконки красят в свой цвет и нижнюю панель — выбранную вкладку и кнопки.": "The green and white icons also paint the bottom bar — the selected tab and buttons.",
+ "Создать свою иконку": "Create your own icon",
+ "Своя иконка": "Own icon",
+ "Фон": "Background",
+ "Фото из галереи": "Photo from gallery",
+ "Убрать фото": "Remove photo",
+ "Самолётик kiroX": "kiroX plane",
+ "Поверх фона или фото": "Over the background or photo",
+ "Цвет самолётика": "Plane color",
+ "Подпись под иконкой": "Label under the icon",
+ "Добавить на рабочий стол": "Add to home screen",
+ "Подтвердите добавление ярлыка": "Confirm adding the shortcut",
+ "Лаунчер не разрешает добавлять ярлыки — включите это в настройках рабочего стола": "The launcher doesn't allow adding shortcuts — turn it on in the home screen settings",
+ "Android не даёт приложениям менять свою иконку на любую картинку, поэтому своя иконка — это ярлык kiroX на рабочем столе. Он открывает kiroX как обычная иконка; старую можно убрать с рабочего стола, в списке приложений она останется. На Xiaomi может понадобиться разрешение «Ярлыки на рабочем столе».": "Android doesn't let apps set any picture as their icon, so an own icon is a kiroX shortcut on the home screen. It opens kiroX like the usual icon; you can remove the old one from the home screen, it stays in the app list. On Xiaomi the «Home screen shortcuts» permission may be needed."
 }

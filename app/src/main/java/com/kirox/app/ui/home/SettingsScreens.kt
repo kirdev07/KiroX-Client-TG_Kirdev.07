@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Switch
@@ -591,7 +593,7 @@ private fun PasscodeSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Uni
 
 /** «Иконка приложения»: the four launcher icons drawn as they look on the home screen. */
 @Composable
-private fun AppIconDialog(current: com.kirox.app.settings.AppIcon, onDismiss: () -> Unit, onPick: (com.kirox.app.settings.AppIcon) -> Unit) {
+private fun AppIconDialog(current: com.kirox.app.settings.AppIcon, onDismiss: () -> Unit, onCustom: () -> Unit = {}, onPick: (com.kirox.app.settings.AppIcon) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Fusion.colors.surface1,
@@ -633,6 +635,7 @@ private fun AppIconDialog(current: com.kirox.app.settings.AppIcon, onDismiss: ()
                     "Зелёная и белая иконки красят в свой цвет и нижнюю панель — выбранную вкладку и кнопки.",
                     color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp
                 )
+                androidx.compose.material3.OutlinedButton(onClick = onCustom, modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) { Text("Создать свою иконку") }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть", color = Fusion.colors.textSecondary) } }
@@ -1399,6 +1402,99 @@ private fun RenameTextsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
     )
 }
 
+// ---------- Own icon ----------
+
+/** Colors for an own icon's background and plane. */
+private val IconSwatches = listOf(
+    0xFF6C4CE0, 0xFF396FDB, 0xFF2AABEE, 0xFF1FA463, 0xFFF29D38, 0xFFE0475B, 0xFFC2185B,
+    0xFF121214, 0xFF37474F, 0xFF8D6E63, 0xFFFFFFFF, 0xFFFFD43B, 0xFF7B4CE0, 0xFF0B2242
+)
+
+/**
+ * «Своя иконка»: a color or a photo with the kiroX plane, added to the home screen as a shortcut
+ * (Android allows changing the real icon only to the built-in ones).
+ */
+@Composable
+private fun CustomIconScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
+    BackHandler(onBack = onBack)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var background by remember { mutableStateOf(0xFF1FA463.toInt()) }
+    var plane by remember { mutableStateOf(0xFFFFFFFF.toInt()) }
+    var photo by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var showPlane by remember { mutableStateOf(true) }
+    var label by remember { mutableStateOf("kiroX") }
+    val preview = remember(background, plane, photo, showPlane) { com.kirox.app.settings.CustomIcon.render(context, background, plane, photo, showPlane).asImageBitmap() }
+    val pickPhoto = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            photo = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        val bounds = android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 }
+                        android.graphics.BitmapFactory.decodeStream(input, null, bounds)
+                    }?.let(com.kirox.app.settings.CustomIcon::squareCrop)
+                }.getOrNull()
+            }
+            if (photo == null) onNotice("Не удалось прочитать фото")
+        }
+    }
+    @Composable fun Swatches(selected: Int, onPick: (Int) -> Unit) {
+        IconSwatches.chunked(7).forEach { row ->
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                row.forEach { color ->
+                    Box(
+                        Modifier.padding(3.dp).size(36.dp).clip(CircleShape).background(Color(color.toInt()))
+                            .border(if (selected == color.toInt()) 3.dp else 1.dp, if (selected == color.toInt()) Fusion.colors.accent else Fusion.colors.outlineStrong, CircleShape)
+                            .clickable { onPick(color.toInt()) }
+                    )
+                }
+            }
+        }
+    }
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen).imePadding(), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Своя иконка", onBack) }
+        item {
+            Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                // Launchers cut the icon to their shape; a rounded square is the usual one.
+                androidx.compose.foundation.Image(preview, null, Modifier.size(112.dp).clip(RoundedCornerShape(28.dp)))
+                Spacer(Modifier.height(8.dp))
+                androidx.compose.material3.Text(label.ifBlank { "kiroX" }, color = Fusion.colors.textPrimary, fontSize = 14.sp)
+            }
+        }
+        item { SmallCaption("Фон") }
+        item { Swatches(if (photo == null) background else 0) { background = it; photo = null } }
+        item {
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                androidx.compose.material3.OutlinedButton(onClick = { pickPhoto.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.weight(1f)) {
+                    Text("Фото из галереи")
+                }
+                if (photo != null) androidx.compose.material3.OutlinedButton(onClick = { photo = null }, modifier = Modifier.weight(1f)) { Text("Убрать фото") }
+            }
+        }
+        item { ToggleRow("Самолётик kiroX", "Поверх фона или фото", showPlane) { showPlane = it } }
+        if (showPlane) {
+            item { SmallCaption("Цвет самолётика") }
+            item { Swatches(plane) { plane = it } }
+        }
+        item { SmallCaption("Подпись под иконкой") }
+        item { EditField(label, "kiroX") { label = it.take(20) } }
+        item {
+            com.kirox.app.ui.components.FusionButton("Добавить на рабочий стол", onClick = {
+                val bitmap = com.kirox.app.settings.CustomIcon.render(context, background, plane, photo, showPlane)
+                if (com.kirox.app.settings.CustomIcon.pin(context, label.trim(), bitmap)) onNotice("Подтвердите добавление ярлыка")
+                else onNotice("Лаунчер не разрешает добавлять ярлыки — включите это в настройках рабочего стола")
+            }, modifier = Modifier.padding(16.dp))
+        }
+        item {
+            Text(
+                "Android не даёт приложениям менять свою иконку на любую картинку, поэтому своя иконка — это ярлык kiroX на рабочем столе. Он открывает kiroX как обычная иконка; старую можно убрать с рабочего стола, в списке приложений она останется. На Xiaomi может понадобиться разрешение «Ярлыки на рабочем столе».",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
 // ---------- Sticker sets ----------
 
 /** «Наборы стикеров»: installed sets in panel order (move, remove) and search to add new ones. */
@@ -1517,6 +1613,8 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
     if (languagePage) { LanguageScreen(onBack = { languagePage = false }, onNotice = onNotice); return }
     var stickersPage by remember { mutableStateOf(false) }
     if (stickersPage) { StickerSetsScreen(onBack = { stickersPage = false }, onNotice = onNotice); return }
+    var customIconPage by remember { mutableStateOf(false) }
+    if (customIconPage) { CustomIconScreen(onBack = { customIconPage = false }, onNotice = onNotice); return }
     BackHandler(onBack = onBack)
     val context = LocalContext.current
     var confirmReset by remember { mutableStateOf(false) }
@@ -1669,7 +1767,7 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
         item { LinkRow("Сбросить настройки kiroX", "Тема, анимации, чаты — к значениям по умолчанию. Telegram не затрагивается", Fusion.colors.danger) { confirmReset = true } }
         item { LinkRow("Выйти из аккаунта", null, Fusion.colors.danger) { confirmLogout = true } }
     }
-    if (choosingIcon) AppIconDialog(appIcon, onDismiss = { choosingIcon = false }) { icon ->
+    if (choosingIcon) AppIconDialog(appIcon, onDismiss = { choosingIcon = false }, onCustom = { choosingIcon = false; customIconPage = true }) { icon ->
         choosingIcon = false
         if (icon != appIcon) {
             com.kirox.app.settings.AppIcons.set(context, icon)
