@@ -71,6 +71,9 @@ interface TelegramChatActions {
     fun loadOlder()
     fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false, scheduleAt: Int = 0)
     suspend fun scheduledMessages(): List<com.kirox.app.telegram.ScheduledMessage> = emptyList()
+    /** «@бот запрос» in the composer: the bot's answers, or null when it is not an inline bot. */
+    suspend fun inlineResults(username: String, query: String): com.kirox.app.telegram.InlineResults? = null
+    fun sendInlineResult(queryId: Long, resultId: String, replyToMessageId: Long?) {}
     suspend fun sendScheduledNow(messageId: Long) {}
     suspend fun deleteScheduled(messageId: Long) {}
     fun sendPhoto(path: String, caption: String)
@@ -143,7 +146,13 @@ fun TelegramChatScreen(
     var scheduledReload by remember { mutableIntStateOf(0) }
     // «Сохранять удалённые и изменённые»: the kept list of this chat and one message's earlier versions.
     val archive = remember { (context.applicationContext as com.kirox.app.KiroXApplication).telegram.archive }
+    val admin = remember { (context.applicationContext as com.kirox.app.KiroXApplication).telegram.admin }
     var keptOpen by remember { mutableStateOf(false) }
+    // «Пожаловаться» on the chat (empty list) or on messages.
+    var reportIds by remember { mutableStateOf<List<Long>?>(null) }
+    var choosingWallpaper by remember { mutableStateOf(false) }
+    var chatWallpaper by remember(history.chatId) { mutableStateOf(com.kirox.app.settings.ChatWallpapers.get(context, history.chatId)) }
+    var inline by remember { mutableStateOf<com.kirox.app.telegram.InlineResults?>(null) }
     var versionsOf by remember { mutableStateOf<MessageUi?>(null) }
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
@@ -185,6 +194,13 @@ fun TelegramChatScreen(
         // Telegram needs a moment to register a just scheduled message.
         if (scheduledReload > 0) kotlinx.coroutines.delay(700.milliseconds)
         scheduled = if (history.chatId == 0L) emptyList() else runCatching { actions.scheduledMessages() }.getOrDefault(emptyList())
+    }
+    // «@бот запрос»: ask the bot a moment after typing stops.
+    LaunchedEffect(input.text) {
+        val match = Regex("""^@([A-Za-z][A-Za-z0-9_]{3,31}) (.*)$""", RegexOption.DOT_MATCHES_ALL).find(input.text)
+        if (match == null || editing != null) { inline = null; return@LaunchedEffect }
+        kotlinx.coroutines.delay(400.milliseconds)
+        inline = runCatching { actions.inlineResults(match.groupValues[1], match.groupValues[2]) }.getOrNull()
     }
     var videoNote by remember { mutableStateOf(false) }
     val noteCameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
@@ -443,7 +459,7 @@ fun TelegramChatScreen(
     }
     CompositionLocalProvider(LocalGalleryChatId provides history.chatId, LocalSaveToGallery provides (galleryKind in galleryKinds)) {
     Box(Modifier.fillMaxSize()) {
-    com.kirox.app.ui.components.ChatWallpaperLayer(style.wallpaper, Modifier.matchParentSize())
+    com.kirox.app.ui.components.ChatWallpaperLayer(chatWallpaper ?: style.wallpaper, Modifier.matchParentSize())
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         contentWindowInsets = WindowInsets.statusBars,
@@ -497,6 +513,19 @@ fun TelegramChatScreen(
                     com.kirox.app.ui.components.FusionButton("Запустить", onClick = { actions.sendText("/start", null) })
                 }
             } else if ((history.peerKind != TelegramPeerKind.Channel || history.threadTitle != null) && !history.isForum) Column {
+                inline?.takeIf { it.results.isNotEmpty() }?.let { found ->
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 260.dp).background(Fusion.colors.surface1)) {
+                        items(found.results, key = { it.id }) { result ->
+                            Column(Modifier.fillMaxWidth().clickable {
+                                actions.sendInlineResult(found.queryId, result.id, replyTo?.id)
+                                input = TextFieldValue(); replyTo = null; inline = null
+                            }.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                androidx.compose.material3.Text(result.title, color = Fusion.colors.textPrimary, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                if (result.description.isNotBlank()) androidx.compose.material3.Text(result.description, color = Fusion.colors.textSecondary, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
                 if (scheduled.isNotEmpty()) Row(
                     Modifier.fillMaxWidth().background(Fusion.colors.background).clickable { scheduledOpen = true }.padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -761,6 +790,13 @@ fun TelegramChatScreen(
                     "Открепить" -> actions.unpin(message.id)
                     "Выбрать" -> selectedIds = idsOf(message).toSet()
                     "История изменений" -> versionsOf = message
+                    "Пожаловаться" -> reportIds = idsOf(message)
+                    "Копировать ссылку" -> scope.launch {
+                        val link = admin.messageLink(history.chatId, message.id)
+                        if (link == null) notice = "Ссылка недоступна" else {
+                            clipboard.setText(AnnotatedString(link)); notice = "Ссылка скопирована"
+                        }
+                    }
                     "Перевести" -> {
                         translation = message.text to null
                         scope.launch {
@@ -778,6 +814,9 @@ fun TelegramChatScreen(
                 if (source?.canEdit != true) add("Редактировать")
                 if (source?.delivery == TelegramDelivery.Sending) { add("Переслать"); add("Ответить"); add("Отправить ещё раз") }
                 if (!tweaks.keepEdits || !message.edited) add("История изменений")
+                // Links exist for groups and channels; reports are for what others sent.
+                if (history.peerKind != TelegramPeerKind.Group && history.peerKind != TelegramPeerKind.Channel) add("Копировать ссылку")
+                if (message.direction != MessageDirection.Incoming || history.peerKind == TelegramPeerKind.Saved) add("Пожаловаться")
                 // Only content that can be sent again: no polls, calls or service messages.
                 if (message.poll != null || message.direction == MessageDirection.System) add("Отправить ещё раз")
             }
@@ -906,6 +945,15 @@ fun TelegramChatScreen(
             Spacer(Modifier.navigationBarsPadding().height(8.dp))
         }
     }
+    reportIds?.let { ids -> ReportFlow(history.chatId, ids) { result -> reportIds = null; if (result != null) notice = result } }
+    if (choosingWallpaper) com.kirox.app.ui.home.ChoiceDialog(
+        "Обои чата", listOf<com.kirox.app.settings.ChatWallpaper?>(null) + com.kirox.app.settings.ChatWallpaper.entries, chatWallpaper,
+        { it?.title ?: "Как в настройках" }, onDismiss = { choosingWallpaper = false }
+    ) { picked ->
+        choosingWallpaper = false
+        chatWallpaper = picked
+        com.kirox.app.settings.ChatWallpapers.set(context, history.chatId, picked)
+    }
     if (keptOpen) ModalBottomSheet(onDismissRequest = { keptOpen = false }, containerColor = Fusion.colors.surface1) {
         val kept by produceState<List<com.kirox.app.telegram.KeptMessage>?>(null, history.chatId) {
             value = withContext(Dispatchers.IO) { runCatching { archive.deleted(history.chatId) }.getOrDefault(emptyList()) }
@@ -992,6 +1040,8 @@ fun TelegramChatScreen(
                 add(Triple(KiroXIcon.Bell, if (muted == true) "Включить звук" else "Без звука", false))
                 add(Triple(KiroXIcon.Search, "Поиск", false))
                 if (tweaks.keepDeleted) add(Triple(KiroXIcon.Bookmark, "Удалённые сообщения", false))
+                add(Triple(KiroXIcon.Palette, "Обои чата", false))
+                if (history.peerKind != TelegramPeerKind.Saved) add(Triple(KiroXIcon.Shield, "Пожаловаться", true))
                 if (history.peerKind == TelegramPeerKind.User) add(Triple(KiroXIcon.Refresh, "Автоудаление", false))
                 add(Triple(KiroXIcon.Delete, "Очистить историю", true))
                 add(Triple(KiroXIcon.Delete, if (history.peerKind == TelegramPeerKind.User || history.peerKind == TelegramPeerKind.Bot) "Удалить чат" else "Покинуть", true))
@@ -1003,6 +1053,8 @@ fun TelegramChatScreen(
                         when (title) {
                             "Поиск" -> searching = true
                             "Удалённые сообщения" -> keptOpen = true
+                            "Обои чата" -> choosingWallpaper = true
+                            "Пожаловаться" -> reportIds = emptyList()
                             "Очистить историю" -> confirmClear = true
                             "Автоудаление" -> autoDeleteOpen = true
                             "Удалить чат", "Покинуть" -> confirmDelete = true

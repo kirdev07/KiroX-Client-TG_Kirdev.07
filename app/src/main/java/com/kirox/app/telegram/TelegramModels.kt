@@ -308,3 +308,8 @@ data class ScheduledMessage(val id: Long, val text: String, val sendAt: Int)
 
 /** sendText's scheduleAt: send when the other person comes online. */
 const val SEND_WHEN_ONLINE = -1
+
+/** One answer of an inline bot, as a row above the composer. */
+data class InlineResult(val id: String, val title: String, val description: String)
+
+data class InlineResults(val queryId: Long, val results: List<InlineResult>)

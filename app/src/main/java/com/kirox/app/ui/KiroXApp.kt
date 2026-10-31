@@ -448,6 +448,8 @@ private class TelegramMessageActions(
     override fun loadOlder() = repository.loadOlder()
     override fun sendText(text: String, replyToMessageId: Long?, silent: Boolean, scheduleAt: Int) = repository.sendText(text, replyToMessageId, silent, scheduleAt)
     override suspend fun scheduledMessages() = repository.scheduledMessages()
+    override suspend fun inlineResults(username: String, query: String) = repository.inlineResults(username, query)
+    override fun sendInlineResult(queryId: Long, resultId: String, replyToMessageId: Long?) = repository.sendInlineResult(queryId, resultId, replyToMessageId)
     override suspend fun sendScheduledNow(messageId: Long) = repository.sendScheduledNow(messageId)
     override suspend fun deleteScheduled(messageId: Long) = repository.deleteScheduled(messageId)
     override fun sendPhoto(path: String, caption: String) = repository.sendPhoto(path, caption)

@@ -25,6 +25,19 @@ class TelegramStickerRepository(private val client: TelegramClient) {
         }
     }.getOrDefault(emptyList())
 
+    /** Sets found by name for «Наборы стикеров»; [installed] marks the ones already added. */
+    suspend fun searchSets(query: String): List<Pair<TelegramStickerSetInfo, Boolean>> = runCatching {
+        client.query(TdApi.SearchStickerSets(TdApi.StickerTypeRegular(), query)).sets.map { set ->
+            TelegramStickerSetInfo(set.id, set.title, set.covers?.firstOrNull()?.let(::stickerItem)) to set.isInstalled
+        }
+    }.getOrDefault(emptyList())
+
+    /** Adds a set to the panel or removes it. */
+    suspend fun setInstalled(id: Long, installed: Boolean) { client.query(TdApi.ChangeStickerSet(id, installed, false)) }
+
+    /** New order of the installed sets, as shown in the panel. */
+    suspend fun reorder(ids: List<Long>) { client.query(TdApi.ReorderInstalledStickerSets(TdApi.StickerTypeRegular(), ids.toLongArray())) }
+
     suspend fun set(id: Long): List<TelegramPanelItem> = runCatching {
         client.query(TdApi.GetStickerSet(id)).stickers.map(::stickerItem)
     }.getOrDefault(emptyList())

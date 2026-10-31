@@ -62,6 +62,12 @@ internal fun PeerProfileScreen(
     onLeave: (() -> Unit)? = null
 ) {
     var confirmLeave by remember { mutableStateOf(false) }
+    // «Управление» for groups and channels you run.
+    val admin = (LocalContext.current.applicationContext as KiroXApplication).telegram.admin
+    var rights by remember(chatId) { mutableStateOf<com.kirox.app.telegram.ChatRights?>(null) }
+    var managing by remember { mutableStateOf(false) }
+    LaunchedEffect(chatId) { rights = admin.rights(chatId) }
+    rights?.takeIf { managing }?.let { r -> ChatManageScreen(chatId, r, onBack = { managing = false }); return }
     var galleryAt by remember { mutableStateOf<TelegramSharedItem?>(null) }
     galleryAt?.let { item -> item.full?.let { full -> ChatPhotoGallery(chatId, item.messageId, full) { galleryAt = null } } }
     if (confirmLeave && onLeave != null) androidx.compose.material3.AlertDialog(
@@ -106,6 +112,7 @@ internal fun PeerProfileScreen(
         }
         item(span = { GridItemSpan(3) }) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (rights?.any == true) ProfileAction(KiroXIcon.Tune, "Управление", Modifier.weight(1f)) { managing = true }
                 if (onLeave != null) ProfileAction(KiroXIcon.Back, "Выйти", Modifier.weight(1f)) { confirmLeave = true }
                 if (canCall) {
                     ProfileAction(KiroXIcon.Call, "Звонок", Modifier.weight(1f)) { onCall(false) }

@@ -78,7 +78,7 @@ internal fun ToggleRow(title: String, subtitle: String? = null, checked: Boolean
 }
 
 @Composable
-private fun LinkRow(title: String, subtitle: String? = null, color: Color = Fusion.colors.textPrimary, onClick: () -> Unit) {
+internal fun LinkRow(title: String, subtitle: String? = null, color: Color = Fusion.colors.textPrimary, onClick: () -> Unit) {
     androidx.compose.material3.ListItem(
         headlineContent = { Text(title, color = color) },
         supportingContent = subtitle?.let { { Text(it) } },
@@ -1007,7 +1007,7 @@ private fun NetworkUsageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
 
 /** One choice out of [options], in the same dialog style as the privacy levels. */
 @Composable
-private fun <T> ChoiceDialog(title: String, options: List<T>, selected: T, label: (T) -> String, onDismiss: () -> Unit, onPick: (T) -> Unit) {
+internal fun <T> ChoiceDialog(title: String, options: List<T>, selected: T, label: (T) -> String, onDismiss: () -> Unit, onPick: (T) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Fusion.colors.surface1,
@@ -1391,6 +1391,84 @@ private fun RenameTextsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
     )
 }
 
+// ---------- Sticker sets ----------
+
+/** «Наборы стикеров»: installed sets in panel order (move, remove) and search to add new ones. */
+@Composable
+private fun StickerSetsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
+    BackHandler(onBack = onBack)
+    val stickers = (LocalContext.current.applicationContext as KiroXApplication).telegram.stickers
+    val scope = rememberCoroutineScope()
+    var installed by remember { mutableStateOf<List<com.kirox.app.telegram.TelegramStickerSetInfo>?>(null) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var found by remember { mutableStateOf<List<Pair<com.kirox.app.telegram.TelegramStickerSetInfo, Boolean>>>(emptyList()) }
+    var reload by remember { mutableIntStateOf(0) }
+    LaunchedEffect(reload) { installed = stickers.installedSets() }
+    LaunchedEffect(query, reload) {
+        if (query.trim().length < 2) { found = emptyList(); return@LaunchedEffect }
+        kotlinx.coroutines.delay(400)
+        found = stickers.searchSets(query.trim())
+    }
+    fun move(index: Int, by: Int) {
+        val list = installed?.toMutableList() ?: return
+        val target = index + by
+        if (target !in list.indices) return
+        list.add(target, list.removeAt(index))
+        installed = list
+        scope.launch { runCatching { stickers.reorder(list.map { it.id }) }.onFailure { onNotice("Не удалось сохранить порядок"); reload++ } }
+    }
+    fun setInstalled(id: Long, value: Boolean) {
+        scope.launch {
+            runCatching { stickers.setInstalled(id, value) }
+                .onSuccess { onNotice(if (value) "Набор добавлен" else "Набор убран"); reload++ }
+                .onFailure { onNotice("Не удалось изменить набор") }
+        }
+    }
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Наборы стикеров", onBack) }
+        item { com.kirox.app.ui.components.FusionSearchField(query, { query = it }, "Найти набор", Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) }
+        if (query.trim().length >= 2) {
+            item { SmallCaption("Найдено") }
+            if (found.isEmpty()) item { Text("Ничего не найдено", color = Fusion.colors.textSecondary, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) }
+            items(found, key = { "f" + it.first.id }) { (set, isInstalled) ->
+                androidx.compose.material3.ListItem(
+                    headlineContent = { androidx.compose.material3.Text(set.title) },
+                    trailingContent = {
+                        TextButton(onClick = { setInstalled(set.id, !isInstalled) }) {
+                            Text(if (isInstalled) "Убрать" else "Добавить", color = if (isInstalled) Fusion.colors.danger else Fusion.colors.accent)
+                        }
+                    },
+                    colors = fusionListColors()
+                )
+            }
+        }
+        item { SmallCaption("Мои наборы") }
+        val list = installed
+        if (list == null) item { Loading() }
+        else if (list.isEmpty()) item { Text("Наборов пока нет — найдите их поиском", color = Fusion.colors.textSecondary, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) }
+        else items(list.size, key = { list[it].id }) { index ->
+            val set = list[index]
+            androidx.compose.material3.ListItem(
+                headlineContent = { androidx.compose.material3.Text(set.title, maxLines = 1) },
+                trailingContent = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = { move(index, -1) }, enabled = index > 0) { Text("↑", fontSize = 18.sp) }
+                        TextButton(onClick = { move(index, 1) }, enabled = index < list.lastIndex) { Text("↓", fontSize = 18.sp) }
+                        TextButton(onClick = { setInstalled(set.id, false) }) { Text("Убрать", color = Fusion.colors.danger) }
+                    }
+                },
+                colors = fusionListColors()
+            )
+        }
+        item {
+            Text(
+                "Порядок здесь — порядок вкладок в панели стикеров. Наборы общие для всех ваших устройств с Telegram.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+        }
+    }
+}
+
 // ---------- Premium ----------
 
 @Composable
@@ -1429,6 +1507,8 @@ internal fun PremiumScreen(profile: TelegramUserProfile?, onBack: () -> Unit) {
 internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: (String) -> Unit) {
     var languagePage by remember { mutableStateOf(false) }
     if (languagePage) { LanguageScreen(onBack = { languagePage = false }, onNotice = onNotice); return }
+    var stickersPage by remember { mutableStateOf(false) }
+    if (stickersPage) { StickerSetsScreen(onBack = { stickersPage = false }, onNotice = onNotice); return }
     BackHandler(onBack = onBack)
     val context = LocalContext.current
     var confirmReset by remember { mutableStateOf(false) }
@@ -1480,6 +1560,8 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
                 IconRow(IconGlyphs.Chat, Color(0xFF4F8DF7), "Двойной тап по сообщению", null, trailing = tweaks.doubleTap.title) { choosingDoubleTap = true }
                 CardDivider()
                 ToggleRow("Пересылать без автора", "В окне «Переслать» сразу включено «Без автора»: сообщение уйдёт как ваше", tweaks.forwardWithoutAuthor) { set(tweaks.copy(forwardWithoutAuthor = it)) }
+                CardDivider()
+                IconRow(IconGlyphs.Emoji, Color(0xFFFFA94D), "Наборы стикеров", "Добавить, убрать, поменять порядок") { stickersPage = true }
             }
         }
         item {

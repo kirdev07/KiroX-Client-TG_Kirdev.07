@@ -387,6 +387,40 @@ class TelegramMessageRepository(
         client.send(build(id)) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
     }
 
+    /**
+     * Inline bot results for «@bot запрос» typed in the composer; null when [username] is not an inline bot.
+     * Results are shown as a list and sent with [sendInlineResult].
+     */
+    suspend fun inlineResults(username: String, query: String): InlineResults? {
+        val id = chatId.takeIf { it != 0L } ?: return null
+        val bot = runCatching { client.query(TdApi.SearchPublicChat(username)) }.getOrNull()?.type as? TdApi.ChatTypePrivate ?: return null
+        val user = runCatching { client.query(TdApi.GetUser(bot.userId)) }.getOrNull() ?: return null
+        val type = user.type as? TdApi.UserTypeBot ?: return null
+        if (!type.isInline) return null
+        val results = client.query(TdApi.GetInlineQueryResults(bot.userId, id, null, query, ""))
+        return InlineResults(results.inlineQueryId, results.results.mapNotNull { result ->
+            when (result) {
+                is TdApi.InlineQueryResultArticle -> InlineResult(result.id, result.title, result.description)
+                is TdApi.InlineQueryResultPhoto -> InlineResult(result.id, result.title.ifBlank { "Фото" }, result.description)
+                is TdApi.InlineQueryResultVideo -> InlineResult(result.id, result.title.ifBlank { "Видео" }, result.description)
+                is TdApi.InlineQueryResultAnimation -> InlineResult(result.id, result.title.ifBlank { "GIF" }, "")
+                is TdApi.InlineQueryResultSticker -> InlineResult(result.id, "${result.sticker.emoji} Стикер".trim(), "")
+                is TdApi.InlineQueryResultAudio -> InlineResult(result.id, result.audio.title.ifBlank { "Аудио" }, result.audio.performer)
+                is TdApi.InlineQueryResultDocument -> InlineResult(result.id, result.title.ifBlank { "Файл" }, result.description)
+                is TdApi.InlineQueryResultVoiceNote -> InlineResult(result.id, result.title.ifBlank { "Голосовое сообщение" }, "")
+                is TdApi.InlineQueryResultLocation -> InlineResult(result.id, result.title.ifBlank { "Местоположение" }, "")
+                is TdApi.InlineQueryResultVenue -> InlineResult(result.id, result.venue.title, result.venue.address)
+                is TdApi.InlineQueryResultContact -> InlineResult(result.id, listOf(result.contact.firstName, result.contact.lastName).joinToString(" ").trim(), result.contact.phoneNumber)
+                is TdApi.InlineQueryResultGame -> InlineResult(result.id, result.game.title, result.game.description)
+                else -> null
+            }
+        })
+    }
+
+    fun sendInlineResult(queryId: Long, resultId: String, replyToMessageId: Long?) = act { id ->
+        TdApi.SendInlineQueryResultMessage(id, topic, replyToMessageId?.let { TdApi.InputMessageReplyToMessage(it, null, 0, null) }, null, queryId, resultId, false)
+    }
+
     /** «Отложенные»: messages of the open chat waiting to be sent, soonest first. */
     suspend fun scheduledMessages(): List<ScheduledMessage> {
         val id = chatId.takeIf { it != 0L } ?: return emptyList()
