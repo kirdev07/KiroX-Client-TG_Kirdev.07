@@ -160,7 +160,7 @@ fun TelegramMainScreen(
                         onBack = { sub = SubScreen.None }
                     )
                     subScreen == SubScreen.Notifications -> NotificationSettingsScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice)
-                    subScreen == SubScreen.Privacy -> PrivacyScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice)
+                    subScreen == SubScreen.Privacy -> PrivacyScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice, onOpenDevices = { sub = SubScreen.Devices })
                     subScreen == SubScreen.Storage -> StorageScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice)
                     subScreen == SubScreen.Premium -> PremiumScreen(profile, onBack = { sub = SubScreen.None })
                     subScreen == SubScreen.Advanced -> AdvancedScreen(onBack = { sub = SubScreen.None }, onLogOut = onLogOut, onNotice = showNotice)

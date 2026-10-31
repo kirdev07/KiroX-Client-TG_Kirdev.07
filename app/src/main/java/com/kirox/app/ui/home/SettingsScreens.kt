@@ -37,6 +37,9 @@ import com.kirox.app.telegram.NotifyScope
 import com.kirox.app.telegram.ProxyKind
 import com.kirox.app.telegram.TelegramProxy
 import com.kirox.app.telegram.PrivacyItem
+import com.kirox.app.telegram.PrivacyState
+import com.kirox.app.telegram.AccountTtl
+import com.kirox.app.telegram.MessagePrivacy
 import com.kirox.app.telegram.ReactionNotifications
 import com.kirox.app.telegram.ReactionSource
 import com.kirox.app.telegram.PrivacyLevel
@@ -53,6 +56,7 @@ import com.kirox.app.telegram.NetworkDownload
 import com.kirox.app.telegram.NetworkUsage
 import com.kirox.app.telegram.TelegramUserProfile
 import com.kirox.app.ui.icons.KiroXIcon as IconGlyph
+import com.kirox.app.ui.icons.KiroXIcon as IconGlyphs
 import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.launch
 
@@ -337,64 +341,197 @@ private fun NotifyScopeScreen(scope: NotifyScope, value: ScopeNotifications?, on
 
 // ---------- Privacy ----------
 
-/** Settings → Privacy: who sees the number, last seen, photo; who can call and invite. */
+/**
+ * Settings → Privacy and security, laid out as in Telegram: security first (cloud password, devices,
+ * blocked), then who sees and can do what, message privacy, contacts and the account's self-destruct.
+ * Everything here is stored in the Telegram account.
+ */
 @Composable
-internal fun PrivacyScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
+internal fun PrivacyScreen(onBack: () -> Unit, onNotice: (String) -> Unit, onOpenDevices: () -> Unit = {}) {
     var page by remember { mutableStateOf("") }
-    when (page) {
-        "password" -> { CloudPasswordScreen(onBack = { page = "" }, onNotice = onNotice); return }
-        "blocked" -> { BlockedUsersScreen(onBack = { page = "" }, onNotice = onNotice); return }
-    }
-    BackHandler(onBack = onBack)
     val repo = settingsRepo()
     val scope = rememberCoroutineScope()
-    val levels = remember { mutableStateMapOf<PrivacyItem, PrivacyLevel>() }
+    val states = remember { mutableStateMapOf<PrivacyItem, PrivacyState>() }
     var choosing by remember { mutableStateOf<PrivacyItem?>(null) }
-    LaunchedEffect(Unit) { PrivacyItem.entries.forEach { item -> runCatching { repo.privacy(item) }.onSuccess { levels[item] = it } } }
+    var password by remember { mutableStateOf<CloudPasswordState?>(null) }
+    var blockedCount by remember { mutableStateOf<Int?>(null) }
+    var messages by remember { mutableStateOf<MessagePrivacy?>(null) }
+    var ttl by remember { mutableStateOf<AccountTtl?>(null) }
+    var choosingTtl by remember { mutableStateOf(false) }
+    var confirmClearContacts by remember { mutableStateOf(false) }
+    fun load() {
+        scope.launch { PrivacyItem.entries.forEach { item -> runCatching { repo.privacy(item) }.onSuccess { states[item] = it } } }
+        scope.launch { runCatching { repo.passwordState() }.onSuccess { password = it } }
+        scope.launch { runCatching { repo.blockedCount() }.onSuccess { blockedCount = it } }
+        scope.launch { runCatching { repo.messagePrivacy() }.onSuccess { messages = it } }
+        scope.launch { runCatching { repo.accountTtl() }.onSuccess { ttl = it } }
+    }
+    LaunchedEffect(Unit) { load() }
+    when (page) {
+        "password" -> { CloudPasswordScreen(onBack = { page = ""; load() }, onNotice = onNotice); return }
+        "blocked" -> { BlockedUsersScreen(onBack = { page = ""; load() }, onNotice = onNotice); return }
+    }
+    BackHandler(onBack = onBack)
+    /** Saves one message-privacy switch; a refusal (often Telegram Premium only) puts it back. */
+    fun saveMessages(next: MessagePrivacy, save: suspend () -> Unit) {
+        val old = messages
+        messages = next
+        scope.launch {
+            runCatching { save() }.onFailure { error ->
+                messages = old
+                onNotice(if ((error as? com.kirox.app.telegram.TdException)?.message.orEmpty().contains("PREMIUM", true)) "Доступно с Telegram Premium" else "Не удалось сохранить")
+            }
+        }
+    }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Конфиденциальность", onBack) }
-        item { SmallCaption("Кто видит и может") }
-        items(PrivacyItem.entries.toList(), key = { it.name }) { item ->
-            LinkRow(item.title, levels[item]?.title ?: "…") { if (levels[item] != null) choosing = item }
-        }
-        item {
-            Text(
-                "Исключения для отдельных людей, настроенные в другом клиенте Telegram, сохраняются.",
-                color = Fusion.colors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
-        }
         item { SmallCaption("Безопасность") }
-        item { LinkRow("Облачный пароль", "Двухэтапная проверка при входе") { page = "password" } }
-        item { LinkRow("Чёрный список", "Заблокированные пользователи и чаты") { page = "blocked" } }
-    }
-    choosing?.let { item ->
-        AlertDialog(
-            onDismissRequest = { choosing = null },
-            containerColor = Fusion.colors.surface1,
-            title = { Text(item.title, color = Fusion.colors.textPrimary) },
-            text = {
-                Column {
-                    PrivacyLevel.entries.forEach { level ->
-                        val selected = levels[item] == level
-                        Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable {
-                                choosing = null
-                                val old = levels[item]
-                                levels[item] = level
-                                scope.launch { runCatching { repo.setPrivacy(item, level) }.onFailure { old?.let { levels[item] = it }; onNotice("Не удалось сохранить") } }
-                            }.heightIn(min = 48.dp).padding(horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(if (selected) "●" else "○", color = Fusion.colors.textPrimary, fontSize = 16.sp)
-                            Spacer(Modifier.width(12.dp))
-                            Text(level.title, color = Fusion.colors.textPrimary, fontSize = 16.sp)
+        item {
+            SettingsCard {
+                IconRow(IconGlyphs.Lock, Color(0xFF34C38F), "Облачный пароль", when (password?.hasPassword) { true -> "Включён"; false -> "Выключен"; null -> "…" }) { page = "password" }
+                CardDivider()
+                IconRow(IconGlyphs.Devices, Color(0xFF4F8DF7), "Устройства", "Где выполнен вход в ваш аккаунт", onClick = onOpenDevices)
+                CardDivider()
+                IconRow(IconGlyphs.Shield, Color(0xFFFF6B6B), "Чёрный список", blockedCount?.let { if (it == 0) "Пусто" else "Заблокировано: $it" } ?: "…") { page = "blocked" }
+            }
+        }
+        listOf(
+            "Профиль" to listOf(PrivacyItem.PhoneNumber, PrivacyItem.FindByPhone, PrivacyItem.LastSeen, PrivacyItem.ProfilePhoto, PrivacyItem.Bio, PrivacyItem.Birthdate, PrivacyItem.ProfileAudio, PrivacyItem.Gifts),
+            "Сообщения и звонки" to listOf(PrivacyItem.ForwardLink, PrivacyItem.Calls, PrivacyItem.PeerToPeer, PrivacyItem.VoiceNotes, PrivacyItem.ChatInvites)
+        ).forEach { (caption, group) ->
+            item(key = caption) {
+                SmallCaption(caption)
+                SettingsCard {
+                    group.forEachIndexed { index, item ->
+                        if (index > 0) CardDivider()
+                        val state = states[item]
+                        IconRow(item.icon(), item.tint(), item.title, null, trailing = state?.let { it.level.title + if (it.exceptions > 0) " (+${it.exceptions})" else "" } ?: "…") {
+                            if (state != null) choosing = item
                         }
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { choosing = null }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
-        )
+            }
+        }
+        item {
+            Text(
+                "«+N» — исключения для отдельных людей и чатов. Их можно настроить в официальном приложении, kiroX их сохраняет.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+            )
+        }
+        item { SmallCaption("Сообщения") }
+        item {
+            val m = messages
+            SettingsCard {
+                if (m == null) Loading() else {
+                    ToggleRow("Время прочтения", "Показывать, когда вы прочитали сообщение; выключив, вы не увидите его и у других", m.showReadDate ?: true, enabled = m.showReadDate != null) { on ->
+                        saveMessages(m.copy(showReadDate = on)) { repo.setShowReadDate(on) }
+                    }
+                    ToggleRow("Новые чаты от всех", "Выключите, чтобы писать вам могли только контакты", m.newChatsFromStrangers ?: true, enabled = m.newChatsFromStrangers != null) { on ->
+                        saveMessages(m.copy(newChatsFromStrangers = on)) { repo.setNewChatsFromStrangers(on) }
+                    }
+                    ToggleRow("Новые чаты — в архив", "Чаты от людей не из контактов попадают в архив без звука", m.archiveNewChats ?: false, enabled = m.archiveNewChats != null) { on ->
+                        saveMessages(m.copy(archiveNewChats = on)) { repo.setArchiveNewChats(on) }
+                    }
+                }
+            }
+        }
+        item { SmallCaption("Контакты") }
+        item {
+            val m = messages
+            SettingsCard {
+                ToggleRow("Частые собеседники", "Подсказывать их в поиске и при пересылке", m?.suggestFrequent ?: true, enabled = m?.suggestFrequent != null) { on ->
+                    m?.let { saveMessages(it.copy(suggestFrequent = on)) { repo.setSuggestFrequent(on) } }
+                }
+                CardDivider()
+                LinkRow("Удалить синхронизированные контакты", "Контакты из телефонной книги, загруженные в Telegram", Fusion.colors.danger) { confirmClearContacts = true }
+            }
+        }
+        item { SmallCaption("Удаление аккаунта") }
+        item {
+            SettingsCard {
+                IconRow(IconGlyphs.Delete, Color(0xFF8E8E93), "Если меня не было", null, trailing = ttl?.title ?: "…") { if (ttl != null) choosingTtl = true }
+            }
+        }
+        item {
+            Text(
+                "Если вы ни разу не зайдёте в Telegram за этот срок, аккаунт удалится вместе со всеми сообщениями и контактами.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+            )
+        }
     }
+    choosing?.let { item ->
+        val current = states[item] ?: return@let
+        ChoiceDialog(item.title, item.levels, current.level, { it.title }, onDismiss = { choosing = null }) { level ->
+            choosing = null
+            states[item] = current.copy(level = level)
+            scope.launch { runCatching { repo.setPrivacy(item, level) }.onFailure { states[item] = current; onNotice("Не удалось сохранить") } }
+        }
+    }
+    if (choosingTtl) ttl?.let { current ->
+        ChoiceDialog("Удалить аккаунт, если меня не было", AccountTtl.entries, current, { it.title }, onDismiss = { choosingTtl = false }) { value ->
+            choosingTtl = false
+            ttl = value
+            scope.launch { runCatching { repo.setAccountTtl(value) }.onFailure { ttl = current; onNotice("Не удалось сохранить") } }
+        }
+    }
+    if (confirmClearContacts) AlertDialog(
+        onDismissRequest = { confirmClearContacts = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Удалить синхронизированные контакты?", color = Fusion.colors.textPrimary) },
+        text = { Text("Telegram удалит загруженные номера из телефонной книги. Ваш список контактов в Telegram останется.", color = Fusion.colors.textSecondary) },
+        confirmButton = {
+            TextButton(onClick = {
+                confirmClearContacts = false
+                scope.launch { runCatching { repo.clearImportedContacts() }.onSuccess { onNotice("Синхронизированные контакты удалены") }.onFailure { onNotice("Не удалось удалить") } }
+            }) { Text("Удалить", color = Fusion.colors.danger) }
+        },
+        dismissButton = { TextButton(onClick = { confirmClearContacts = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
+}
+
+@Composable
+private fun CardDivider() = androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 72.dp), color = Fusion.colors.outline)
+
+/** Settings row with a colored square icon, as in Telegram: title, optional subtitle, value on the right. */
+@Composable
+private fun IconRow(icon: IconGlyphs, tint: Color, title: String, subtitle: String?, trailing: String? = null, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(36.dp).clip(RoundedCornerShape(11.dp)).background(tint), contentAlignment = Alignment.Center) {
+            IconGlyph(icon, null, Modifier.size(20.dp), Color.White)
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, color = Fusion.colors.textPrimary, fontSize = 16.sp)
+            if (subtitle != null) Text(subtitle, color = Fusion.colors.textSecondary, fontSize = 13.sp)
+        }
+        if (trailing != null) Text(trailing, color = Fusion.colors.accent, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+private fun PrivacyItem.icon(): IconGlyphs = when (this) {
+    PrivacyItem.PhoneNumber -> IconGlyphs.Phone
+    PrivacyItem.FindByPhone -> IconGlyphs.Search
+    PrivacyItem.LastSeen -> IconGlyphs.Eye
+    PrivacyItem.ProfilePhoto -> IconGlyphs.Photo
+    PrivacyItem.Bio -> IconGlyphs.Info
+    PrivacyItem.Birthdate -> IconGlyphs.Cake
+    PrivacyItem.ProfileAudio -> IconGlyphs.Music
+    PrivacyItem.Gifts -> IconGlyphs.Star
+    PrivacyItem.ForwardLink -> IconGlyphs.Forward
+    PrivacyItem.Calls -> IconGlyphs.Call
+    PrivacyItem.PeerToPeer -> IconGlyphs.Link
+    PrivacyItem.VoiceNotes -> IconGlyphs.Voice
+    PrivacyItem.ChatInvites -> IconGlyphs.Contacts
+}
+
+private fun PrivacyItem.tint(): Color = when (this) {
+    PrivacyItem.PhoneNumber, PrivacyItem.FindByPhone -> Color(0xFF34C38F)
+    PrivacyItem.LastSeen, PrivacyItem.ProfilePhoto -> Color(0xFF4F8DF7)
+    PrivacyItem.Bio, PrivacyItem.Birthdate -> Color(0xFFFFA94D)
+    PrivacyItem.ProfileAudio, PrivacyItem.Gifts -> Color(0xFFF06595)
+    PrivacyItem.ForwardLink, PrivacyItem.ChatInvites -> Color(0xFF9B6BFF)
+    PrivacyItem.Calls, PrivacyItem.PeerToPeer -> Color(0xFF34C38F)
+    PrivacyItem.VoiceNotes -> Color(0xFFFF6B6B)
 }
 
 // ---------- Data and storage ----------

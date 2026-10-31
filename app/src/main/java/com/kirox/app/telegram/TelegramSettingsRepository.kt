@@ -5,20 +5,28 @@ import org.drinkless.tdlib.TdApi
 /** Who may see or do something (base privacy rule; per-user exceptions are kept as they are). */
 enum class PrivacyLevel(val title: String) { Everybody("Все"), Contacts("Мои контакты"), Nobody("Никто") }
 
-/** Privacy settings shown in KiroX. */
-enum class PrivacyItem(val title: String) {
+/** Privacy settings shown in KiroX; [levels] are the choices Telegram allows for the item. */
+enum class PrivacyItem(val title: String, val levels: List<PrivacyLevel> = PrivacyLevel.entries) {
     PhoneNumber("Номер телефона"),
+    FindByPhone("Кто найдёт меня по номеру", listOf(PrivacyLevel.Everybody, PrivacyLevel.Contacts)),
     LastSeen("Время захода"),
     ProfilePhoto("Фото профиля"),
-    Calls("Звонки"),
-    ChatInvites("Приглашения в группы"),
     Bio("О себе"),
     Birthdate("Дата рождения"),
+    ProfileAudio("Музыка в профиле"),
+    Gifts("Подарки в профиле"),
     ForwardLink("Ссылка при пересылке"),
-    VoiceNotes("Голосовые и видеосообщения");
+    Calls("Звонки"),
+    PeerToPeer("Peer-to-peer в звонках"),
+    VoiceNotes("Голосовые и видеосообщения"),
+    ChatInvites("Приглашения в группы");
 
     internal fun toTd(): TdApi.UserPrivacySetting = when (this) {
         PhoneNumber -> TdApi.UserPrivacySettingShowPhoneNumber()
+        FindByPhone -> TdApi.UserPrivacySettingAllowFindingByPhoneNumber()
+        ProfileAudio -> TdApi.UserPrivacySettingShowProfileAudio()
+        Gifts -> TdApi.UserPrivacySettingAutosaveGifts()
+        PeerToPeer -> TdApi.UserPrivacySettingAllowPeerToPeerCalls()
         LastSeen -> TdApi.UserPrivacySettingShowStatus()
         ProfilePhoto -> TdApi.UserPrivacySettingShowProfilePhoto()
         Calls -> TdApi.UserPrivacySettingAllowCalls()
@@ -42,6 +50,24 @@ enum class NotifyScope(val title: String) {
 }
 
 /** Defaults for one chat type; [exceptions] is how many chats of the type differ from them. */
+/** Base level of a privacy item and how many people or chats are exceptions to it. */
+data class PrivacyState(val level: PrivacyLevel, val exceptions: Int)
+
+/** «Удалить мой аккаунт, если меня не было»: Telegram's allowed periods. */
+enum class AccountTtl(val title: String, val days: Int) {
+    Month("1 месяц", 30), ThreeMonths("3 месяца", 91), HalfYear("6 месяцев", 182), Year("1 год", 365), YearHalf("18 месяцев", 548), TwoYears("2 года", 730);
+
+    companion object { fun of(days: Int) = entries.minBy { kotlin.math.abs(it.days - days) } }
+}
+
+/** Message and chat privacy outside the per-item rules; null where Telegram did not answer. */
+data class MessagePrivacy(
+    val showReadDate: Boolean?,
+    val newChatsFromStrangers: Boolean?,
+    val archiveNewChats: Boolean?,
+    val suggestFrequent: Boolean?
+)
+
 data class ScopeNotifications(
     val enabled: Boolean,
     val showPreview: Boolean,
@@ -183,14 +209,60 @@ class TelegramSettingsRepository(private val client: TelegramClient) {
     /** Back to Telegram's defaults for every chat type and chat; exceptions are removed. */
     suspend fun resetAllNotifications() { client.query(TdApi.ResetAllNotificationSettings()) }
 
-    suspend fun privacy(item: PrivacyItem): PrivacyLevel {
+    suspend fun privacy(item: PrivacyItem): PrivacyState {
         val rules = client.query(TdApi.GetUserPrivacySettingRules(item.toTd())).rules
-        return when {
+        val level = when {
             rules.any { it is TdApi.UserPrivacySettingRuleAllowAll } -> PrivacyLevel.Everybody
             rules.any { it is TdApi.UserPrivacySettingRuleAllowContacts } -> PrivacyLevel.Contacts
             else -> PrivacyLevel.Nobody
         }
+        val exceptions = rules.sumOf { rule ->
+            when (rule) {
+                is TdApi.UserPrivacySettingRuleAllowUsers -> rule.userIds.size
+                is TdApi.UserPrivacySettingRuleRestrictUsers -> rule.userIds.size
+                is TdApi.UserPrivacySettingRuleAllowChatMembers -> rule.chatIds.size
+                is TdApi.UserPrivacySettingRuleRestrictChatMembers -> rule.chatIds.size
+                else -> 0
+            }
+        }
+        return PrivacyState(level, exceptions)
     }
+
+    suspend fun messagePrivacy(): MessagePrivacy = MessagePrivacy(
+        runCatching { client.query(TdApi.GetReadDatePrivacySettings()).showReadDate }.getOrNull(),
+        runCatching { client.query(TdApi.GetNewChatPrivacySettings()).allowNewChatsFromUnknownUsers }.getOrNull(),
+        runCatching { client.query(TdApi.GetArchiveChatListSettings()).archiveAndMuteNewChatsFromUnknownUsers }.getOrNull(),
+        runCatching { (client.query(TdApi.GetOption("disable_top_chats")) as? TdApi.OptionValueBoolean)?.value != true }.getOrNull()
+    )
+
+    /** «Время прочтения»: off hides when you read messages, and you no longer see it for others. */
+    suspend fun setShowReadDate(value: Boolean) { client.query(TdApi.SetReadDatePrivacySettings(TdApi.ReadDatePrivacySettings(value))) }
+
+    /** Off: only contacts and people you wrote to can start a chat (Telegram Premium). Paid messages stay as they are. */
+    suspend fun setNewChatsFromStrangers(value: Boolean) {
+        val current = client.query(TdApi.GetNewChatPrivacySettings())
+        current.allowNewChatsFromUnknownUsers = value
+        client.query(TdApi.SetNewChatPrivacySettings(current))
+    }
+
+    /** New chats from people outside the contacts go to the archive without sound. */
+    suspend fun setArchiveNewChats(value: Boolean) {
+        val current = client.query(TdApi.GetArchiveChatListSettings())
+        current.archiveAndMuteNewChatsFromUnknownUsers = value
+        client.query(TdApi.SetArchiveChatListSettings(current))
+    }
+
+    /** Frequent contacts suggested in search and when sharing. */
+    suspend fun setSuggestFrequent(value: Boolean) { client.query(TdApi.SetOption("disable_top_chats", TdApi.OptionValueBoolean(!value))) }
+
+    suspend fun accountTtl(): AccountTtl = AccountTtl.of(client.query(TdApi.GetAccountTtl()).days)
+
+    suspend fun setAccountTtl(value: AccountTtl) { client.query(TdApi.SetAccountTtl(TdApi.AccountTtl(value.days))) }
+
+    /** Removes the contacts synced from phone books; your Telegram contacts list stays. */
+    suspend fun clearImportedContacts() { client.query(TdApi.ClearImportedContacts()) }
+
+    suspend fun blockedCount(): Int = client.query(TdApi.GetBlockedMessageSenders(TdApi.BlockListMain(), 0, 1)).totalCount
 
     /** Replaces the base rule and keeps exceptions for specific users and chats. */
     suspend fun setPrivacy(item: PrivacyItem, level: PrivacyLevel) {
