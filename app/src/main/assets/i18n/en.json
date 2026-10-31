@@ -2065,5 +2065,17 @@
  "Янтарь": "Amber",
  "Золото на угле": "Gold on charcoal",
  "Графит": "Graphite",
- "Нейтральный серый": "Neutral gray"
+ "Нейтральный серый": "Neutral gray",
+ "Оформление чата": "Chat look",
+ "Видно только вам в kiroX. Собеседник ничего не заметит.": "Only you see it in kiroX. The other person won't notice anything.",
+ "Как везде": "Default",
+ "Как в\nнастройках": "As in\nsettings",
+ "Сбросить оформление чата": "Reset chat look",
+ "Отдельные чаты": "Individual chats",
+ "Оформление чатов": "Chat looks",
+ "Свои цвета и обои для любого чата: меню чата → «Оформление чата»": "Own colors and wallpaper for any chat: chat menu → «Chat look»",
+ "Откройте чат, меню ⋮ → «Оформление чата»": "Open a chat, menu ⋮ → «Chat look»",
+ "Своё оформление у чатов: {}": "Chats with their own look: {}",
+ "Чтобы изменить одно, откройте этот чат и меню → «Оформление чата». Можно и сбросить всё сразу.": "To change one, open that chat and its menu → «Chat look». Or reset them all at once.",
+ "Сбросить все": "Reset all"
 }

@@ -185,7 +185,8 @@ fun TelegramChatScreen(
     // «Пожаловаться» on the chat (empty list) or on messages.
     var reportIds by remember { mutableStateOf<List<Long>?>(null) }
     var choosingWallpaper by remember { mutableStateOf(false) }
-    var chatWallpaper by remember(history.chatId) { mutableStateOf(com.kirox.app.settings.ChatWallpapers.get(context, history.chatId)) }
+    val lookRevision by com.kirox.app.settings.ChatWallpapers.revision.collectAsState()
+    val chatWallpaper = remember(history.chatId, lookRevision) { com.kirox.app.settings.ChatWallpapers.get(context, history.chatId) }
     var inline by remember { mutableStateOf<com.kirox.app.telegram.InlineResults?>(null) }
     // Bot mini apps: the one open now and the bot's «Меню» button.
     var webApp by remember { mutableStateOf<Pair<String, com.kirox.app.telegram.WebAppLaunch>?>(null) }
@@ -1268,14 +1269,7 @@ fun TelegramChatScreen(
         }
     }
     reportIds?.let { ids -> ReportFlow(history.chatId, ids) { result -> reportIds = null; if (result != null) notice = result } }
-    if (choosingWallpaper) com.kirox.app.ui.home.ChoiceDialog(
-        "Обои чата", listOf<com.kirox.app.settings.ChatWallpaper?>(null) + com.kirox.app.settings.ChatWallpaper.entries, chatWallpaper,
-        { it?.title ?: "Как в настройках" }, onDismiss = { choosingWallpaper = false }
-    ) { picked ->
-        choosingWallpaper = false
-        chatWallpaper = picked
-        com.kirox.app.settings.ChatWallpapers.set(context, history.chatId, picked)
-    }
+    if (choosingWallpaper) ChatLookSheet(history.chatId) { choosingWallpaper = false }
     if (keptOpen) KeptMessagesSheet(history.chatId, archive) { keptOpen = false }
     versionsOf?.let { message -> EditHistoryDialog(history.chatId, message.id, message.text, archive) { versionsOf = null } }
     if (schedulePicking) ScheduleSendDialog(onDismiss = { schedulePicking = false }) { at -> schedulePicking = false; sendScheduled(at) }
@@ -1299,7 +1293,7 @@ fun TelegramChatScreen(
                 add(Triple(KiroXIcon.Bell, if (muted == true) "Включить звук" else "Без звука", false))
                 add(Triple(KiroXIcon.Search, "Поиск", false))
                 if (tweaks.keepDeleted) add(Triple(KiroXIcon.Bookmark, "Удалённые сообщения", false))
-                add(Triple(KiroXIcon.Palette, "Обои чата", false))
+                add(Triple(KiroXIcon.Palette, "Оформление чата", false))
                 add(Triple(KiroXIcon.File, "Экспорт переписки", false))
                 if (history.peerKind != TelegramPeerKind.Saved) add(Triple(KiroXIcon.Shield, "Пожаловаться", true))
                 if (history.peerKind == TelegramPeerKind.User) add(Triple(KiroXIcon.Refresh, "Автоудаление", false))
@@ -1313,7 +1307,7 @@ fun TelegramChatScreen(
                         when (title) {
                             "Поиск" -> searching = true
                             "Удалённые сообщения" -> keptOpen = true
-                            "Обои чата" -> choosingWallpaper = true
+                            "Оформление чата" -> choosingWallpaper = true
                             "Экспорт переписки" -> if (exportCount < 0) {
                                 exportCount = 0
                                 scope.launch {

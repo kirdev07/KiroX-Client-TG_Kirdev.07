@@ -383,7 +383,7 @@ fun KiroXApp() {
                             val actions = remember { TelegramMessageActions(telegramViewModel.messages, telegramViewModel.activity) }
                             val activityLines by telegramViewModel.activity.lines.collectAsStateWithLifecycle()
                             val stickerSource = remember { TelegramStickerSource(telegramViewModel.stickers) { telegramViewModel.users.myId() } }
-                            TelegramChatScreen(
+                            com.kirox.app.ui.chat.ChatLookTheme(chatId) { TelegramChatScreen(
                                 // A topic of this forum has the same chat id but belongs to the Thread screen.
                                 history = if (history.chatId == chatId && history.threadTitle == null) history else TelegramChatHistory(chatId = chatId),
                                 error = messageError,
@@ -408,7 +408,7 @@ fun KiroXApp() {
                                         com.kirox.app.voip.GroupCallService.start(context)
                                     }
                                 }) else null
-                            )
+                            ) }
                         }
                         Screen.Thread -> CompositionLocalProvider(
                             LocalTelegramFiles provides telegramViewModel.files,
@@ -430,7 +430,7 @@ fun KiroXApp() {
                                 val actions = remember { TelegramMessageActions(telegramViewModel.messages, telegramViewModel.activity) }
                                 val stickerSource = remember { TelegramStickerSource(telegramViewModel.stickers) { telegramViewModel.users.myId() } }
                                 val title = when (spec) { is ThreadSpec.Comments -> "Комментарии"; is ThreadSpec.Topic -> spec.title }
-                                TelegramChatScreen(
+                                com.kirox.app.ui.chat.ChatLookTheme(when (spec) { is ThreadSpec.Comments -> spec.chatId; is ThreadSpec.Topic -> spec.chatId }) { TelegramChatScreen(
                                     history = if (history.threadTitle != null) history else TelegramChatHistory(threadTitle = title),
                                     error = messageError,
                                     onErrorShown = telegramViewModel.messages::clearError,
@@ -438,7 +438,7 @@ fun KiroXApp() {
                                     actions = actions,
                                     onBack = { stack.pop() },
                                     stickers = stickerSource
-                                )
+                                ) }
                             }
                         }
                     }

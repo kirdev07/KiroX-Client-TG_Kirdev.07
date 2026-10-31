@@ -80,6 +80,9 @@ internal fun CustomizationScreen(
     val tweaks by com.kirox.app.settings.KiroxTweaks.state.collectAsState()
     var appIcon by remember { mutableStateOf(com.kirox.app.settings.AppIcons.current(context)) }
     var choosingIcon by remember { mutableStateOf(false) }
+    val lookRevision by com.kirox.app.settings.ChatWallpapers.revision.collectAsState()
+    val ownLooks = remember(lookRevision) { com.kirox.app.settings.ChatWallpapers.count(context) }
+    var resettingLooks by remember { mutableStateOf(false) }
     val current = com.kirox.app.settings.CustomThemes.find(customId, customs)
     val themeName = current?.let { if (it.isPreset) com.kirox.app.i18n.I18n.t(it.name) else it.name } ?: palette.title
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -117,6 +120,15 @@ internal fun CustomizationScreen(
                 IconRow(KiroXIcon.Star, Color(0xFFE8A33D), "Анимации", if (animationsOn) "Сцена и скорость интерфейса" else "Выключены", trailing = animationsSummary, onClick = onOpenAnimations)
             }
         }
+        item { SmallCaption("Отдельные чаты") }
+        item {
+            SettingsCard {
+                IconRow(KiroXIcon.Chats, Color(0xFFE0609A), "Оформление чатов", "Свои цвета и обои для любого чата: меню чата → «Оформление чата»",
+                    trailing = if (ownLooks > 0) ownLooks.toString() else null) {
+                    if (ownLooks > 0) resettingLooks = true else onNotice("Откройте чат, меню ⋮ → «Оформление чата»")
+                }
+            }
+        }
         item { SmallCaption("Нижняя панель") }
         item {
             SettingsCard {
@@ -132,6 +144,14 @@ internal fun CustomizationScreen(
         }
         item { Note("Всё это — оформление kiroX на этом телефоне. Собеседники его не видят.") }
     }
+    if (resettingLooks) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { resettingLooks = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Своё оформление у чатов: $ownLooks", color = Fusion.colors.textPrimary) },
+        text = { Text("Чтобы изменить одно, откройте этот чат и меню → «Оформление чата». Можно и сбросить всё сразу.", color = Fusion.colors.textSecondary) },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { resettingLooks = false; com.kirox.app.settings.ChatWallpapers.clearAll(context) }) { Text("Сбросить все", color = Fusion.colors.danger) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { resettingLooks = false }) { Text("Закрыть", color = Fusion.colors.textSecondary) } }
+    )
     if (choosingIcon) AppIconDialog(appIcon, onDismiss = { choosingIcon = false }, onCustom = { choosingIcon = false; customIconPage = true }) { icon ->
         choosingIcon = false
         if (icon != appIcon) {
