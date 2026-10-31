@@ -148,13 +148,13 @@ object KiroXFeatures {
      * factor 0: no seasonal particles, no list/swipe/button animations. The user's own speed
      * setting (Обычные / Меньше / Выкл.) still applies on top.
      */
-    const val ANIMATIONS = false
+    const val ANIMATIONS = true
 
     /**
-     * Themes offered in this version; the first is the default. The other palettes stay in the code,
-     * and a saved choice outside this list falls back to the first until it is offered again.
+     * Themes offered in this version; the first (Expressive) is the default for new installs, and a
+     * saved choice outside this list falls back to it.
      */
-    val THEMES = listOf(FusionPalette.Glass)
+    val THEMES = listOf(FusionPalette.Expressive, FusionPalette.Glass) + (FusionPalette.entries - setOf(FusionPalette.Expressive, FusionPalette.Glass))
 }
 
 /** User animation level: 1 = normal, 0.5 = reduced, 0 = off. Multiplies every Fusion duration. */

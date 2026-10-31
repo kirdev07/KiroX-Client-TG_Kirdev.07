@@ -120,12 +120,12 @@ internal fun ThemesScreen(palette: FusionPalette, onPalette: (FusionPalette) -> 
         item { SectionCaption("Стекло") }
         item {
             ToggleRow(
-                "Размытие фона", if (android.os.Build.VERSION.SDK_INT >= 31) "Мягкое свечение за панелями Fusion Glass" else "Нужен Android 12 или новее; без него свечение остаётся без размытия",
+                "Размытие фона", if (android.os.Build.VERSION.SDK_INT >= 31) "Мягкое свечение за панелями Fusion Glass и Expressive" else "Нужен Android 12 или новее; без него свечение остаётся без размытия",
                 checked = blur, onChange = settings::setGlassBlur
             )
         }
         item {
-            Text("В этой версии доступна тема Fusion Glass, остальные вернутся в следующих обновлениях.", color = Fusion.colors.textTertiary, fontSize = 12.sp,
+            Text("Сохранённая тема не меняется при обновлении; Fusion Expressive — тема по умолчанию для новых установок.", color = Fusion.colors.textTertiary, fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp))
         }
     }
