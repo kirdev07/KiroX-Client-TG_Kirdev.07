@@ -332,10 +332,19 @@ fun TelegramChatScreen(
     // The next gallery photo: under a spoiler, or disappearing after it is opened.
     var photoSpoiler by remember { mutableStateOf(false) }
     var photoViewOnce by remember { mutableStateOf(false) }
+    // A picked photo waiting in the preview (with the editor) before it is sent.
+    var previewPhoto by remember { mutableStateOf<String?>(null) }
     playlistItem?.let { item -> com.kirox.app.ui.music.AddToPlaylistDialog(item) { result -> playlistItem = null; result?.let { notice = it } } }
     quoting?.let { message -> QuotePickDialog(message.text, onDismiss = { quoting = null }) { quote -> quoting = null; replyTo = message; editing = null; replyQuote = quote; quotedId = message.id } }
     LaunchedEffect(replyTo?.id) { if (replyTo?.id != quotedId) { replyQuote = null; quotedId = 0L } }
     people?.let { (title, load) -> PeopleSheet(title, load) { people = null } }
+    previewPhoto?.let { path ->
+        com.kirox.app.ui.media.PhotoSendPreview(path, input.text.trim(), onDismiss = { previewPhoto = null }) { edited, caption, spoiler ->
+            previewPhoto = null
+            actions.sendPhotoWith(edited, caption, spoiler, false)
+            input = TextFieldValue()
+        }
+    }
     val filterable = history.peerKind == TelegramPeerKind.Group || history.peerKind == TelegramPeerKind.Channel
     val unfiltered = remember(history.messages, filters, filterable) {
         if (!filterable || !filters.enabled) history.messages
@@ -412,7 +421,8 @@ fun TelegramChatScreen(
                     val meta = withContext(Dispatchers.IO) { videoMeta(path) }
                     actions.sendVideo(path, caption, meta.first, meta.second, meta.third)
                 }
-                asPhoto -> actions.sendPhoto(path, caption)
+                // One photo opens the preview first: edit, spoiler, caption, then send.
+                asPhoto -> { previewPhoto = path; return@launch }
                 else -> actions.sendDocument(path, caption)
             }
             input = TextFieldValue()

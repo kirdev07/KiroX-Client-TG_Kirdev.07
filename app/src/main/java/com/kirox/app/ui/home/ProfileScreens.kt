@@ -332,10 +332,16 @@ internal fun ProfileEditScreen(profile: TelegramUserProfile?, onBack: () -> Unit
             var pickingDate by remember { mutableStateOf(false) }
             var channels by remember { mutableStateOf<List<Pair<Long, String>>?>(null) }
             var changingNumber by remember { mutableStateOf(false) }
+            var avatarVideo by remember { mutableStateOf<android.net.Uri?>(null) }
+            val pickVideo = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { avatarVideo = it }
+            avatarVideo?.let { uri -> com.kirox.app.ui.media.VideoAvatarDialog(uri, onDismiss = { avatarVideo = null }, onNotice = onNotice) }
             SettingsCard {
                 LinkRow("День рождения", extras?.birthday?.text ?: "Не указан") { pickingDate = true }
                 LinkRow("Личный канал", extras?.personalChatTitle?.ifBlank { null } ?: "Не выбран") {
                     scope.launch { channels = account.channelsForProfile() }
+                }
+                LinkRow("Видео на аватар", "До 10 секунд из любого видео") {
+                    pickVideo.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.VideoOnly))
                 }
                 LinkRow("Сменить номер", "Перенести аккаунт на другой номер телефона") { changingNumber = true }
             }

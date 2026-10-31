@@ -155,6 +155,8 @@ dependencies {
     implementation(libs.xz)
     // Installs src/main/baseline-prof.txt so the start-up code is compiled ahead of time.
     implementation(libs.androidx.profileinstaller)
+    // Photo orientation in the photo editor.
+    implementation(libs.androidx.exifinterface)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(composeBom)

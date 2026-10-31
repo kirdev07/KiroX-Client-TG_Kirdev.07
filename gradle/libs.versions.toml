@@ -19,8 +19,10 @@ robolectric = "4.17"
 commonsCompress = "1.28.0"
 xz = "1.12"
 profileinstaller = "1.4.1"
+exifinterface = "1.4.2"
 
 [libraries]
+androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }
 xz = { module = "org.tukaani:xz", version.ref = "xz" }

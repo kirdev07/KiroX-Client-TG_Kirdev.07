@@ -173,6 +173,11 @@ class TelegramUserRepository(private val client: TelegramClient) {
         client.query(TdApi.SetProfilePhoto(TdApi.InputChatPhotoStatic(TdApi.InputFileLocal(path)), false))
     }
 
+    /** A square MP4 of up to 10 s as the profile video; its first frame is the still picture. */
+    suspend fun setProfileVideo(path: String) {
+        client.query(TdApi.SetProfilePhoto(TdApi.InputChatPhotoAnimation(TdApi.InputFileLocal(path), 0.0), false))
+    }
+
     private companion object { const val PUBLISH_DELAY_MS = 50L }
 }
 
