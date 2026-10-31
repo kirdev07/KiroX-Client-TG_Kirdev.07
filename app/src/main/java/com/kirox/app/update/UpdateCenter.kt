@@ -67,6 +67,9 @@ class UpdateCenter(private val context: Context) {
 
     val currentVersion: String get() = BuildConfig.VERSION_NAME
 
+    /** When Telegram's releases were last checked successfully; 0 — never. */
+    val lastCheck: Long get() = prefs.getLong(KEY_LAST_CHECK, 0)
+
     /** At most once a day, silently. */
     fun checkDaily() {
         val now = System.currentTimeMillis()
@@ -251,6 +254,10 @@ class UpdateCenter(private val context: Context) {
     companion object {
         const val REPO = "kirdev07/KiroX-Client-TG_Kirdev.07"
         const val RELEASES_URL = "https://github.com/$REPO/releases"
+        const val REPO_URL = "https://github.com/$REPO"
+        const val ISSUES_URL = "https://github.com/$REPO/issues"
+        /** The project's news channel in Telegram. */
+        const val CHANNEL_URL = "https://t.me/kirdev_studio"
         private const val KEY_BETA = "beta_channel"
         private const val KEY_LAST_CHECK = "last_check"
         private const val KEY_LAST_ATTEMPT = "last_attempt"

@@ -279,7 +279,7 @@ private fun openChannelSettings(context: android.content.Context, channel: Strin
 
 /** Rounded group of rows on the screen background, as Telegram's settings sections. */
 @Composable
-private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+internal fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Fusion.colors.surface1), content = content)
 }
 
@@ -632,11 +632,11 @@ private fun AppIconDialog(current: com.kirox.app.settings.AppIcon, onDismiss: ()
 }
 
 @Composable
-private fun CardDivider() = androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 72.dp), color = Fusion.colors.outline)
+internal fun CardDivider() = androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 72.dp), color = Fusion.colors.outline)
 
 /** Settings row with a colored square icon, as in Telegram: title, optional subtitle, value on the right. */
 @Composable
-private fun IconRow(icon: IconGlyphs, tint: Color, title: String, subtitle: String?, trailing: String? = null, onClick: () -> Unit) {
+internal fun IconRow(icon: IconGlyphs, tint: Color, title: String, subtitle: String?, trailing: String? = null, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(36.dp).clip(RoundedCornerShape(11.dp)).background(tint), contentAlignment = Alignment.Center) {
             IconGlyph(icon, null, Modifier.size(20.dp), Color.White)
@@ -1527,9 +1527,7 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
                 color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
             )
         }
-        item { SmallCaption("О приложении") }
-        item { LinkRow("kiroX ${BuildConfig.VERSION_NAME}", "Неофициальный клиент Telegram на TDLib") {} }
-        // The link to the kiroX repository comes back with the new design.
+        // Version, links and updates live in Settings → «О приложении».
         item {
             LinkRow("Язык", "${com.kirox.app.i18n.I18n.language.title} · свои названия") { languagePage = true }
         }
