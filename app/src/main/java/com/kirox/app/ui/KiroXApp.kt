@@ -73,7 +73,10 @@ fun KiroXApp() {
     /** Comment thread or forum topic shown on Screen.Thread; lost with the process, then Thread pops. */
     var openThread by rememberSaveable(stateSaver = ThreadSpec.Saver) { mutableStateOf<ThreadSpec?>(null) }
     val history by telegramViewModel.messages.history.collectAsStateWithLifecycle()
-    val autoDownloadRule by telegramViewModel.autoDownload.rule.collectAsStateWithLifecycle()
+    val autoDownloadRuleRaw by telegramViewModel.autoDownload.rule.collectAsStateWithLifecycle()
+    val powerSaving by com.kirox.app.settings.PowerSaver.active.collectAsStateWithLifecycle()
+    // Energy saving keeps GIFs still until tapped.
+    val autoDownloadRule = if (powerSaving) autoDownloadRuleRaw.copy(gifs = false) else autoDownloadRuleRaw
     val messageError by telegramViewModel.messages.error.collectAsStateWithLifecycle()
     val callsState by telegramViewModel.calls.state.collectAsStateWithLifecycle()
     // Ringtone, audio route and proximity lock follow the call in CallMedia, not this screen state.
@@ -218,6 +221,8 @@ fun KiroXApp() {
     // t.me and tg: links open the chat inside KiroX; anything else (and unknown names) in the browser.
     // A shared folder (t.me/addlist/…): asks before adding it with its chats.
     var folderInvite by remember { mutableStateOf<com.kirox.app.telegram.FolderInvite?>(null) }
+    // «Встроенный браузер»: the web page open over the app, null when none.
+    var browserUrl by remember { mutableStateOf<String?>(null) }
     val linkOpener: (String) -> Unit = remember(uriHandler) {
         { url ->
             val link = com.kirox.app.telegram.telegramLinkOf(url)
@@ -225,7 +230,10 @@ fun KiroXApp() {
                 folderInvite = telegramViewModel.chats.checkFolderLink(link.url)
                 if (folderInvite == null) android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Ссылка на папку недействительна"), android.widget.Toast.LENGTH_SHORT).show()
             }
-            else if (link == null) runCatching { uriHandler.openUri(url) }
+            else if (link == null) {
+                if (com.kirox.app.settings.KiroxTweaks.current.inAppBrowser && (url.startsWith("http://") || url.startsWith("https://"))) browserUrl = url
+                else runCatching { uriHandler.openUri(url) }
+            }
             else scope.launch {
                 val chatId = telegramViewModel.resolveLink(link)
                 if (chatId != null) openChat(chatId)
@@ -425,6 +433,7 @@ fun KiroXApp() {
         groupCall?.let { call ->
             CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.call.GroupCallScreen(call, groupCallActions) }
         }
+        browserUrl?.let { url -> com.kirox.app.ui.chat.InAppBrowser(url, onTelegramLink = { browserUrl = null; linkOpener(it) }) { browserUrl = null } }
         folderInvite?.let { invite ->
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { folderInvite = null },

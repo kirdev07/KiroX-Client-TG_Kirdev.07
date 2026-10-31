@@ -507,6 +507,9 @@ private fun PasscodeSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Uni
     val settings by com.kirox.app.security.PasscodeLock.settings.collectAsState()
     // "" settings; "new" / "repeat" setting a code; "off" / "change" checking the current one first.
     var step by remember { mutableStateOf("") }
+    // Kind of the code being set: digits or a graphic key.
+    var newPattern by remember { mutableStateOf(false) }
+    var choosingKind by remember { mutableStateOf(false) }
     var firstCode by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var shake by remember { mutableIntStateOf(0) }
@@ -516,21 +519,23 @@ private fun PasscodeSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Uni
     if (step.isNotEmpty()) {
         BackHandler { reset() }
         val (title, subtitle) = when (step) {
-            "new" -> "Придумайте код-пароль" to "4 цифры. Код хранится только на этом телефоне"
-            "repeat" -> "Повторите код-пароль" to null
+            "new" -> if (newPattern) "Нарисуйте графический ключ" to "Соедините хотя бы 4 точки. Ключ хранится только на этом телефоне"
+                else "Придумайте код-пароль" to "4 цифры. Код хранится только на этом телефоне"
+            "repeat" -> if (newPattern) "Повторите графический ключ" to null else "Повторите код-пароль" to null
             else -> "Введите текущий код" to null
         }
-        com.kirox.app.ui.auth.PasscodeEntry(title, subtitle, error, shake) { code ->
+        val drawing = if (step == "new" || step == "repeat") newPattern else settings.pattern
+        com.kirox.app.ui.auth.PasscodeEntry(title, subtitle, error, shake, pattern = drawing) { code ->
             when (step) {
                 "new" -> { firstCode = code; error = null; step = "repeat" }
                 "repeat" -> if (code == firstCode) {
                     val changing = settings.enabled
-                    com.kirox.app.security.PasscodeLock.setCode(code)
+                    com.kirox.app.security.PasscodeLock.setCode(code, newPattern)
                     reset()
                     onNotice(if (changing) "Код-пароль изменён" else "Код-пароль включён")
                 } else { error = "Коды не совпадают, придумайте заново"; firstCode = ""; step = "new"; shake++ }
                 "off" -> if (com.kirox.app.security.PasscodeLock.matches(code)) { com.kirox.app.security.PasscodeLock.disable(); reset(); onNotice("Код-пароль выключен") } else { error = "Неверный код"; shake++ }
-                "change" -> if (com.kirox.app.security.PasscodeLock.matches(code)) { error = null; step = "new" } else { error = "Неверный код"; shake++ }
+                "change" -> if (com.kirox.app.security.PasscodeLock.matches(code)) { error = null; step = ""; choosingKind = true } else { error = "Неверный код"; shake++ }
             }
         }
         return
@@ -552,11 +557,11 @@ private fun PasscodeSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Uni
             }
         }
         if (!settings.enabled) {
-            item { com.kirox.app.ui.components.FusionButton("Включить код-пароль", onClick = { step = "new" }, modifier = Modifier.padding(16.dp)) }
+            item { com.kirox.app.ui.components.FusionButton("Включить код-пароль", onClick = { choosingKind = true }, modifier = Modifier.padding(16.dp)) }
         } else {
             item {
                 SettingsCard {
-                    LinkRow("Сменить код-пароль") { step = "change" }
+                    LinkRow("Сменить код-пароль", if (settings.pattern) "Сейчас: графический ключ" else "Сейчас: PIN-код") { step = "change" }
                     LinkRow("Автоблокировка", settings.autoLock.title) { choosingAuto = true }
                 }
             }
@@ -586,6 +591,18 @@ private fun PasscodeSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Uni
             }
         }
     }
+    if (choosingKind) AlertDialog(
+        onDismissRequest = { choosingKind = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Чем закрывать kiroX", color = Fusion.colors.textPrimary) },
+        text = {
+            Column {
+                LinkRow("PIN-код", "4 цифры") { choosingKind = false; newPattern = false; step = "new" }
+                LinkRow("Графический ключ", "Соединить точки на экране") { choosingKind = false; newPattern = true; step = "new" }
+            }
+        },
+        confirmButton = { TextButton(onClick = { choosingKind = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
     if (choosingAuto) ChoiceDialog("Автоблокировка", com.kirox.app.security.AutoLock.entries, settings.autoLock, { it.title }, onDismiss = { choosingAuto = false }) {
         com.kirox.app.security.PasscodeLock.setAutoLock(it); choosingAuto = false
     }
@@ -1402,6 +1419,104 @@ private fun RenameTextsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
     )
 }
 
+// ---------- Message filters ----------
+
+/** «Фильтры сообщений»: words and people whose messages fold away in groups and channels. */
+@Composable
+private fun MessageFiltersScreen(onBack: () -> Unit) {
+    BackHandler(onBack = onBack)
+    val filters by com.kirox.app.settings.MessageFilters.state.collectAsState()
+    var word by remember { mutableStateOf("") }
+    fun set(value: com.kirox.app.settings.Filters) = com.kirox.app.settings.MessageFilters.update(value)
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen).imePadding(), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Фильтры сообщений", onBack) }
+        item {
+            SettingsCard {
+                ToggleRow("Включить фильтры", "В группах и каналах такие сообщения не показываются; над перепиской — «Скрыто фильтрами» и кнопка «Показать». Личные чаты не фильтруются", filters.enabled) {
+                    set(filters.copy(enabled = it))
+                }
+            }
+        }
+        item { SmallCaption("Слова") }
+        item {
+            Row(Modifier.fillMaxWidth().padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { EditField(word, "Слово или фраза") { word = it.take(60) } }
+                TextButton(onClick = {
+                    val w = word.trim()
+                    if (w.isNotEmpty() && filters.words.none { it.equals(w, ignoreCase = true) }) set(filters.copy(enabled = true, words = filters.words + w))
+                    word = ""
+                }) { Text("Добавить", color = Fusion.colors.accent) }
+            }
+        }
+        if (filters.words.isNotEmpty()) item {
+            SettingsCard {
+                filters.words.forEach { w ->
+                    LinkRow(w, "Нажмите, чтобы убрать") { set(filters.copy(words = filters.words - w)) }
+                }
+            }
+        }
+        item { SmallCaption("Люди") }
+        item {
+            if (filters.people.isEmpty()) Text(
+                "Чтобы скрыть чьи-то сообщения, удерживайте его сообщение в группе → «Скрывать сообщения автора».",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            ) else SettingsCard {
+                filters.people.forEach { (id, name) ->
+                    LinkRow(name, "Нажмите, чтобы снова показывать") { set(filters.copy(people = filters.people - id)) }
+                }
+            }
+        }
+        item {
+            Text(
+                "Фильтры работают только в kiroX на этом телефоне: люди об этом не узнают, а сами сообщения не удаляются.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+        }
+    }
+}
+
+// ---------- Power saving ----------
+
+/** «Энергосбережение»: when kiroX drops animations, blur and GIF autoplay. */
+@Composable
+private fun PowerSavingScreen(onBack: () -> Unit) {
+    BackHandler(onBack = onBack)
+    val tweaks by com.kirox.app.settings.KiroxTweaks.state.collectAsState()
+    val active by com.kirox.app.settings.PowerSaver.active.collectAsState()
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Энергосбережение", onBack) }
+        item {
+            SettingsCard {
+                com.kirox.app.settings.PowerSaving.entries.forEach { mode ->
+                    val hint = when (mode) {
+                        com.kirox.app.settings.PowerSaving.Auto -> "Включается вместе с экономией заряда телефона"
+                        com.kirox.app.settings.PowerSaving.On -> "Всегда экономить заряд"
+                        com.kirox.app.settings.PowerSaving.Off -> "Все эффекты всегда включены"
+                    }
+                    val pick = { com.kirox.app.settings.KiroxTweaks.update(tweaks.copy(powerSaving = mode)) }
+                    Row(Modifier.fillMaxWidth().clickable(onClick = pick).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.RadioButton(
+                            selected = tweaks.powerSaving == mode, onClick = pick,
+                            colors = androidx.compose.material3.RadioButtonDefaults.colors(selectedColor = Fusion.colors.accent, unselectedColor = Fusion.colors.textTertiary)
+                        )
+                        Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                            Text(mode.title, color = Fusion.colors.textPrimary, fontSize = 16.sp)
+                            Text(hint, color = Fusion.colors.textSecondary, fontSize = 13.sp, lineHeight = 17.sp)
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            val status = if (active) "Сейчас энергосбережение включено." else "Сейчас энергосбережение выключено."
+            Text(
+                "$status Пока оно работает, kiroX отключает анимации, размытие стекла и тяжёлые эффекты, а GIF не играют сами — только по нажатию.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+        }
+    }
+}
+
 // ---------- Own icon ----------
 
 /** Colors for an own icon's background and plane. */
@@ -1419,8 +1534,8 @@ private fun CustomIconScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
     BackHandler(onBack = onBack)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var background by remember { mutableStateOf(0xFF1FA463.toInt()) }
-    var plane by remember { mutableStateOf(0xFFFFFFFF.toInt()) }
+    var background by remember { mutableIntStateOf(0xFF1FA463.toInt()) }
+    var plane by remember { mutableIntStateOf(0xFFFFFFFF.toInt()) }
     var photo by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var showPlane by remember { mutableStateOf(true) }
     var label by remember { mutableStateOf("kiroX") }
@@ -1615,6 +1730,10 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
     if (stickersPage) { StickerSetsScreen(onBack = { stickersPage = false }, onNotice = onNotice); return }
     var customIconPage by remember { mutableStateOf(false) }
     if (customIconPage) { CustomIconScreen(onBack = { customIconPage = false }, onNotice = onNotice); return }
+    var filtersPage by remember { mutableStateOf(false) }
+    if (filtersPage) { MessageFiltersScreen(onBack = { filtersPage = false }); return }
+    var powerPage by remember { mutableStateOf(false) }
+    if (powerPage) { PowerSavingScreen(onBack = { powerPage = false }); return }
     BackHandler(onBack = onBack)
     val context = LocalContext.current
     var confirmReset by remember { mutableStateOf(false) }
@@ -1676,6 +1795,13 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
                 color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
             )
         }
+        item {
+            val filters by com.kirox.app.settings.MessageFilters.state.collectAsState()
+            val filtersInfo = if (filters.enabled) "Слов: ${filters.words.size} · людей: ${filters.people.size}" else "Выключены"
+            SettingsCard {
+                LinkRow("Фильтры сообщений", "Прятать в группах и каналах сообщения со словами или от людей · $filtersInfo") { filtersPage = true }
+            }
+        }
         item { SmallCaption("Сохранение сообщений") }
         item {
             val archive = (context.applicationContext as KiroXApplication).telegram.archive
@@ -1720,6 +1846,8 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
                 ToggleRow("Вкладка «Истории»", "Показывать в нижней панели", !tweaks.hideStoriesTab) { set(tweaks.copy(hideStoriesTab = !it)) }
                 ToggleRow("ID в профилях", "Номер пользователя или чата в Telegram; нажатие копирует его", tweaks.showIds) { set(tweaks.copy(showIds = it)) }
                 ToggleRow("Скрывать клавиатуру при прокрутке", "Проведите по переписке — клавиатура закроется", tweaks.hideKeyboardOnScroll) { set(tweaks.copy(hideKeyboardOnScroll = it)) }
+                ToggleRow("Встроенный браузер", "Ссылки из чатов открываются внутри kiroX, без перехода в браузер", tweaks.inAppBrowser) { set(tweaks.copy(inAppBrowser = it)) }
+                LinkRow("Энергосбережение", tweaks.powerSaving.title) { powerPage = true }
                 CardDivider()
                 IconRow(IconGlyphs.Palette, Color(0xFF6C4CE0), "Иконка приложения", null, trailing = appIcon.title) { choosingIcon = true }
             }

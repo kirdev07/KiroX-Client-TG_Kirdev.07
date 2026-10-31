@@ -55,11 +55,14 @@ class MainActivity : ComponentActivity() {
             val density by settings.chatDensity.collectAsStateWithLifecycle()
             val chatStyle = com.kirox.app.settings.ChatStyle(bubbles.radiusDp, textSize.scale, wallpaper, density)
             val weakDevice = remember { prefersLightEffects(this@MainActivity) }
-            val lightEffects = quality == EffectsQuality.Light || (quality == EffectsQuality.Auto && weakDevice)
-            val glassBlur by settings.glassBlur.collectAsStateWithLifecycle()
+            // «Энергосбережение»: light effects, no blur, no motion while it is active.
+            val saving by com.kirox.app.settings.PowerSaver.active.collectAsStateWithLifecycle()
+            val lightEffects = saving || quality == EffectsQuality.Light || (quality == EffectsQuality.Auto && weakDevice)
+            val glassBlurSetting by settings.glassBlur.collectAsStateWithLifecycle()
+            val glassBlur = glassBlurSetting && !saving
             // KiroXFeatures.ANIMATIONS is the app-wide switch; the user's motion and seasonal settings apply under it.
             val animate = com.kirox.app.ui.theme.KiroXFeatures.ANIMATIONS
-            val motionFactor = if (animate) motion.factor else 0f
+            val motionFactor = if (animate && !saving) motion.factor else 0f
             sceneClock.Drive(speed = motionFactor, light = lightEffects)
             // An own theme replaces the colors; otherwise the icon's color, when it has one, paints
             // the selected tab and buttons so the app matches its icon.

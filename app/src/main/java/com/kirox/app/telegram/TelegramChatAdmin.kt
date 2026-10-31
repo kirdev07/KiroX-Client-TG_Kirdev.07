@@ -179,6 +179,13 @@ class TelegramChatAdmin(private val client: TelegramClient) {
     /** Revoking the main link makes Telegram give the chat a new one. */
     suspend fun revokeInviteLink(chatId: Long, link: String) { client.query(TdApi.RevokeChatInviteLink(chatId, link)) }
 
+    /** «Общие группы» with a person, for their profile. */
+    suspend fun commonGroups(userId: Long): List<SimilarChat> = runCatching {
+        client.query(TdApi.GetGroupsInCommon(userId, 0, 50)).chatIds.toList().mapNotNull { id ->
+            runCatching { client.query(TdApi.GetChat(id)) }.getOrNull()?.let { SimilarChat(it.id, it.title, it.photo?.small?.toRef()) }
+        }
+    }.getOrDefault(emptyList())
+
     /** «Похожие каналы» under a channel's profile. */
     suspend fun similarChannels(chatId: Long): List<SimilarChat> = runCatching {
         client.query(TdApi.GetChatSimilarChats(chatId)).chatIds.toList().mapNotNull { id ->

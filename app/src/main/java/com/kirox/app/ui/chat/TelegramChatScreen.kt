@@ -299,10 +299,21 @@ fun TelegramChatScreen(
 
     var autoDeleteOpen by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    // «Фильтры сообщений»: in groups and channels, incoming messages with chosen words or from chosen
+    // people are left out until «Показать».
+    val filters by com.kirox.app.settings.MessageFilters.state.collectAsState()
+    var showFiltered by remember(history.chatId) { mutableStateOf(false) }
+    val filterable = history.peerKind == TelegramPeerKind.Group || history.peerKind == TelegramPeerKind.Channel
+    val unfiltered = remember(history.messages, filters, filterable) {
+        if (!filterable || !filters.enabled) history.messages
+        else history.messages.filterNot { !it.isOutgoing && filters.hides(it.senderId, it.text) }
+    }
+    val filteredCount = history.messages.size - unfiltered.size
     // Search filters the loaded part of the conversation.
-    val shownMessages = remember(history.messages, searchQuery) {
+    val shownMessages = remember(history.messages, unfiltered, showFiltered, searchQuery) {
+        val base = if (showFiltered) history.messages else unfiltered
         val q = searchQuery.trim()
-        if (q.isEmpty()) history.messages else history.messages.filter { it.text.contains(q, ignoreCase = true) }
+        if (q.isEmpty()) base else base.filter { it.text.contains(q, ignoreCase = true) }
     }
     // Server search: finds messages that are not loaded yet; tapping one scrolls the chat to it.
     var searchResults by remember(history.chatId) { mutableStateOf<List<TelegramMessage>?>(null) }
@@ -688,9 +699,20 @@ fun TelegramChatScreen(
                     if (history.reachedStart) Text("Сообщений пока нет", color = Fusion.colors.textSecondary)
                     else CircularProgressIndicator(Modifier.size(26.dp), color = Fusion.colors.textSecondary, strokeWidth = 2.dp)
                 }
-            } else if (shownMessages.isEmpty()) {
+            } else if (shownMessages.isEmpty() && filteredCount == 0) {
                 Box(Modifier.fillMaxSize(), Alignment.Center) { Text("Ничего не найдено", color = Fusion.colors.textSecondary) }
             } else {
+            if (filteredCount > 0) {
+                val hiddenLabel = if (showFiltered) "Скрыть отфильтрованные" else "Показать"
+                Row(
+                    Modifier.fillMaxWidth().zIndex(2f).padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(14.dp))
+                        .background(Fusion.colors.surface1.copy(alpha = .92f)).clickable { showFiltered = !showFiltered }.padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Скрыто фильтрами: $filteredCount", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    Text(hiddenLabel, color = Fusion.colors.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
             // «Скрывать клавиатуру при прокрутке» from kiroX settings: a finger drag on the list closes it.
             if (tweaks.hideKeyboardOnScroll) {
                 val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
@@ -868,6 +890,10 @@ fun TelegramChatScreen(
                     "Выбрать" -> selectedIds = idsOf(message).toSet()
                     "История изменений" -> versionsOf = message
                     "Пожаловаться" -> reportIds = idsOf(message)
+                    "Скрывать сообщения автора" -> source?.takeIf { it.senderId != 0L }?.let {
+                        com.kirox.app.settings.MessageFilters.hidePerson(it.senderId, it.senderName.ifBlank { history.title })
+                        notice = "Сообщения автора скрыты — фильтры в настройках kiroX"
+                    }
                     "Копировать ссылку" -> scope.launch {
                         val link = admin.messageLink(history.chatId, message.id)
                         if (link == null) notice = "Ссылка недоступна" else {
@@ -896,6 +922,7 @@ fun TelegramChatScreen(
                 // Links exist for groups and channels; reports are for what others sent.
                 if (history.peerKind != TelegramPeerKind.Group && history.peerKind != TelegramPeerKind.Channel) add("Копировать ссылку")
                 if (message.direction != MessageDirection.Incoming || history.peerKind == TelegramPeerKind.Saved) add("Пожаловаться")
+                if (!filterable || message.direction != MessageDirection.Incoming || source?.senderId == 0L) add("Скрывать сообщения автора")
                 // Only content that can be sent again: no polls, calls or service messages.
                 if (message.poll != null || message.direction == MessageDirection.System) add("Отправить ещё раз")
             }

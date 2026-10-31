@@ -14,7 +14,7 @@ import org.json.JSONObject
  */
 object SettingsBackup {
     /** SharedPreferences files that hold user settings; nothing else is read or written. */
-    private val FILES = listOf(KiroxTweaks.PREFS, "auto_download", "storage_policy", "media_prefs", "notification_prefs", "i18n", CustomThemes.PREFS)
+    private val FILES = listOf(KiroxTweaks.PREFS, "auto_download", "storage_policy", "media_prefs", "notification_prefs", "i18n", CustomThemes.PREFS, MessageFilters.PREFS)
 
     suspend fun export(context: Context): String {
         val prefs = JSONObject()

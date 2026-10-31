@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/** «Энергосбережение»: on, off, or following the phone's battery saver. */
+enum class PowerSaving(val title: String) { Auto("Как в системе"), On("Всегда"), Off("Никогда") }
+
 /** What a double tap on a message does. */
 enum class DoubleTapAction(val title: String) { None("Ничего"), Reaction("Реакция ❤️"), Reply("Ответить"), Copy("Копировать текст") }
 
@@ -34,7 +37,10 @@ data class Tweaks(
     /** «Сохранять удалённые сообщения»: copies kept on this phone (MessageArchive). */
     val keepDeleted: Boolean = false,
     /** «Сохранять историю изменений». */
-    val keepEdits: Boolean = false
+    val keepEdits: Boolean = false,
+    /** Web links open inside kiroX instead of the browser app. */
+    val inAppBrowser: Boolean = true,
+    val powerSaving: PowerSaving = PowerSaving.Auto
 ) {
     /** Opened chats are not marked read for the other side. */
     val ghostRead get() = ghost && ghostNoRead
@@ -73,7 +79,9 @@ object KiroxTweaks {
             ghostStories = prefs.getBoolean("ghost_stories", true),
             hideKeyboardOnScroll = prefs.getBoolean("hide_keyboard_on_scroll", false),
             keepDeleted = prefs.getBoolean("keep_deleted", false),
-            keepEdits = prefs.getBoolean("keep_edits", false)
+            keepEdits = prefs.getBoolean("keep_edits", false),
+            inAppBrowser = prefs.getBoolean("in_app_browser", true),
+            powerSaving = PowerSaving.entries.firstOrNull { it.name == prefs.getString("power_saving", null) } ?: PowerSaving.Auto
         )
     }
 
@@ -97,6 +105,8 @@ object KiroxTweaks {
             putBoolean("hide_keyboard_on_scroll", value.hideKeyboardOnScroll)
             putBoolean("keep_deleted", value.keepDeleted)
             putBoolean("keep_edits", value.keepEdits)
+            putBoolean("in_app_browser", value.inAppBrowser)
+            putString("power_saving", value.powerSaving.name)
         }
     }
 }

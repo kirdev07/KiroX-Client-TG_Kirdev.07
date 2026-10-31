@@ -28,7 +28,9 @@ data class PasscodeSettings(
     /** Unlock with the fingerprint (or face) the phone already knows; the code always works too. */
     val biometric: Boolean = true,
     /** Blank in the recent apps list and no screenshots while the code is on. */
-    val hideContent: Boolean = true
+    val hideContent: Boolean = true,
+    /** The code is a graphic key (dots joined on a 3×3 grid) instead of 4 digits. */
+    val pattern: Boolean = false
 )
 
 /**
@@ -55,7 +57,8 @@ object PasscodeLock {
             enabled = prefs.contains(HASH_KEY),
             autoLock = AutoLock.entries.firstOrNull { it.name == prefs.getString(AUTO_KEY, null) } ?: AutoLock.Minute,
             biometric = prefs.getBoolean(BIOMETRIC_KEY, true),
-            hideContent = prefs.getBoolean(HIDE_KEY, true)
+            hideContent = prefs.getBoolean(HIDE_KEY, true),
+            pattern = prefs.getBoolean(PATTERN_KEY, false)
         )
         // A fresh process always starts locked.
         _locked.value = _settings.value.enabled
@@ -88,8 +91,10 @@ object PasscodeLock {
         return MessageDigest.isEqual(hash(code, salt), stored)
     }
 
-    /** Turns the code on, or changes it; the app stays unlocked. */
-    fun setCode(code: String) {
+    /** Turns the code on, or changes it; [pattern] — it is a graphic key. The app stays unlocked. */
+    fun setCode(code: String, pattern: Boolean = _settings.value.pattern) {
+        prefs.edit { putBoolean(PATTERN_KEY, pattern) }
+        _settings.value = _settings.value.copy(pattern = pattern)
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
         prefs.edit {
             putString(SALT_KEY, Base64.encodeToString(salt, Base64.NO_WRAP))
@@ -125,4 +130,5 @@ object PasscodeLock {
     private const val AUTO_KEY = "auto_lock"
     private const val BIOMETRIC_KEY = "biometric"
     private const val HIDE_KEY = "hide_content"
+    private const val PATTERN_KEY = "pattern"
 }

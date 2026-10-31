@@ -157,7 +157,9 @@ data class TelegramMessage(
     /** Deleted by its author while the chat was open; kept on screen with a mark («Сохранять удалённые»). */
     val deleted: Boolean = false,
     /** «Запрет копирования» in the chat: no forwarding, saving or copying. */
-    val isProtected: Boolean = false
+    val isProtected: Boolean = false,
+    /** Who sent it: a user id, or a chat id (negative) for channels and anonymous admins. */
+    val senderId: Long = 0
 )
 
 /** A poll or quiz in a message. */

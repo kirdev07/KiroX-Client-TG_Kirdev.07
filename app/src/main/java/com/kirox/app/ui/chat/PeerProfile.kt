@@ -69,6 +69,9 @@ internal fun PeerProfileScreen(
     LaunchedEffect(chatId) { rights = admin.rights(chatId) }
     var similar by remember(chatId) { mutableStateOf<List<com.kirox.app.telegram.SimilarChat>>(emptyList()) }
     LaunchedEffect(chatId) { similar = admin.similarChannels(chatId) }
+    // «Общие группы» with a person: a private chat's id is the user's id (positive).
+    var common by remember(chatId) { mutableStateOf<List<com.kirox.app.telegram.SimilarChat>>(emptyList()) }
+    LaunchedEffect(chatId) { if (chatId > 0) common = admin.commonGroups(chatId) }
     val openChat = LocalChatOpener.current
     // Gifts a person shows on their profile (private chats only; ids of users are positive).
     val users = (LocalContext.current.applicationContext as KiroXApplication).telegram.users
@@ -133,20 +136,8 @@ internal fun PeerProfileScreen(
             }
         }
         if (gifts.second.isNotEmpty()) item(span = { GridItemSpan(3) }) { GiftsRow(gifts.first, gifts.second) }
-        if (similar.isNotEmpty() && openChat != null) item(span = { GridItemSpan(3) }) {
-            Column(Modifier.padding(top = 12.dp)) {
-                Text("Похожие каналы", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
-                androidx.compose.foundation.lazy.LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(similar.size) { i ->
-                        val chat = similar[i]
-                        Column(Modifier.width(72.dp).clip(RoundedCornerShape(12.dp)).clickable { openChat(chat.chatId) }.padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            TelegramAvatar(chat.title, chat.photo, 56.dp)
-                            androidx.compose.material3.Text(chat.title, color = Fusion.colors.textPrimary, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                        }
-                    }
-                }
-            }
-        }
+        if (similar.isNotEmpty() && openChat != null) item(span = { GridItemSpan(3) }) { ChatStrip("Похожие каналы", similar, openChat) }
+        if (common.isNotEmpty() && openChat != null) item(span = { GridItemSpan(3) }) { ChatStrip("Общие группы: ${common.size}", common, openChat) }
         item(span = { GridItemSpan(3) }) {
             Column(Modifier.padding(16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Fusion.colors.surface1)) {
                 if (info.username.isNotBlank()) InfoRow(KiroXIcon.At, "@${info.username}", "Имя пользователя")
@@ -269,6 +260,23 @@ internal fun GiftsRow(total: Int, gifts: List<com.kirox.app.telegram.ProfileGift
                         color = Fusion.colors.textPrimary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                     if (gift.from.isNotBlank()) androidx.compose.material3.Text(gift.from, color = Fusion.colors.textSecondary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    }
+}
+
+/** A titled row of chats with avatars («Похожие каналы», «Общие группы»); a tap opens the chat. */
+@Composable
+private fun ChatStrip(title: String, chats: List<com.kirox.app.telegram.SimilarChat>, openChat: (Long) -> Unit) {
+    Column(Modifier.padding(top = 12.dp)) {
+        Text(title, color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        androidx.compose.foundation.lazy.LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(chats.size) { i ->
+                val chat = chats[i]
+                Column(Modifier.width(72.dp).clip(RoundedCornerShape(12.dp)).clickable { openChat(chat.chatId) }.padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    TelegramAvatar(chat.title, chat.photo, 56.dp)
+                    androidx.compose.material3.Text(chat.title, color = Fusion.colors.textPrimary, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 }
             }
         }

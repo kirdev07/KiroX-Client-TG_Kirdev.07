@@ -669,6 +669,7 @@ class TelegramMessageRepository(
             id = id,
             chatId = chatId,
             senderName = senderName(senderId),
+            senderId = when (val s = senderId) { is TdApi.MessageSenderUser -> s.userId; is TdApi.MessageSenderChat -> s.chatId; else -> 0L },
             isOutgoing = isOutgoing,
             kind = kindOf(content),
             text = when (content) {

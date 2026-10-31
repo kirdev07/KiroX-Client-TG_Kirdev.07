@@ -20,6 +20,8 @@ class KiroXApplication : Application() {
         com.kirox.app.settings.KiroxTweaks.init(this)
         com.kirox.app.settings.AppIcons.init(this)
         com.kirox.app.settings.CustomThemes.init(this)
+        com.kirox.app.settings.MessageFilters.init(this)
+        com.kirox.app.settings.PowerSaver.init(this)
         removeLegacyDemoData()
         removeOldOutgoing()
         // The call engine is large: load it off the main thread, calls check NativeCall.available.
