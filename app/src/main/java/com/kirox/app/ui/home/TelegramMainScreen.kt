@@ -661,11 +661,15 @@ internal fun filterContacts(contacts: List<TelegramContact>, query: String): Lis
 @Composable
 private fun ContactsList(contacts: List<TelegramContact>, loading: Boolean, focusSearch: Int, onOpen: (Long) -> Unit, onCall: (Long, Boolean) -> Unit, onAdd: () -> Unit = {}) {
     var query by rememberSaveable { mutableStateOf("") }
+    // The search field appears only after the title's search icon is tapped; Back hides it again.
+    var searching by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(focusSearch) { if (focusSearch > 0) searching = true }
+    androidx.activity.compose.BackHandler(enabled = searching) { searching = false; query = "" }
     val shown = remember(contacts, query) { filterContacts(contacts, query) }
     val v2 = Fusion.colors.backdrop != null
     val context = androidx.compose.ui.platform.LocalContext.current
     Column(Modifier.fillMaxSize()) {
-        SearchField(query, "Имя, @ник или номер", focusTrigger = focusSearch) { query = it }
+        if (searching) SearchField(query, "Имя, @ник или номер", focusTrigger = focusSearch) { query = it }
         // Approved contacts layout: «Новый контакт» and «Пригласить в Telegram» above the list.
         if (query.isBlank()) {
             if (Fusion.colors.backdrop != null) {
