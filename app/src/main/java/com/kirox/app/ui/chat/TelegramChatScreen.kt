@@ -445,7 +445,12 @@ fun TelegramChatScreen(
                     recordPaused = false
                     if (note != null) actions.sendVoice(note.file.absolutePath, note.durationSeconds, note.waveform) else notice = "Слишком короткое голосовое"
                 }
-            ) else if ((history.peerKind != TelegramPeerKind.Channel || history.threadTitle != null) && !history.isForum) Column {
+            ) else if (history.peerKind == TelegramPeerKind.Bot && history.loaded && history.reachedStart && history.messages.isEmpty()) {
+                // A bot nobody has written to yet: like Telegram, one «Запустить» button sends /start.
+                Box(Modifier.fillMaxWidth().background(Fusion.colors.background).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp)) {
+                    com.kirox.app.ui.components.FusionButton("Запустить", onClick = { actions.sendText("/start", null) })
+                }
+            } else if ((history.peerKind != TelegramPeerKind.Channel || history.threadTitle != null) && !history.isForum) Column {
                 if (history.replyKeyboard.isNotEmpty() && showBotKeyboard) BotKeyboard(history.replyKeyboard) { text -> actions.sendText(text, null) }
                 if (history.replyKeyboard.isNotEmpty()) Text(
                     if (showBotKeyboard) "Скрыть клавиатуру бота" else "Клавиатура бота",
