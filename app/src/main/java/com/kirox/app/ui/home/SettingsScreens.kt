@@ -1034,15 +1034,171 @@ internal fun LanguageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
             )
         }
         item { SmallCaption("Свои названия") }
+        item { NamePacksCard(onEdit = { renaming = true }, onNotice = onNotice) }
         item {
-            SettingsCard {
-                IconRow(
-                    IconGlyphs.Edit, Color(0xFF9B6BFF), "Переименовать разделы",
-                    if (i18n.overrides.isEmpty()) "Вкладки, разделы настроек и главные кнопки — как вам удобно" else "Своих названий: ${i18n.overrides.size}"
-                ) { renaming = true }
+            Text(
+                "Набор — это ваши названия разделов и кнопок. Можно держать несколько наборов и переключаться между ними, делиться ими с друзьями и загружать чужие.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Installed name packs with the one in use, «Обычные названия» to use none, and per pack: edit,
+ * share as text, save as a file, rename, delete. New packs are made here or loaded from a file or text.
+ */
+@Composable
+private fun NamePacksCard(onEdit: () -> Unit, onNotice: (String) -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val i18n = com.kirox.app.i18n.I18n
+    var menuFor by remember { mutableStateOf<String?>(null) }
+    var renameFor by remember { mutableStateOf<com.kirox.app.i18n.NamePack?>(null) }
+    var deleteFor by remember { mutableStateOf<com.kirox.app.i18n.NamePack?>(null) }
+    var creating by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(false) }
+    var pasting by remember { mutableStateOf(false) }
+    fun installed(pack: com.kirox.app.i18n.NamePack?) {
+        if (pack == null) { onNotice("Это не набор названий kiroX"); return }
+        i18n.activatePack(pack.id)
+        onNotice("Набор «${pack.title}» загружен и выбран")
+    }
+    val pickFile = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val text = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes().take(PACK_FILE_MAX).toByteArray().decodeToString() } }.getOrNull()
+            }
+            installed(text?.let(i18n::importPack))
+        }
+    }
+    SettingsCard {
+        PackRow("Обычные названия", "Как задумано в kiroX", i18n.activePackId == null, onSelect = { i18n.activatePack(null) }, onMenu = null)
+        i18n.packs.forEach { pack ->
+            CardDivider()
+            Box {
+                PackRow(pack.title, packCount(pack.names.size), i18n.activePackId == pack.id, onSelect = { i18n.activatePack(pack.id) }, onMenu = { menuFor = pack.id })
+                androidx.compose.material3.DropdownMenu(menuFor == pack.id, onDismissRequest = { menuFor = null }, modifier = Modifier.background(Fusion.colors.surface2)) {
+                    androidx.compose.material3.DropdownMenuItem(text = { Text("Изменить названия") }, onClick = { menuFor = null; i18n.activatePack(pack.id); onEdit() })
+                    androidx.compose.material3.DropdownMenuItem(text = { Text("Поделиться") }, onClick = {
+                        menuFor = null
+                        val text = i18n.exportPack(pack.id) ?: return@DropdownMenuItem
+                        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_SUBJECT, pack.title).putExtra(Intent.EXTRA_TEXT, text)
+                        runCatching { context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    })
+                    androidx.compose.material3.DropdownMenuItem(text = { Text("Сохранить в Загрузки") }, onClick = {
+                        menuFor = null
+                        val text = i18n.exportPack(pack.id) ?: return@DropdownMenuItem
+                        scope.launch {
+                            val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                java.io.File(context.cacheDir, "packs").apply { mkdirs() }.resolve("pack.json").apply { writeText(text) }
+                            }
+                            val saved = com.kirox.app.ui.chat.saveToDownloads(context, file.path, "${pack.title}.kirox-names.json", "application/json")
+                            onNotice(if (saved) "Сохранено в «Загрузки/kiroX»" else "Не удалось сохранить файл")
+                        }
+                    })
+                    androidx.compose.material3.DropdownMenuItem(text = { Text("Переименовать набор") }, onClick = { menuFor = null; renameFor = pack })
+                    androidx.compose.material3.DropdownMenuItem(text = { Text("Удалить набор", color = Fusion.colors.danger) }, onClick = { menuFor = null; deleteFor = pack })
+                }
             }
         }
     }
+    Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        androidx.compose.material3.OutlinedButton(onClick = { creating = true }, modifier = Modifier.weight(1f)) { Text("Новый набор") }
+        androidx.compose.material3.OutlinedButton(onClick = { loading = true }, modifier = Modifier.weight(1f)) { Text("Загрузить набор") }
+    }
+    if (i18n.activePackId != null) SettingsCard {
+        IconRow(IconGlyphs.Edit, Color(0xFF9B6BFF), "Изменить названия", "В наборе «${i18n.packs.firstOrNull { it.id == i18n.activePackId }?.title.orEmpty()}»", onClick = onEdit)
+    }
+    if (creating) PackTitleDialog("Новый набор", "Мои названия", onDismiss = { creating = false }) { title ->
+        creating = false
+        i18n.createPack(title)
+        onEdit()
+    }
+    renameFor?.let { pack ->
+        PackTitleDialog("Переименовать набор", pack.title, onDismiss = { renameFor = null }) { title -> renameFor = null; i18n.renamePack(pack.id, title) }
+    }
+    deleteFor?.let { pack ->
+        AlertDialog(
+            onDismissRequest = { deleteFor = null },
+            containerColor = Fusion.colors.surface1,
+            title = { Text("Удалить набор «${pack.title}»?", color = Fusion.colors.textPrimary) },
+            text = { Text("Его названия пропадут с этого телефона. Если вы им делились, у друзей он останется.", color = Fusion.colors.textSecondary) },
+            confirmButton = { TextButton(onClick = { deleteFor = null; i18n.deletePack(pack.id); onNotice("Набор удалён") }) { Text("Удалить", color = Fusion.colors.danger) } },
+            dismissButton = { TextButton(onClick = { deleteFor = null }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+        )
+    }
+    if (loading) AlertDialog(
+        onDismissRequest = { loading = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Загрузить набор", color = Fusion.colors.textPrimary) },
+        text = {
+            Column {
+                Text("Откуда взять набор названий, который вам прислали?", color = Fusion.colors.textSecondary, fontSize = 14.sp)
+                Spacer(Modifier.height(8.dp))
+                LinkRow("Из файла", "Файл .json, например из «Загрузок»") { loading = false; pickFile.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
+                LinkRow("Вставить текст", "Если набор прислали сообщением") { loading = false; pasting = true }
+            }
+        },
+        confirmButton = { TextButton(onClick = { loading = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
+    if (pasting) {
+        var text by remember { mutableStateOf("") }
+        val clipboard = remember { context.getSystemService(android.content.ClipboardManager::class.java) }
+        AlertDialog(
+            onDismissRequest = { pasting = false },
+            containerColor = Fusion.colors.surface1,
+            title = { Text("Вставить набор", color = Fusion.colors.textPrimary) },
+            text = {
+                Column {
+                    Text("Скопируйте сообщение с набором и вставьте его сюда.", color = Fusion.colors.textSecondary, fontSize = 14.sp)
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(onClick = { text = clipboard?.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty().take(PACK_FILE_MAX) }) {
+                        Text("Вставить из буфера", color = Fusion.colors.accent)
+                    }
+                    Box(Modifier.heightIn(max = 220.dp)) { EditField(text, "{ \"kirox_names\": 1, … }", singleLine = false) { text = it.take(PACK_FILE_MAX) } }
+                }
+            },
+            confirmButton = { TextButton(onClick = { pasting = false; installed(i18n.importPack(text)) }, enabled = text.isNotBlank()) { Text("Загрузить", color = Fusion.colors.accent) } },
+            dismissButton = { TextButton(onClick = { pasting = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+        )
+    }
+}
+
+/** Largest pack file read; a real pack is a few kilobytes. */
+private const val PACK_FILE_MAX = 64 * 1024
+
+private fun packCount(n: Int): String = when {
+    n == 0 -> "Пока без своих названий"
+    n % 10 == 1 && n % 100 != 11 -> "$n название"
+    n % 10 in 2..4 && n % 100 !in 12..14 -> "$n названия"
+    else -> "$n названий"
+}
+
+@Composable
+private fun PackRow(title: String, subtitle: String, selected: Boolean, onSelect: () -> Unit, onMenu: (() -> Unit)?) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onSelect).heightIn(min = 60.dp).padding(start = 8.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        androidx.compose.material3.RadioButton(selected, onClick = onSelect)
+        Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
+            androidx.compose.material3.Text(title, color = Fusion.colors.textPrimary, fontSize = 16.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+            Text(subtitle, color = Fusion.colors.textSecondary, fontSize = 13.sp)
+        }
+        if (onMenu != null) androidx.compose.material3.IconButton(onClick = onMenu) { IconGlyph(IconGlyphs.More, "Действия с набором", Modifier.size(22.dp), Fusion.colors.textSecondary) }
+    }
+}
+
+@Composable
+private fun PackTitleDialog(title: String, initial: String, onDismiss: () -> Unit, onDone: (String) -> Unit) {
+    var value by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Fusion.colors.surface1,
+        title = { Text(title, color = Fusion.colors.textPrimary) },
+        text = { EditField(value, "Название набора") { value = it.replace("\n", " ").take(40) } },
+        confirmButton = { TextButton(onClick = { onDone(value.trim()) }, enabled = value.isNotBlank()) { Text("Готово", color = Fusion.colors.accent) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
 }
 
 /** A name the user may change: the source text, where it is shown and what it does. */
@@ -1106,7 +1262,7 @@ private fun RenameTextsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
     val overrides = i18n.overrides
     val mine = renameGroups.sumOf { (_, items) -> items.count { it.key in overrides } }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
-        item { BackTitle("Свои названия", onBack) }
+        item { BackTitle(i18n.packs.firstOrNull { it.id == i18n.activePackId }?.title ?: "Свои названия", onBack) }
         item {
             Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(Color(0xFF9B6BFF)), contentAlignment = Alignment.Center) {

@@ -7,6 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.json.JSONObject
 
+/** A set of own names («набор названий»): several can be installed, one is used at a time. */
+data class NamePack(val id: String, val title: String, val names: Map<String, String>)
+
 /** Interface languages. Russian is the source text, the others come from assets/i18n/<code>.json. */
 enum class AppLanguage(val code: String, val title: String) { Russian("ru", "Русский"), English("en", "English") }
 
@@ -15,6 +18,7 @@ enum class AppLanguage(val code: String, val title: String) { Russian("ru", "Р�
  * the Russian source text is the key, so nothing in the screens needs ids.
  *  - a translation for the chosen [language] replaces it;
  *  - the user's own name for it ([overrides], «Свои названия») wins over both, in any language.
+ *    Names live in [packs]; the active pack is the one used, packs can be exported and imported.
  * Texts with values inside («Удалить чат с «{}»?») match by template: {} stands for any value and
  * the values move into the translation in the same order. User content without Cyrillic is never
  * touched; a message that happens to equal a UI text could be, which is accepted.
@@ -26,8 +30,13 @@ object I18n {
     /** Compose state: changing it redraws every text. */
     var language by mutableStateOf(AppLanguage.Russian)
         private set
-    var overrides by mutableStateOf<Map<String, String>>(emptyMap())
+    var packs by mutableStateOf<List<NamePack>>(emptyList())
         private set
+    /** Pack in use; null — normal names. */
+    var activePackId by mutableStateOf<String?>(null)
+        private set
+    /** Names of the active pack. */
+    val overrides: Map<String, String> get() = packs.firstOrNull { it.id == activePackId }?.names.orEmpty()
 
     private val dictionaries = HashMap<AppLanguage, Map<String, String>>()
     private var templates: List<Pair<Regex, String>> = emptyList()
@@ -41,9 +50,20 @@ object I18n {
         appContext = context.applicationContext
         prefs = context.getSharedPreferences("i18n", Context.MODE_PRIVATE)
         language = AppLanguage.entries.firstOrNull { it.code == prefs.getString(LANGUAGE_KEY, null) } ?: AppLanguage.Russian
-        overrides = prefs.getString(OVERRIDES_KEY, null)?.let { json ->
-            runCatching { JSONObject(json).let { o -> o.keys().asSequence().associateWith { o.getString(it) } } }.getOrNull()
+        packs = prefs.getString(PACKS_KEY, null)?.let { json ->
+            runCatching {
+                val array = org.json.JSONArray(json)
+                (0 until array.length()).map { i -> array.getJSONObject(i).let { NamePack(it.getString("id"), it.getString("title"), it.getJSONObject("names").toMap()) } }
+            }.getOrNull()
         }.orEmpty()
+        activePackId = prefs.getString(ACTIVE_KEY, null)?.takeIf { id -> packs.any { it.id == id } }
+        // Names saved before packs existed become the first pack.
+        prefs.getString(OVERRIDES_KEY, null)?.let { json ->
+            val names = runCatching { JSONObject(json).toMap() }.getOrNull().orEmpty()
+            if (names.isNotEmpty()) { val pack = NamePack(newId(), "Мои названия", names); packs = packs + pack; activePackId = pack.id }
+            prefs.edit().remove(OVERRIDES_KEY).apply()
+            save()
+        }
         rebuildTemplates()
     }
 
@@ -56,13 +76,80 @@ object I18n {
         synchronized(cache) { cache.clear() }
     }
 
-    /** Own name for [key]; null or blank brings the normal text back. */
+    /** Own name for [key] in the active pack (a first pack is made when none is chosen); null or blank brings the normal text back. */
     fun setOverride(key: String, value: String?) {
-        overrides = if (value.isNullOrBlank()) overrides - key else overrides + (key to value)
+        val active = packs.firstOrNull { it.id == activePackId } ?: createPack("Мои названия")
+        val names = if (value.isNullOrBlank()) active.names - key else active.names + (key to value)
+        packs = packs.map { if (it.id == active.id) it.copy(names = names) else it }
         save()
     }
 
-    fun clearOverrides() { overrides = emptyMap(); save() }
+    /** Empties the active pack. */
+    fun clearOverrides() {
+        packs = packs.map { if (it.id == activePackId) it.copy(names = emptyMap()) else it }
+        save()
+    }
+
+    /** A new empty pack, chosen at once. */
+    fun createPack(title: String): NamePack {
+        val pack = NamePack(newId(), uniqueTitle(title.ifBlank { "Мои названия" }), emptyMap())
+        packs = packs + pack
+        activePackId = pack.id
+        save()
+        return pack
+    }
+
+    /** Uses [id]; null goes back to normal names. */
+    fun activatePack(id: String?) { activePackId = id?.takeIf { pid -> packs.any { it.id == pid } }; save() }
+
+    fun renamePack(id: String, title: String) {
+        if (title.isBlank()) return
+        packs = packs.map { if (it.id == id) it.copy(title = title.trim().take(TITLE_MAX)) else it }
+        save()
+    }
+
+    fun deletePack(id: String) {
+        packs = packs.filterNot { it.id == id }
+        if (activePackId == id) activePackId = null
+        save()
+    }
+
+    /** The pack as text to send: open format, readable and safe to paste into a chat. */
+    fun exportPack(id: String): String? {
+        val pack = packs.firstOrNull { it.id == id } ?: return null
+        return JSONObject().put("kirox_names", 1).put("title", pack.title).put("names", JSONObject(pack.names)).toString(2)
+    }
+
+    /**
+     * Installs a pack from [text] (a file or a pasted message). Only names of known kiroX texts are
+     * taken, each at most a few dozen characters, so a foreign pack can't put anything else in the app.
+     * Returns the installed pack (not chosen yet), or null when the text is not a kiroX pack.
+     */
+    fun importPack(text: String): NamePack? {
+        val json = runCatching { JSONObject(text.substring(text.indexOf('{').coerceAtLeast(0), (text.lastIndexOf('}') + 1).coerceAtLeast(0))) }.getOrNull() ?: return null
+        if (!json.has("kirox_names") || !json.has("names")) return null
+        val known = dictionary(AppLanguage.English).keys
+        val names = runCatching { json.getJSONObject("names").toMap() }.getOrNull().orEmpty()
+            .filter { (key, value) -> key in known && value.isNotBlank() }
+            .mapValues { it.value.replace('\n', ' ').trim().take(NAME_MAX) }
+            .entries.take(MAX_NAMES).associate { it.key to it.value }
+        if (names.isEmpty()) return null
+        val pack = NamePack(newId(), uniqueTitle(json.optString("title").trim().take(TITLE_MAX).ifBlank { "Набор названий" }), names)
+        packs = packs + pack
+        save()
+        return pack
+    }
+
+    private fun uniqueTitle(title: String): String {
+        if (packs.none { it.title == title }) return title
+        var n = 2
+        while (packs.any { it.title == "$title ($n)" }) n++
+        return "$title ($n)"
+    }
+
+    private fun newId() = java.util.UUID.randomUUID().toString()
+
+    private fun JSONObject.toMap(): Map<String, String> = keys().asSequence().associateWith { getString(it) }
 
     /** What [key] shows now without the user's name: the translation or the source. */
     fun base(key: String): String = if (language == AppLanguage.Russian) key else dictionary(language)[key] ?: key
@@ -120,12 +207,20 @@ object I18n {
     }
 
     private fun save() {
-        prefs.edit().putString(OVERRIDES_KEY, JSONObject(overrides).toString()).apply()
+        val array = org.json.JSONArray()
+        packs.forEach { array.put(JSONObject().put("id", it.id).put("title", it.title).put("names", JSONObject(it.names))) }
+        prefs.edit().putString(PACKS_KEY, array.toString()).putString(ACTIVE_KEY, activePackId).apply()
         synchronized(cache) { cache.clear() }
     }
 
     private const val LANGUAGE_KEY = "language"
+    /** Names before packs; read once and moved into a pack. */
     private const val OVERRIDES_KEY = "overrides"
+    private const val PACKS_KEY = "packs"
+    private const val ACTIVE_KEY = "active_pack"
+    private const val TITLE_MAX = 40
+    private const val NAME_MAX = 40
+    private const val MAX_NAMES = 200
     private const val CACHE_SIZE = 3000
     private const val MAX_LENGTH = 400
     /** Short templates like «{} с» would catch ordinary words in chat titles and previews. */
