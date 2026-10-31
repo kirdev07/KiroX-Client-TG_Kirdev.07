@@ -133,6 +133,7 @@ internal fun inlineButtonsOf(markup: TdApi.ReplyMarkup?): List<List<TelegramButt
             when (val type = button.type) {
                 is TdApi.InlineKeyboardButtonTypeCallback -> TelegramButton(button.text, TelegramButton.Kind.Callback, data = type.data)
                 is TdApi.InlineKeyboardButtonTypeUrl -> TelegramButton(button.text, TelegramButton.Kind.Url, url = type.url)
+                is TdApi.InlineKeyboardButtonTypeWebApp -> TelegramButton(button.text, TelegramButton.Kind.WebApp, url = type.url)
                 else -> TelegramButton(button.text, TelegramButton.Kind.Other)
             }
         }

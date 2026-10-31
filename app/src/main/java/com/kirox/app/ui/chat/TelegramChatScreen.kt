@@ -74,6 +74,10 @@ interface TelegramChatActions {
     /** «@бот запрос» in the composer: the bot's answers, or null when it is not an inline bot. */
     suspend fun inlineResults(username: String, query: String): com.kirox.app.telegram.InlineResults? = null
     fun sendInlineResult(queryId: Long, resultId: String, replyToMessageId: Long?) {}
+    /** Bot mini apps: from a button of a message or from the bot's menu. */
+    suspend fun openWebApp(url: String, messageId: Long? = null, botUserId: Long? = null): com.kirox.app.telegram.WebAppLaunch? = null
+    fun closeWebApp(launchId: Long) {}
+    suspend fun botMenu(): com.kirox.app.telegram.BotMenu? = null
     suspend fun sendScheduledNow(messageId: Long) {}
     suspend fun deleteScheduled(messageId: Long) {}
     fun sendPhoto(path: String, caption: String)
@@ -153,6 +157,14 @@ fun TelegramChatScreen(
     var choosingWallpaper by remember { mutableStateOf(false) }
     var chatWallpaper by remember(history.chatId) { mutableStateOf(com.kirox.app.settings.ChatWallpapers.get(context, history.chatId)) }
     var inline by remember { mutableStateOf<com.kirox.app.telegram.InlineResults?>(null) }
+    // Bot mini apps: the one open now and the bot's «Меню» button.
+    var webApp by remember { mutableStateOf<Pair<String, com.kirox.app.telegram.WebAppLaunch>?>(null) }
+    var botMenu by remember(history.chatId) { mutableStateOf<com.kirox.app.telegram.BotMenu?>(null) }
+    LaunchedEffect(history.chatId, history.peerKind) { botMenu = if (history.peerKind == TelegramPeerKind.Bot) runCatching { actions.botMenu() }.getOrNull() else null }
+    // «Транслировать геопозицию»: what to do once location access is granted.
+    var choosingLocation by remember { mutableStateOf(false) }
+    var pendingLiveSeconds by remember { mutableIntStateOf(0) }
+    val liveShares by com.kirox.app.location.LiveLocationService.active.collectAsState()
     var versionsOf by remember { mutableStateOf<MessageUi?>(null) }
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
@@ -181,6 +193,12 @@ fun TelegramChatScreen(
     var creatingPoll by remember { mutableStateOf(false) }
     var translation by remember { mutableStateOf<Pair<String, String?>?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
+    fun openWebApp(title: String, url: String, messageId: Long? = null, botUserId: Long? = null) {
+        scope.launch {
+            val launch = actions.openWebApp(url, messageId, botUserId)
+            if (launch == null) notice = "Не удалось открыть приложение бота" else webApp = title to launch
+        }
+    }
     /** Sends the typed text at [at] (unix seconds) or, with SEND_WHEN_ONLINE, when the person comes online. */
     fun sendScheduled(at: Int) {
         val text = input.text.trim()
@@ -401,8 +419,13 @@ fun TelegramChatScreen(
             listOf(android.location.LocationManager.GPS_PROVIDER, android.location.LocationManager.NETWORK_PROVIDER, android.location.LocationManager.PASSIVE_PROVIDER)
                 .mapNotNull { manager.getLastKnownLocation(it) }.maxByOrNull { it.time }
         }.getOrNull()
-        if (last != null) { actions.sendLocation(last.latitude, last.longitude); notice = "Геопозиция отправлена" }
-        else notice = "Не удалось определить местоположение — включите геолокацию"
+        val live = pendingLiveSeconds
+        pendingLiveSeconds = 0
+        when {
+            last == null -> notice = "Не удалось определить местоположение — включите геолокацию"
+            live > 0 -> { com.kirox.app.location.LiveLocationService.start(context, history.chatId, live, last); notice = "Трансляция геопозиции началась" }
+            else -> { actions.sendLocation(last.latitude, last.longitude); notice = "Геопозиция отправлена" }
+        }
     }
     val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         if (granted.values.any { it }) sendCurrentLocation() else notice = "Нет доступа к местоположению"
@@ -513,6 +536,25 @@ fun TelegramChatScreen(
                     com.kirox.app.ui.components.FusionButton("Запустить", onClick = { actions.sendText("/start", null) })
                 }
             } else if ((history.peerKind != TelegramPeerKind.Channel || history.threadTitle != null) && !history.isForum) Column {
+                if (history.chatId in liveShares) Row(
+                    Modifier.fillMaxWidth().background(Fusion.colors.background).padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    KiroXIcon(KiroXIcon.Location, null, Modifier.size(18.dp), Fusion.colors.accent)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Вы транслируете геопозицию", color = Fusion.colors.textPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { com.kirox.app.location.LiveLocationService.stop(context, history.chatId) }) { Text("Остановить", color = Fusion.colors.danger) }
+                }
+                botMenu?.let { menu ->
+                    Row(
+                        Modifier.fillMaxWidth().background(Fusion.colors.background).clickable { openWebApp(menu.text, menu.url, botUserId = menu.botUserId) }.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        KiroXIcon(KiroXIcon.Menu, null, Modifier.size(18.dp), Fusion.colors.accent)
+                        Spacer(Modifier.width(8.dp))
+                        androidx.compose.material3.Text(menu.text, color = Fusion.colors.accent, fontSize = 14.sp, maxLines = 1)
+                    }
+                }
                 inline?.takeIf { it.results.isNotEmpty() }?.let { found ->
                     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 260.dp).background(Fusion.colors.surface1)) {
                         items(found.results, key = { it.id }) { result ->
@@ -667,7 +709,8 @@ fun TelegramChatScreen(
                         onVote = { indices -> actions.vote(row.message.id, indices) },
                         onButton = { button ->
                             val url = button.url
-                            if (url != null) linkOpener?.invoke(url) ?: runCatching { uriHandler.openUri(url) }
+                            if (button.kind == com.kirox.app.telegram.TelegramButton.Kind.WebApp && url != null) openWebApp(button.text, url, messageId = row.message.id)
+                            else if (url != null) linkOpener?.invoke(url) ?: runCatching { uriHandler.openUri(url) }
                             else scope.launch {
                                 val answer = runCatching { actions.pressButton(row.message.id, button) }.getOrNull()
                                 answer?.first?.takeIf { it.isNotBlank() }?.let { notice = it }
@@ -725,10 +768,7 @@ fun TelegramChatScreen(
                 "Видео" -> pickPhoto.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
                 "Музыка" -> pickFile.launch("audio/*")
                 "Контакт" -> pickingContact = true
-                "Локация" -> {
-                    if (context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED) sendCurrentLocation()
-                    else locationPermission.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
-                }
+                "Локация" -> choosingLocation = true
                 "Камера" -> {
                     val file = java.io.File(context.cacheDir, "camera").apply { mkdirs() }.let { java.io.File(it, "photo_${System.currentTimeMillis()}.jpg") }
                     val uri = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", file)
@@ -814,6 +854,8 @@ fun TelegramChatScreen(
                 if (source?.canEdit != true) add("Редактировать")
                 if (source?.delivery == TelegramDelivery.Sending) { add("Переслать"); add("Ответить"); add("Отправить ещё раз") }
                 if (!tweaks.keepEdits || !message.edited) add("История изменений")
+                // «Запрет копирования» in this chat.
+                if (source?.isProtected == true) { add("Переслать"); add("Сохранить"); add("Копировать"); add("Отправить ещё раз"); add("Копировать ссылку") }
                 // Links exist for groups and channels; reports are for what others sent.
                 if (history.peerKind != TelegramPeerKind.Group && history.peerKind != TelegramPeerKind.Channel) add("Копировать ссылку")
                 if (message.direction != MessageDirection.Incoming || history.peerKind == TelegramPeerKind.Saved) add("Пожаловаться")
@@ -943,6 +985,31 @@ fun TelegramChatScreen(
                 if (forwardTargets.isEmpty()) item { Text("Нет доступных чатов", color = Fusion.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(24.dp)) }
             }
             Spacer(Modifier.navigationBarsPadding().height(8.dp))
+        }
+    }
+    if (choosingLocation) AlertDialog(
+        onDismissRequest = { choosingLocation = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Геопозиция", color = Fusion.colors.textPrimary) },
+        text = {
+            Column {
+                listOf(0 to "Отправить мою геопозицию", 15 * 60 to "Транслировать 15 минут", 3600 to "Транслировать 1 час", 8 * 3600 to "Транслировать 8 часов").forEach { (seconds, title) ->
+                    Text(title, color = Fusion.colors.textPrimary, fontSize = 16.sp, modifier = Modifier.fillMaxWidth().clickable {
+                        choosingLocation = false
+                        pendingLiveSeconds = seconds
+                        if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                            (seconds == 0 && context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED)) sendCurrentLocation()
+                        else locationPermission.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+                    }.padding(vertical = 12.dp))
+                }
+                Text("Трансляция идёт и в фоне; остановить можно в чате или в уведомлении.", color = Fusion.colors.textTertiary, fontSize = 12.sp)
+            }
+        },
+        confirmButton = { TextButton(onClick = { choosingLocation = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
+    webApp?.let { (title, launch) ->
+        WebAppSheet(title, launch.url, onLink = { url -> linkOpener?.invoke(url) ?: runCatching { uriHandler.openUri(url) } }) {
+            actions.closeWebApp(launch.launchId); webApp = null
         }
     }
     reportIds?.let { ids -> ReportFlow(history.chatId, ids) { result -> reportIds = null; if (result != null) notice = result } }

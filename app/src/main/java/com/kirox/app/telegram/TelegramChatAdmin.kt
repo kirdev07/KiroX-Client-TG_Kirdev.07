@@ -35,6 +35,9 @@ data class GroupPermissions(
     val changeInfo: Boolean
 )
 
+/** Someone asking to join by a link that needs approval. */
+data class JoinRequest(val userId: Long, val name: String, val photo: TelegramFileRef?, val bio: String, val date: Int)
+
 data class InviteLink(val link: String, val name: String, val isPrimary: Boolean, val memberCount: Int, val expires: Int, val memberLimit: Int)
 
 /** One step of a report: Telegram asks for a reason, then optionally for a comment. */
@@ -159,15 +162,30 @@ class TelegramChatAdmin(private val client: TelegramClient) {
             .sortedByDescending { it.isPrimary }
     }
 
-    suspend fun createInviteLink(chatId: Long, name: String, expiresInDays: Int, memberLimit: Int): InviteLink {
+    /** [byApproval]: people send a request instead of joining at once; Telegram allows no member limit then. */
+    suspend fun createInviteLink(chatId: Long, name: String, expiresInDays: Int, memberLimit: Int, byApproval: Boolean = false): InviteLink {
         val expires = if (expiresInDays > 0) (System.currentTimeMillis() / 1000 + expiresInDays * 86_400L).toInt() else 0
-        return client.query(TdApi.CreateChatInviteLink(chatId, name, expires, memberLimit, false)).let {
+        return client.query(TdApi.CreateChatInviteLink(chatId, name, expires, if (byApproval) 0 else memberLimit, byApproval)).let {
             InviteLink(it.inviteLink, it.name.orEmpty(), it.isPrimary, it.memberCount, it.expirationDate, it.memberLimit)
         }
     }
 
     /** Revoking the main link makes Telegram give the chat a new one. */
     suspend fun revokeInviteLink(chatId: Long, link: String) { client.query(TdApi.RevokeChatInviteLink(chatId, link)) }
+
+    /** «Заявки на вступление» from all links of the chat, newest first. */
+    suspend fun joinRequests(chatId: Long): List<JoinRequest> =
+        client.query(TdApi.GetChatJoinRequests(chatId, "", "", null, 100)).requests.map { request ->
+            val user = runCatching { client.query(TdApi.GetUser(request.userId)) }.getOrNull()
+            JoinRequest(request.userId, user?.displayName() ?: "Пользователь", user?.profilePhoto?.small?.toRef(), request.bio.orEmpty(), request.date)
+        }
+
+    suspend fun processJoinRequest(chatId: Long, userId: Long, approve: Boolean) { client.query(TdApi.ProcessChatJoinRequest(chatId, userId, approve)) }
+
+    /** «Запретить копирование»: members can't forward, save or screenshot-copy messages. Owner only. */
+    suspend fun isProtected(chatId: Long): Boolean = client.query(TdApi.GetChat(chatId)).hasProtectedContent
+
+    suspend fun setProtected(chatId: Long, value: Boolean) { client.query(TdApi.ToggleChatHasProtectedContent(chatId, value)) }
 
     /** t.me link to a message of a group or channel; null where Telegram has none (private chats). */
     suspend fun messageLink(chatId: Long, messageId: Long): String? =

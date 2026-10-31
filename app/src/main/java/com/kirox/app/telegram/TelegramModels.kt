@@ -154,7 +154,9 @@ data class TelegramMessage(
     /** Message this one answers, in the same chat; 0 when none. */
     val replyToMessageId: Long = 0,
     /** Deleted by its author while the chat was open; kept on screen with a mark («Сохранять удалённые»). */
-    val deleted: Boolean = false
+    val deleted: Boolean = false,
+    /** «Запрет копирования» in the chat: no forwarding, saving or copying. */
+    val isProtected: Boolean = false
 )
 
 /** A poll or quiz in a message. */
@@ -175,7 +177,7 @@ data class TelegramPollOption(val text: String, val percent: Int, val voters: In
 
 /** A button under a bot message. */
 data class TelegramButton(val text: String, val kind: Kind, val url: String? = null, val data: ByteArray? = null) {
-    enum class Kind { Callback, Url, Other }
+    enum class Kind { Callback, Url, WebApp, Other }
     override fun equals(other: Any?): Boolean = other is TelegramButton && other.text == text && other.kind == kind && other.url == url && other.data.contentEqualsNullable(data)
     override fun hashCode(): Int = (text.hashCode() * 31 + kind.hashCode()) * 31 + (url?.hashCode() ?: 0)
 }
@@ -313,3 +315,9 @@ const val SEND_WHEN_ONLINE = -1
 data class InlineResult(val id: String, val title: String, val description: String)
 
 data class InlineResults(val queryId: Long, val results: List<InlineResult>)
+
+/** A running bot mini app: close it with its [launchId] when the sheet goes away. */
+data class WebAppLaunch(val launchId: Long, val url: String)
+
+/** The «≡ Меню» button of a bot chat, which opens the bot's mini app. */
+data class BotMenu(val botUserId: Long, val text: String, val url: String)

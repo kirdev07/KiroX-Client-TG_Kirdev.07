@@ -66,7 +66,13 @@ internal fun ChatManageScreen(chatId: Long, rights: ChatRights, onBack: () -> Un
         "members" -> { ChatMembersScreen(chatId, rights, onBack = { page = "" }); return }
         "permissions" -> { ChatPermissionsScreen(chatId, onBack = { page = "" }); return }
         "links" -> { InviteLinksScreen(chatId, onBack = { page = "" }); return }
+        "requests" -> { JoinRequestsScreen(chatId, onBack = { page = "" }); return }
     }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val admin = (context.applicationContext as KiroXApplication).telegram.admin
+    var isProtected by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(chatId) { if (rights.isOwner) isProtected = runCatching { admin.isProtected(chatId) }.getOrNull() }
     BackHandler(onBack = onBack)
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen).statusBarsPadding(), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle(if (rights.isChannel) "Управление каналом" else "Управление группой", onBack) }
@@ -80,6 +86,17 @@ internal fun ChatManageScreen(chatId: Long, rights: ChatRights, onBack: () -> Un
                 }
                 if (rights.canRestrict && !rights.isChannel) { divider(); IconRow(KiroXIcon.Shield, Color(0xFFFFA94D), "Разрешения", "Что могут участники") { page = "permissions" } }
                 if (rights.canInvite) { divider(); IconRow(KiroXIcon.Link, Color(0xFF9B6BFF), "Ссылки-приглашения", "Создать, скопировать, отозвать") { page = "links" } }
+                if (rights.canInvite) { divider(); IconRow(KiroXIcon.Add, Color(0xFF2AABEE), "Заявки на вступление", "Принять или отклонить") { page = "requests" } }
+            }
+        }
+        isProtected?.let { value ->
+            item {
+                SettingsCard {
+                    ToggleRow("Запретить копирование", "Сообщения нельзя переслать, сохранить или скопировать", value) { on ->
+                        isProtected = on
+                        scope.launch { runCatching { admin.setProtected(chatId, on) }.onFailure { isProtected = !on; toast(context, "Не удалось сохранить") } }
+                    }
+                }
             }
         }
     }
@@ -336,6 +353,7 @@ private fun InviteLinksScreen(chatId: Long, onBack: () -> Unit) {
         var name by remember { mutableStateOf("") }
         var days by remember { mutableIntStateOf(0) }
         var limit by remember { mutableIntStateOf(0) }
+        var byApproval by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { creating = false },
             containerColor = Fusion.colors.surface1,
@@ -350,15 +368,16 @@ private fun InviteLinksScreen(chatId: Long, onBack: () -> Unit) {
                     }
                     Text("Сколько человек", color = Fusion.colors.textSecondary, fontSize = 13.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(0 to "Без лимита", 1 to "1", 10 to "10", 100 to "100").forEach { (l, t) -> FilterChip(limit == l, onClick = { limit = l }, label = { Text(t) }) }
+                        listOf(0 to "Без лимита", 1 to "1", 10 to "10", 100 to "100").forEach { (l, t) -> FilterChip(limit == l && !byApproval, onClick = { limit = l }, enabled = !byApproval, label = { Text(t) }) }
                     }
+                    ToggleRow("По одобрению", "Человек отправит заявку, вы примете или отклоните", byApproval) { byApproval = it }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
                     creating = false
                     scope.launch {
-                        runCatching { admin.createInviteLink(chatId, name.trim(), days, limit) }
+                        runCatching { admin.createInviteLink(chatId, name.trim(), days, limit, byApproval) }
                             .onSuccess { copy(it.link); reload++ }
                             .onFailure { toast(context, "Не удалось создать ссылку") }
                     }
@@ -381,6 +400,44 @@ private fun InviteLinksScreen(chatId: Long, onBack: () -> Unit) {
             },
             dismissButton = { TextButton(onClick = { revoking = null }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
         )
+    }
+}
+
+/** «Заявки на вступление»: people who asked to join by a link with approval. */
+@Composable
+private fun JoinRequestsScreen(chatId: Long, onBack: () -> Unit) {
+    BackHandler(onBack = onBack)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val admin = (context.applicationContext as KiroXApplication).telegram.admin
+    var requests by remember { mutableStateOf<List<com.kirox.app.telegram.JoinRequest>?>(null) }
+    var reload by remember { mutableIntStateOf(0) }
+    LaunchedEffect(chatId, reload) { requests = runCatching { admin.joinRequests(chatId) }.getOrDefault(emptyList()) }
+    fun process(userId: Long, approve: Boolean) {
+        scope.launch {
+            runCatching { admin.processJoinRequest(chatId, userId, approve) }
+                .onSuccess { toast(context, if (approve) "Принят" else "Отклонён"); reload++ }
+                .onFailure { toast(context, "Не хватает прав или Telegram отказал") }
+        }
+    }
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen).statusBarsPadding(), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Заявки на вступление", onBack) }
+        val list = requests
+        if (list == null) item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { CircularProgressIndicator(color = Fusion.colors.textPrimary) } }
+        else if (list.isEmpty()) item {
+            Text("Заявок нет. Они приходят по ссылкам с включённым «По одобрению».", color = Fusion.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(24.dp))
+        } else items(list, key = { it.userId }) { request ->
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                TelegramAvatar(request.name, request.photo, 44.dp)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    androidx.compose.material3.Text(request.name, color = Fusion.colors.textPrimary, fontSize = 16.sp, maxLines = 1)
+                    if (request.bio.isNotBlank()) androidx.compose.material3.Text(request.bio, color = Fusion.colors.textSecondary, fontSize = 13.sp, maxLines = 2)
+                }
+                TextButton(onClick = { process(request.userId, false) }) { Text("Отклонить", color = Fusion.colors.danger) }
+                TextButton(onClick = { process(request.userId, true) }) { Text("Принять", color = Fusion.colors.accent) }
+            }
+        }
     }
 }
 

@@ -124,6 +124,43 @@ class TelegramMessageRepository(
         return answer.text.orEmpty() to answer.url?.takeIf { it.isNotBlank() }
     }
 
+    /**
+     * Opens a bot's mini app: from a button of [messageId] (the bot is the sender or the «via» bot)
+     * or, with [botUserId], from the bot's menu. Null when Telegram refuses.
+     */
+    suspend fun openWebApp(url: String, messageId: Long? = null, botUserId: Long? = null): WebAppLaunch? {
+        val id = chatId.takeIf { it != 0L } ?: return null
+        val bot = botUserId ?: onDispatcherMessage(messageId)?.let { message ->
+            message.viaBotUserId.takeIf { it != 0L } ?: (message.senderId as? TdApi.MessageSenderUser)?.userId
+        } ?: return null
+        // Colors of the dark Fusion look, so the mini app opens in a matching theme.
+        val theme = TdApi.ThemeParameters(
+            0xFF101418.toInt(), 0xFF171C22.toInt(), 0xFF101418.toInt(), 0xFF171C22.toInt(), 0xFF171C22.toInt(), 0xFF2A313A.toInt(),
+            0xFFFFFFFF.toInt(), 0xFF8E9BFF.toInt(), 0xFF8E9BFF.toInt(), 0xFF9AA3AD.toInt(), 0xFFFF6B6B.toInt(), 0xFF6B7380.toInt(),
+            0xFF8E9BFF.toInt(), 0xFF6C4CE0.toInt(), 0xFFFFFFFF.toInt()
+        )
+        return runCatching {
+            client.query(TdApi.OpenWebApp(id, bot, url, topic, null, TdApi.WebAppOpenParameters(theme, "kiroX", TdApi.WebAppOpenModeFullSize())))
+        }.getOrNull()?.let { WebAppLaunch(it.launchId, it.url.url) }
+    }
+
+    fun closeWebApp(launchId: Long) { client.send(TdApi.CloseWebApp(launchId)) }
+
+    /** The menu button of the open bot chat, when the bot has a mini app there. */
+    suspend fun botMenu(): BotMenu? {
+        val id = chatId.takeIf { it != 0L } ?: return null
+        val userId = (chats.chat(id)?.type as? TdApi.ChatTypePrivate)?.userId ?: return null
+        val button = runCatching { client.query(TdApi.GetUserFullInfo(userId)).botInfo?.menuButton }.getOrNull() ?: return null
+        return button.url.takeIf { it.isNotBlank() }?.let { BotMenu(userId, button.text.ifBlank { "Меню" }, it) }
+    }
+
+    private suspend fun onDispatcherMessage(messageId: Long?): TdApi.Message? {
+        val id = messageId ?: return null
+        val deferred = kotlinx.coroutines.CompletableDeferred<TdApi.Message?>()
+        client.post { deferred.complete(messages[id]) }
+        return deferred.await()
+    }
+
     /** Message text translated to [language] (ISO code, e.g. "ru") by Telegram. */
     suspend fun translate(messageId: Long, language: String): String? {
         val id = chatId.takeIf { it != 0L } ?: return null
@@ -639,6 +676,7 @@ class TelegramMessageRepository(
             date = date,
             edited = editDate > 0,
             deleted = id in deletedIds,
+            isProtected = !canBeSaved,
             delivery = when {
                 !isOutgoing || savedChat -> TelegramDelivery.None
                 sendingState is TdApi.MessageSendingStatePending -> TelegramDelivery.Sending
