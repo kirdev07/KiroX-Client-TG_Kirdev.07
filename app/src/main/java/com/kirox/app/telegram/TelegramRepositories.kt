@@ -147,6 +147,7 @@ class TelegramServices(context: android.content.Context) {
     val archive = MessageArchive(context, client, chats, users)
     /** Managing groups and channels, reports and message links. */
     val admin = TelegramChatAdmin(client)
+    val adminExtras = TelegramChatAdminExtras(client)
     val music = TelegramMusic(client)
     val mentions = TelegramMentions(client)
     val account = TelegramAccountTools(client)

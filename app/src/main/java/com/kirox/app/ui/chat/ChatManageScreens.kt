@@ -61,7 +61,19 @@ private fun toast(context: android.content.Context, text: String) =
 @Composable
 internal fun ChatManageScreen(chatId: Long, rights: ChatRights, onBack: () -> Unit) {
     var page by remember { mutableStateOf("") }
+    val tools = (LocalContext.current.applicationContext as KiroXApplication).telegram.adminExtras
+    var settings by remember { mutableStateOf<com.kirox.app.telegram.GroupSettings?>(null) }
+    var reloadSettings by remember { mutableIntStateOf(0) }
+    LaunchedEffect(chatId, reloadSettings) { settings = tools.settings(chatId) }
+    val group = settings
+    if (group != null) when (page) {
+        "slow" -> { SlowModeScreen(chatId, group, onChanged = { reloadSettings++ }, onBack = { page = "" }); return }
+        "reactions" -> { ReactionsScreen(chatId, group, onChanged = { reloadSettings++ }, onBack = { page = "" }); return }
+        "stickers" -> { GroupStickersScreen(chatId, group, onChanged = { reloadSettings++ }, onBack = { page = "" }); return }
+    }
     when (page) {
+        "log" -> { EventLogScreen(chatId, onBack = { page = "" }); return }
+        "boosts" -> { BoostsScreen(chatId, onBack = { page = "" }); return }
         "info" -> { ChatInfoEditScreen(chatId, rights, onBack = { page = "" }); return }
         "members" -> { ChatMembersScreen(chatId, rights, onBack = { page = "" }); return }
         "permissions" -> { ChatPermissionsScreen(chatId, onBack = { page = "" }); return }
@@ -91,6 +103,36 @@ internal fun ChatManageScreen(chatId: Long, rights: ChatRights, onBack: () -> Un
                 if (rights.canInvite) { divider(); IconRow(KiroXIcon.Link, Color(0xFF9B6BFF), "Ссылки-приглашения", "Создать, скопировать, отозвать") { page = "links" } }
                 if (rights.canInvite) { divider(); IconRow(KiroXIcon.Add, Color(0xFF2AABEE), "Заявки на вступление", "Принять или отклонить") { page = "requests" } }
                 if (canStats) { divider(); IconRow(KiroXIcon.Eye, Color(0xFFF06595), "Статистика", "Подписчики, просмотры, активность") { page = "stats" } }
+            }
+        }
+        // Supergroups and channels: slow mode, reactions, the log, boosts, the group's stickers.
+        group?.let { g ->
+            item {
+                SettingsCard {
+                    IconRow(KiroXIcon.Refresh, Color(0xFF5B8DEF), "Недавние действия", "Кто что изменил или удалил за 48 часов") { page = "log" }
+                    if (rights.canRestrict && !g.isChannel) {
+                        CardDivider()
+                        IconRow(KiroXIcon.Speed, Color(0xFFFFA94D), "Медленный режим", null, trailing = if (g.slowModeSeconds == 0) "Выкл." else com.kirox.app.telegram.TelegramChatAdminExtras.slowLabel(g.slowModeSeconds)) { page = "slow" }
+                    }
+                    if (rights.canChangeInfo) {
+                        CardDivider()
+                        IconRow(KiroXIcon.Emoji, Color(0xFFF06595), "Реакции", null, trailing = when { g.reactions == null -> "Все"; g.reactions.isEmpty() -> "Выкл."; else -> g.reactions.size.toString() }) { page = "reactions" }
+                    }
+                    CardDivider()
+                    IconRow(KiroXIcon.Star, Color(0xFF9B6BFF), "Бусты", "Уровень и ссылка для бустов") { page = "boosts" }
+                    if (g.canSetStickerSet && !g.isChannel) {
+                        CardDivider()
+                        IconRow(KiroXIcon.Media, Color(0xFF34C38F), "Стикеры группы", if (g.stickerSetId == 0L) "Не выбран" else "Выбран") { page = "stickers" }
+                    }
+                }
+            }
+            if (rights.canInvite && g.isPublic) item {
+                SettingsCard {
+                    ToggleRow("Вступление по заявке", "Новые участники ждут одобрения администратора", g.joinByRequest) { on ->
+                        settings = g.copy(joinByRequest = on)
+                        scope.launch { runCatching { tools.setJoinByRequest(g.supergroupId, on) }.onFailure { settings = g; toast(context, "Не удалось сохранить") } }
+                    }
+                }
             }
         }
         isProtected?.let { value ->

@@ -230,6 +230,8 @@ fun TelegramChatScreen(
     var notice by remember { mutableStateOf<String?>(null) }
     var choosingDice by remember { mutableStateOf(false) }
     var choosingSource by remember { mutableStateOf(false) }
+    var statsFor by remember { mutableStateOf<Long?>(null) }
+    statsFor?.let { id -> PostStatsDialog(history.chatId, id) { statsFor = null } }
     fun openWebApp(title: String, url: String, messageId: Long? = null, botUserId: Long? = null) {
         scope.launch {
             val launch = actions.openWebApp(url, messageId, botUserId)
@@ -1054,6 +1056,7 @@ fun TelegramChatScreen(
                         files?.deleteLocal(file)
                         notice = "Файл удалён с телефона — сообщение осталось"
                     }
+                    "Статистика поста" -> statsFor = message.id
                     "Кто прочитал" -> people = "Прочитали" to { actions.readBy(message.id).map { (name, date) -> name to scheduledTime(date) } }
                     "Кто отреагировал" -> people = "Реакции" to { actions.reactedBy(message.id) }
                     "Заменить фото или видео" -> { replacing = message; pickReplacement.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) }
@@ -1093,6 +1096,7 @@ fun TelegramChatScreen(
                 // Read receipts exist for own messages in groups; reactions lists in groups.
                 if (message.direction != MessageDirection.Outgoing || history.peerKind != TelegramPeerKind.Group) add("Кто прочитал")
                 if (message.reactions.isEmpty() || history.peerKind != TelegramPeerKind.Group) add("Кто отреагировал")
+                if (!channelPoster) add("Статистика поста")
                 if (source?.isProtected == true) add("Цитировать")
                 if (!filterable || message.direction != MessageDirection.Incoming || source?.senderId == 0L) add("Скрывать сообщения автора")
                 // Only content that can be sent again: no polls, calls or service messages.
