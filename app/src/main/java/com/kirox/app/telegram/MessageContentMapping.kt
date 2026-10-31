@@ -96,11 +96,13 @@ internal fun entitiesOf(text: TdApi.FormattedText?): List<TelegramTextEntity> =
             is TdApi.TextEntityTypePhoneNumber -> TelegramEntityType.Phone
             is TdApi.TextEntityTypeBotCommand -> TelegramEntityType.BotCommand
             is TdApi.TextEntityTypeBlockQuote, is TdApi.TextEntityTypeExpandableBlockQuote -> TelegramEntityType.Quote
+            is TdApi.TextEntityTypeCustomEmoji -> TelegramEntityType.CustomEmoji
             else -> return@mapNotNull null
         }
         val url = when (val t = entity.type) {
             is TdApi.TextEntityTypeTextUrl -> t.url
             is TdApi.TextEntityTypeMentionName -> "tg://user?id=${t.userId}"
+            is TdApi.TextEntityTypeCustomEmoji -> t.customEmojiId.toString()
             else -> null
         }
         TelegramTextEntity(entity.offset, entity.length, type, url)

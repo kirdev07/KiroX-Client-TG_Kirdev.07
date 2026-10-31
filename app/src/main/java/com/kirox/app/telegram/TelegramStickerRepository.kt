@@ -25,6 +25,19 @@ class TelegramStickerRepository(private val client: TelegramClient) {
         }
     }.getOrDefault(emptyList())
 
+    /**
+     * Pictures of custom emoji by id: the sticker itself when it is a still image, otherwise its
+     * still preview. Animated ones stay still in kiroX.
+     */
+    suspend fun customEmojiFiles(ids: List<Long>): Map<Long, TelegramFileRef> = runCatching {
+        client.query(TdApi.GetCustomEmojiStickers(ids.toLongArray())).stickers.mapNotNull { sticker ->
+            val id = (sticker.fullType as? TdApi.StickerFullTypeCustomEmoji)?.customEmojiId ?: return@mapNotNull null
+            val still = sticker.thumbnail?.takeIf { it.format is TdApi.ThumbnailFormatWebp || it.format is TdApi.ThumbnailFormatPng || it.format is TdApi.ThumbnailFormatJpeg }?.file
+            val file = if (sticker.format is TdApi.StickerFormatWebp) sticker.sticker else still ?: return@mapNotNull null
+            id to file.toRef()
+        }.toMap()
+    }.getOrDefault(emptyMap())
+
     /** Sets found by name for «Наборы стикеров»; [installed] marks the ones already added. */
     suspend fun searchSets(query: String): List<Pair<TelegramStickerSetInfo, Boolean>> = runCatching {
         client.query(TdApi.SearchStickerSets(TdApi.StickerTypeRegular(), query)).sets.map { set ->

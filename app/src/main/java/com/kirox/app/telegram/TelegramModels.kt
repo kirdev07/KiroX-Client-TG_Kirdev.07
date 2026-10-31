@@ -115,7 +115,8 @@ data class TelegramMedia(
 /** Formatting of a message text; offsets and lengths are in UTF-16 units, as in Kotlin strings. */
 data class TelegramTextEntity(val offset: Int, val length: Int, val type: TelegramEntityType, val url: String? = null)
 
-enum class TelegramEntityType { Bold, Italic, Underline, Strike, Code, Pre, Spoiler, Url, TextUrl, Mention, MentionName, Hashtag, Email, Phone, BotCommand, Quote }
+/** [CustomEmoji] keeps the emoji's id in TelegramTextEntity.url. */
+enum class TelegramEntityType { Bold, Italic, Underline, Strike, Code, Pre, Spoiler, Url, TextUrl, Mention, MentionName, Hashtag, Email, Phone, BotCommand, Quote, CustomEmoji }
 enum class TelegramDelivery { None, Sending, Sent, Read, Failed }
 
 data class TelegramMessage(
@@ -299,7 +300,9 @@ data class TelegramUserProfile(
     /** "d.MM" or "d.MM.yyyy", empty when hidden or not set. */
     val birthday: String = "",
     val firstName: String = "",
-    val lastName: String = ""
+    val lastName: String = "",
+    /** Custom emoji next to the name (Telegram Premium); 0 when none. */
+    val emojiStatusId: Long = 0
 )
 
 /** Where Telegram sent the login code. */

@@ -152,7 +152,7 @@ class TelegramChatRepository(private val client: TelegramClient) {
                     val userId = (type as? TdApi.ChatTypePrivate)?.userId ?: (type as TdApi.ChatTypeSecret).userId
                     val user = client.query(TdApi.GetUser(userId))
                     val full = runCatching { client.query(TdApi.GetUserFullInfo(userId)) }.getOrNull()
-                    TelegramProfileInfo(user.usernames?.activeUsernames?.firstOrNull().orEmpty(), full?.bio?.text.orEmpty(), user.phoneNumber.orEmpty())
+                    TelegramProfileInfo(user.usernames?.activeUsernames?.firstOrNull().orEmpty(), full?.bio?.text.orEmpty(), user.phoneNumber.orEmpty(), user.emojiStatusId())
                 }
                 is TdApi.ChatTypeSupergroup -> {
                     val group = client.query(TdApi.GetSupergroup(type.supergroupId))
@@ -429,7 +429,14 @@ internal fun messagePreview(message: TdApi.Message?): String = when (val content
 
 private const val MUTE_FOREVER_S = 400 * 24 * 60 * 60
 
-data class TelegramProfileInfo(val username: String = "", val about: String = "", val phone: String = "")
+data class TelegramProfileInfo(val username: String = "", val about: String = "", val phone: String = "", val emojiStatusId: Long = 0)
+
+/** Custom emoji id of a user's emoji status, 0 when none or expired. */
+internal fun TdApi.User.emojiStatusId(): Long {
+    val status = emojiStatus ?: return 0L
+    if (status.expirationDate != 0 && status.expirationDate <= System.currentTimeMillis() / 1000) return 0L
+    return (status.type as? TdApi.EmojiStatusTypeCustomEmoji)?.customEmojiId ?: 0L
+}
 
 enum class SharedMediaKind(val title: String) { Media("Медиа"), Files("Файлы"), Voice("Голосовые"), Links("Ссылки") }
 

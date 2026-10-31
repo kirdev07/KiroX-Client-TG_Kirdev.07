@@ -35,15 +35,23 @@ class MessageContentMappingTest {
         assertEquals(false, mediaOf(webp).first!!.animatedSticker)
     }
 
-    @Test fun formattingIsKeptAndUnknownEntitiesSkipped() {
+    @Test fun formattingAndCustomEmojiAreKept() {
         val text = TdApi.FormattedText("жирный ссылка эмодзи", arrayOf(
             TdApi.TextEntity(0, 6, TdApi.TextEntityTypeBold()),
             TdApi.TextEntity(7, 6, TdApi.TextEntityTypeTextUrl("https://kirox.app")),
             TdApi.TextEntity(14, 6, TdApi.TextEntityTypeCustomEmoji(1))
         ))
         val entities = entitiesOf(text)
-        assertEquals(2, entities.size)
+        assertEquals(3, entities.size)
         assertEquals(TelegramEntityType.Bold, entities[0].type)
         assertEquals("https://kirox.app", entities[1].url)
+        // A custom emoji keeps its id for the picture drawn in its place.
+        assertEquals(TelegramEntityType.CustomEmoji, entities[2].type)
+        assertEquals("1", entities[2].url)
+    }
+
+    @Test fun unknownEntitiesAreSkipped() {
+        val text = TdApi.FormattedText("текст", arrayOf(TdApi.TextEntity(0, 5, TdApi.TextEntityTypeMediaTimestamp(10))))
+        assertEquals(0, entitiesOf(text).size)
     }
 }

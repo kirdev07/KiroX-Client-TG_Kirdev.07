@@ -90,6 +90,7 @@ internal fun ProfileTab(profile: TelegramUserProfile?, onOpenSettings: () -> Uni
                     Spacer(Modifier.height(12.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(profile?.name ?: "Загрузка…", color = Fusion.colors.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        profile?.emojiStatusId?.takeIf { it != 0L }?.let { Spacer(Modifier.width(6.dp)); com.kirox.app.ui.components.CustomEmojiImage(it, 24.dp) }
                         // Marks only when TDLib reports them; no local badge that could pass for verification.
                         if (profile?.isVerified == true) { Spacer(Modifier.width(6.dp)); IconGlyph(KiroXIcon.Verified, "Проверено Telegram", Modifier.size(20.dp), Fusion.colors.accent) }
                         if (profile?.isPremium == true) { Spacer(Modifier.width(6.dp)); IconGlyph(KiroXIcon.Star, "Telegram Premium", Modifier.size(19.dp), Fusion.colors.accent) }
@@ -255,6 +256,36 @@ internal fun ProfileEditScreen(profile: TelegramUserProfile?, onBack: () -> Unit
         checking = false
     }
     val pickPhoto = rememberProfilePhotoPicker(onNotice)
+    var choosingStatus by remember { mutableStateOf(false) }
+    if (choosingStatus) {
+        val statuses by produceState<List<Long>?>(null) { value = users.defaultEmojiStatuses() }
+        fun choose(id: Long) {
+            choosingStatus = false
+            scope.launch {
+                runCatching { users.setEmojiStatus(id) }
+                    .onSuccess { onNotice(if (id == 0L) "Статус убран" else "Статус установлен") }
+                    .onFailure { onNotice(if ((it as? com.kirox.app.telegram.TdException)?.message.orEmpty().contains("PREMIUM", true)) "Доступно с Telegram Premium" else "Не удалось установить статус") }
+            }
+        }
+        AlertDialog(
+            onDismissRequest = { choosingStatus = false },
+            containerColor = Fusion.colors.surface1,
+            title = { Text("Эмодзи-статус", color = Fusion.colors.textPrimary) },
+            text = {
+                val list = statuses
+                if (list == null) Box(Modifier.fillMaxWidth().padding(24.dp), Alignment.Center) { androidx.compose.material3.CircularProgressIndicator(color = Fusion.colors.textPrimary) }
+                else androidx.compose.foundation.lazy.grid.LazyVerticalGrid(androidx.compose.foundation.lazy.grid.GridCells.Fixed(5), Modifier.heightIn(max = 360.dp)) {
+                    items(list.size) { i ->
+                        Box(Modifier.padding(4.dp).clip(RoundedCornerShape(10.dp)).clickable { choose(list[i]) }.padding(6.dp), Alignment.Center) {
+                            com.kirox.app.ui.components.CustomEmojiImage(list[i], 32.dp)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { choose(0L) }) { Text("Убрать статус", color = Fusion.colors.danger) } },
+            dismissButton = { TextButton(onClick = { choosingStatus = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+        )
+    }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen).imePadding(), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Профиль", onBack) }
         item {
@@ -272,6 +303,16 @@ internal fun ProfileEditScreen(profile: TelegramUserProfile?, onBack: () -> Unit
         item { SmallCaption("О себе") }
         item { EditField(bio, "Пара слов о себе", singleLine = false) { bio = it.take(140) } }
         item { Text("${bio.length}/140", color = Fusion.colors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
+        item { SmallCaption("Эмодзи-статус") }
+        item {
+            androidx.compose.material3.ListItem(
+                headlineContent = { Text(if ((profile?.emojiStatusId ?: 0L) != 0L) "Изменить статус" else "Выбрать статус") },
+                supportingContent = { Text("Эмодзи рядом с именем, его видят все (Telegram Premium)") },
+                trailingContent = { profile?.emojiStatusId?.takeIf { it != 0L }?.let { com.kirox.app.ui.components.CustomEmojiImage(it, 28.dp) } },
+                colors = fusionListColors(),
+                modifier = Modifier.clickable { choosingStatus = true }
+            )
+        }
         item { SmallCaption("Имя пользователя") }
         item { EditField(username, "username", prefix = "@") { username = it.removePrefix("@").filter { c -> c.isLetterOrDigit() || c == '_' }.take(32) } }
         if (username.isNotEmpty()) item { Text("t.me/$username", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)) }

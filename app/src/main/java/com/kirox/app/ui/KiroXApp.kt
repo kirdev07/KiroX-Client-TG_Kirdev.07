@@ -338,6 +338,7 @@ fun KiroXApp() {
                         Screen.Conversation -> CompositionLocalProvider(
                             LocalTelegramFiles provides telegramViewModel.files,
                             com.kirox.app.ui.chat.LocalLinkOpener provides linkOpener,
+                            com.kirox.app.ui.chat.LocalChatOpener provides { id: Long -> openChat(id) },
                             com.kirox.app.ui.chat.LocalAutoDownload provides autoDownloadRule
                         ) {
                             val chatId = openChatId
@@ -383,6 +384,7 @@ fun KiroXApp() {
                         Screen.Thread -> CompositionLocalProvider(
                             LocalTelegramFiles provides telegramViewModel.files,
                             com.kirox.app.ui.chat.LocalLinkOpener provides linkOpener,
+                            com.kirox.app.ui.chat.LocalChatOpener provides { id: Long -> openChat(id) },
                             com.kirox.app.ui.chat.LocalAutoDownload provides autoDownloadRule
                         ) {
                             val spec = openThread

@@ -137,6 +137,14 @@ class TelegramUserRepository(private val client: TelegramClient) {
             else -> UsernameCheck.Invalid
         }
 
+    /** Statuses Telegram suggests for the picker. */
+    suspend fun defaultEmojiStatuses(): List<Long> = runCatching { client.query(TdApi.GetDefaultEmojiStatuses()).customEmojiIds.toList() }.getOrDefault(emptyList())
+
+    /** Sets the emoji status (Telegram Premium); 0 removes it. */
+    suspend fun setEmojiStatus(customEmojiId: Long) {
+        client.query(TdApi.SetEmojiStatus(if (customEmojiId == 0L) null else TdApi.EmojiStatus(TdApi.EmojiStatusTypeCustomEmoji(customEmojiId), 0)))
+    }
+
     suspend fun setProfilePhoto(path: String) {
         client.query(TdApi.SetProfilePhoto(TdApi.InputChatPhotoStatic(TdApi.InputFileLocal(path)), false))
     }
@@ -155,7 +163,7 @@ internal fun TdApi.User.toContact() = TelegramContact(
 internal fun TdApi.User.toProfile(bio: String, birthday: String = "") = TelegramUserProfile(
     id, displayName(), usernames?.editableUsername?.takeIf { it.isNotEmpty() } ?: usernames?.activeUsernames?.firstOrNull(), phoneNumber.orEmpty(), bio, profilePhoto?.small?.toRef(),
     isPremium = isPremium, isVerified = verificationStatus?.isVerified == true, birthday = birthday,
-    firstName = firstName.orEmpty(), lastName = lastName.orEmpty()
+    firstName = firstName.orEmpty(), lastName = lastName.orEmpty(), emojiStatusId = emojiStatusId()
 )
 
 internal fun formatBirthday(day: Int, month: Int, year: Int): String =

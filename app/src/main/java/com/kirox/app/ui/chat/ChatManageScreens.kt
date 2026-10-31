@@ -67,12 +67,15 @@ internal fun ChatManageScreen(chatId: Long, rights: ChatRights, onBack: () -> Un
         "permissions" -> { ChatPermissionsScreen(chatId, onBack = { page = "" }); return }
         "links" -> { InviteLinksScreen(chatId, onBack = { page = "" }); return }
         "requests" -> { JoinRequestsScreen(chatId, onBack = { page = "" }); return }
+        "stats" -> { ChatStatsScreen(chatId, onBack = { page = "" }); return }
     }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val admin = (context.applicationContext as KiroXApplication).telegram.admin
     var isProtected by remember { mutableStateOf<Boolean?>(null) }
     LaunchedEffect(chatId) { if (rights.isOwner) isProtected = runCatching { admin.isProtected(chatId) }.getOrNull() }
+    var canStats by remember { mutableStateOf(false) }
+    LaunchedEffect(chatId) { canStats = admin.canSeeStatistics(chatId) }
     BackHandler(onBack = onBack)
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen).statusBarsPadding(), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle(if (rights.isChannel) "Управление каналом" else "Управление группой", onBack) }
@@ -87,6 +90,7 @@ internal fun ChatManageScreen(chatId: Long, rights: ChatRights, onBack: () -> Un
                 if (rights.canRestrict && !rights.isChannel) { divider(); IconRow(KiroXIcon.Shield, Color(0xFFFFA94D), "Разрешения", "Что могут участники") { page = "permissions" } }
                 if (rights.canInvite) { divider(); IconRow(KiroXIcon.Link, Color(0xFF9B6BFF), "Ссылки-приглашения", "Создать, скопировать, отозвать") { page = "links" } }
                 if (rights.canInvite) { divider(); IconRow(KiroXIcon.Add, Color(0xFF2AABEE), "Заявки на вступление", "Принять или отклонить") { page = "requests" } }
+                if (canStats) { divider(); IconRow(KiroXIcon.Eye, Color(0xFFF06595), "Статистика", "Подписчики, просмотры, активность") { page = "stats" } }
             }
         }
         isProtected?.let { value ->
@@ -401,6 +405,52 @@ private fun InviteLinksScreen(chatId: Long, onBack: () -> Unit) {
             dismissButton = { TextButton(onClick = { revoking = null }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
         )
     }
+}
+
+/** «Статистика»: the main numbers for the last period and how they changed. */
+@Composable
+private fun ChatStatsScreen(chatId: Long, onBack: () -> Unit) {
+    BackHandler(onBack = onBack)
+    val admin = (LocalContext.current.applicationContext as KiroXApplication).telegram.admin
+    var stats by remember { mutableStateOf<com.kirox.app.telegram.ChatStats?>(null) }
+    var loaded by remember { mutableStateOf(false) }
+    LaunchedEffect(chatId) { stats = admin.statistics(chatId); loaded = true }
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen).statusBarsPadding(), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Статистика", onBack) }
+        val s = stats
+        when {
+            !loaded -> item { Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { CircularProgressIndicator(color = Fusion.colors.textPrimary) } }
+            s == null -> item { Text("Telegram пока не даёт статистику этого чата: она открывается, когда подписчиков становится больше.", color = Fusion.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(24.dp)) }
+            else -> {
+                item { androidx.compose.material3.Text(s.period, color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) }
+                items(s.values.chunked(2)) { pair ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        pair.forEach { (title, value, previous) ->
+                            Column(Modifier.weight(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).background(Fusion.colors.surface1).padding(14.dp)) {
+                                androidx.compose.material3.Text(compact(value), color = Fusion.colors.textPrimary, fontSize = 22.sp)
+                                Text(title, color = Fusion.colors.textSecondary, fontSize = 13.sp)
+                                val diff = value - previous
+                                if (previous > 0 || diff != 0.0) androidx.compose.material3.Text(
+                                    (if (diff >= 0) "+" else "−") + compact(kotlin.math.abs(diff)),
+                                    color = if (diff >= 0) Color(0xFF34C38F) else Fusion.colors.danger, fontSize = 13.sp
+                                )
+                            }
+                        }
+                        if (pair.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+                s.notificationsPercent?.let { item { val percent = kotlin.math.round(it).toInt(); Text("Уведомления включены у $percent% подписчиков", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) } }
+            }
+        }
+    }
+}
+
+private fun compact(value: Double): String = when {
+    value >= 1_000_000 -> "%.1fM".format(value / 1_000_000)
+    value >= 10_000 -> "%.0fK".format(value / 1_000)
+    value >= 1_000 -> "%.1fK".format(value / 1_000)
+    value == kotlin.math.floor(value) -> value.toLong().toString()
+    else -> "%.1f".format(value)
 }
 
 /** «Заявки на вступление»: people who asked to join by a link with approval. */

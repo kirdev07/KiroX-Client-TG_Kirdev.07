@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import com.kirox.app.telegram.TelegramEntityType
 import com.kirox.app.telegram.TelegramTextEntity
 import com.kirox.app.ui.theme.Fusion
@@ -45,6 +46,9 @@ internal fun entityLink(text: String, entity: TelegramTextEntity): String? {
  */
 val LocalLinkOpener = androidx.compose.runtime.staticCompositionLocalOf<((String) -> Unit)?> { null }
 
+/** Opens a chat by id from inside a chat screen (similar channels); set by the app. */
+val LocalChatOpener = androidx.compose.runtime.staticCompositionLocalOf<((Long) -> Unit)?> { null }
+
 /** Message text with Telegram formatting, tappable links and spoilers that open on tap. */
 @Composable
 internal fun MessageText(text: String, entities: List<TelegramTextEntity>, scale: Float, color: Color = Fusion.colors.textPrimary, onTextLayout: (androidx.compose.ui.text.TextLayoutResult) -> Unit = {}) {
@@ -53,7 +57,20 @@ internal fun MessageText(text: String, entities: List<TelegramTextEntity>, scale
     val palette = TextPalette(link = color, secondary = Fusion.colors.textSecondary, hidden = Fusion.colors.surface3)
     val opener = LocalLinkOpener.current
     val annotated = remember(text, entities, revealed, palette, opener) { formatMessage(text, entities, revealed, palette, opener) { revealed = true } }
-    Text(annotated, color = color, fontSize = (15f * scale).sp, lineHeight = (20f * scale).sp, onTextLayout = onTextLayout)
+    // Premium custom emoji: a picture in place of the plain emoji, the size of a letter.
+    val emojis = remember(text, entities) {
+        entities.filter { it.type == TelegramEntityType.CustomEmoji && it.offset >= 0 && it.offset + it.length <= text.length }
+            .mapNotNull { e -> e.url?.toLongOrNull()?.let { id -> id to text.substring(e.offset, e.offset + e.length) } }
+    }
+    val size = (15f * scale * 1.25f).sp
+    val inline = remember(emojis, size) {
+        emojis.associate { (id, plain) ->
+            "ce:$id" to androidx.compose.foundation.text.InlineTextContent(
+                androidx.compose.ui.text.Placeholder(size, size, androidx.compose.ui.text.PlaceholderVerticalAlign.TextCenter)
+            ) { com.kirox.app.ui.components.CustomEmojiImage(id, (15f * scale * 1.25f).dp, plain) }
+        }
+    }
+    Text(annotated, color = color, fontSize = (15f * scale).sp, lineHeight = (20f * scale).sp, inlineContent = inline, onTextLayout = onTextLayout)
 }
 
 /** Fusion keeps links monochrome: the text color, underlined. */
@@ -77,6 +94,8 @@ private fun formatMessage(text: String, entities: List<TelegramTextEntity>, reve
             TelegramEntityType.Code, TelegramEntityType.Pre -> addStyle(CodeStyle, start, end)
             TelegramEntityType.Quote -> addStyle(SpanStyle(fontStyle = FontStyle.Italic, color = palette.secondary), start, end)
             TelegramEntityType.Hashtag, TelegramEntityType.BotCommand -> addStyle(SpanStyle(fontWeight = FontWeight.SemiBold), start, end)
+            // The same tag appendInlineContent uses: the range is drawn by the inline picture.
+            TelegramEntityType.CustomEmoji -> entity.url?.let { addStringAnnotation("androidx.compose.foundation.text.inlineContent", "ce:$it", start, end) }
             TelegramEntityType.Spoiler -> if (!revealed) {
                 addStyle(hiddenStyle, start, end)
                 addLink(LinkAnnotation.Clickable("spoiler", TextLinkStyles(hiddenStyle)) { onReveal() }, start, end)

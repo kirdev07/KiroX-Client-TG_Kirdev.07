@@ -67,6 +67,9 @@ internal fun PeerProfileScreen(
     var rights by remember(chatId) { mutableStateOf<com.kirox.app.telegram.ChatRights?>(null) }
     var managing by remember { mutableStateOf(false) }
     LaunchedEffect(chatId) { rights = admin.rights(chatId) }
+    var similar by remember(chatId) { mutableStateOf<List<com.kirox.app.telegram.SimilarChat>>(emptyList()) }
+    LaunchedEffect(chatId) { similar = admin.similarChannels(chatId) }
+    val openChat = LocalChatOpener.current
     rights?.takeIf { managing }?.let { r -> ChatManageScreen(chatId, r, onBack = { managing = false }); return }
     var galleryAt by remember { mutableStateOf<TelegramSharedItem?>(null) }
     galleryAt?.let { item -> item.full?.let { full -> ChatPhotoGallery(chatId, item.messageId, full) { galleryAt = null } } }
@@ -105,7 +108,10 @@ internal fun PeerProfileScreen(
                 Column(Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(Modifier.size(128.dp).border(2.dp, accent, CircleShape).padding(5.dp), contentAlignment = Alignment.Center) { TelegramAvatar(title, photo, 116.dp) }
                     Spacer(Modifier.height(12.dp))
-                    Text(title, color = Fusion.colors.textPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 24.dp))
+                    Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(title, color = Fusion.colors.textPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        if (info.emojiStatusId != 0L) { Spacer(Modifier.width(6.dp)); com.kirox.app.ui.components.CustomEmojiImage(info.emojiStatusId, 26.dp) }
+                    }
                     if (status.isNotBlank()) Text(status, color = accent, fontSize = 14.sp)
                 }
             }
@@ -120,6 +126,20 @@ internal fun PeerProfileScreen(
                 }
                 ProfileAction(KiroXIcon.Search, "Поиск", Modifier.weight(1f), onSearch)
                 if (muted != null && onToggleMute != null) ProfileAction(KiroXIcon.Bell, if (muted) "Вкл. звук" else "Без звука", Modifier.weight(1f)) { onToggleMute(!muted) }
+            }
+        }
+        if (similar.isNotEmpty() && openChat != null) item(span = { GridItemSpan(3) }) {
+            Column(Modifier.padding(top = 12.dp)) {
+                Text("Похожие каналы", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+                androidx.compose.foundation.lazy.LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(similar.size) { i ->
+                        val chat = similar[i]
+                        Column(Modifier.width(72.dp).clip(RoundedCornerShape(12.dp)).clickable { openChat(chat.chatId) }.padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            TelegramAvatar(chat.title, chat.photo, 56.dp)
+                            androidx.compose.material3.Text(chat.title, color = Fusion.colors.textPrimary, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        }
+                    }
+                }
             }
         }
         item(span = { GridItemSpan(3) }) {

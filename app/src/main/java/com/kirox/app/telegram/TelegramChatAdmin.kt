@@ -35,6 +35,12 @@ data class GroupPermissions(
     val changeInfo: Boolean
 )
 
+/** A channel Telegram suggests next to another. */
+data class SimilarChat(val chatId: Long, val title: String, val photo: TelegramFileRef?)
+
+/** Main numbers of a channel or group for its admins; each with the previous period's value. */
+data class ChatStats(val isChannel: Boolean, val period: String, val values: List<Triple<String, Double, Double>>, val notificationsPercent: Double?)
+
 /** Someone asking to join by a link that needs approval. */
 data class JoinRequest(val userId: Long, val name: String, val photo: TelegramFileRef?, val bio: String, val date: Int)
 
@@ -172,6 +178,37 @@ class TelegramChatAdmin(private val client: TelegramClient) {
 
     /** Revoking the main link makes Telegram give the chat a new one. */
     suspend fun revokeInviteLink(chatId: Long, link: String) { client.query(TdApi.RevokeChatInviteLink(chatId, link)) }
+
+    /** «Похожие каналы» under a channel's profile. */
+    suspend fun similarChannels(chatId: Long): List<SimilarChat> = runCatching {
+        client.query(TdApi.GetChatSimilarChats(chatId)).chatIds.toList().mapNotNull { id ->
+            runCatching { client.query(TdApi.GetChat(id)) }.getOrNull()?.let { SimilarChat(it.id, it.title, it.photo?.small?.toRef()) }
+        }
+    }.getOrDefault(emptyList())
+
+    /** Statistics are open to admins of larger channels and groups (Telegram decides). */
+    suspend fun canSeeStatistics(chatId: Long): Boolean = runCatching {
+        val type = client.query(TdApi.GetChat(chatId)).type as? TdApi.ChatTypeSupergroup ?: return false
+        client.query(TdApi.GetSupergroupFullInfo(type.supergroupId)).canGetStatistics
+    }.getOrDefault(false)
+
+    suspend fun statistics(chatId: Long): ChatStats? = runCatching {
+        fun period(range: TdApi.DateRange) = java.text.SimpleDateFormat("d MMM", java.util.Locale.getDefault()).let { f ->
+            "${f.format(java.util.Date(range.startDate * 1000L))} — ${f.format(java.util.Date(range.endDate * 1000L))}"
+        }
+        fun v(title: String, value: TdApi.StatisticalValue) = Triple(title, value.value, value.previousValue)
+        when (val s = client.query(TdApi.GetChatStatistics(chatId, true))) {
+            is TdApi.ChatStatisticsChannel -> ChatStats(true, period(s.period), listOf(
+                v("Подписчики", s.memberCount), v("Просмотров на пост", s.meanMessageViewCount),
+                v("Репостов на пост", s.meanMessageShareCount), v("Реакций на пост", s.meanMessageReactionCount),
+                v("Просмотров истории", s.meanStoryViewCount)
+            ), s.enabledNotificationsPercentage)
+            is TdApi.ChatStatisticsSupergroup -> ChatStats(false, period(s.period), listOf(
+                v("Участники", s.memberCount), v("Сообщения", s.messageCount), v("Читают", s.viewerCount), v("Пишут", s.senderCount)
+            ), null)
+            else -> null
+        }
+    }.getOrNull()
 
     /** «Заявки на вступление» from all links of the chat, newest first. */
     suspend fun joinRequests(chatId: Long): List<JoinRequest> =
