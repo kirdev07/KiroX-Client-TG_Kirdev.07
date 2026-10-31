@@ -55,12 +55,15 @@ class FusionUiTest {
         val sent = mutableListOf<String>()
         val actions = object : TelegramChatActions {
             override fun loadOlder() {}
-            override fun sendText(text: String, replyToMessageId: Long?) { sent += text }
+            override fun sendText(text: String, replyToMessageId: Long?, silent: Boolean) { sent += text }
             override fun sendPhoto(path: String, caption: String) {}
             override fun sendDocument(path: String, caption: String) {}
             override fun edit(messageId: Long, text: String) {}
             override fun delete(messageIds: List<Long>, forEveryone: Boolean) {}
-            override fun forward(toChatId: Long, messageIds: List<Long>) {}
+            override fun forward(toChatId: Long, messageIds: List<Long>, asCopy: Boolean, removeCaption: Boolean) {}
+            override fun sendVoice(path: String, durationSeconds: Int, waveform: ByteArray) {}
+            override fun toggleReaction(messageId: Long, emoji: String) {}
+            override fun sendVideo(path: String, caption: String, durationSeconds: Int, width: Int, height: Int) {}
         }
         val history = TelegramChatHistory(
             chatId = 1, title = "Тестовый чат", peerKind = TelegramPeerKind.User, reachedStart = true,

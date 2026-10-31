@@ -11,6 +11,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -126,6 +127,22 @@ class KiroXSettingsRepository(context: Context) {
 
     /** Back to defaults for every KiroX look-and-feel setting; Telegram data is not touched. */
     fun resetAll() { scope.launch { store.edit { it.clear() } } }
+
+    /** Every appearance setting as plain values, for the settings backup. */
+    suspend fun exportAll(): Map<String, Any> = store.data.first().asMap().mapKeys { it.key.name }
+
+    /** Replaces the appearance settings with [values] from a backup; unknown value types are skipped. */
+    suspend fun importAll(values: Map<String, Any>) {
+        store.edit { prefs ->
+            prefs.clear()
+            values.forEach { (key, value) ->
+                when (value) {
+                    is Boolean -> prefs[androidx.datastore.preferences.core.booleanPreferencesKey(key)] = value
+                    is String -> prefs[stringPreferencesKey(key)] = value
+                }
+            }
+        }
+    }
 
     fun setChatTextSize(value: ChatTextSize) { scope.launch { store.edit { it[textSizeKey] = value.name } } }
     fun setChatWallpaper(value: ChatWallpaper) { scope.launch { store.edit { it[wallpaperKey] = value.name } } }

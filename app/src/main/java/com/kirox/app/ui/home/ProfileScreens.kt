@@ -110,6 +110,15 @@ internal fun ProfileTab(profile: TelegramUserProfile?, onOpenSettings: () -> Uni
             item { Spacer(Modifier.height(12.dp)) }
             profile?.phoneNumber?.takeIf { it.isNotBlank() }?.let { phone -> item { InfoLine(KiroXIcon.Phone, TelegramFormat.phone(phone), "Телефон") } }
             profile?.username?.let { username -> item { InfoLine(KiroXIcon.At, "@$username", "Имя пользователя") } }
+            if (com.kirox.app.settings.KiroxTweaks.current.showIds) profile?.id?.let { id ->
+                item {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    Box(Modifier.clickable {
+                        context.getSystemService(android.content.ClipboardManager::class.java)?.setPrimaryClip(android.content.ClipData.newPlainText("ID", id.toString()))
+                        onNotice("ID скопирован")
+                    }) { InfoLine(KiroXIcon.Info, id.toString(), "ID · нажмите, чтобы скопировать") }
+                }
+            }
             profile?.bio?.takeIf { it.isNotBlank() }?.let { bio -> item { InfoLine(KiroXIcon.Info, bio, "О себе") } }
             profile?.birthday?.takeIf { it.isNotBlank() }?.let { birthday -> item { InfoLine(KiroXIcon.Cake, birthday, "Дата рождения") } }
             item {

@@ -1382,8 +1382,80 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
     val context = LocalContext.current
     var confirmReset by remember { mutableStateOf(false) }
     var confirmLogout by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val tweaks by com.kirox.app.settings.KiroxTweaks.state.collectAsState()
+    fun set(value: com.kirox.app.settings.Tweaks) = com.kirox.app.settings.KiroxTweaks.update(value)
+    var choosingDoubleTap by remember { mutableStateOf(false) }
+    var restoreText by remember { mutableStateOf<String?>(null) }
+    val pickBackup = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            restoreText = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes().take(512 * 1024).toByteArray().decodeToString() } }.getOrNull()
+            }
+            if (restoreText == null) onNotice("Не удалось прочитать файл")
+        }
+    }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
-        item { BackTitle("Дополнительно", onBack) }
+        item { BackTitle("kiroX Настройки", onBack) }
+        item { SmallCaption("Чаты") }
+        item {
+            SettingsCard {
+                IconRow(IconGlyphs.Chat, Color(0xFF4F8DF7), "Двойной тап по сообщению", null, trailing = tweaks.doubleTap.title) { choosingDoubleTap = true }
+                CardDivider()
+                ToggleRow("Пересылать без автора", "В окне «Переслать» сразу включено «Без автора»: сообщение уйдёт как ваше", tweaks.forwardWithoutAuthor) { set(tweaks.copy(forwardWithoutAuthor = it)) }
+            }
+        }
+        item {
+            Text(
+                "Тихая отправка: удерживайте кнопку «Отправить» — собеседник получит сообщение без звука.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            )
+        }
+        item { SmallCaption("Спрашивать перед отправкой") }
+        item {
+            SettingsCard {
+                ToggleRow("Стикеры", checked = tweaks.confirmSticker) { set(tweaks.copy(confirmSticker = it)) }
+                ToggleRow("GIF", checked = tweaks.confirmGif) { set(tweaks.copy(confirmGif = it)) }
+                ToggleRow("Голосовые", checked = tweaks.confirmVoice) { set(tweaks.copy(confirmVoice = it)) }
+                ToggleRow("Звонки", "Перед звонком и видеочатом", tweaks.confirmCall) { set(tweaks.copy(confirmCall = it)) }
+            }
+        }
+        item { SmallCaption("Интерфейс") }
+        item {
+            SettingsCard {
+                ToggleRow("Вкладка «Звонки»", "Показывать в нижней панели", !tweaks.hideCallsTab) { set(tweaks.copy(hideCallsTab = !it)) }
+                ToggleRow("Вкладка «Истории»", "Показывать в нижней панели", !tweaks.hideStoriesTab) { set(tweaks.copy(hideStoriesTab = !it)) }
+                ToggleRow("ID в профилях", "Номер пользователя или чата в Telegram; нажатие копирует его", tweaks.showIds) { set(tweaks.copy(showIds = it)) }
+            }
+        }
+        item { SmallCaption("Резервная копия") }
+        item {
+            SettingsCard {
+                LinkRow("Сохранить настройки в файл", "Оформление, функции kiroX, уведомления, язык и наборы названий — в «Загрузки/kiroX»") {
+                    scope.launch {
+                        val saved = runCatching {
+                            val text = com.kirox.app.settings.SettingsBackup.export(context)
+                            val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                java.io.File(context.cacheDir, "backup").apply { mkdirs() }.resolve("settings.json").apply { writeText(text) }
+                            }
+                            val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT).format(java.util.Date())
+                            com.kirox.app.ui.chat.saveToDownloads(context, file.path, "kiroX-settings-$day.json", "application/json")
+                        }.getOrDefault(false)
+                        onNotice(if (saved) "Сохранено в «Загрузки/kiroX»" else "Не удалось сохранить файл")
+                    }
+                }
+                LinkRow("Восстановить из файла", "Настройки из сохранённой копии заменят текущие") {
+                    pickBackup.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+                }
+            }
+        }
+        item {
+            Text(
+                "В копию не попадают переписка, аккаунт, код-пароль и ключи — только настройки kiroX.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            )
+        }
         item { SmallCaption("О приложении") }
         item { LinkRow("kiroX ${BuildConfig.VERSION_NAME}", "Неофициальный клиент Telegram на TDLib") {} }
         item {
@@ -1405,6 +1477,27 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
         item { SmallCaption("Сброс") }
         item { LinkRow("Сбросить настройки kiroX", "Тема, анимации, чаты — к значениям по умолчанию. Telegram не затрагивается", Fusion.colors.danger) { confirmReset = true } }
         item { LinkRow("Выйти из аккаунта", null, Fusion.colors.danger) { confirmLogout = true } }
+    }
+    if (choosingDoubleTap) ChoiceDialog("Двойной тап по сообщению", com.kirox.app.settings.DoubleTapAction.entries, tweaks.doubleTap, { it.title }, onDismiss = { choosingDoubleTap = false }) {
+        set(tweaks.copy(doubleTap = it)); choosingDoubleTap = false
+    }
+    restoreText?.let { text ->
+        AlertDialog(
+            onDismissRequest = { restoreText = null },
+            containerColor = Fusion.colors.surface1,
+            title = { Text("Восстановить настройки?", color = Fusion.colors.textPrimary) },
+            text = { Text("Текущие настройки kiroX заменятся настройками из файла, и kiroX перезапустится.", color = Fusion.colors.textSecondary) },
+            confirmButton = {
+                TextButton(onClick = {
+                    restoreText = null
+                    scope.launch {
+                        if (com.kirox.app.settings.SettingsBackup.restore(context, text)) com.kirox.app.settings.SettingsBackup.restart(context)
+                        else onNotice("Это не файл настроек kiroX")
+                    }
+                }) { Text("Восстановить", color = Fusion.colors.accent) }
+            },
+            dismissButton = { TextButton(onClick = { restoreText = null }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+        )
     }
     if (confirmReset) AlertDialog(
         onDismissRequest = { confirmReset = false },

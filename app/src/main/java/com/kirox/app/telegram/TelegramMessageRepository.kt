@@ -240,8 +240,10 @@ class TelegramMessageRepository(
 
     fun loadOlder() = client.post { requestOlder() }
 
-    fun sendText(text: String, replyToMessageId: Long?) = act { id ->
-        TdApi.SendMessage(id, topic, replyToMessageId?.let { TdApi.InputMessageReplyToMessage(it, null, 0, null) }, null, null, inputText(text))
+    /** [silent]: delivered without sound («Отправить без звука»). */
+    fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false) = act { id ->
+        val options = if (silent) TdApi.MessageSendOptions(null, true, false, false, false, 0, false, null, 0, 0, false) else null
+        TdApi.SendMessage(id, topic, replyToMessageId?.let { TdApi.InputMessageReplyToMessage(it, null, 0, null) }, options, null, inputText(text))
     }
 
     fun sendPhoto(path: String, caption: String) = act { id ->
@@ -327,7 +329,9 @@ class TelegramMessageRepository(
 
     fun delete(messageIds: List<Long>, forEveryone: Boolean) = act { id -> TdApi.DeleteMessages(id, messageIds.toLongArray(), forEveryone) }
 
-    fun forward(toChatId: Long, messageIds: List<Long>) = act { id -> TdApi.ForwardMessages(toChatId, null, id, messageIds.toLongArray(), null, false, false) }
+    /** [asCopy]: sent as your own messages, without «Переслано от»; [removeCaption] also drops media captions. */
+    fun forward(toChatId: Long, messageIds: List<Long>, asCopy: Boolean = false, removeCaption: Boolean = false) =
+        act { id -> TdApi.ForwardMessages(toChatId, null, id, messageIds.toLongArray(), null, asCopy, asCopy && removeCaption) }
 
     /**
      * Saves [text] as the Telegram draft of [chatId] (any chat, not only the open one), or clears it

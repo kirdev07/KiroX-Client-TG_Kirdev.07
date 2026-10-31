@@ -446,7 +446,7 @@ private class TelegramMessageActions(
     private val activityRepository: com.kirox.app.telegram.TelegramChatActionRepository
 ) : TelegramChatActions {
     override fun loadOlder() = repository.loadOlder()
-    override fun sendText(text: String, replyToMessageId: Long?) = repository.sendText(text, replyToMessageId)
+    override fun sendText(text: String, replyToMessageId: Long?, silent: Boolean) = repository.sendText(text, replyToMessageId, silent)
     override fun sendPhoto(path: String, caption: String) = repository.sendPhoto(path, caption)
     override fun sendDocument(path: String, caption: String) = repository.sendDocument(path, caption)
     override fun sendLocation(latitude: Double, longitude: Double) = repository.sendLocation(latitude, longitude)
@@ -456,7 +456,7 @@ private class TelegramMessageActions(
     override fun sendVideo(path: String, caption: String, durationSeconds: Int, width: Int, height: Int) = repository.sendVideo(path, caption, durationSeconds, width, height)
     override fun edit(messageId: Long, text: String) = repository.edit(messageId, text)
     override fun delete(messageIds: List<Long>, forEveryone: Boolean) = repository.delete(messageIds, forEveryone)
-    override fun forward(toChatId: Long, messageIds: List<Long>) = repository.forward(toChatId, messageIds)
+    override fun forward(toChatId: Long, messageIds: List<Long>, asCopy: Boolean, removeCaption: Boolean) = repository.forward(toChatId, messageIds, asCopy, removeCaption)
     override fun saveDraft(chatId: Long, text: String, threadId: Long, forumTopicId: Int) = repository.saveDraft(chatId, text, threadId, forumTopicId)
     override fun setActivity(chatId: Long, activity: com.kirox.app.telegram.ChatActivity?) = activityRepository.send(chatId, activity)
     override fun sendAlbum(items: List<Pair<String, com.kirox.app.telegram.VideoMeta?>>, caption: String) = repository.sendAlbum(items, caption)

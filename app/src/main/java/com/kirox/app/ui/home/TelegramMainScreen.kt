@@ -128,18 +128,22 @@ fun TelegramMainScreen(
     val showNotice: (String) -> Unit = { notice = UiNotice(it) }
     val linkOpener = com.kirox.app.ui.chat.LocalLinkOpener.current
     LaunchedEffect(chatError) { if (chatError != null) { notice = UiNotice(chatError); onChatErrorShown() } }
-    val navItems = MainTab.entries.map { it.item }
+    // «Вкладки нижней панели» in kiroX settings: Calls and Stories can be hidden.
+    val tweaks by com.kirox.app.settings.KiroxTweaks.state.collectAsState()
+    val tabs = MainTab.entries.filter { (it != MainTab.Calls || !tweaks.hideCallsTab) && (it != MainTab.Stories || !tweaks.hideStoriesTab) }
+    LaunchedEffect(tabs) { if (tab !in tabs) tab = MainTab.Chats }
+    val navItems = tabs.map { it.item }
     BoxWithConstraints(Modifier.fillMaxSize()) {
     com.kirox.app.ui.components.FusionBackdrop()
     val wide = maxWidth >= 600.dp
     Row(Modifier.fillMaxSize()) {
-    if (wide) FusionNavigationRail(navItems, tab.ordinal, { tab = MainTab.entries[it]; sub = SubScreen.None })
+    if (wide) FusionNavigationRail(navItems, tabs.indexOf(tab).coerceAtLeast(0), { tab = tabs[it]; sub = SubScreen.None })
     Scaffold(
         modifier = Modifier.weight(1f),
         containerColor = if (Fusion.colors.backdrop != null) androidx.compose.ui.graphics.Color.Transparent else Fusion.colors.background,
         contentWindowInsets = WindowInsets.statusBars,
         bottomBar = {
-            if (!keyboardOpen && !wide) FusionBottomBar(navItems, tab.ordinal, { tab = MainTab.entries[it]; sub = SubScreen.None })
+            if (!keyboardOpen && !wide) FusionBottomBar(navItems, tabs.indexOf(tab).coerceAtLeast(0), { tab = tabs[it]; sub = SubScreen.None })
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding()) {

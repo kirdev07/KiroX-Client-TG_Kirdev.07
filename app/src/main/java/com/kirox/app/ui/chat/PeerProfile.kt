@@ -120,6 +120,13 @@ internal fun PeerProfileScreen(
                 if (info.username.isNotBlank()) InfoRow(KiroXIcon.At, "@${info.username}", "Имя пользователя")
                 if (info.about.isNotBlank()) InfoRow(KiroXIcon.Info, info.about, "О себе")
                 if (info.phone.isNotBlank()) InfoRow(KiroXIcon.Phone, TelegramFormat.phone(info.phone), "Телефон")
+                if (com.kirox.app.settings.KiroxTweaks.state.collectAsState().value.showIds) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    InfoRow(KiroXIcon.Info, chatId.toString(), "ID · нажмите, чтобы скопировать") {
+                        context.getSystemService(android.content.ClipboardManager::class.java)?.setPrimaryClip(android.content.ClipData.newPlainText("ID", chatId.toString()))
+                        android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("ID скопирован"), android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
                 if (muted != null && onToggleMute != null) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     KiroXIcon(KiroXIcon.Bell, null, Modifier.size(20.dp), Fusion.colors.textSecondary)
                     Spacer(Modifier.width(14.dp))
@@ -185,8 +192,8 @@ private fun ProfileAction(icon: KiroXIcon, label: String, modifier: Modifier, on
 }
 
 @Composable
-private fun InfoRow(icon: KiroXIcon, value: String, label: String) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun InfoRow(icon: KiroXIcon, value: String, label: String, onClick: (() -> Unit)? = null) {
+    Row(Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         KiroXIcon(icon, null, Modifier.size(20.dp), Fusion.colors.textSecondary)
         Spacer(Modifier.width(14.dp))
         Column {

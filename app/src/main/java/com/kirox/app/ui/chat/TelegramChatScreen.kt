@@ -67,7 +67,7 @@ interface TelegramChatMenuActions {
 
 interface TelegramChatActions {
     fun loadOlder()
-    fun sendText(text: String, replyToMessageId: Long?)
+    fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false)
     fun sendPhoto(path: String, caption: String)
     fun sendDocument(path: String, caption: String)
     fun sendLocation(latitude: Double, longitude: Double) {}
@@ -77,7 +77,7 @@ interface TelegramChatActions {
     fun sendVideo(path: String, caption: String, durationSeconds: Int, width: Int, height: Int)
     fun edit(messageId: Long, text: String)
     fun delete(messageIds: List<Long>, forEveryone: Boolean)
-    fun forward(toChatId: Long, messageIds: List<Long>)
+    fun forward(toChatId: Long, messageIds: List<Long>, asCopy: Boolean = false, removeCaption: Boolean = false)
     /** Stores the unsent text as the chat's Telegram draft; blank text clears it. */
     fun saveDraft(chatId: Long, text: String, threadId: Long = 0, forumTopicId: Int = 0) {}
     /** Our activity in the chat (typing, recording); null cancels it. */
@@ -127,6 +127,10 @@ fun TelegramChatScreen(
     onGroupCall: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val tweaks by com.kirox.app.settings.KiroxTweaks.state.collectAsState()
+    // «Подтверждения» from kiroX settings: a question before a sticker, GIF, voice message or call.
+    var confirmAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
+    fun confirmed(question: String, ask: Boolean, action: () -> Unit) { if (ask) confirmAction = question to action else action() }
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
     val style = com.kirox.app.ui.theme.LocalChatStyle.current
@@ -387,7 +391,7 @@ fun TelegramChatScreen(
         PeerProfileScreen(
             chatId = history.chatId, title = peer.name, photo = peer.photo, status = peer.status,
             canCall = onCall != null && history.peerKind == TelegramPeerKind.User && !history.isSecret,
-            onCall = { video -> profileOpen = false; onCall?.invoke(video) },
+            onCall = { video -> profileOpen = false; confirmed(if (video) "Начать видеозвонок?" else "Позвонить?", tweaks.confirmCall) { onCall?.invoke(video) } },
             muted = muted,
             onToggleMute = menu?.let { m -> { target -> muted = target; scope.launch { runCatching { m.setMuted(history.chatId, target) }.onFailure { muted = !target } } } },
             onSearch = { profileOpen = false; searching = true },
@@ -437,7 +441,11 @@ fun TelegramChatScreen(
                     menuOpen = true
                     scope.launch { muted = runCatching { menu.isMuted(history.chatId) }.getOrNull() }
                 }
-            }, onCall = { video -> if (history.peerKind == TelegramPeerKind.User) onCall?.invoke(video) else onGroupCall?.invoke() })
+            }, onCall = { video ->
+                confirmed(if (video) "Начать видеозвонок?" else if (history.peerKind == TelegramPeerKind.User) "Позвонить?" else "Присоединиться к видеочату?", tweaks.confirmCall) {
+                    if (history.peerKind == TelegramPeerKind.User) onCall?.invoke(video) else onGroupCall?.invoke()
+                }
+            })
                 history.pinned?.let { pinned -> PinnedBar(pinned, count = history.pinnedIds.size) { actions.jumpTo(pinned.id) } }
             }
         },
@@ -452,7 +460,8 @@ fun TelegramChatScreen(
                     val note = recorder.stop()
                     recording = false
                     recordPaused = false
-                    if (note != null) actions.sendVoice(note.file.absolutePath, note.durationSeconds, note.waveform) else notice = "Слишком короткое голосовое"
+                    if (note != null) confirmed("Отправить голосовое?", tweaks.confirmVoice) { actions.sendVoice(note.file.absolutePath, note.durationSeconds, note.waveform) }
+                    else notice = "Слишком короткое голосовое"
                 }
             ) else if (history.peerKind == TelegramPeerKind.Bot && history.loaded && history.reachedStart && history.messages.isEmpty()) {
                 // A bot nobody has written to yet: like Telegram, one «Запустить» button sends /start.
@@ -493,7 +502,16 @@ fun TelegramChatScreen(
                     if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) startRecording()
                     else micPermission.launch(android.Manifest.permission.RECORD_AUDIO)
                 },
-                appearance = appearance
+                appearance = appearance,
+                // Saved Messages make no sound anyway.
+                onSendSilent = if (history.peerKind == TelegramPeerKind.Saved) null else ({
+                    val text = input.text.trim()
+                    if (text.isNotEmpty()) {
+                        actions.sendText(text, replyTo?.id, silent = true)
+                        input = TextFieldValue(); replyTo = null; editing = null
+                        notice = "Отправлено без звука"
+                    }
+                })
             )
             }
         }
@@ -555,6 +573,18 @@ fun TelegramChatScreen(
                         onNotice = { notice = it },
                         selected = row.message.id in selectedIds,
                         onClick = if (selectedIds.isNotEmpty() && row.message.direction != MessageDirection.System) ({ selectedIds = selectedIds.toggleAll(idsOf(row.message)) }) else null,
+                        // «Двойной тап» from kiroX settings; off while selecting.
+                        onDoubleClick = if (selectedIds.isNotEmpty() || row.message.direction == MessageDirection.System) null else when (tweaks.doubleTap) {
+                            com.kirox.app.settings.DoubleTapAction.None -> null
+                            com.kirox.app.settings.DoubleTapAction.Reaction -> ({ actions.toggleReaction(row.message.id, "\u2764") })
+                            com.kirox.app.settings.DoubleTapAction.Reply -> ({ replyTo = row.message; editing = null })
+                            com.kirox.app.settings.DoubleTapAction.Copy -> ({
+                                if (row.message.text.isNotBlank()) {
+                                    context.getSystemService(android.content.ClipboardManager::class.java)?.setPrimaryClip(android.content.ClipData.newPlainText("kiroX", row.message.text))
+                                    notice = "Скопировано"
+                                }
+                            })
+                        },
                         onQuote = { id -> actions.jumpTo(id) },
                         highlighted = row.message.id == highlighted,
                         onVote = { indices -> actions.vote(row.message.id, indices) },
@@ -743,7 +773,8 @@ fun TelegramChatScreen(
             input = TextFieldValue(text, androidx.compose.ui.text.TextRange(start + emoji.length))
         },
         onSend = { item ->
-            actions.sendPanelItem(item, replyTo?.id)
+            val reply = replyTo?.id
+            confirmed(if (item.isGif) "Отправить GIF?" else "Отправить стикер?", if (item.isGif) tweaks.confirmGif else tweaks.confirmSticker) { actions.sendPanelItem(item, reply) }
             replyTo = null
             stickerPanel = false
         },
@@ -793,13 +824,20 @@ fun TelegramChatScreen(
         )
     }
     forwarding?.let { forwardIds ->
+        // «Без автора»: sent as your own message; «Без подписи» also drops captions of photos and videos.
+        var asCopy by remember(forwardIds) { mutableStateOf(tweaks.forwardWithoutAuthor) }
+        var noCaption by remember(forwardIds) { mutableStateOf(false) }
         ModalBottomSheet(onDismissRequest = { forwarding = null }, containerColor = Fusion.colors.surface1) {
             Text("Переслать в…", color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(asCopy, onClick = { asCopy = !asCopy }, label = { Text("Без автора") })
+                FilterChip(noCaption && asCopy, onClick = { noCaption = !noCaption }, enabled = asCopy, label = { Text("Без подписи") })
+            }
             LazyColumn(Modifier.fillMaxWidth().heightIn(max = 480.dp)) {
                 items(forwardTargets, key = { it.id }) { target ->
                     Row(
                         Modifier.fillMaxWidth().clickable {
-                            actions.forward(target.id, forwardIds); forwarding = null; selectedIds = emptySet(); notice = "Переслано в «${target.title}»"
+                            actions.forward(target.id, forwardIds, asCopy, noCaption); forwarding = null; selectedIds = emptySet(); notice = "Переслано в «${target.title}»"
                         }.heightIn(min = 60.dp).padding(horizontal = 20.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -812,6 +850,15 @@ fun TelegramChatScreen(
             }
             Spacer(Modifier.navigationBarsPadding().height(8.dp))
         }
+    }
+    confirmAction?.let { (question, action) ->
+        AlertDialog(
+            onDismissRequest = { confirmAction = null },
+            containerColor = Fusion.colors.surface1,
+            title = { Text(question, color = Fusion.colors.textPrimary) },
+            confirmButton = { TextButton(onClick = { confirmAction = null; action() }) { Text("Да", color = Fusion.colors.accent) } },
+            dismissButton = { TextButton(onClick = { confirmAction = null }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+        )
     }
     if (menuOpen && menu != null) {
         ModalBottomSheet(onDismissRequest = { menuOpen = false }, containerColor = Fusion.colors.surface1) {
