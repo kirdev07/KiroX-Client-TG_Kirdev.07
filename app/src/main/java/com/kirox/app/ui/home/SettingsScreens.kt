@@ -1042,6 +1042,13 @@ internal fun formatBytes(bytes: Long): String = when {
 /** Settings → Language: interface language and the user's own names for any text. */
 @Composable
 internal fun LanguageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
+    val appContext = LocalContext.current.applicationContext
+    /** The language for the app and for the system notification channels. */
+    fun chooseLanguage(language: com.kirox.app.i18n.AppLanguage) {
+        com.kirox.app.i18n.I18n.chooseLanguage(language)
+        com.kirox.app.notify.MessageNotifications.refreshChannels(appContext)
+        com.kirox.app.voip.CallNotifications.ensureChannels(appContext)
+    }
     var renaming by remember { mutableStateOf(false) }
     if (renaming) { RenameTextsScreen(onBack = { renaming = false }, onNotice = onNotice); return }
     BackHandler(onBack = onBack)
@@ -1055,7 +1062,7 @@ internal fun LanguageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
                     if (index > 0) CardDivider()
                     val selected = i18n.language == language
                     Row(
-                        Modifier.fillMaxWidth().clickable { i18n.chooseLanguage(language) }.heightIn(min = 56.dp).padding(horizontal = 20.dp, vertical = 8.dp),
+                        Modifier.fillMaxWidth().clickable { chooseLanguage(language) }.heightIn(min = 56.dp).padding(horizontal = 20.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
@@ -1066,7 +1073,7 @@ internal fun LanguageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
                                 color = Fusion.colors.textSecondary, fontSize = 13.sp
                             )
                         }
-                        androidx.compose.material3.RadioButton(selected, onClick = { i18n.chooseLanguage(language) })
+                        androidx.compose.material3.RadioButton(selected, onClick = { chooseLanguage(language) })
                     }
                 }
             }

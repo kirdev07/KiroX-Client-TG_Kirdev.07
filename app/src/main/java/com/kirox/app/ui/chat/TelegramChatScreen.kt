@@ -755,7 +755,7 @@ fun TelegramChatScreen(
                     "Удалить" -> if (albumIds.containsKey(message.id)) deletingMany = idsOf(message) else deleting = message
                     "Переслать" -> forwarding = idsOf(message)
                     // «+1»: the same message once more in this chat, as your own (a copy, no «Переслано от»).
-                    "Повторить" -> { actions.forward(history.chatId, idsOf(message), asCopy = true); notice = "Отправлено ещё раз" }
+                    "Отправить ещё раз" -> { actions.forward(history.chatId, idsOf(message), asCopy = true); notice = "Отправлено ещё раз" }
                     "Сохранить" -> saveMedia(message)
                     "Закрепить" -> { actions.pin(message.id); notice = "Сообщение закреплено" }
                     "Открепить" -> actions.unpin(message.id)
@@ -776,10 +776,10 @@ fun TelegramChatScreen(
             hidden = buildSet {
                 if (history.isSecret) add("Закрепить")
                 if (source?.canEdit != true) add("Редактировать")
-                if (source?.delivery == TelegramDelivery.Sending) { add("Переслать"); add("Ответить"); add("Повторить") }
+                if (source?.delivery == TelegramDelivery.Sending) { add("Переслать"); add("Ответить"); add("Отправить ещё раз") }
                 if (!tweaks.keepEdits || !message.edited) add("История изменений")
                 // Only content that can be sent again: no polls, calls or service messages.
-                if (message.poll != null || message.direction == MessageDirection.System) add("Повторить")
+                if (message.poll != null || message.direction == MessageDirection.System) add("Отправить ещё раз")
             }
         )
     }

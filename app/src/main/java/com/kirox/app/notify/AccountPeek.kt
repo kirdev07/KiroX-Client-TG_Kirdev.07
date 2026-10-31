@@ -66,7 +66,7 @@ class AccountPeek(context: Context) {
                     update.addedNotifications.forEach { notification ->
                         val type = notification.type as? TdApi.NotificationTypeNewMessage ?: return@forEach
                         if (notification.isSilent) return@forEach
-                        show(account, update.notificationGroupId, titles[update.chatId].orEmpty(), if (type.showPreview) messagePreview(type.message) else "Новое сообщение")
+                        show(account, update.notificationGroupId, titles[update.chatId].orEmpty(), if (type.showPreview) messagePreview(type.message) else com.kirox.app.i18n.I18n.t("Новое сообщение"))
                     }
                     // Read on another device: the group is empty, its notification goes away.
                     if (update.totalCount == 0) runCatching { NotificationManagerCompat.from(appContext).cancel(tagOf(account), update.notificationGroupId) }
@@ -91,7 +91,7 @@ class AccountPeek(context: Context) {
     // The POST_NOTIFICATIONS check is right before notify(); lint cannot follow the Android 13+ branch.
     @android.annotation.SuppressLint("MissingPermission")
     private fun show(account: TelegramAccount, groupId: Int, chatTitle: String, text: String) {
-        val accountLabel = account.title.ifBlank { account.phone.ifBlank { "Другой аккаунт" } }
+        val accountLabel = account.title.ifBlank { account.phone.ifBlank { com.kirox.app.i18n.I18n.t("Другой аккаунт") } }
         val tag = tagOf(account)
         val open = PendingIntent.getActivity(
             appContext, (account.session.hashCode() xor groupId),

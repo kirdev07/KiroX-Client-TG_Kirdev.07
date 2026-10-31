@@ -123,7 +123,7 @@ object CallNotifications {
     fun manager(context: Context): NotificationManager = context.getSystemService(NotificationManager::class.java)
 
     fun ensureChannels(context: Context) {
-        val incoming = NotificationChannel(CHANNEL_INCOMING, "Входящие звонки", NotificationManager.IMPORTANCE_HIGH).apply {
+        val incoming = NotificationChannel(CHANNEL_INCOMING, com.kirox.app.i18n.I18n.t("Входящие звонки"), NotificationManager.IMPORTANCE_HIGH).apply {
             setSound(
                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE),
                 AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE).build()
@@ -131,15 +131,15 @@ object CallNotifications {
             enableVibration(true)
             vibrationPattern = longArrayOf(0, 600, 900, 600, 900)
         }
-        val ongoing = NotificationChannel(CHANNEL_ONGOING, "Текущий звонок", NotificationManager.IMPORTANCE_LOW)
+        val ongoing = NotificationChannel(CHANNEL_ONGOING, com.kirox.app.i18n.I18n.t("Текущий звонок"), NotificationManager.IMPORTANCE_LOW)
         manager(context).createNotificationChannels(listOf(incoming, ongoing))
     }
 
     fun ongoing(context: Context, call: TelegramActiveCall): Notification {
         val text = when (call.phase) {
-            is CallPhase.Active -> if (call.isVideo) "Идёт видеозвонок" else "Идёт звонок"
-            is CallPhase.Calling -> "Вызов…"
-            else -> "Соединение…"
+            is CallPhase.Active -> if (call.isVideo) com.kirox.app.i18n.I18n.t("Идёт видеозвонок") else com.kirox.app.i18n.I18n.t("Идёт звонок")
+            is CallPhase.Calling -> com.kirox.app.i18n.I18n.t("Вызов…")
+            else -> com.kirox.app.i18n.I18n.t("Соединение…")
         }
         return NotificationCompat.Builder(context, CHANNEL_ONGOING)
             .setSmallIcon(android.R.drawable.sym_call_outgoing)
@@ -149,7 +149,7 @@ object CallNotifications {
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setContentIntent(openApp(context))
             .apply { (call.phase as? CallPhase.Active)?.let { setWhen(it.sinceMillis).setUsesChronometer(true) } }
-            .addAction(0, "Завершить", hangUp(context))
+            .addAction(0, com.kirox.app.i18n.I18n.t("Завершить"), hangUp(context))
             .build()
     }
 
@@ -157,7 +157,7 @@ object CallNotifications {
     fun ending(context: Context): Notification =
         NotificationCompat.Builder(context, CHANNEL_ONGOING)
             .setSmallIcon(android.R.drawable.sym_call_outgoing)
-            .setContentTitle("Звонок завершён")
+            .setContentTitle(com.kirox.app.i18n.I18n.t("Звонок завершён"))
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .build()
 
@@ -165,8 +165,8 @@ object CallNotifications {
     fun groupConnecting(context: Context): Notification =
         NotificationCompat.Builder(context, CHANNEL_ONGOING)
             .setSmallIcon(android.R.drawable.sym_call_outgoing)
-            .setContentTitle("Видеочат")
-            .setContentText("Подключение…")
+            .setContentTitle(com.kirox.app.i18n.I18n.t("Видеочат"))
+            .setContentText(com.kirox.app.i18n.I18n.t("Подключение…"))
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setContentIntent(openApp(context))
@@ -176,15 +176,15 @@ object CallNotifications {
     fun groupOngoing(context: Context, call: com.kirox.app.telegram.TelegramGroupCall): Notification =
         NotificationCompat.Builder(context, CHANNEL_ONGOING)
             .setSmallIcon(android.R.drawable.sym_call_outgoing)
-            .setContentTitle(call.title.ifBlank { "Видеочат" })
+            .setContentTitle(call.title.ifBlank { com.kirox.app.i18n.I18n.t("Видеочат") })
             .setContentText(when (call.phase) {
-                com.kirox.app.telegram.GroupCallPhase.Connected -> if (call.muted) "Видеочат · микрофон выключен" else "Видеочат · вы в эфире"
-                else -> "Подключение к видеочату…"
+                com.kirox.app.telegram.GroupCallPhase.Connected -> if (call.muted) com.kirox.app.i18n.I18n.t("Видеочат · микрофон выключен") else com.kirox.app.i18n.I18n.t("Видеочат · вы в эфире")
+                else -> com.kirox.app.i18n.I18n.t("Подключение к видеочату…")
             })
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setContentIntent(openApp(context))
-            .addAction(0, "Выйти", PendingIntent.getBroadcast(
+            .addAction(0, com.kirox.app.i18n.I18n.t("Выйти"), PendingIntent.getBroadcast(
                 context, 2, Intent(context, CallActionReceiver::class.java).setAction(CallActionReceiver.ACTION_LEAVE_GROUP),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             ))
@@ -195,15 +195,15 @@ object CallNotifications {
         NotificationCompat.Builder(context, CHANNEL_INCOMING)
             .setSmallIcon(android.R.drawable.sym_call_incoming)
             .setContentTitle(call.name)
-            .setContentText(if (call.isVideo) "Входящий видеозвонок kiroX" else "Входящий звонок kiroX")
+            .setContentText(if (call.isVideo) com.kirox.app.i18n.I18n.t("Входящий видеозвонок kiroX") else com.kirox.app.i18n.I18n.t("Входящий звонок kiroX"))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setOngoing(true)
             .setAutoCancel(false)
             .setContentIntent(openApp(context))
             .setFullScreenIntent(openApp(context), true)
-            .addAction(0, "Отклонить", hangUp(context))
-            .addAction(0, "Открыть", openApp(context))
+            .addAction(0, com.kirox.app.i18n.I18n.t("Отклонить"), hangUp(context))
+            .addAction(0, com.kirox.app.i18n.I18n.t("Открыть"), openApp(context))
             .build()
             // Rings until answered or declined, not just once.
             .apply { flags = flags or Notification.FLAG_INSISTENT }

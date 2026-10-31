@@ -85,7 +85,7 @@ class MessageNotifications(
             val type = notification.type as? TdApi.NotificationTypeNewMessage ?: continue
             group.items.removeAll { it.id == notification.id }
             val topic = type.message.topicId?.takeIf { it is TdApi.MessageTopicForum || it is TdApi.MessageTopicThread }
-            group.items += Item(notification.id, notification.date, senderName(type.message), if (type.showPreview) preview(type.message) else "Новое сообщение", topic)
+            group.items += Item(notification.id, notification.date, senderName(type.message), if (type.showPreview) preview(type.message) else com.kirox.app.i18n.I18n.t("Новое сообщение"), topic)
             if (!notification.isSilent) fresh = true
         }
         group.items.sortBy { it.date }
@@ -125,7 +125,7 @@ class MessageNotifications(
 
     private fun show(groupId: Int, group: Group, alert: Boolean) {
         val title = chats.chat(group.chatId)?.title.orEmpty().ifBlank { "Telegram" }
-        val style = NotificationCompat.MessagingStyle(Person.Builder().setName("Вы").build())
+        val style = NotificationCompat.MessagingStyle(Person.Builder().setName(com.kirox.app.i18n.I18n.t("Вы")).build())
             // In a private chat the sender already names it; a title there shows up as "Name: Name".
             .setConversationTitle(title.takeIf { group.items.any { it.sender.isNotBlank() && it.sender != title } })
             .setGroupConversation(group.items.map { it.sender }.distinct().size > 1)
@@ -147,7 +147,7 @@ class MessageNotifications(
                 NotificationCompat.Builder(context, CHANNEL)
                     .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
                     .setContentTitle("kiroX")
-                    .setContentText("Новое сообщение")
+                    .setContentText(com.kirox.app.i18n.I18n.t("Новое сообщение"))
                     .build()
             )
             .setAutoCancel(true)
@@ -159,7 +159,7 @@ class MessageNotifications(
                 )
             )
             .addAction(
-                NotificationCompat.Action.Builder(0, "Ответить", PendingIntent.getBroadcast(
+                NotificationCompat.Action.Builder(0, com.kirox.app.i18n.I18n.t("Ответить"), PendingIntent.getBroadcast(
                     context, groupId + REPLY_REQUEST_OFFSET,
                     Intent(context, MessageActionReceiver::class.java).setAction(ACTION_REPLY)
                         .putExtra(EXTRA_GROUP, groupId).putExtra(EXTRA_CHAT, group.chatId)
@@ -168,13 +168,13 @@ class MessageNotifications(
                     // The system writes the typed text into the intent, so it must be mutable.
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
                 ))
-                    .addRemoteInput(androidx.core.app.RemoteInput.Builder(KEY_REPLY).setLabel("Сообщение").build())
+                    .addRemoteInput(androidx.core.app.RemoteInput.Builder(KEY_REPLY).setLabel(com.kirox.app.i18n.I18n.t("Сообщение")).build())
                     .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
                     .setShowsUserInterface(false)
                     .build()
             )
             .addAction(
-                0, "Прочитано",
+                0, com.kirox.app.i18n.I18n.t("Прочитано"),
                 PendingIntent.getBroadcast(
                     context, groupId,
                     Intent(context, MessageActionReceiver::class.java).setAction(ACTION_READ)
@@ -239,19 +239,19 @@ class MessageNotifications(
 
     private fun preview(message: TdApi.Message): String = when (val content = message.content) {
         is TdApi.MessageText -> content.text.text
-        is TdApi.MessagePhoto -> content.caption.text.ifBlank { "Фото" }
-        is TdApi.MessageVideo -> content.caption.text.ifBlank { "Видео" }
-        is TdApi.MessageDocument -> content.caption.text.ifBlank { "Файл" }
-        is TdApi.MessageVoiceNote -> "Голосовое сообщение"
-        is TdApi.MessageVideoNote -> "Видеосообщение"
+        is TdApi.MessagePhoto -> content.caption.text.ifBlank { com.kirox.app.i18n.I18n.t("Фото") }
+        is TdApi.MessageVideo -> content.caption.text.ifBlank { com.kirox.app.i18n.I18n.t("Видео") }
+        is TdApi.MessageDocument -> content.caption.text.ifBlank { com.kirox.app.i18n.I18n.t("Файл") }
+        is TdApi.MessageVoiceNote -> com.kirox.app.i18n.I18n.t("Голосовое сообщение")
+        is TdApi.MessageVideoNote -> com.kirox.app.i18n.I18n.t("Видеосообщение")
         is TdApi.MessageSticker -> "${content.sticker.emoji} Стикер".trim()
         is TdApi.MessageAnimation -> "GIF"
-        is TdApi.MessageAudio -> "Аудио"
-        is TdApi.MessageContact -> "Контакт"
-        is TdApi.MessageLocation -> "Местоположение"
-        is TdApi.MessagePoll -> "Опрос"
-        is TdApi.MessageCall -> "Звонок"
-        else -> "Сообщение"
+        is TdApi.MessageAudio -> com.kirox.app.i18n.I18n.t("Аудио")
+        is TdApi.MessageContact -> com.kirox.app.i18n.I18n.t("Контакт")
+        is TdApi.MessageLocation -> com.kirox.app.i18n.I18n.t("Местоположение")
+        is TdApi.MessagePoll -> com.kirox.app.i18n.I18n.t("Опрос")
+        is TdApi.MessageCall -> com.kirox.app.i18n.I18n.t("Звонок")
+        else -> com.kirox.app.i18n.I18n.t("Сообщение")
     }
 
     companion object {
@@ -297,13 +297,16 @@ class MessageNotifications(
             else -> null
         }
 
+        /** Channel names follow the interface language; called again when it changes. */
+        fun refreshChannels(context: Context) = ensureChannel(context)
+
         private fun ensureChannel(context: Context) {
             val manager = context.getSystemService(NotificationManager::class.java)
             manager.deleteNotificationChannel(OLD_CHANNEL)
             listOf(
-                Triple(CHANNEL, "Личные чаты", "Новые сообщения в личных чатах"),
-                Triple(CHANNEL_GROUPS, "Группы", "Новые сообщения в группах"),
-                Triple(CHANNEL_CHANNELS, "Каналы", "Новые публикации в каналах")
+                Triple(CHANNEL, com.kirox.app.i18n.I18n.t("Личные чаты"), com.kirox.app.i18n.I18n.t("Новые сообщения в личных чатах")),
+                Triple(CHANNEL_GROUPS, com.kirox.app.i18n.I18n.t("Группы"), com.kirox.app.i18n.I18n.t("Новые сообщения в группах")),
+                Triple(CHANNEL_CHANNELS, com.kirox.app.i18n.I18n.t("Каналы"), com.kirox.app.i18n.I18n.t("Новые публикации в каналах"))
             ).forEach { (id, name, text) ->
                 manager.createNotificationChannel(NotificationChannel(id, name, NotificationManager.IMPORTANCE_HIGH).apply {
                     description = text

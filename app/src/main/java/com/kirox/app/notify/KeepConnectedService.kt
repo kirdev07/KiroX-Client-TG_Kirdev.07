@@ -46,12 +46,12 @@ class KeepConnectedService : Service() {
 
     private fun promote(): Boolean {
         val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel(CHANNEL, "Фоновое соединение", NotificationManager.IMPORTANCE_MIN).apply { setShowBadge(false) })
+        manager.createNotificationChannel(NotificationChannel(CHANNEL, com.kirox.app.i18n.I18n.t("Фоновое соединение"), NotificationManager.IMPORTANCE_MIN).apply { setShowBadge(false) })
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
         val notification = Notification.Builder(this, CHANNEL)
             .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
-            .setContentTitle("kiroX на связи")
-            .setContentText("Сообщения приходят сразу")
+            .setContentTitle(com.kirox.app.i18n.I18n.t("kiroX на связи"))
+            .setContentText(com.kirox.app.i18n.I18n.t("Сообщения приходят сразу"))
             .setOngoing(true)
             .setShowWhen(false)
             .setCategory(Notification.CATEGORY_SERVICE)
