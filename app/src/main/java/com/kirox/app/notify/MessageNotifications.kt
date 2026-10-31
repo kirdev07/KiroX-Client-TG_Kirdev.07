@@ -23,14 +23,16 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * New-message notifications from TDLib's notification API. TDLib decides what to notify about
  * (it skips muted chats and drops notifications once messages are read on any device); this class
- * only mirrors its notification groups as Android notifications, one per chat.
- * Nothing is shown while the app is on screen.
+ * only mirrors its notification groups as Android notifications, one per chat, in a channel per
+ * chat type (own sound and vibration in the system settings). While the app is on screen a new
+ * message gives an in-app sound, vibration and banner instead, as set in «Уведомления и звуки».
  */
 class MessageNotifications(
     private val context: Context,
     private val client: TelegramClient,
     private val chats: TelegramChatRepository,
-    private val users: TelegramUserRepository
+    private val users: TelegramUserRepository,
+    private val prefs: NotificationPreferences
 ) {
     /** [topic]: forum topic or comment thread of the message; the quick reply goes there. */
     private class Item(val id: Int, val date: Int, val sender: String, val text: String, val topic: TdApi.MessageTopic? = null)
@@ -87,7 +89,32 @@ class MessageNotifications(
             cancel(groupId)
         } else if (!AppVisibility.visible) {
             show(groupId, group, alert = fresh)
+        } else if (fresh && chatId != InAppAlerts.openChatId) {
+            alertInApp(group)
         }
+    }
+
+    /** New message while kiroX is open: sound, vibration and banner as chosen; the open chat gets none. */
+    private fun alertInApp(group: Group) {
+        val local = prefs.current
+        val last = group.items.lastOrNull() ?: return
+        if (local.inAppPreview) {
+            val title = chats.chat(group.chatId)?.title.orEmpty().ifBlank { last.sender }
+            InAppAlerts.emit(InAppAlert(group.chatId, title, if (last.sender.isNotBlank() && last.sender != title) "${last.sender}: ${last.text}" else last.text))
+        }
+        if (local.inAppSound) runCatching {
+            android.media.RingtoneManager.getRingtone(context, android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION))?.play()
+        }
+        if (local.inAppVibrate) runCatching {
+            context.getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(60, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+        }
+    }
+
+    /** Channel of the chat's type: private chats, groups or channels. */
+    private fun channelFor(chatId: Long): String = when (val type = chats.chat(chatId)?.type) {
+        is TdApi.ChatTypeSupergroup -> if (type.isChannel) CHANNEL_CHANNELS else CHANNEL_GROUPS
+        is TdApi.ChatTypeBasicGroup -> CHANNEL_GROUPS
+        else -> CHANNEL
     }
 
     private fun show(groupId: Int, group: Group, alert: Boolean) {
@@ -99,9 +126,13 @@ class MessageNotifications(
         group.items.forEach { item ->
             style.addMessage(item.text, item.date * 1000L, Person.Builder().setName(item.sender.ifBlank { title }).build())
         }
-        val notification = NotificationCompat.Builder(context, CHANNEL)
+        val local = prefs.current
+        val notification = NotificationCompat.Builder(context, channelFor(group.chatId))
             .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
             .setStyle(style)
+            // «Значок на иконке»: launchers add these up; off hides the counter and the dot.
+            .setNumber(if (!local.badge) 0 else if (local.badgeCountsMessages) group.items.size else 1)
+            .setBadgeIconType(if (local.badge) NotificationCompat.BADGE_ICON_SMALL else NotificationCompat.BADGE_ICON_NONE)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setOnlyAlertOnce(!alert)
             // On a secure lock screen only "new message" shows, not the text.
@@ -218,7 +249,12 @@ class MessageNotifications(
     }
 
     companion object {
-        internal const val CHANNEL = "messages"
+        /** Private chats; other accounts' messages (AccountPeek) use it too. */
+        internal const val CHANNEL = "messages_private"
+        internal const val CHANNEL_GROUPS = "messages_groups"
+        internal const val CHANNEL_CHANNELS = "messages_channels"
+        /** The single channel of earlier versions; removed so the system shows the three new ones. */
+        private const val OLD_CHANNEL = "messages"
         private const val TAG = "kirox-messages"
         private const val MAX_GROUPS = 10L
         private const val MAX_PER_GROUP = 6L
@@ -256,11 +292,18 @@ class MessageNotifications(
         }
 
         private fun ensureChannel(context: Context) {
-            val channel = NotificationChannel(CHANNEL, "Сообщения", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Новые сообщения в чатах"
-                enableVibration(true)
+            val manager = context.getSystemService(NotificationManager::class.java)
+            manager.deleteNotificationChannel(OLD_CHANNEL)
+            listOf(
+                Triple(CHANNEL, "Личные чаты", "Новые сообщения в личных чатах"),
+                Triple(CHANNEL_GROUPS, "Группы", "Новые сообщения в группах"),
+                Triple(CHANNEL_CHANNELS, "Каналы", "Новые публикации в каналах")
+            ).forEach { (id, name, text) ->
+                manager.createNotificationChannel(NotificationChannel(id, name, NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = text
+                    enableVibration(true)
+                })
             }
-            context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
     }
 }

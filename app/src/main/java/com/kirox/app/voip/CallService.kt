@@ -117,7 +117,7 @@ object CallNotifications {
     const val ONGOING_ID = 7001
     const val INCOMING_ID = 7002
     const val GROUP_ID = 7003
-    private const val CHANNEL_INCOMING = "calls_incoming"
+    internal const val CHANNEL_INCOMING = "calls_incoming"
     private const val CHANNEL_ONGOING = "calls_ongoing"
 
     fun manager(context: Context): NotificationManager = context.getSystemService(NotificationManager::class.java)

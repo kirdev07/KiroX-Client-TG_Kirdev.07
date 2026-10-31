@@ -143,6 +143,8 @@ class TelegramServices(context: android.content.Context) {
     val voip = TelegramVoipRepository(client, users) { media.callDataSavingOn(network.network.value) }
     val sessions = TelegramSessionsRepository(client)
     val settings = TelegramSettingsRepository(client)
-    val notifications = com.kirox.app.notify.MessageNotifications(context.applicationContext, client, chats, users)
+    /** In-app alerts and the icon counter, kept on this device. */
+    val notificationPrefs = com.kirox.app.notify.NotificationPreferences(context)
+    val notifications = com.kirox.app.notify.MessageNotifications(context.applicationContext, client, chats, users, notificationPrefs)
     val stories = TelegramStoryRepository(client, chats, users)
 }

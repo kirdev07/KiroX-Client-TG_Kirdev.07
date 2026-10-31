@@ -342,7 +342,14 @@ fun KiroXApp() {
                         ) {
                             val chatId = openChatId
                             LaunchedEffect(chatId) { telegramViewModel.messages.open(chatId) }
-                            DisposableEffect(chatId) { onDispose { telegramViewModel.messages.close(chatId) } }
+                            DisposableEffect(chatId) {
+                                // The chat on screen gets no in-app banner or sound.
+                                com.kirox.app.notify.InAppAlerts.openChatId = chatId
+                                onDispose {
+                                    telegramViewModel.messages.close(chatId)
+                                    if (com.kirox.app.notify.InAppAlerts.openChatId == chatId) com.kirox.app.notify.InAppAlerts.openChatId = 0L
+                                }
+                            }
                             val actions = remember { TelegramMessageActions(telegramViewModel.messages, telegramViewModel.activity) }
                             val activityLines by telegramViewModel.activity.lines.collectAsStateWithLifecycle()
                             val stickerSource = remember { TelegramStickerSource(telegramViewModel.stickers) }
@@ -410,6 +417,7 @@ fun KiroXApp() {
         groupCall?.let { call ->
             CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.call.GroupCallScreen(call, groupCallActions) }
         }
+        com.kirox.app.ui.components.InAppBanner(Modifier.align(androidx.compose.ui.Alignment.TopCenter), onOpen = { openChat(it) })
         groupCallNotice?.let { text ->
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { groupCallNotice = null },

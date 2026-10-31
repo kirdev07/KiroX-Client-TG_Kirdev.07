@@ -37,6 +37,8 @@ import com.kirox.app.telegram.NotifyScope
 import com.kirox.app.telegram.ProxyKind
 import com.kirox.app.telegram.TelegramProxy
 import com.kirox.app.telegram.PrivacyItem
+import com.kirox.app.telegram.ReactionNotifications
+import com.kirox.app.telegram.ReactionSource
 import com.kirox.app.telegram.PrivacyLevel
 import com.kirox.app.telegram.ScopeNotifications
 import com.kirox.app.telegram.ChatStorage
@@ -98,10 +100,20 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
     val scope = rememberCoroutineScope()
     val state = remember { mutableStateMapOf<NotifyScope, ScopeNotifications>() }
     var contactJoined by remember { mutableStateOf<Boolean?>(null) }
+    var reactions by remember { mutableStateOf(repo.reactionNotifications()) }
+    var choosingReactions by remember { mutableStateOf<String?>(null) }
     var confirmReset by remember { mutableStateOf(false) }
+    val localPrefs = (context.applicationContext as KiroXApplication).telegram.notificationPrefs
+    val local by localPrefs.settings.collectAsState()
     fun load() {
         scope.launch { NotifyScope.entries.forEach { s -> runCatching { repo.notifications(s) }.onSuccess { state[s] = it } } }
         scope.launch { runCatching { repo.contactJoinedNotifications() }.onSuccess { contactJoined = it } }
+        reactions = repo.reactionNotifications()
+    }
+    fun updateReactions(value: ReactionNotifications) {
+        val old = reactions
+        reactions = value
+        scope.launch { runCatching { repo.setReactionNotifications(value) }.onFailure { reactions = old; onNotice("Не удалось сохранить") } }
     }
     LaunchedEffect(Unit) { load() }
     fun update(s: NotifyScope, value: ScopeNotifications) {
@@ -113,7 +125,7 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
         "exceptions" -> { NotificationExceptionsScreen(onBack = { page = null; load() }); return }
         null -> Unit
         else -> NotifyScope.entries.firstOrNull { it.name == current }?.let { s ->
-            NotifyScopeScreen(s, state[s], onChange = { update(s, it) }, onExceptions = { page = "exceptions" }, onBack = { page = null })
+            NotifyScopeScreen(s, state[s], onChange = { update(s, it) }, onExceptions = { page = "exceptions" }, onSound = { openChannelSettings(context, s.channel()) }, onBack = { page = null })
             return
         }
     }
@@ -130,6 +142,38 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
             }
         }
         item { LinkRow("Все исключения", "Чаты, где уведомления настроены отдельно") { page = "exceptions" } }
+        item { SmallCaption("Реакции") }
+        item {
+            val r = reactions
+            SettingsCard {
+                if (r == null) Text("Настройки реакций появятся, когда kiroX получит их от Telegram.", color = Fusion.colors.textTertiary, fontSize = 13.sp, modifier = Modifier.padding(16.dp))
+                else {
+                    LinkRow("На сообщения", r.messages.title) { choosingReactions = "messages" }
+                    LinkRow("На истории", r.stories.title) { choosingReactions = "stories" }
+                    ToggleRow("Показывать реакцию", "Какой эмодзи поставили, в тексте уведомления", r.showPreview) { updateReactions(r.copy(showPreview = it)) }
+                }
+            }
+        }
+        item { SmallCaption("В приложении") }
+        item {
+            SettingsCard {
+                ToggleRow("Звук", "Короткий сигнал о новом сообщении, пока kiroX открыт", local.inAppSound) { localPrefs.update(local.copy(inAppSound = it)) }
+                ToggleRow("Вибрация", checked = local.inAppVibrate) { localPrefs.update(local.copy(inAppVibrate = it)) }
+                ToggleRow("Баннер сверху", "Отправитель и текст поверх экрана; нажмите, чтобы открыть чат", local.inAppPreview) { localPrefs.update(local.copy(inAppPreview = it)) }
+            }
+        }
+        item {
+            Text("В открытом сейчас чате ни звука, ни баннера не будет.", color = Fusion.colors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        }
+        item { SmallCaption("Значок на иконке") }
+        item {
+            SettingsCard {
+                ToggleRow("Счётчик непрочитанных", "Число на значке kiroX, если его показывает ваш лаунчер", local.badge) { localPrefs.update(local.copy(badge = it)) }
+                ToggleRow("Считать сообщения", if (local.badgeCountsMessages) "Каждое новое сообщение" else "Один на каждый чат", local.badgeCountsMessages, enabled = local.badge) {
+                    localPrefs.update(local.copy(badgeCountsMessages = it))
+                }
+            }
+        }
         item { SmallCaption("События") }
         item {
             ToggleRow("Контакт присоединился к Telegram", "Сообщение, когда кто-то из ваших контактов заводит Telegram", contactJoined ?: true, enabled = contactJoined != null) { on ->
@@ -139,7 +183,13 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
         }
         item { SmallCaption("Звук и вибрация") }
         item {
-            LinkRow("Звук, вибрация и всплывающие", "Мелодия сообщений и звонков настраивается в системе для каждого типа") {
+            SettingsCard {
+                NotifyScope.entries.forEach { s -> LinkRow(s.title, "Мелодия, вибрация, всплывающие") { openChannelSettings(context, s.channel()) } }
+                LinkRow("Входящие звонки", "Мелодия звонка и вибрация") { openChannelSettings(context, com.kirox.app.voip.CallNotifications.CHANNEL_INCOMING) }
+            }
+        }
+        item {
+            LinkRow("Все уведомления kiroX", "Системные настройки приложения") {
                 context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
         }
@@ -191,11 +241,34 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
         confirmButton = {
             TextButton(onClick = {
                 confirmReset = false
+                localPrefs.reset()
                 scope.launch { runCatching { repo.resetAllNotifications() }.onSuccess { onNotice("Уведомления сброшены"); load() }.onFailure { onNotice("Не удалось сбросить") } }
             }) { Text("Сбросить", color = Fusion.colors.danger) }
         },
         dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
     )
+    reactions?.let { r ->
+        when (choosingReactions) {
+            "messages" -> ChoiceDialog("Реакции на сообщения", ReactionSource.entries, r.messages, { it.title }, onDismiss = { choosingReactions = null }) { updateReactions(r.copy(messages = it)); choosingReactions = null }
+            "stories" -> ChoiceDialog("Реакции на истории", ReactionSource.entries, r.stories, { it.title }, onDismiss = { choosingReactions = null }) { updateReactions(r.copy(stories = it)); choosingReactions = null }
+        }
+    }
+}
+
+/** Android channel of a chat type: its sound and vibration are set there. */
+private fun NotifyScope.channel(): String = when (this) {
+    NotifyScope.Private -> com.kirox.app.notify.MessageNotifications.CHANNEL
+    NotifyScope.Groups -> com.kirox.app.notify.MessageNotifications.CHANNEL_GROUPS
+    NotifyScope.Channels -> com.kirox.app.notify.MessageNotifications.CHANNEL_CHANNELS
+}
+
+private fun openChannelSettings(context: android.content.Context, channel: String) {
+    runCatching {
+        context.startActivity(
+            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                .putExtra(Settings.EXTRA_CHANNEL_ID, channel).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
 }
 
 /** Rounded group of rows on the screen background, as Telegram's settings sections. */
@@ -237,7 +310,7 @@ private fun ScopeRow(scope: NotifyScope, value: ScopeNotifications?, onOpen: () 
 
 /** One chat type: on/off, message text, pinned messages, mentions (groups) and its exceptions. */
 @Composable
-private fun NotifyScopeScreen(scope: NotifyScope, value: ScopeNotifications?, onChange: (ScopeNotifications) -> Unit, onExceptions: () -> Unit, onBack: () -> Unit) {
+private fun NotifyScopeScreen(scope: NotifyScope, value: ScopeNotifications?, onChange: (ScopeNotifications) -> Unit, onExceptions: () -> Unit, onSound: () -> Unit, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle(scope.title, onBack) }
@@ -251,8 +324,11 @@ private fun NotifyScopeScreen(scope: NotifyScope, value: ScopeNotifications?, on
                     ToggleRow("Текст сообщения", "Имя и текст в уведомлении; без него — только «Новое сообщение»", value.showPreview, enabled = value.enabled) { onChange(value.copy(showPreview = it)) }
                     ToggleRow("Закреплённые сообщения", "Уведомлять, когда в чате что-то закрепили", value.pinned, enabled = value.enabled) { onChange(value.copy(pinned = it)) }
                     if (scope == NotifyScope.Groups) ToggleRow("Упоминания и ответы", "Уведомлять об упоминаниях, даже если группа без звука", value.mentions) { onChange(value.copy(mentions = it)) }
+                    if (scope == NotifyScope.Private) ToggleRow("Новые истории", "Когда контакт публикует историю", value.stories) { onChange(value.copy(stories = it)) }
                 }
             }
+            item { SmallCaption("Звук") }
+            item { SettingsCard { LinkRow("Звук и вибрация", "Мелодия, вибрация и всплывающие для «${scope.title}»", onClick = onSound) } }
             item { SmallCaption("Исключения") }
             item { LinkRow(if (value.exceptions > 0) "Чатов с отдельными настройками: ${value.exceptions}" else "Исключений нет", "Открыть список исключений", onClick = onExceptions) }
         }

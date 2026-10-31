@@ -42,7 +42,32 @@ enum class NotifyScope(val title: String) {
 }
 
 /** Defaults for one chat type; [exceptions] is how many chats of the type differ from them. */
-data class ScopeNotifications(val enabled: Boolean, val showPreview: Boolean, val pinned: Boolean = true, val mentions: Boolean = true, val exceptions: Int = 0)
+data class ScopeNotifications(
+    val enabled: Boolean,
+    val showPreview: Boolean,
+    val pinned: Boolean = true,
+    val mentions: Boolean = true,
+    val exceptions: Int = 0,
+    /** New stories of these chats (Telegram keeps this for private chats). */
+    val stories: Boolean = true
+)
+
+/** Whose reactions to your messages and stories notify you. */
+enum class ReactionSource(val title: String) { Nobody("Никто"), Contacts("Мои контакты"), Everybody("Все") }
+
+data class ReactionNotifications(val messages: ReactionSource, val stories: ReactionSource, val showPreview: Boolean)
+
+private fun TdApi.ReactionNotificationSource?.toSource() = when (this) {
+    is TdApi.ReactionNotificationSourceAll -> ReactionSource.Everybody
+    is TdApi.ReactionNotificationSourceContacts -> ReactionSource.Contacts
+    else -> ReactionSource.Nobody
+}
+
+private fun ReactionSource.toTd(): TdApi.ReactionNotificationSource = when (this) {
+    ReactionSource.Everybody -> TdApi.ReactionNotificationSourceAll()
+    ReactionSource.Contacts -> TdApi.ReactionNotificationSourceContacts()
+    ReactionSource.Nobody -> TdApi.ReactionNotificationSourceNone()
+}
 
 /** A blocked user or chat. */
 data class BlockedSender(val id: Long, val isChat: Boolean, val name: String, val photo: TelegramFileRef?)
@@ -104,11 +129,34 @@ data class NetworkUsage(val sinceDate: Int, val bytes: Map<DownloadNetwork, Pair
 
 /** Account-level settings stored in Telegram: notifications, privacy, local storage. */
 class TelegramSettingsRepository(private val client: TelegramClient) {
+    /** TDLib has no getter for reaction notifications: they arrive in an update after sign-in. */
+    @Volatile private var reactionSettings: TdApi.ReactionNotificationSettings? = null
+
+    init {
+        client.addUpdateHandler { update -> if (update is TdApi.UpdateReactionNotificationSettings) reactionSettings = update.notificationSettings }
+    }
+
+    fun reactionNotifications(): ReactionNotifications? = reactionSettings?.let {
+        ReactionNotifications(it.messageReactionSource.toSource(), it.storyReactionSource.toSource(), it.showPreview)
+    }
+
+    /** Keeps poll votes and the sound as they are; only what kiroX shows changes. */
+    suspend fun setReactionNotifications(value: ReactionNotifications) {
+        val current = reactionSettings
+        val next = TdApi.ReactionNotificationSettings(
+            value.messages.toTd(), value.stories.toTd(), current?.pollVoteSource ?: TdApi.ReactionNotificationSourceAll(), current?.soundId ?: 0, value.showPreview
+        )
+        client.query(TdApi.SetReactionNotificationSettings(next))
+        reactionSettings = next
+    }
 
     suspend fun notifications(scope: NotifyScope): ScopeNotifications {
         val settings = client.query(TdApi.GetScopeNotificationSettings(scope.toTd()))
         val exceptions = runCatching { client.query(TdApi.GetChatNotificationSettingsExceptions(scope.toTd(), false)).chatIds.size }.getOrDefault(0)
-        return ScopeNotifications(settings.muteFor == 0, settings.showPreview, !settings.disablePinnedMessageNotifications, !settings.disableMentionNotifications, exceptions)
+        return ScopeNotifications(
+            settings.muteFor == 0, settings.showPreview, !settings.disablePinnedMessageNotifications, !settings.disableMentionNotifications, exceptions,
+            stories = settings.useDefaultMuteStories || !settings.muteStories
+        )
     }
 
     suspend fun setNotifications(scope: NotifyScope, value: ScopeNotifications) {
@@ -117,6 +165,10 @@ class TelegramSettingsRepository(private val client: TelegramClient) {
         current.showPreview = value.showPreview
         current.disablePinnedMessageNotifications = !value.pinned
         current.disableMentionNotifications = !value.mentions
+        if (value.stories != (current.useDefaultMuteStories || !current.muteStories)) {
+            current.useDefaultMuteStories = false
+            current.muteStories = !value.stories
+        }
         client.query(TdApi.SetScopeNotificationSettings(scope.toTd(), current))
     }
 
