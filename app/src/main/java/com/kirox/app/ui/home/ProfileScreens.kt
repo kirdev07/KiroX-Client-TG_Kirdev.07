@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.flow.first
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -232,6 +233,18 @@ internal fun ProfileEditScreen(profile: TelegramUserProfile?, onBack: () -> Unit
     }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    // Availability of a new username, checked a moment after typing stops; null = nothing to check.
+    var checking by remember { mutableStateOf(false) }
+    var check by remember { mutableStateOf<com.kirox.app.telegram.UsernameCheck?>(null) }
+    val usernameChanged = !username.equals(base?.username.orEmpty(), ignoreCase = true)
+    LaunchedEffect(username, usernameChanged) {
+        check = null
+        checking = usernameChanged && username.length >= 5
+        if (!checking) return@LaunchedEffect
+        kotlinx.coroutines.delay(400.milliseconds)
+        check = runCatching { users.checkUsername(username) }.getOrNull()
+        checking = false
+    }
     val pickPhoto = rememberProfilePhotoPicker(onNotice)
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen).imePadding(), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Профиль", onBack) }
@@ -253,10 +266,25 @@ internal fun ProfileEditScreen(profile: TelegramUserProfile?, onBack: () -> Unit
         item { SmallCaption("Имя пользователя") }
         item { EditField(username, "username", prefix = "@") { username = it.removePrefix("@").filter { c -> c.isLetterOrDigit() || c == '_' }.take(32) } }
         if (username.isNotEmpty()) item { Text("t.me/$username", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)) }
+        if (usernameChanged && username.isNotEmpty()) item {
+            val (text, ok) = when {
+                username.length < 5 -> "Минимум 5 символов" to false
+                checking -> "Проверяем…" to null
+                check == com.kirox.app.telegram.UsernameCheck.Free -> "Имя свободно" to true
+                check == com.kirox.app.telegram.UsernameCheck.Occupied -> "Это имя уже занято" to false
+                check == com.kirox.app.telegram.UsernameCheck.Purchasable -> "Это имя продаётся на Fragment" to false
+                check == com.kirox.app.telegram.UsernameCheck.TooMany -> "Слишком много публичных ссылок" to false
+                check == com.kirox.app.telegram.UsernameCheck.Invalid -> "Недопустимое имя пользователя" to false
+                else -> "Не удалось проверить, проверим при сохранении" to null
+            }
+            val color = when (ok) { true -> Fusion.colors.accent; false -> Fusion.colors.danger; null -> Fusion.colors.textTertiary }
+            Text(text, color = color, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
+        }
         item { Text("Можно использовать a–z, 0–9 и _, от 5 символов. Пустое поле — без имени пользователя.", color = Fusion.colors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) }
         error?.let { message -> item { Text(message, color = Fusion.colors.danger, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) } }
         item {
-            val canSave = first.isNotBlank() && !busy && (username.isEmpty() || username.length >= 5)
+            val usernameBlocked = usernameChanged && check != null && check != com.kirox.app.telegram.UsernameCheck.Free
+            val canSave = first.isNotBlank() && !busy && (username.isEmpty() || username.length >= 5) && !usernameBlocked
             com.kirox.app.ui.components.FusionButton(
                 "Сохранить", modifier = Modifier.padding(16.dp), enabled = canSave, busy = busy,
                 onClick = {

@@ -1,9 +1,14 @@
 package com.kirox.app.telegram
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.drinkless.tdlib.TdApi
+
+/** Result of checking a username before saving it. */
+enum class UsernameCheck { Free, Occupied, Purchasable, TooMany, Invalid }
 
 /** Users cache, the contact list and the signed-in user's profile. Dispatcher-confined like chats. */
 class TelegramUserRepository(private val client: TelegramClient) {
@@ -108,13 +113,29 @@ class TelegramUserRepository(private val client: TelegramClient) {
         return result.userIds.firstOrNull()?.takeIf { it != 0L }
     }
 
-    /** Saves only what changed; TDLib then sends UpdateUser / UpdateUserFullInfo and the profile refreshes. */
-    suspend fun updateProfile(first: String, last: String, bio: String, username: String, old: TelegramUserProfile?) {
-        if (first != old?.firstName || last != old.lastName) client.query(TdApi.SetName(first, last))
-        if (bio != old?.bio) client.query(TdApi.SetBio(bio))
-        if (username != old?.username.orEmpty()) client.query(TdApi.SetUsername(username))
-        client.query(TdApi.GetUserFullInfo(myId)).let { info -> client.post { applyFullInfo(info); schedulePublish() } }
+    /**
+     * Saves only what changed, all requests at once; TDLib then sends UpdateUser and the profile refreshes.
+     * The full info (bio) is re-read only when the bio changed.
+     */
+    suspend fun updateProfile(first: String, last: String, bio: String, username: String, old: TelegramUserProfile?) = kotlinx.coroutines.coroutineScope {
+        val jobs = buildList {
+            if (first != old?.firstName || last != old.lastName) add(async { client.query(TdApi.SetName(first, last)) })
+            if (bio != old?.bio) add(async { client.query(TdApi.SetBio(bio)) })
+            if (username != old?.username.orEmpty()) add(async { client.query(TdApi.SetUsername(username)) })
+        }
+        jobs.awaitAll()
+        if (bio != old?.bio) client.query(TdApi.GetUserFullInfo(myId)).let { info -> client.post { applyFullInfo(info); schedulePublish() } }
     }
+
+    /** Whether [username] can be taken by this account; asked while the user types. */
+    suspend fun checkUsername(username: String): UsernameCheck =
+        when (client.query(TdApi.CheckChatUsername(myId, username))) {
+            is TdApi.CheckChatUsernameResultOk -> UsernameCheck.Free
+            is TdApi.CheckChatUsernameResultUsernameOccupied -> UsernameCheck.Occupied
+            is TdApi.CheckChatUsernameResultUsernamePurchasable -> UsernameCheck.Purchasable
+            is TdApi.CheckChatUsernameResultPublicChatsTooMany -> UsernameCheck.TooMany
+            else -> UsernameCheck.Invalid
+        }
 
     suspend fun setProfilePhoto(path: String) {
         client.query(TdApi.SetProfilePhoto(TdApi.InputChatPhotoStatic(TdApi.InputFileLocal(path)), false))
