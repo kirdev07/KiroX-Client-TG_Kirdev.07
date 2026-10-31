@@ -916,7 +916,7 @@ private fun StorageUsageCard(usage: StorageBreakdown, selected: Set<StorageCateg
 
 private fun NetworkDownload.summary(): String = when {
     !enabled -> "Выключено"
-    else -> "Видео: ${downloadLimit(maxVideoBytes)} · файлы: ${downloadLimit(maxFileBytes)}"
+    else -> (if (photos) "Фото · " else "Без фото · ") + "видео: ${downloadLimit(maxVideoBytes)} · файлы: ${downloadLimit(maxFileBytes)}"
 }
 
 private fun downloadLimit(bytes: Long): String = when {
@@ -939,8 +939,9 @@ private fun AutoDownloadScreen(network: DownloadNetwork, onBack: () -> Unit) {
     var choosing by remember { mutableStateOf<String?>(null) }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle(network.title, onBack) }
-        item { ToggleRow("Автозагрузка медиа", "Фото всегда загружаются в чатах, остальное — по ограничениям ниже", value.enabled) { autoDownload.set(network, value.copy(enabled = it)) } }
+        item { ToggleRow("Автозагрузка медиа", "Выключите — фото, видео и файлы будут загружаться только по нажатию", value.enabled) { autoDownload.set(network, value.copy(enabled = it)) } }
         item { SmallCaption("Типы медиа") }
+        item { ToggleRow("Фото", "Загружать фотографии в чатах сразу", value.photos, enabled = value.enabled) { autoDownload.set(network, value.copy(photos = it)) } }
         item { LinkRow("Видео", downloadLimit(value.maxVideoBytes), if (value.enabled) Fusion.colors.textPrimary else Fusion.colors.textTertiary) { if (value.enabled) choosing = "video" } }
         item { LinkRow("Файлы", downloadLimit(value.maxFileBytes), if (value.enabled) Fusion.colors.textPrimary else Fusion.colors.textTertiary) { if (value.enabled) choosing = "file" } }
         item { ToggleRow("Истории", "Заранее загружать истории контактов", value.preloadStories, enabled = value.enabled) { autoDownload.set(network, value.copy(preloadStories = it)) } }

@@ -13,13 +13,13 @@ import kotlinx.coroutines.flow.stateIn
 import org.drinkless.tdlib.TdApi
 
 /** Largest files that download by themselves on the current network; 0 means never. */
-data class AutoDownloadRule(val maxVideoBytes: Long = 0, val maxOtherBytes: Long = 0, val preloadStories: Boolean = false, val gifs: Boolean = true)
+data class AutoDownloadRule(val maxVideoBytes: Long = 0, val maxOtherBytes: Long = 0, val preloadStories: Boolean = false, val gifs: Boolean = true, val photos: Boolean = true)
 
 /** Network a set of auto-download limits is for, as in Telegram's «Автозагрузка медиа». */
 enum class DownloadNetwork(val title: String) { Mobile("Через мобильную сеть"), WiFi("Через Wi-Fi"), Roaming("В роуминге") }
 
 /** Auto-download limits for one network; a limit of 0 means that kind never downloads by itself. */
-data class NetworkDownload(val enabled: Boolean, val maxVideoBytes: Long, val maxFileBytes: Long, val preloadStories: Boolean)
+data class NetworkDownload(val enabled: Boolean, val maxVideoBytes: Long, val maxFileBytes: Long, val preloadStories: Boolean, val photos: Boolean = true)
 
 internal fun DeviceNetwork.downloadNetwork(): DownloadNetwork? = when (this) {
     DeviceNetwork.WiFi, DeviceNetwork.Other -> DownloadNetwork.WiFi
@@ -72,8 +72,9 @@ class AutoDownloadPolicy(context: Context, private val client: TelegramClient, m
         val mine = network.downloadNetwork()?.let { own[it] }
         val base = when {
             mine == null -> autoDownloadRuleFor(network, loaded)
-            mine.enabled -> AutoDownloadRule(mine.maxVideoBytes, mine.maxFileBytes, mine.preloadStories)
-            else -> AutoDownloadRule()
+            mine.enabled -> AutoDownloadRule(mine.maxVideoBytes, mine.maxFileBytes, mine.preloadStories, photos = mine.photos)
+            // Turned off by the user: photos wait for a tap too.
+            else -> AutoDownloadRule(photos = false)
         }
         base.copy(gifs = gifsOn && network != DeviceNetwork.None)
     }.stateIn(scope, SharingStarted.Eagerly, AutoDownloadRule())
@@ -96,6 +97,7 @@ class AutoDownloadPolicy(context: Context, private val client: TelegramClient, m
             .putLong("${network.name}_video", value.maxVideoBytes)
             .putLong("${network.name}_file", value.maxFileBytes)
             .putBoolean("${network.name}_stories", value.preloadStories)
+            .putBoolean("${network.name}_photos", value.photos)
             .apply()
     }
 
@@ -117,7 +119,8 @@ class AutoDownloadPolicy(context: Context, private val client: TelegramClient, m
             prefs.getBoolean("${network.name}_enabled", true),
             prefs.getLong("${network.name}_video", 0),
             prefs.getLong("${network.name}_file", 0),
-            prefs.getBoolean("${network.name}_stories", false)
+            prefs.getBoolean("${network.name}_stories", false),
+            prefs.getBoolean("${network.name}_photos", true)
         )
     }.toMap()
 

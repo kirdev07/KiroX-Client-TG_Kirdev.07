@@ -5,6 +5,8 @@ import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -79,9 +81,18 @@ fun rememberTelegramBitmap(file: TelegramFileRef?, sizePx: Int, priority: Int = 
 @Composable
 fun TelegramPhoto(file: TelegramFileRef, aspect: Float, modifier: Modifier = Modifier, maxWidth: androidx.compose.ui.unit.Dp = 280.dp, corner: androidx.compose.ui.unit.Dp = 12.dp) {
     val ratio = aspect.takeIf { it > 0f }?.coerceIn(0.5f, 2.2f) ?: 1.3f
-    val bitmap = rememberTelegramBitmap(file, with(LocalDensity.current) { maxWidth.coerceAtMost(420.dp).roundToPx() }, priority = 16)
-    Box(modifier.widthIn(max = maxWidth).fillMaxWidth().aspectRatio(ratio).clip(RoundedCornerShape(corner)).background(Fusion.colors.surface3)) {
+    // Auto-download «Фото» off for this network: a photo not on the phone yet loads on a tap.
+    val auto = com.kirox.app.ui.chat.LocalAutoDownload.current.photos
+    var allowed by androidx.compose.runtime.saveable.rememberSaveable(file.id) { androidx.compose.runtime.mutableStateOf(auto || file.localPath != null) }
+    androidx.compose.runtime.LaunchedEffect(auto) { if (auto) allowed = true }
+    val bitmap = rememberTelegramBitmap(file.takeIf { allowed }, with(LocalDensity.current) { maxWidth.coerceAtMost(420.dp).roundToPx() }, priority = 16)
+    Box(modifier.widthIn(max = maxWidth).fillMaxWidth().aspectRatio(ratio).clip(RoundedCornerShape(corner)).background(Fusion.colors.surface3), contentAlignment = Alignment.Center) {
         bitmap?.let { Image(it, contentDescription = "Фотография", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+        if (!allowed) Box(
+            Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).background(androidx.compose.ui.graphics.Color(0x99000000))
+                .clickable { allowed = true },
+            contentAlignment = Alignment.Center
+        ) { com.kirox.app.ui.icons.KiroXIcon(com.kirox.app.ui.icons.KiroXIcon.Media, "Загрузить фото", Modifier.size(24.dp), androidx.compose.ui.graphics.Color.White) }
     }
 }
 
