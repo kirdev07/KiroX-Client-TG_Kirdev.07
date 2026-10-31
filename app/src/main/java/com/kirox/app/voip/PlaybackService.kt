@@ -29,7 +29,7 @@ class PlaybackService : MediaSessionService() {
             this, 0, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        return MediaSession.Builder(this, player).setSessionActivity(open).setCallback(OnlyTrusted).build().also {
+        return MediaSession.Builder(this, QueuePlayer(player)).setSessionActivity(open).setCallback(OnlyTrusted).build().also {
             session = it
             addSession(it)
         }
@@ -64,5 +64,28 @@ class PlaybackService : MediaSessionService() {
         fun stop(context: Context) {
             runCatching { context.stopService(Intent(context, PlaybackService::class.java)) }
         }
+    }
+
+    /**
+     * The player as the notification sees it: «next» and «previous» go through the music queue
+     * (or the chat's voice notes), as the player itself holds one file at a time.
+     */
+    @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
+    private class QueuePlayer(player: androidx.media3.common.Player) : androidx.media3.common.ForwardingPlayer(player) {
+        private val queueCommands = setOf(
+            androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT, androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+            androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS, androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM
+        )
+
+        override fun getAvailableCommands(): androidx.media3.common.Player.Commands =
+            super.getAvailableCommands().buildUpon().addAll(*queueCommands.toIntArray()).build()
+
+        override fun isCommandAvailable(command: Int): Boolean = command in queueCommands || super.isCommandAvailable(command)
+        override fun hasNextMediaItem(): Boolean = true
+        override fun hasPreviousMediaItem(): Boolean = true
+        override fun seekToNext() = VoicePlayer.nextFromSession()
+        override fun seekToNextMediaItem() = VoicePlayer.nextFromSession()
+        override fun seekToPrevious() = VoicePlayer.previousFromSession()
+        override fun seekToPreviousMediaItem() = VoicePlayer.previousFromSession()
     }
 }

@@ -135,7 +135,9 @@ class VoiceRecorder(private val context: Context) {
 data class Track(
     val file: com.kirox.app.telegram.TelegramFileRef, val title: String, val artist: String, val durationSec: Int,
     /** The message it was sent in, for playlists; 0 when unknown. */
-    val chatId: Long = 0, val messageId: Long = 0
+    val chatId: Long = 0, val messageId: Long = 0,
+    /** The album cover Telegram has for it; the file's own cover is used once it is downloaded. */
+    val cover: com.kirox.app.telegram.TelegramFileRef? = null
 )
 
 /** «Повтор» in the music player: off, the whole queue, or one track. */
@@ -167,6 +169,20 @@ object VoicePlayer {
     val speed: StateFlow<Float> = _speed.asStateFlow()
     private val speeds = listOf(1f, 1.5f, 2f)
 
+    /** The output chosen in the player (an AudioDeviceInfo id); null leaves it to the system. */
+    private val _output = MutableStateFlow<Int?>(null)
+    val output: StateFlow<Int?> = _output.asStateFlow()
+
+    /** Sends kiroX's sound to [device] (the phone's speaker, Bluetooth, wired), or back to the system's choice with null. */
+    @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
+    fun setOutput(device: android.media.AudioDeviceInfo?) {
+        _output.value = device?.id
+        player?.setPreferredAudioDevice(device)
+    }
+
+    private val _source = MutableStateFlow("")
+    /** Where the queue comes from: a chat, a playlist, «Вся музыка» — shown as «Играет из». */
+    val source: StateFlow<String> = _source.asStateFlow()
     private val _queue = MutableStateFlow<List<Track>>(emptyList())
     val queue: StateFlow<List<Track>> = _queue.asStateFlow()
     private val _index = MutableStateFlow(-1)
@@ -245,6 +261,7 @@ object VoicePlayer {
         }
     }
 
+    @androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
     private fun player(context: Context): androidx.media3.exoplayer.ExoPlayer {
         player?.let { return it }
         val app = context.applicationContext
@@ -267,6 +284,11 @@ object VoicePlayer {
                     override fun onPlayerError(error: androidx.media3.common.PlaybackException) = stop()
                 })
                 player = created
+                // An output chosen earlier still applies to the new player.
+                _output.value?.let { id ->
+                    app.getSystemService(android.media.AudioManager::class.java)?.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+                        ?.firstOrNull { it.id == id }?.let(created::setPreferredAudioDevice)
+                }
             }
     }
 
@@ -306,6 +328,13 @@ object VoicePlayer {
 
     fun next(context: Context) { nextIndex(forward = true)?.let { playAt(context, it) } }
 
+    /** Whether next / previous make sense now (a music queue is loaded). */
+    val hasQueue: Boolean get() = _track.value != null && _queue.value.isNotEmpty()
+
+    /** Next and previous from the notification, the lock screen and headphone buttons. */
+    internal fun nextFromSession() { appContext?.let { if (hasQueue) next(it) else playNextVoice(it) } }
+    internal fun previousFromSession() { appContext?.let { if (hasQueue) previous(it) else player?.seekTo(0) } }
+
     /** Back to the start of the track after 3 seconds of it, otherwise the previous track. */
     fun previous(context: Context) {
         if ((player?.currentPosition ?: 0) > 3000) { player?.seekTo(0); return }
@@ -316,8 +345,9 @@ object VoicePlayer {
      * Plays [tracks] as a queue from [index] (the chat's music in order); a tap on the track that
      * is already loaded pauses or resumes it instead. Tracks download on their turn.
      */
-    fun playQueue(context: Context, tracks: List<Track>, index: Int) {
+    fun playQueue(context: Context, tracks: List<Track>, index: Int, source: String = "") {
         if (index !in tracks.indices) return
+        if (source.isNotBlank()) _source.value = source
         if (_track.value?.file?.id == tracks[index].file.id && currentPath != null) {
             _queue.value = tracks; _index.value = index
             playPause(); return

@@ -143,7 +143,11 @@ fun TelegramMainScreen(
         containerColor = if (Fusion.colors.backdrop != null) androidx.compose.ui.graphics.Color.Transparent else Fusion.colors.background,
         contentWindowInsets = WindowInsets.statusBars,
         bottomBar = {
-            if (!keyboardOpen && !wide) FusionBottomBar(navItems, tabs.indexOf(tab).coerceAtLeast(0), { tab = tabs[it]; sub = SubScreen.None })
+            Column {
+                // Music keeps playing everywhere: its bar sits over the tabs.
+                if (!keyboardOpen) com.kirox.app.ui.chat.MiniPlayerBar(floating = true)
+                if (!keyboardOpen && !wide) FusionBottomBar(navItems, tabs.indexOf(tab).coerceAtLeast(0), { tab = tabs[it]; sub = SubScreen.None })
+            }
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding()) {

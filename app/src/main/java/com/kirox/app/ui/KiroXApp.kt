@@ -435,10 +435,11 @@ fun KiroXApp() {
         groupCall?.let { call ->
             CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.call.GroupCallScreen(call, groupCallActions) }
         }
-        com.kirox.app.ui.music.MusicLibraryHost(onOpenChat = { openChat(it) })
+        // Covers and downloads in the library and the player need the file repository too.
+        CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.music.MusicLibraryHost(onOpenChat = { openChat(it) }) }
         LaunchedEffect(splashVisible) { if (!splashVisible && com.kirox.app.ui.home.WhatsNew.shouldShow(context)) whatsNew = true }
         if (whatsNew) com.kirox.app.ui.home.WhatsNewSheet { whatsNew = false }
-        com.kirox.app.ui.chat.MusicPlayerSheet()
+        CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.chat.MusicPlayerSheet() }
         browserUrl?.let { url -> com.kirox.app.ui.chat.InAppBrowser(url, onTelegramLink = { browserUrl = null; linkOpener(it) }) { browserUrl = null } }
         folderInvite?.let { invite ->
             androidx.compose.material3.AlertDialog(

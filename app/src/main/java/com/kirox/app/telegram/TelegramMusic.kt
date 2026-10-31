@@ -13,7 +13,8 @@ data class TelegramAudio(
     val title: String,
     val performer: String,
     val duration: Int,
-    val size: Long
+    val size: Long,
+    val cover: TelegramFileRef? = null
 )
 
 /**
@@ -30,7 +31,7 @@ class TelegramMusic(private val client: TelegramClient) {
         val audio = (content as? TdApi.MessageAudio)?.audio ?: return null
         val file = audio.audio
         val name = audio.title.ifBlank { audio.fileName.substringBeforeLast('.') }.ifBlank { "Аудио" }
-        return TelegramAudio(chatId, id, chatTitle(chatId), date, file.toRef(), name, audio.performer, audio.duration, if (file.size > 0) file.size else file.expectedSize)
+        return TelegramAudio(chatId, id, chatTitle(chatId), date, file.toRef(), name, audio.performer, audio.duration, if (file.size > 0) file.size else file.expectedSize, audio.albumCoverThumbnail?.file?.toRef())
     }
 
     /** One page of music from all chats; [offset] "" for the first page. The next offset is "" at the end. */

@@ -224,49 +224,6 @@ internal fun VideoNoteMessage(media: TelegramMedia, thumbnail: TelegramFileRef?)
     }
 }
 
-/** Music file: plays through the shared voice player once downloaded. */
-@Composable
-internal fun AudioMessage(media: TelegramMedia) {
-    val context = LocalContext.current
-    val files = LocalTelegramFiles.current
-    val state = rememberFileState(media.file)
-    val playingPath by VoicePlayer.playingPath.collectAsState()
-    val current by VoicePlayer.track.collectAsState()
-    // The chat's music in order: a tap plays from here on, like a playlist.
-    val chatTracks = LocalChatTracks.current
-    val isCurrent = current?.file?.id == media.file.id
-    val playing = isCurrent && playingPath != null
-    Row(
-        Modifier.clip(RoundedCornerShape(12.dp)).clickable {
-            when {
-                state.downloading && !isCurrent && current == null -> files?.cancel(media.file)
-                else -> {
-                    val queue = chatTracks.ifEmpty { listOf(media.toTrack()) }
-                    val index = queue.indexOfFirst { it.file.id == media.file.id }.takeIf { it >= 0 }
-                    if (index != null) VoicePlayer.playQueue(context, queue, index) else VoicePlayer.playQueue(context, listOf(media.toTrack()), 0)
-                }
-            }
-        },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(Modifier.size(42.dp).clip(CircleShape).background(Fusion.colors.surface3), contentAlignment = Alignment.Center) {
-            when {
-                playing -> Text("❚❚", color = Fusion.colors.textPrimary, fontSize = 13.sp)
-                state.path != null -> Text("▶", color = Fusion.colors.textPrimary, fontSize = 14.sp)
-                state.downloading -> CircularProgressIndicator(progress = { state.fraction.coerceAtLeast(0.02f) }, modifier = Modifier.size(34.dp), color = Fusion.colors.textPrimary, strokeWidth = 2.dp)
-                else -> IconGlyph(KiroXIcon.Music, "Музыка", Modifier.size(20.dp), Fusion.colors.textPrimary)
-            }
-        }
-        Spacer(Modifier.width(10.dp))
-        Column(Modifier.widthIn(max = 220.dp).then(if (isCurrent) Modifier.clickable { MusicPlayerUi.open() } else Modifier)) {
-            Text(media.title.ifBlank { "Аудио" }, color = if (isCurrent) Fusion.colors.accent else Fusion.colors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val details = listOf(media.performer, formatDuration(media.duration), formatFileSize(media.size)).filter { it.isNotBlank() }.joinToString(" · ")
-            Text(details, color = Fusion.colors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-/** Document: tap downloads it (tap again cancels), then opens it in another app. */
 @Composable
 internal fun DocumentMessage(media: TelegramMedia, onNotice: (String) -> Unit) {
     val files = LocalTelegramFiles.current

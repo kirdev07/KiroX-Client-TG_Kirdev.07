@@ -82,6 +82,13 @@ class TelegramFileRepository(private val client: TelegramClient) {
         }
     }
 
+    /** Removes the downloaded copy from the phone; the file stays in Telegram and can be downloaded again. */
+    fun deleteLocal(file: TelegramFileRef) {
+        client.send(TdApi.DeleteFile(file.id))
+        states[file.id]?.let { it.value = TelegramFileState(total = it.value.total) }
+        paths[file.id]?.value = null
+    }
+
     /** Stops a download; what is already on disk is kept for a later resume. */
     fun cancel(file: TelegramFileRef) {
         client.send(TdApi.CancelDownloadFile(file.id, false))

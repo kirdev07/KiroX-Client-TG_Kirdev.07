@@ -15,7 +15,10 @@ enum class KiroXIcon {
     Edit, More, Stories, Media, Bookmark, Check, Pin, CallIncoming, CallOutgoing, CallMissed,
     Camera, At, Phone, Cake, File, Link, Music, Voice, Verified, Photo,
     Back, Video, Attach, Send, Emoji, Copy, Forward, Delete, Location, Reply,
-    Chats, Tune, ProfileCircle, Qr, Speaker, CallEnd, FlipCamera, Menu, Lock, Eye, Backspace, Channel
+    Chats, Tune, ProfileCircle, Qr, Speaker, CallEnd, FlipCamera, Menu, Lock, Eye, Backspace, Channel,
+    // Music player
+    Play, Pause, SkipNext, SkipPrevious, Shuffle, Repeat, RepeatOne, Replay10, Forward10, Timer, Speed,
+    Queue, Heart, HeartOutline, PlaylistAdd, Close, Library, Down, Equalizer, MoreHoriz, Download, Headphones
 }
 
 /** Material Rounded glyph for each app icon; directional ones mirror in right-to-left layouts. */
@@ -82,6 +85,28 @@ private val KiroXIcon.vector: ImageVector
         KiroXIcon.Lock -> Icons.Rounded.Lock
         KiroXIcon.Eye -> Icons.Rounded.Visibility
         KiroXIcon.Backspace -> Icons.AutoMirrored.Rounded.Backspace
+        KiroXIcon.Play -> Icons.Rounded.PlayArrow
+        KiroXIcon.Pause -> Icons.Rounded.Pause
+        KiroXIcon.SkipNext -> Icons.Rounded.SkipNext
+        KiroXIcon.SkipPrevious -> Icons.Rounded.SkipPrevious
+        KiroXIcon.Shuffle -> Icons.Rounded.Shuffle
+        KiroXIcon.Repeat -> Icons.Rounded.Repeat
+        KiroXIcon.RepeatOne -> Icons.Rounded.RepeatOne
+        KiroXIcon.Replay10 -> Icons.Rounded.Replay10
+        KiroXIcon.Forward10 -> Icons.Rounded.Forward10
+        KiroXIcon.Timer -> Icons.Rounded.Bedtime
+        KiroXIcon.Speed -> Icons.Rounded.Speed
+        KiroXIcon.Queue -> Icons.AutoMirrored.Rounded.QueueMusic
+        KiroXIcon.Heart -> Icons.Rounded.Favorite
+        KiroXIcon.HeartOutline -> Icons.Rounded.FavoriteBorder
+        KiroXIcon.PlaylistAdd -> Icons.AutoMirrored.Rounded.PlaylistAdd
+        KiroXIcon.Close -> Icons.Rounded.Close
+        KiroXIcon.Library -> Icons.Rounded.LibraryMusic
+        KiroXIcon.Down -> Icons.Rounded.KeyboardArrowDown
+        KiroXIcon.Equalizer -> Icons.Rounded.GraphicEq
+        KiroXIcon.MoreHoriz -> Icons.Rounded.MoreHoriz
+        KiroXIcon.Download -> Icons.Rounded.Download
+        KiroXIcon.Headphones -> Icons.Rounded.Headphones
     }
 
 @Composable

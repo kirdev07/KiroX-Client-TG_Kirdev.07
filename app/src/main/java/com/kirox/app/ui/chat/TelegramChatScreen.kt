@@ -571,12 +571,12 @@ fun TelegramChatScreen(
     }
     // The chat's music, oldest first: tapping one plays the rest after it.
     val chatTracks = remember(history.messages) {
-        history.messages.filter { it.kind == com.kirox.app.telegram.TelegramMessageKind.Audio }.mapNotNull { m -> m.media?.toTrack()?.copy(chatId = m.chatId, messageId = m.id) }
+        history.messages.filter { it.kind == com.kirox.app.telegram.TelegramMessageKind.Audio }.mapNotNull { m -> m.media?.toTrack()?.copy(chatId = m.chatId, messageId = m.id, cover = m.photo) }
     }
     val chatVoices = remember(history.messages) {
         history.messages.filter { it.kind == com.kirox.app.telegram.TelegramMessageKind.Voice }.mapNotNull { it.photo }
     }
-    CompositionLocalProvider(LocalGalleryChatId provides history.chatId, LocalSaveToGallery provides (galleryKind in galleryKinds), LocalChatTracks provides chatTracks, LocalChatVoices provides chatVoices) {
+    CompositionLocalProvider(LocalGalleryChatId provides history.chatId, LocalSaveToGallery provides (galleryKind in galleryKinds), LocalChatTracks provides chatTracks, LocalChatVoices provides chatVoices, LocalChatTitle provides history.title) {
     Box(Modifier.fillMaxSize()) {
     com.kirox.app.ui.components.ChatWallpaperLayer(chatWallpaper ?: style.wallpaper, Modifier.matchParentSize())
     Scaffold(
@@ -610,10 +610,12 @@ fun TelegramChatScreen(
                 }
             })
                 history.pinned?.let { pinned -> PinnedBar(pinned, count = history.pinnedIds.size) { actions.jumpTo(pinned.id) } }
-                MiniPlayerBar()
             }
         },
         bottomBar = {
+            // The playing track's bar sits at the bottom, over the composer, as in music apps.
+            Column {
+            MiniPlayerBar(floating = true)
             if (recording) VoiceRecordingBar(
                 elapsedMs = recordMs,
                 level = recordLevel,
@@ -730,7 +732,8 @@ fun TelegramChatScreen(
                 onWhenOnline = if (history.peerKind == TelegramPeerKind.User) ({ sendScheduled(com.kirox.app.telegram.SEND_WHEN_ONLINE) }) else null
             )
             }
-        }
+                    }
+}
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             val results = searchResults
@@ -989,6 +992,11 @@ fun TelegramChatScreen(
                     "История изменений" -> versionsOf = message
                     "Пожаловаться" -> reportIds = idsOf(message)
                     "Цитировать" -> quoting = message
+                    "Удалить с телефона" -> message.media?.file?.let { file ->
+                        if (VoicePlayer.track.value?.file?.id == file.id) VoicePlayer.stop()
+                        files?.deleteLocal(file)
+                        notice = "Файл удалён с телефона — сообщение осталось"
+                    }
                     "Кто прочитал" -> people = "Прочитали" to { actions.readBy(message.id).map { (name, date) -> name to scheduledTime(date) } }
                     "Кто отреагировал" -> people = "Реакции" to { actions.reactedBy(message.id) }
                     "Заменить фото или видео" -> { replacing = message; pickReplacement.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) }
