@@ -113,14 +113,7 @@ internal fun UpdatesScreen(updates: com.kirox.app.update.UpdateCenter, onBack: (
             item { SmallCaption("Что нового в ${release.version}") }
             item { Text(releaseNotesText(release.notes, Fusion.colors.textPrimary), color = Fusion.colors.textSecondary, fontSize = 13.sp, lineHeight = 19.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         }
-        item {
-            Text(
-                "Все версии на GitHub", color = Fusion.colors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp).clickable {
-                    context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, com.kirox.app.update.UpdateCenter.RELEASES_URL.toUri()))
-                }
-            )
-        }
+        // «Все версии на GitHub» comes back with the new design; checking and installing updates still use GitHub.
     }
 }
 

@@ -1529,11 +1529,7 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
         }
         item { SmallCaption("О приложении") }
         item { LinkRow("kiroX ${BuildConfig.VERSION_NAME}", "Неофициальный клиент Telegram на TDLib") {} }
-        item {
-            LinkRow("Исходный код и лицензии", "github.com/kirdev07/KiroX-Client-TG_Kirdev.07") {
-                context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/kirdev07/KiroX-Client-TG_Kirdev.07".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }
-        }
+        // The link to the kiroX repository comes back with the new design.
         item {
             LinkRow("Язык", "${com.kirox.app.i18n.I18n.language.title} · свои названия") { languagePage = true }
         }
