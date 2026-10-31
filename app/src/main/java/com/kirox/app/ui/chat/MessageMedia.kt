@@ -157,8 +157,9 @@ internal fun AnimationMessage(media: TelegramMedia, thumbnail: TelegramFileRef?,
     val state = rememberFileState(media.file)
     // A preview (sticker panel tile) shows only the frame: no download, no player, no own taps,
     // so a grid of GIFs does not open a decoder per tile and a tap reaches the tile (send).
-    if (!preview) LaunchedEffect(media.file.id, files) {
-        if (state.path == null && !state.downloading && media.size in 1..AUTO_ANIMATION_BYTES) files?.download(media.file)
+    val gifs = LocalAutoDownload.current.gifs
+    if (!preview) LaunchedEffect(media.file.id, files, gifs) {
+        if (gifs && state.path == null && !state.downloading && media.size in 1..AUTO_ANIMATION_BYTES) files?.download(media.file)
     }
     Box(if (preview) Modifier else Modifier.clickable(enabled = state.path == null) { if (state.downloading) files?.cancel(media.file) else files?.download(media.file) }) {
         MediaFrame(thumbnail, mediaAspect(media)) {

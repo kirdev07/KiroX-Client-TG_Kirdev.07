@@ -75,6 +75,9 @@ fun parseProxyLink(link: String): Triple<String, Int, Pair<ProxyKind, String>>? 
 
 data class StorageUsage(val filesBytes: Long, val fileCount: Int, val databaseBytes: Long)
 
+/** Sent and received bytes per network since [sinceDate] (unix seconds). */
+data class NetworkUsage(val sinceDate: Int, val bytes: Map<DownloadNetwork, Pair<Long, Long>>)
+
 /** Account-level settings stored in Telegram: notifications, privacy, local storage. */
 class TelegramSettingsRepository(private val client: TelegramClient) {
 
@@ -119,6 +122,30 @@ class TelegramSettingsRepository(private val client: TelegramClient) {
     suspend fun clearCache() {
         client.query(TdApi.OptimizeStorage(0, 0, 0, 0, null, null, null, false, 0))
     }
+
+    /** Traffic since the last reset, summed per network (files, messages and calls). */
+    suspend fun networkUsage(): NetworkUsage {
+        val stats = client.query(TdApi.GetNetworkStatistics(false))
+        val totals = HashMap<DownloadNetwork, Pair<Long, Long>>()
+        stats.entries.forEach { entry ->
+            val (type, sent, received) = when (entry) {
+                is TdApi.NetworkStatisticsEntryFile -> Triple(entry.networkType, entry.sentBytes, entry.receivedBytes)
+                is TdApi.NetworkStatisticsEntryCall -> Triple(entry.networkType, entry.sentBytes, entry.receivedBytes)
+                else -> return@forEach
+            }
+            val network = when (type) {
+                is TdApi.NetworkTypeMobile -> DownloadNetwork.Mobile
+                is TdApi.NetworkTypeMobileRoaming -> DownloadNetwork.Roaming
+                is TdApi.NetworkTypeWiFi, is TdApi.NetworkTypeOther -> DownloadNetwork.WiFi
+                else -> return@forEach
+            }
+            val old = totals[network] ?: (0L to 0L)
+            totals[network] = (old.first + sent) to (old.second + received)
+        }
+        return NetworkUsage(stats.sinceDate, totals)
+    }
+
+    suspend fun resetNetworkUsage() { client.query(TdApi.ResetNetworkStatistics()) }
 
     private companion object { const val MUTE_FOREVER_S = 400 * 24 * 60 * 60 }
 

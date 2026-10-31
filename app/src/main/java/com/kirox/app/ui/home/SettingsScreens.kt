@@ -40,6 +40,11 @@ import com.kirox.app.telegram.PrivacyItem
 import com.kirox.app.telegram.PrivacyLevel
 import com.kirox.app.telegram.ScopeNotifications
 import com.kirox.app.telegram.StorageUsage
+import com.kirox.app.telegram.CacheLimit
+import com.kirox.app.telegram.DownloadNetwork
+import com.kirox.app.telegram.KeepMedia
+import com.kirox.app.telegram.NetworkDownload
+import com.kirox.app.telegram.NetworkUsage
 import com.kirox.app.telegram.TelegramUserProfile
 import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.launch
@@ -242,17 +247,34 @@ internal fun PrivacyScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
 
 // ---------- Data and storage ----------
 
-/** Settings → Data and storage: cache size and clearing. */
+/**
+ * Settings → Data and storage, as in Telegram: memory use and cache rules, traffic, auto-download
+ * per network, GIF autoplay and the proxy.
+ */
 @Composable
 internal fun StorageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
-    var proxyPage by remember { mutableStateOf(false) }
-    if (proxyPage) { ProxyScreen(onBack = { proxyPage = false }, onNotice = onNotice); return }
+    var page by remember { mutableStateOf<String?>(null) }
+    when (val current = page) {
+        "proxy" -> { ProxyScreen(onBack = { page = null }, onNotice = onNotice); return }
+        "traffic" -> { NetworkUsageScreen(onBack = { page = null }, onNotice = onNotice); return }
+        null -> Unit
+        else -> DownloadNetwork.entries.firstOrNull { it.name == current }?.let { network -> AutoDownloadScreen(network, onBack = { page = null }); return }
+    }
     BackHandler(onBack = onBack)
     val repo = settingsRepo()
+    val services = (LocalContext.current.applicationContext as KiroXApplication).telegram
+    val autoDownload = services.autoDownload
+    val storage = services.storage
+    val downloads by autoDownload.settings.collectAsState()
+    val gifs by autoDownload.autoplayGifs.collectAsState()
+    val keepMedia by storage.keepMedia.collectAsState()
+    val cacheLimit by storage.cacheLimit.collectAsState()
     val scope = rememberCoroutineScope()
     var usage by remember { mutableStateOf<StorageUsage?>(null) }
     var clearing by remember { mutableStateOf(false) }
     var confirm by remember { mutableStateOf(false) }
+    var choosing by remember { mutableStateOf<String?>(null) }
+    var confirmReset by remember { mutableStateOf(false) }
     fun reload() { scope.launch { runCatching { repo.storage() }.onSuccess { usage = it } } }
     LaunchedEffect(Unit) { reload() }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -266,6 +288,8 @@ internal fun StorageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
                 Text("Медиа и файлы: ${formatBytes(u.filesBytes)} (${u.fileCount}) · база: ${formatBytes(u.databaseBytes)}", color = Fusion.colors.textSecondary, fontSize = 13.sp)
             }
         }
+        item { LinkRow("Хранить медиа", keepMedia.title) { choosing = "keep" } }
+        item { LinkRow("Максимальный размер кэша", cacheLimit.title) { choosing = "limit" } }
         item {
             Box(
                 Modifier.padding(16.dp).fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(26.dp))
@@ -278,12 +302,25 @@ internal fun StorageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
         }
         item {
             Text(
-                "Удаляются скачанные фото, видео, голосовые и файлы. Сообщения остаются в облаке Telegram и загрузятся снова при открытии.",
+                "Фото, видео и файлы, которые вы не открывали дольше выбранного срока, удаляются с устройства. Сообщения остаются в облаке Telegram и загрузятся снова при открытии.",
                 color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp)
             )
         }
+        item { SmallCaption("Использование трафика") }
+        item { LinkRow("Использование сети", "Сколько отправлено и получено через мобильную сеть, Wi-Fi и в роуминге") { page = "traffic" } }
+        item { SmallCaption("Автозагрузка медиа") }
+        DownloadNetwork.entries.forEach { network ->
+            item(key = network.name) { LinkRow(network.title, downloads[network]?.summary() ?: "…") { page = network.name } }
+        }
+        item { LinkRow("Сбросить настройки автозагрузки", null, Fusion.colors.danger) { confirmReset = true } }
+        item { SmallCaption("Автовоспроизведение") }
+        item { ToggleRow("GIF", "Загружать и проигрывать GIF в чатах автоматически", gifs) { autoDownload.setAutoplayGifs(it) } }
         item { SmallCaption("Сеть") }
-        item { LinkRow("Прокси", "SOCKS5, HTTP или MTProto, если Telegram недоступен напрямую") { proxyPage = true } }
+        item { LinkRow("Прокси", "SOCKS5, HTTP или MTProto, если Telegram недоступен напрямую") { page = "proxy" } }
+    }
+    when (choosing) {
+        "keep" -> ChoiceDialog("Хранить медиа", KeepMedia.entries, keepMedia, { it.title }, onDismiss = { choosing = null }) { storage.setKeepMedia(it); choosing = null; reload() }
+        "limit" -> ChoiceDialog("Максимальный размер кэша", CacheLimit.entries, cacheLimit, { it.title }, onDismiss = { choosing = null }) { storage.setCacheLimit(it); choosing = null; reload() }
     }
     if (confirm) AlertDialog(
         onDismissRequest = { confirm = false },
@@ -300,6 +337,129 @@ internal fun StorageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
             }) { Text("Очистить", color = Fusion.colors.danger) }
         },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
+    if (confirmReset) AlertDialog(
+        onDismissRequest = { confirmReset = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Сбросить автозагрузку?", color = Fusion.colors.textPrimary) },
+        text = { Text("Для всех сетей вернутся настройки Telegram по умолчанию, автовоспроизведение GIF включится.", color = Fusion.colors.textSecondary) },
+        confirmButton = { TextButton(onClick = { confirmReset = false; autoDownload.reset(); onNotice("Настройки автозагрузки сброшены") }) { Text("Сбросить", color = Fusion.colors.danger) } },
+        dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
+}
+
+private fun NetworkDownload.summary(): String = when {
+    !enabled -> "Выключено"
+    else -> "Видео: ${downloadLimit(maxVideoBytes)} · файлы: ${downloadLimit(maxFileBytes)}"
+}
+
+private fun downloadLimit(bytes: Long): String = when {
+    bytes <= 0 -> "не загружать"
+    bytes % (1L shl 30) == 0L -> "до ${bytes shr 30} ГБ"
+    bytes % (1L shl 20) == 0L -> "до ${bytes shr 20} МБ"
+    else -> "до ${formatBytes(bytes)}"
+}
+
+/** Size limits offered for videos and files, as in Telegram; 0 is «не загружать». */
+private val downloadLimits = listOf(0L, 1L shl 20, 5L shl 20, 10L shl 20, 25L shl 20, 50L shl 20, 100L shl 20, 500L shl 20, 1L shl 30, 2L shl 30)
+
+/** Auto-download for one network: on/off, video and file size limits, stories. */
+@Composable
+private fun AutoDownloadScreen(network: DownloadNetwork, onBack: () -> Unit) {
+    BackHandler(onBack = onBack)
+    val autoDownload = (LocalContext.current.applicationContext as KiroXApplication).telegram.autoDownload
+    val all by autoDownload.settings.collectAsState()
+    val value = all[network] ?: NetworkDownload(false, 0, 0, false)
+    var choosing by remember { mutableStateOf<String?>(null) }
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle(network.title, onBack) }
+        item { ToggleRow("Автозагрузка медиа", "Фото всегда загружаются в чатах, остальное — по ограничениям ниже", value.enabled) { autoDownload.set(network, value.copy(enabled = it)) } }
+        item { SmallCaption("Типы медиа") }
+        item { LinkRow("Видео", downloadLimit(value.maxVideoBytes), if (value.enabled) Fusion.colors.textPrimary else Fusion.colors.textTertiary) { if (value.enabled) choosing = "video" } }
+        item { LinkRow("Файлы", downloadLimit(value.maxFileBytes), if (value.enabled) Fusion.colors.textPrimary else Fusion.colors.textTertiary) { if (value.enabled) choosing = "file" } }
+        item { ToggleRow("Истории", "Заранее загружать истории контактов", value.preloadStories, enabled = value.enabled) { autoDownload.set(network, value.copy(preloadStories = it)) } }
+        item {
+            Text(
+                "Файлы больше выбранного размера загружаются только по нажатию. Настройки хранятся на этом устройстве.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+        }
+    }
+    when (choosing) {
+        "video" -> ChoiceDialog("Видео", (downloadLimits + value.maxVideoBytes).distinct().sorted(), value.maxVideoBytes, ::downloadLimit, onDismiss = { choosing = null }) {
+            autoDownload.set(network, value.copy(maxVideoBytes = it)); choosing = null
+        }
+        "file" -> ChoiceDialog("Файлы", (downloadLimits + value.maxFileBytes).distinct().sorted(), value.maxFileBytes, ::downloadLimit, onDismiss = { choosing = null }) {
+            autoDownload.set(network, value.copy(maxFileBytes = it)); choosing = null
+        }
+    }
+}
+
+/** Traffic per network since the last reset, from TDLib's network statistics. */
+@Composable
+private fun NetworkUsageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
+    BackHandler(onBack = onBack)
+    val repo = settingsRepo()
+    val scope = rememberCoroutineScope()
+    var usage by remember { mutableStateOf<NetworkUsage?>(null) }
+    var confirm by remember { mutableStateOf(false) }
+    fun reload() { scope.launch { runCatching { repo.networkUsage() }.onSuccess { usage = it }.onFailure { onNotice("Не удалось получить статистику") } } }
+    LaunchedEffect(Unit) { reload() }
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Использование сети", onBack) }
+        val u = usage
+        if (u == null) item { Loading() } else {
+            DownloadNetwork.entries.forEach { network ->
+                item(key = network.name) {
+                    val (sent, received) = u.bytes[network] ?: (0L to 0L)
+                    SmallCaption(network.title)
+                    LinkRow("Отправлено", formatBytes(sent)) {}
+                    LinkRow("Получено", formatBytes(received)) {}
+                }
+            }
+            item {
+                val since = java.text.SimpleDateFormat("d MMMM yyyy", java.util.Locale.forLanguageTag("ru")).format(java.util.Date(u.sinceDate * 1000L))
+                Text("Статистика с $since.", color = Fusion.colors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+            }
+            item { LinkRow("Сбросить статистику", null, Fusion.colors.danger) { confirm = true } }
+        }
+    }
+    if (confirm) AlertDialog(
+        onDismissRequest = { confirm = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Сбросить статистику?", color = Fusion.colors.textPrimary) },
+        confirmButton = {
+            TextButton(onClick = {
+                confirm = false
+                scope.launch { runCatching { repo.resetNetworkUsage() }.onSuccess { reload() }.onFailure { onNotice("Не удалось сбросить") } }
+            }) { Text("Сбросить", color = Fusion.colors.danger) }
+        },
+        dismissButton = { TextButton(onClick = { confirm = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
+}
+
+/** One choice out of [options], in the same dialog style as the privacy levels. */
+@Composable
+private fun <T> ChoiceDialog(title: String, options: List<T>, selected: T, label: (T) -> String, onDismiss: () -> Unit, onPick: (T) -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Fusion.colors.surface1,
+        title = { Text(title, color = Fusion.colors.textPrimary) },
+        text = {
+            LazyColumn {
+                items(options) { option ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onPick(option) }.heightIn(min = 48.dp).padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(if (option == selected) "●" else "○", color = Fusion.colors.textPrimary, fontSize = 16.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Text(label(option), color = Fusion.colors.textPrimary, fontSize = 16.sp)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Отмена", color = Fusion.colors.textSecondary) } }
     )
 }
 
