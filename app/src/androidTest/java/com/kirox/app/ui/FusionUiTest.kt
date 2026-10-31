@@ -55,7 +55,7 @@ class FusionUiTest {
         val sent = mutableListOf<String>()
         val actions = object : TelegramChatActions {
             override fun loadOlder() {}
-            override fun sendText(text: String, replyToMessageId: Long?, silent: Boolean) { sent += text }
+            override fun sendText(text: String, replyToMessageId: Long?, silent: Boolean, scheduleAt: Int) { sent += text }
             override fun sendPhoto(path: String, caption: String) {}
             override fun sendDocument(path: String, caption: String) {}
             override fun edit(messageId: Long, text: String) {}

@@ -343,7 +343,9 @@ internal fun voiceBars(waveform: List<Int>, count: Int = 40): List<Float> {
 private fun deliveryGlyph(state: DeliveryState) = when (state) { DeliveryState.Sending -> "◷"; DeliveryState.Sent -> "✓"; DeliveryState.Delivered, DeliveryState.Read -> "✓✓"; DeliveryState.Failed -> "!"; DeliveryState.None -> "" }
 
 @Composable
-internal fun ChatComposer(value: TextFieldValue, reply: MessageUi?, editing: MessageUi?, onValueChange: (TextFieldValue) -> Unit, onCancelContext: () -> Unit, onAttach: () -> Unit, onEmoji: () -> Unit, onSend: () -> Unit, onMic: () -> Unit, appearance: ChatAppearance, onSendSilent: (() -> Unit)? = null) {
+internal fun ChatComposer(value: TextFieldValue, reply: MessageUi?, editing: MessageUi?, onValueChange: (TextFieldValue) -> Unit, onCancelContext: () -> Unit, onAttach: () -> Unit, onEmoji: () -> Unit, onSend: () -> Unit, onMic: () -> Unit, appearance: ChatAppearance, onSendSilent: (() -> Unit)? = null, onSchedule: (() -> Unit)? = null, onWhenOnline: (() -> Unit)? = null) {
+    // Long press on «Отправить» opens these; off while editing a message.
+    val sendOptions = SendOptions(onSendSilent, onSchedule, onWhenOnline).takeIf { editing == null && it.any }
     val animate = com.kirox.app.ui.theme.LocalMotionFactor.current > 0f
     // Over the v2 artwork the composer floats; classic palettes keep a solid strip.
     Surface(color = if (Fusion.colors.backdrop != null) Color.Transparent else Fusion.colors.background) {
@@ -362,7 +364,7 @@ internal fun ChatComposer(value: TextFieldValue, reply: MessageUi?, editing: Mes
                     ChatIconButton(KiroXIcon.Emoji, "Эмодзи и стикеры", onEmoji)
                     TextField(value, onValueChange, modifier = Modifier.weight(1f).heightIn(min = 48.dp, max = 140.dp), placeholder = { Text("Сообщение", color = ChatSecondary, fontSize = 16.sp) }, colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, focusedTextColor = ChatWhite, unfocusedTextColor = ChatWhite, cursorColor = ChatWhite), maxLines = 5)
                     AnimatedVisibility(value.text.isBlank(), enter = if (animate) fadeIn() + expandHorizontally() else EnterTransition.None, exit = if (animate) fadeOut() + shrinkHorizontally() else ExitTransition.None) { ChatIconButton(KiroXIcon.Attach, "Вложения", onAttach) }
-                    if (!v2) AnimatedContent(value.text.isNotBlank(), transitionSpec = { if (animate) (fadeIn() + scaleIn()).togetherWith(fadeOut() + scaleOut()) else EnterTransition.None.togetherWith(ExitTransition.None) }, label = "send_mic") { hasText -> if (hasText) SendButton(onSend, onSendSilent.takeIf { editing == null }) else ChatIconButton(KiroXIcon.Voice, "Голосовое сообщение", onMic) }
+                    if (!v2) AnimatedContent(value.text.isNotBlank(), transitionSpec = { if (animate) (fadeIn() + scaleIn()).togetherWith(fadeOut() + scaleOut()) else EnterTransition.None.togetherWith(ExitTransition.None) }, label = "send_mic") { hasText -> if (hasText) SendButton(onSend, sendOptions) else ChatIconButton(KiroXIcon.Voice, "Голосовое сообщение", onMic) }
                 }
             }
             if (v2) {
@@ -375,11 +377,11 @@ internal fun ChatComposer(value: TextFieldValue, reply: MessageUi?, editing: Mes
                         Modifier.size(50.dp).clip(CircleShape).background(Fusion.colors.accent)
                             .combinedClickable(
                                 onClick = if (hasText) onSend else onMic,
-                                onLongClick = if (hasText && editing == null && onSendSilent != null) ({ silentMenu = true }) else null
+                                onLongClick = if (hasText && sendOptions != null) ({ silentMenu = true }) else null
                             ),
                         contentAlignment = Alignment.Center
                     ) { IconGlyph(if (hasText) KiroXIcon.Send else KiroXIcon.Voice, if (hasText) "Отправить" else "Голосовое сообщение", Modifier.size(22.dp), Fusion.colors.onAccent) }
-                    SilentSendMenu(silentMenu, onDismiss = { silentMenu = false }) { silentMenu = false; onSendSilent?.invoke() }
+                    if (sendOptions != null) SendOptionsMenu(silentMenu, sendOptions) { silentMenu = false }
                 }
             }
             }
@@ -554,26 +556,36 @@ internal val DEFAULT_REACTIONS = listOf("❤", "👍", "🔥", "😁", "👏")
 }
 
 /** Send: Material 3 filled icon button, so it stands out from the other composer buttons. */
-@Composable private fun SendButton(onClick: () -> Unit, onSilent: (() -> Unit)? = null) {
-    var silentMenu by remember { mutableStateOf(false) }
+@Composable private fun SendButton(onClick: () -> Unit, options: SendOptions? = null) {
+    var menu by remember { mutableStateOf(false) }
     Box {
         Box(
             Modifier.padding(4.dp).size(40.dp).clip(CircleShape).background(Fusion.colors.accent)
-                .combinedClickable(onClick = onClick, onLongClick = onSilent?.let { { silentMenu = true } }),
+                .combinedClickable(onClick = onClick, onLongClick = options?.let { { menu = true } }),
             contentAlignment = Alignment.Center
         ) { IconGlyph(KiroXIcon.Send, "Отправить", Modifier.size(20.dp), Fusion.colors.onAccent) }
-        SilentSendMenu(silentMenu, onDismiss = { silentMenu = false }) { silentMenu = false; onSilent?.invoke() }
+        if (options != null) SendOptionsMenu(menu, options) { menu = false }
     }
 }
 
-/** The menu a long press on «Отправить» opens. */
-@Composable private fun SilentSendMenu(expanded: Boolean, onDismiss: () -> Unit, onSilent: () -> Unit) {
+/** What a long press on «Отправить» offers; a null entry is not shown. */
+private class SendOptions(val silent: (() -> Unit)?, val schedule: (() -> Unit)?, val whenOnline: (() -> Unit)?) {
+    val any get() = silent != null || schedule != null || whenOnline != null
+}
+
+@Composable private fun SendOptionsMenu(expanded: Boolean, options: SendOptions, onDismiss: () -> Unit) {
     androidx.compose.material3.DropdownMenu(expanded, onDismissRequest = onDismiss, modifier = Modifier.background(Fusion.colors.surface2)) {
-        androidx.compose.material3.DropdownMenuItem(
-            text = { Text("Отправить без звука") },
-            leadingIcon = { IconGlyph(KiroXIcon.Bell, null, Modifier.size(20.dp), Fusion.colors.textPrimary) },
-            onClick = onSilent
-        )
+        listOfNotNull(
+            options.silent?.let { Triple(KiroXIcon.Bell, "Отправить без звука", it) },
+            options.schedule?.let { Triple(KiroXIcon.Refresh, "Отправить позже", it) },
+            options.whenOnline?.let { Triple(KiroXIcon.Eye, "Когда будет в сети", it) }
+        ).forEach { (icon, title, action) ->
+            androidx.compose.material3.DropdownMenuItem(
+                text = { Text(title) },
+                leadingIcon = { IconGlyph(icon, null, Modifier.size(20.dp), Fusion.colors.textPrimary) },
+                onClick = { onDismiss(); action() }
+            )
+        }
     }
 }
 

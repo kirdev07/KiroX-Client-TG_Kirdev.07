@@ -1398,6 +1398,29 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
     }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("kiroX Настройки", onBack) }
+        item { SmallCaption("Режим призрака") }
+        item {
+            val notifications = (context.applicationContext as KiroXApplication).telegram.notifications
+            fun setGhost(value: com.kirox.app.settings.Tweaks) { set(value); notifications.refreshOnline() }
+            SettingsCard {
+                IconRow(IconGlyphs.Eye, if (tweaks.ghost) Color(0xFF9B6BFF) else Color(0xFF8E8E93), "Режим призрака", if (tweaks.ghost) "Включён" else "Выключен") {
+                    setGhost(tweaks.copy(ghost = !tweaks.ghost))
+                }
+                if (tweaks.ghost) {
+                    CardDivider()
+                    ToggleRow("Не отмечать прочитанным", "Собеседник не увидит, что вы открыли чат", tweaks.ghostNoRead) { setGhost(tweaks.copy(ghostNoRead = it)) }
+                    ToggleRow("Не показывать «печатает…»", "И «записывает голосовое», «выбирает стикер»", tweaks.ghostNoTyping) { setGhost(tweaks.copy(ghostNoTyping = it)) }
+                    ToggleRow("Не появляться «в сети»", "Для других вы останетесь «был(а) недавно»", tweaks.ghostOffline) { setGhost(tweaks.copy(ghostOffline = it)) }
+                    ToggleRow("Смотреть истории незаметно", "Автор не увидит вас среди просмотревших", tweaks.ghostStories) { setGhost(tweaks.copy(ghostStories = it)) }
+                }
+            }
+        }
+        item {
+            Text(
+                "Работает на стороне kiroX. Когда вы сами отправите сообщение в чат, Telegram отметит его прочитанным, а вас — «в сети» на минуту, — так устроен сервер.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            )
+        }
         item { SmallCaption("Чаты") }
         item {
             SettingsCard {
@@ -1408,7 +1431,7 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
         }
         item {
             Text(
-                "Тихая отправка: удерживайте кнопку «Отправить» — собеседник получит сообщение без звука.",
+                "Удерживайте кнопку «Отправить»: без звука, позже в выбранное время или когда собеседник будет в сети.",
                 color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
             )
         }

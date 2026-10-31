@@ -300,3 +300,9 @@ data class TelegramUserProfile(
 
 /** Where Telegram sent the login code. */
 enum class CodeDestination { App, Sms, Call, Fragment, Other }
+
+/** A message waiting to be sent; [sendAt] 0 — when the other person comes online. */
+data class ScheduledMessage(val id: Long, val text: String, val sendAt: Int)
+
+/** sendText's scheduleAt: send when the other person comes online. */
+const val SEND_WHEN_ONLINE = -1

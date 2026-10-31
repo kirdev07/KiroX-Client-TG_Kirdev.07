@@ -446,7 +446,10 @@ private class TelegramMessageActions(
     private val activityRepository: com.kirox.app.telegram.TelegramChatActionRepository
 ) : TelegramChatActions {
     override fun loadOlder() = repository.loadOlder()
-    override fun sendText(text: String, replyToMessageId: Long?, silent: Boolean) = repository.sendText(text, replyToMessageId, silent)
+    override fun sendText(text: String, replyToMessageId: Long?, silent: Boolean, scheduleAt: Int) = repository.sendText(text, replyToMessageId, silent, scheduleAt)
+    override suspend fun scheduledMessages() = repository.scheduledMessages()
+    override suspend fun sendScheduledNow(messageId: Long) = repository.sendScheduledNow(messageId)
+    override suspend fun deleteScheduled(messageId: Long) = repository.deleteScheduled(messageId)
     override fun sendPhoto(path: String, caption: String) = repository.sendPhoto(path, caption)
     override fun sendDocument(path: String, caption: String) = repository.sendDocument(path, caption)
     override fun sendLocation(latitude: Double, longitude: Double) = repository.sendLocation(latitude, longitude)

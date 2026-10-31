@@ -67,7 +67,10 @@ interface TelegramChatMenuActions {
 
 interface TelegramChatActions {
     fun loadOlder()
-    fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false)
+    fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false, scheduleAt: Int = 0)
+    suspend fun scheduledMessages(): List<com.kirox.app.telegram.ScheduledMessage> = emptyList()
+    suspend fun sendScheduledNow(messageId: Long) {}
+    suspend fun deleteScheduled(messageId: Long) {}
     fun sendPhoto(path: String, caption: String)
     fun sendDocument(path: String, caption: String)
     fun sendLocation(latitude: Double, longitude: Double) {}
@@ -131,6 +134,11 @@ fun TelegramChatScreen(
     // «Подтверждения» from kiroX settings: a question before a sticker, GIF, voice message or call.
     var confirmAction by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     fun confirmed(question: String, ask: Boolean, action: () -> Unit) { if (ask) confirmAction = question to action else action() }
+    // «Отложенные»: the picker for «Отправить позже» and this chat's waiting messages.
+    var schedulePicking by remember { mutableStateOf(false) }
+    var scheduled by remember { mutableStateOf<List<com.kirox.app.telegram.ScheduledMessage>>(emptyList()) }
+    var scheduledOpen by remember { mutableStateOf(false) }
+    var scheduledReload by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
     val style = com.kirox.app.ui.theme.LocalChatStyle.current
@@ -158,6 +166,20 @@ fun TelegramChatScreen(
     var creatingPoll by remember { mutableStateOf(false) }
     var translation by remember { mutableStateOf<Pair<String, String?>?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
+    /** Sends the typed text at [at] (unix seconds) or, with SEND_WHEN_ONLINE, when the person comes online. */
+    fun sendScheduled(at: Int) {
+        val text = input.text.trim()
+        if (text.isEmpty()) return
+        actions.sendText(text, replyTo?.id, scheduleAt = at)
+        input = TextFieldValue(); replyTo = null; editing = null
+        notice = if (at == com.kirox.app.telegram.SEND_WHEN_ONLINE) "Отправится, когда собеседник будет в сети" else "Отправится ${scheduledTime(at)}"
+        scheduledReload++
+    }
+    LaunchedEffect(history.chatId, scheduledReload) {
+        // Telegram needs a moment to register a just scheduled message.
+        if (scheduledReload > 0) kotlinx.coroutines.delay(700.milliseconds)
+        scheduled = if (history.chatId == 0L) emptyList() else runCatching { actions.scheduledMessages() }.getOrDefault(emptyList())
+    }
     var videoNote by remember { mutableStateOf(false) }
     val noteCameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         if (granted.values.all { it }) videoNote = true else notice = "Для видеосообщения нужны камера и микрофон"
@@ -469,6 +491,15 @@ fun TelegramChatScreen(
                     com.kirox.app.ui.components.FusionButton("Запустить", onClick = { actions.sendText("/start", null) })
                 }
             } else if ((history.peerKind != TelegramPeerKind.Channel || history.threadTitle != null) && !history.isForum) Column {
+                if (scheduled.isNotEmpty()) Row(
+                    Modifier.fillMaxWidth().background(Fusion.colors.background).clickable { scheduledOpen = true }.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    KiroXIcon(KiroXIcon.Refresh, null, Modifier.size(18.dp), Fusion.colors.accent)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Отложенные сообщения: ${scheduled.size}", color = Fusion.colors.accent, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    KiroXIcon(KiroXIcon.Chevron, null, Modifier.size(16.dp), Fusion.colors.textTertiary)
+                }
                 if (history.replyKeyboard.isNotEmpty() && showBotKeyboard) BotKeyboard(history.replyKeyboard) { text -> actions.sendText(text, null) }
                 if (history.replyKeyboard.isNotEmpty()) Text(
                     if (showBotKeyboard) "Скрыть клавиатуру бота" else "Клавиатура бота",
@@ -511,7 +542,10 @@ fun TelegramChatScreen(
                         input = TextFieldValue(); replyTo = null; editing = null
                         notice = "Отправлено без звука"
                     }
-                })
+                }),
+                onSchedule = { if (input.text.isNotBlank()) schedulePicking = true },
+                // «Когда будет в сети» exists only for a person, not for groups, channels or yourself.
+                onWhenOnline = if (history.peerKind == TelegramPeerKind.User) ({ sendScheduled(com.kirox.app.telegram.SEND_WHEN_ONLINE) }) else null
             )
             }
         }
@@ -851,6 +885,28 @@ fun TelegramChatScreen(
             Spacer(Modifier.navigationBarsPadding().height(8.dp))
         }
     }
+    if (schedulePicking) ScheduleSendDialog(onDismiss = { schedulePicking = false }) { at -> schedulePicking = false; sendScheduled(at) }
+    if (scheduledOpen) ModalBottomSheet(onDismissRequest = { scheduledOpen = false }, containerColor = Fusion.colors.surface1) {
+        Text("Отложенные сообщения", color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        LazyColumn(Modifier.fillMaxWidth().heightIn(max = 480.dp)) {
+            items(scheduled, key = { it.id }) { item ->
+                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
+                    Text(if (item.sendAt == 0) "Когда собеседник будет в сети" else scheduledTime(item.sendAt), color = Fusion.colors.accent, fontSize = 13.sp)
+                    Text(item.text, color = Fusion.colors.textPrimary, fontSize = 15.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = {
+                            scope.launch { runCatching { actions.sendScheduledNow(item.id) }.onSuccess { notice = "Отправлено" }.onFailure { notice = "Не удалось отправить" }; scheduledReload++ }
+                        }) { Text("Отправить сейчас", color = Fusion.colors.accent) }
+                        TextButton(onClick = {
+                            scope.launch { runCatching { actions.deleteScheduled(item.id) }.onFailure { notice = "Не удалось удалить" }; scheduledReload++ }
+                        }) { Text("Удалить", color = Fusion.colors.danger) }
+                    }
+                }
+            }
+            if (scheduled.isEmpty()) item { Text("Отложенных сообщений нет", color = Fusion.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(24.dp)) }
+        }
+        Spacer(Modifier.navigationBarsPadding().height(8.dp))
+    }
     confirmAction?.let { (question, action) ->
         AlertDialog(
             onDismissRequest = { confirmAction = null },
@@ -948,3 +1004,52 @@ fun TelegramChatScreen(
     )
 }
 
+
+/** «12 нояб., 18:30» — when a scheduled message goes out. */
+private fun scheduledTime(unixSeconds: Int): String =
+    java.text.SimpleDateFormat("d MMM, HH:mm", java.util.Locale.getDefault()).format(java.util.Date(unixSeconds * 1000L))
+
+/** «Отправить позже»: a date, then a time; [onPick] gets unix seconds, at least a minute ahead. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScheduleSendDialog(onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+    val now = remember { java.util.Calendar.getInstance() }
+    val dateState = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis(),
+        // Telegram keeps scheduled messages for up to a year.
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis >= System.currentTimeMillis() - 24 * 3600_000L && utcTimeMillis <= System.currentTimeMillis() + 365L * 24 * 3600_000L
+        }
+    )
+    val timeState = rememberTimePickerState(now.get(java.util.Calendar.HOUR_OF_DAY), (now.get(java.util.Calendar.MINUTE) + 5).coerceAtMost(59), is24Hour = true)
+    var pickingTime by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    if (!pickingTime) DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = { pickingTime = true }, enabled = dateState.selectedDateMillis != null) { Text("Далее", color = Fusion.colors.accent) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    ) { DatePicker(dateState, title = { Text("Когда отправить", modifier = Modifier.padding(start = 24.dp, top = 16.dp)) }) }
+    else AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Время отправки", color = Fusion.colors.textPrimary) },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                TimePicker(timeState)
+                error?.let { Text(it, color = Fusion.colors.danger, fontSize = 13.sp) }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                // The date picker gives midnight UTC of the chosen day; the time is local.
+                val utc = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")).apply { timeInMillis = dateState.selectedDateMillis ?: System.currentTimeMillis() }
+                val at = java.util.Calendar.getInstance().apply {
+                    set(utc.get(java.util.Calendar.YEAR), utc.get(java.util.Calendar.MONTH), utc.get(java.util.Calendar.DAY_OF_MONTH), timeState.hour, timeState.minute, 0)
+                }.timeInMillis / 1000
+                if (at < System.currentTimeMillis() / 1000 + 60) error = "Выберите время хотя бы через минуту"
+                else onPick(at.toInt())
+            }) { Text("Запланировать", color = Fusion.colors.accent) }
+        },
+        dismissButton = { TextButton(onClick = { pickingTime = false }) { Text("Назад", color = Fusion.colors.textSecondary) } }
+    )
+}

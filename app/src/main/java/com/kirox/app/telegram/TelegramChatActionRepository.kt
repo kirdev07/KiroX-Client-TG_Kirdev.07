@@ -100,6 +100,8 @@ class TelegramChatActionRepository(private val client: TelegramClient, private v
      * as Telegram shows an activity for about 5 seconds. Null cancels it.
      */
     fun send(chatId: Long, activity: ChatActivity?) = client.post {
+        // Ghost mode: the other side sees no «печатает…».
+        if (com.kirox.app.settings.KiroxTweaks.current.ghostTyping) return@post
         val previous = lastSent[chatId]
         val time = now()
         if (activity == null) {

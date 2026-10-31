@@ -240,9 +240,17 @@ class TelegramMessageRepository(
 
     fun loadOlder() = client.post { requestOlder() }
 
-    /** [silent]: delivered without sound («Отправить без звука»). */
-    fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false) = act { id ->
-        val options = if (silent) TdApi.MessageSendOptions(null, true, false, false, false, 0, false, null, 0, 0, false) else null
+    /**
+     * [silent]: delivered without sound («Отправить без звука»). [scheduleAt]: unix time to send at,
+     * [SEND_WHEN_ONLINE] — when the other person comes online, 0 — now.
+     */
+    fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false, scheduleAt: Int = 0) = act { id ->
+        val schedule = when {
+            scheduleAt == SEND_WHEN_ONLINE -> TdApi.MessageSchedulingStateSendWhenOnline()
+            scheduleAt > 0 -> TdApi.MessageSchedulingStateSendAtDate(scheduleAt, 0)
+            else -> null
+        }
+        val options = if (silent || schedule != null) TdApi.MessageSendOptions(null, silent, false, false, false, 0, false, schedule, 0, 0, false) else null
         TdApi.SendMessage(id, topic, replyToMessageId?.let { TdApi.InputMessageReplyToMessage(it, null, 0, null) }, options, null, inputText(text))
     }
 
@@ -375,6 +383,27 @@ class TelegramMessageRepository(
         client.send(build(id)) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
     }
 
+    /** «Отложенные»: messages of the open chat waiting to be sent, soonest first. */
+    suspend fun scheduledMessages(): List<ScheduledMessage> {
+        val id = chatId.takeIf { it != 0L } ?: return emptyList()
+        return client.query(TdApi.GetChatScheduledMessages(id)).messages.map { message ->
+            val text = (message.content as? TdApi.MessageText)?.text?.text ?: "Медиа"
+            val at = (message.schedulingState as? TdApi.MessageSchedulingStateSendAtDate)?.sendDate ?: 0
+            ScheduledMessage(message.id, text, at)
+        }.sortedBy { if (it.sendAt == 0) Int.MAX_VALUE else it.sendAt }
+    }
+
+    /** Sends a scheduled message right away. */
+    suspend fun sendScheduledNow(messageId: Long) {
+        val id = chatId.takeIf { it != 0L } ?: return
+        client.query(TdApi.EditMessageSchedulingState(id, messageId, null))
+    }
+
+    suspend fun deleteScheduled(messageId: Long) {
+        val id = chatId.takeIf { it != 0L } ?: return
+        client.query(TdApi.DeleteMessages(id, longArrayOf(messageId), true))
+    }
+
     private fun inputText(text: String) = TdApi.InputMessageText(TdApi.FormattedText(text, emptyArray()), null, true)
 
     private fun requestOlder() {
@@ -406,7 +435,8 @@ class TelegramMessageRepository(
 
     private fun handle(update: TdApi.Object) {
         when (update) {
-            is TdApi.UpdateNewMessage -> if (update.message.chatId == chatId && inTopic(update.message)) { messages[update.message.id] = update.message; schedulePublish() }
+            // Scheduled messages are not in the history until they are sent; they have their own list.
+            is TdApi.UpdateNewMessage -> if (update.message.chatId == chatId && update.message.schedulingState == null && inTopic(update.message)) { messages[update.message.id] = update.message; schedulePublish() }
             is TdApi.UpdateMessageSendSucceeded -> if (update.message.chatId == chatId && (update.oldMessageId in messages || inTopic(update.message))) {
                 messages.remove(update.oldMessageId); messages[update.message.id] = update.message; schedulePublish()
             }
@@ -513,8 +543,10 @@ class TelegramMessageRepository(
         markViewed(id)
     }
 
-    /** Opening a chat reads it: report newly shown incoming messages once. */
+    /** Opening a chat reads it: report newly shown incoming messages once. Not in ghost mode. */
     private fun markViewed(id: Long) {
+        // Nothing is remembered as viewed either, so leaving ghost mode reads them on the next look.
+        if (com.kirox.app.settings.KiroxTweaks.current.ghostRead) return
         val fresh = messages.values.filter { !it.isOutgoing && viewed.add(it.id) }.map { it.id }
         if (fresh.isNotEmpty()) client.send(TdApi.ViewMessages(id, fresh.toLongArray(), when (topic) {
             is TdApi.MessageTopicThread -> TdApi.MessageSourceMessageThreadHistory()

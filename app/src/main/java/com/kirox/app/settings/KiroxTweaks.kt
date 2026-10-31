@@ -21,8 +21,23 @@ data class Tweaks(
     val hideCallsTab: Boolean = false,
     val hideStoriesTab: Boolean = false,
     /** User and chat ids in profiles; a tap copies them. */
-    val showIds: Boolean = false
-)
+    val showIds: Boolean = false,
+    /** «Режим призрака»: the master switch; the parts below apply only while it is on. */
+    val ghost: Boolean = false,
+    val ghostNoRead: Boolean = true,
+    val ghostNoTyping: Boolean = true,
+    val ghostOffline: Boolean = true,
+    val ghostStories: Boolean = true
+) {
+    /** Opened chats are not marked read for the other side. */
+    val ghostRead get() = ghost && ghostNoRead
+    /** No «печатает…» or «записывает…» is sent. */
+    val ghostTyping get() = ghost && ghostNoTyping
+    /** Telegram is not told you are online. */
+    val ghostOnline get() = ghost && ghostOffline
+    /** Watched stories are not marked as viewed. */
+    val ghostStory get() = ghost && ghostStories
+}
 
 object KiroxTweaks {
     /** SharedPreferences file name; the settings backup reads and writes it. */
@@ -43,7 +58,12 @@ object KiroxTweaks {
             doubleTap = DoubleTapAction.entries.firstOrNull { it.name == prefs.getString("double_tap", null) } ?: DoubleTapAction.None,
             hideCallsTab = prefs.getBoolean("hide_calls_tab", false),
             hideStoriesTab = prefs.getBoolean("hide_stories_tab", false),
-            showIds = prefs.getBoolean("show_ids", false)
+            showIds = prefs.getBoolean("show_ids", false),
+            ghost = prefs.getBoolean("ghost", false),
+            ghostNoRead = prefs.getBoolean("ghost_read", true),
+            ghostNoTyping = prefs.getBoolean("ghost_typing", true),
+            ghostOffline = prefs.getBoolean("ghost_online", true),
+            ghostStories = prefs.getBoolean("ghost_stories", true)
         )
     }
 
@@ -59,6 +79,11 @@ object KiroxTweaks {
             .putBoolean("hide_calls_tab", value.hideCallsTab)
             .putBoolean("hide_stories_tab", value.hideStoriesTab)
             .putBoolean("show_ids", value.showIds)
+            .putBoolean("ghost", value.ghost)
+            .putBoolean("ghost_read", value.ghostNoRead)
+            .putBoolean("ghost_typing", value.ghostNoTyping)
+            .putBoolean("ghost_online", value.ghostOffline)
+            .putBoolean("ghost_stories", value.ghostStories)
             .apply()
     }
 }

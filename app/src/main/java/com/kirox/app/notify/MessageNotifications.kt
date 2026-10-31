@@ -45,7 +45,7 @@ class MessageNotifications(
         ensureChannel(context)
         // Telegram must know when the app goes to the background: it then marks the user offline
         // and TDLib starts notifying about new messages.
-        AppVisibility.listener = { visible -> client.send(TdApi.SetOption("online", TdApi.OptionValueBoolean(visible))) }
+        AppVisibility.listener = { refreshOnline() }
         client.addUpdateHandler { update ->
             when (update) {
                 is TdApi.UpdateMessageSendSucceeded -> sending.remove(update.oldMessageId)?.complete(true)
@@ -67,7 +67,13 @@ class MessageNotifications(
         client.send(TdApi.SetOption("notification_group_count_max", TdApi.OptionValueInteger(MAX_GROUPS)))
         client.send(TdApi.SetOption("notification_group_size_max", TdApi.OptionValueInteger(MAX_PER_GROUP)))
         // A process started by a push has no visible screen: stay offline so Telegram keeps notifying.
-        client.send(TdApi.SetOption("online", TdApi.OptionValueBoolean(AppVisibility.visible)))
+        refreshOnline()
+    }
+
+    /** Tells Telegram whether you are online: while kiroX is on screen, unless ghost mode hides it. */
+    fun refreshOnline() {
+        val online = AppVisibility.visible && !com.kirox.app.settings.KiroxTweaks.current.ghostOnline
+        client.send(TdApi.SetOption("online", TdApi.OptionValueBoolean(online)))
     }
 
     private fun apply(groupId: Int, chatId: Long, added: Array<TdApi.Notification>, removed: IntArray) {

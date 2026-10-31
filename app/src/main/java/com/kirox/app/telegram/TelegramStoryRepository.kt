@@ -50,8 +50,9 @@ class TelegramStoryRepository(
         runCatching { client.query(TdApi.GetStory(chatId, storyId, false)) }.getOrNull()?.let(::toStory)
 
     /** Marks the story as viewed while it is on screen. */
-    fun open(chatId: Long, storyId: Int) { client.send(TdApi.OpenStory(chatId, storyId)) }
-    fun close(chatId: Long, storyId: Int) { client.send(TdApi.CloseStory(chatId, storyId)) }
+    /** Opening a story marks it viewed for its author; not in ghost mode. */
+    fun open(chatId: Long, storyId: Int) { if (!com.kirox.app.settings.KiroxTweaks.current.ghostStory) client.send(TdApi.OpenStory(chatId, storyId)) }
+    fun close(chatId: Long, storyId: Int) { if (!com.kirox.app.settings.KiroxTweaks.current.ghostStory) client.send(TdApi.CloseStory(chatId, storyId)) }
 
     /** Active stories arrive as updates; LoadActiveStories pages until TDLib answers 404. */
     private fun loadActive(remaining: Int) {
