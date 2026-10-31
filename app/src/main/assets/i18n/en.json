@@ -1764,5 +1764,11 @@
  "kiroX можно закрыть не только PIN-кодом, но и графическим ключом": "kiroX can be locked with a pattern, not only a PIN",
  "Вместе с экономией заряда телефона kiroX отключает анимации и тяжёлые эффекты": "Together with the phone's battery saver, kiroX turns off animations and heavy effects",
  "Что нового в kiroX": "What's new in kiroX",
- "Не удалось загрузить музыку: {}": "Could not load music: {}"
+ "Не удалось загрузить музыку: {}": "Could not load music: {}",
+ "Архив {}: файлов {}": "{} archive: {} files",
+ "Это не плейлист kiroX": "This is not a kiroX playlist",
+ "Плейлист загружен": "Playlist loaded",
+ "Загрузить плейлист": "Load playlist",
+ "Файл плейлиста kiroX от друга": "A kiroX playlist file from a friend",
+ "Поделиться плейлистом": "Share playlist"
 }

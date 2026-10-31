@@ -20,7 +20,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Text
+import com.kirox.app.i18n.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,15 +41,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
+import com.kirox.app.files.Archives
 import com.kirox.app.files.FileGuard
 import com.kirox.app.settings.KiroxTweaks
+import com.kirox.app.ui.components.FusionToast
 import com.kirox.app.ui.icons.KiroXIcon
 import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.zip.GZIPInputStream
 import java.util.zip.ZipFile
 
 /** What the viewer shows for a file. */
@@ -90,26 +91,6 @@ private fun officeText(file: File, ext: String): String? = runCatching {
     }
 }.getOrNull()
 
-/** Entries of a tar archive (plain or .gz): name and size from each 512-byte header. */
-private fun tarEntries(file: File, gz: Boolean): List<Pair<String, Long>> = runCatching {
-    val list = mutableListOf<Pair<String, Long>>()
-    val input = file.inputStream().buffered().let { if (gz) GZIPInputStream(it) else it }
-    input.use { stream ->
-        val header = ByteArray(512)
-        while (list.size < LIST_LIMIT) {
-            var read = 0
-            while (read < 512) { val n = stream.read(header, read, 512 - read); if (n <= 0) break; read += n }
-            if (read < 512 || header.all { it == 0.toByte() }) break
-            val name = String(header, 0, 100, Charsets.UTF_8).trimEnd('\u0000')
-            val size = String(header, 124, 12, Charsets.US_ASCII).trim('\u0000', ' ').toLongOrNull(8) ?: 0L
-            list += name to size
-            var skip = (size + 511) / 512 * 512
-            while (skip > 0) { val n = stream.skip(skip); if (n <= 0) break; skip -= n }
-        }
-    }
-    list
-}.getOrDefault(emptyList())
-
 private fun load(context: android.content.Context, file: File, ext: String, width: Int): Preview {
     val real = FileGuard.sniff(file)
     return when {
@@ -139,15 +120,13 @@ private fun load(context: android.content.Context, file: File, ext: String, widt
                 Preview.App(label, info.packageName, info.versionName.orEmpty(), icon, info.requestedPermissions.orEmpty().map { it.removePrefix("android.permission.") })
             }
         }
-        real == "zip" || ext in setOf("zip", "jar") -> runCatching {
-            ZipFile(file).use { zip ->
-                val all = zip.entries().asSequence().filter { !it.isDirectory }.toList()
-                Preview.Entries("Архив ZIP: файлов ${all.size}", all.take(LIST_LIMIT).map { it.name to it.size }, (all.size - LIST_LIMIT).coerceAtLeast(0))
+        Archives.kindOf(file, ext) != null -> when (val result = Archives.list(file, ext)) {
+            is Archives.Result.Listed -> {
+                val count = result.entries.size
+                Preview.Entries("Архив ${result.kind}: файлов $count", result.entries.take(LIST_LIMIT).map { it.name to it.size }, (count - LIST_LIMIT).coerceAtLeast(0))
             }
-        }.getOrElse { Preview.Unknown("Архив не открывается (повреждён или защищён паролем)") }
-        ext == "tar" || real == "tar" -> tarEntries(file, gz = false).let { Preview.Entries("Архив TAR: файлов ${it.size}", it, 0) }
-        ext in setOf("tgz") || file.name.lowercase().endsWith(".tar.gz") -> tarEntries(file, gz = true).let { Preview.Entries("Архив TAR.GZ: файлов ${it.size}", it, 0) }
-        real in setOf("rar", "7z") || ext in setOf("rar", "7z") -> Preview.Unknown("Архивы ${ext.uppercase()} kiroX пока не распаковывает: проверка смотрит только на сам файл. Откройте его в архиваторе")
+            else -> Preview.Unknown("Архив не открывается (повреждён или защищён паролем)")
+        }
         ext in audioTypes || real in setOf("mp3", "ogg") -> Preview.Media(video = false)
         ext in videoTypes || real == "mp4" -> Preview.Media(video = true)
         ext in textTypes || real == "script" -> {
@@ -182,12 +161,12 @@ fun FileViewer(path: String, name: String, mimeType: String = "", onClose: () ->
     var menu by remember { mutableStateOf(false) }
     var confirmOpen by remember { mutableStateOf(false) }
     var video by remember { mutableStateOf(false) }
-    var notice by remember { mutableStateOf<String?>(null) }
+    val toast = com.kirox.app.ui.components.rememberToast()
+    var notice by toast
     LaunchedEffect(path) {
         preview = withContext(Dispatchers.IO) { runCatching { load(context, file, ext, width) }.getOrElse { Preview.Unknown("Файл не открывается") } }
     }
     LaunchedEffect(path, guard) { if (guard) report = withContext(Dispatchers.IO) { FileGuard.check(context, file, name) } }
-    LaunchedEffect(notice) { if (notice != null) { kotlinx.coroutines.delay(2500); notice = null } }
     fun openOutside() = scope.launch {
         if (!com.kirox.app.ui.chat.openFile(context, path, name, mimeType)) notice = "Нет приложения, чтобы открыть этот файл"
     }
@@ -195,18 +174,9 @@ fun FileViewer(path: String, name: String, mimeType: String = "", onClose: () ->
         BackHandler(onBack = onClose)
         Box(Modifier.fillMaxSize().background(Fusion.colors.background)) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
-                Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-                        KiroXIcon(KiroXIcon.Back, "Закрыть", Modifier.size(22.dp), Fusion.colors.textPrimary)
-                    }
-                    Column(Modifier.weight(1f).padding(horizontal = 4.dp)) {
-                        Text(name, color = Fusion.colors.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(formatSize(file.length()) + (report?.kind?.let { " · $it" } ?: ""), color = Fusion.colors.textTertiary, fontSize = 12.sp)
-                    }
+                com.kirox.app.ui.components.FusionScreenBar(name, onClose, subtitle = formatSize(file.length()) + (report?.kind?.let { " · $it" } ?: "")) {
                     Box {
-                        Box(Modifier.size(44.dp).clip(CircleShape).clickable { menu = true }, contentAlignment = Alignment.Center) {
-                            KiroXIcon(KiroXIcon.More, "Ещё", Modifier.size(22.dp), Fusion.colors.textPrimary)
-                        }
+                        com.kirox.app.ui.components.FusionIconButton(KiroXIcon.More, "Ещё", onClick = { menu = true })
                         DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Fusion.colors.surface1) {
                             DropdownMenuItem(text = { Text("Открыть в другом приложении", color = Fusion.colors.textPrimary) }, onClick = {
                                 menu = false
@@ -280,17 +250,14 @@ fun FileViewer(path: String, name: String, mimeType: String = "", onClose: () ->
                     }
                 }
             }
-            notice?.let {
-                Text(it, color = Fusion.colors.textPrimary, fontSize = 14.sp,
-                    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp).clip(RoundedCornerShape(14.dp)).background(Fusion.colors.surface2).padding(horizontal = 16.dp, vertical = 10.dp))
-            }
+            FusionToast(toast)
         }
         if (video) com.kirox.app.ui.chat.FullscreenVideo(android.net.Uri.fromFile(file), key = path) { video = false }
         if (confirmOpen) AlertDialog(
             onDismissRequest = { confirmOpen = false },
             containerColor = Fusion.colors.surface1,
             title = { Text("Файл может быть опасен", color = Fusion.colors.textPrimary) },
-            text = { Text(report?.reasons?.joinToString("\n• ", prefix = "• ").orEmpty(), color = Fusion.colors.textSecondary) },
+            text = { Text(report?.reasons?.joinToString("\n• ", prefix = "• ") { com.kirox.app.i18n.I18n.t(it) }.orEmpty(), color = Fusion.colors.textSecondary) },
             confirmButton = { TextButton(onClick = { confirmOpen = false; openOutside() }) { Text("Всё равно открыть", color = Fusion.colors.danger) } },
             dismissButton = { TextButton(onClick = { confirmOpen = false }) { Text("Отмена", color = Fusion.colors.accent) } }
         )
@@ -313,7 +280,7 @@ internal fun GuardCard(report: FileGuard.Report, onCopyHash: () -> Unit, onVirus
             Text(if (expanded) "▲" else "▼", color = Fusion.colors.textTertiary, fontSize = 11.sp)
         }
         if (expanded) {
-            report.reasons.forEach { Text("• $it", color = Fusion.colors.textPrimary, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 6.dp)) }
+            report.reasons.forEach { Text("• " + com.kirox.app.i18n.I18n.t(it), color = Fusion.colors.textPrimary, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 6.dp)) }
             if (report.reasons.isEmpty()) Text("Проверка kiroX смотрит на тип файла, его содержимое и типичные уловки. Это не антивирус с базой вирусов — для полной проверки откройте VirusTotal.",
                 color = Fusion.colors.textSecondary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(top = 6.dp))
             if (report.sha256.isNotEmpty()) {

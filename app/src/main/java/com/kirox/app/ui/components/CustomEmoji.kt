@@ -28,7 +28,7 @@ private object CustomEmojiFiles {
  * emoji, shows until the picture is on the phone or when Telegram has none.
  */
 @Composable
-fun CustomEmojiImage(id: Long, size: Dp, fallback: String = "", modifier: Modifier = Modifier) {
+fun CustomEmojiImage(id: Long, size: Dp, modifier: Modifier = Modifier, fallback: String = "") {
     val context = LocalContext.current
     val file by produceState(CustomEmojiFiles.cache[id], id) {
         if (value == null) {

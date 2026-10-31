@@ -132,8 +132,6 @@ data class FusionColors(
     }
 }
 
-object FusionRadius { val sm = 8.dp; val md = 12.dp; val lg = 16.dp; val xl = 24.dp }
-object FusionSize { val touch = 48.dp; val icon = 24.dp; val iconSmall = 20.dp; val button = 52.dp; val listRow = 72.dp; val hairline = 1.dp }
 object FusionMotion { const val FAST = 120; const val NORMAL = 200; const val SLOW = 280 }
 
 private val LocalFusionColors = staticCompositionLocalOf { FusionColors.Expressive }

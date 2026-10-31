@@ -508,7 +508,10 @@ fun TelegramChatScreen(
     val chatTracks = remember(history.messages) {
         history.messages.filter { it.kind == com.kirox.app.telegram.TelegramMessageKind.Audio }.mapNotNull { m -> m.media?.toTrack()?.copy(chatId = m.chatId, messageId = m.id) }
     }
-    CompositionLocalProvider(LocalGalleryChatId provides history.chatId, LocalSaveToGallery provides (galleryKind in galleryKinds), LocalChatTracks provides chatTracks) {
+    val chatVoices = remember(history.messages) {
+        history.messages.filter { it.kind == com.kirox.app.telegram.TelegramMessageKind.Voice }.mapNotNull { it.photo }
+    }
+    CompositionLocalProvider(LocalGalleryChatId provides history.chatId, LocalSaveToGallery provides (galleryKind in galleryKinds), LocalChatTracks provides chatTracks, LocalChatVoices provides chatVoices) {
     Box(Modifier.fillMaxSize()) {
     com.kirox.app.ui.components.ChatWallpaperLayer(chatWallpaper ?: style.wallpaper, Modifier.matchParentSize())
     Scaffold(

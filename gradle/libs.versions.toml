@@ -16,8 +16,14 @@ camerax = "1.6.2"
 firebaseBom = "35.1.0"
 annotation = "1.11.0"
 robolectric = "4.17"
+commonsCompress = "1.28.0"
+xz = "1.12"
+profileinstaller = "1.4.1"
 
 [libraries]
+androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
+commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }
+xz = { module = "org.tukaani:xz", version.ref = "xz" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }

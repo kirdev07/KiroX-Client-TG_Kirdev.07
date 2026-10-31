@@ -12,7 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Text
+import com.kirox.app.i18n.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,10 +29,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.kirox.app.telegram.TelegramMedia
+import com.kirox.app.ui.components.fusionScreenBackground
 import com.kirox.app.ui.icons.KiroXIcon
 import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+
+/** The open chat's voice notes, oldest first: after one ends the next one plays. */
+val LocalChatVoices = compositionLocalOf { emptyList<com.kirox.app.telegram.TelegramFileRef>() }
 
 /** The open chat's music files, oldest first: the queue a tap on one of them plays. */
 val LocalChatTracks = compositionLocalOf { emptyList<Track>() }
@@ -122,7 +126,7 @@ fun MusicPlayerSheet() {
     Dialog(onDismissRequest = MusicPlayerUi::close, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         BackHandler { if (showQueue) showQueue = false else MusicPlayerUi.close() }
         Column(
-            Modifier.fillMaxSize().background(Brush.verticalGradient(Fusion.colors.backdrop ?: listOf(Fusion.colors.background, Fusion.colors.background))).systemBarsPadding().padding(horizontal = 24.dp),
+            Modifier.fillMaxSize().fusionScreenBackground().systemBarsPadding().padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -130,8 +134,7 @@ fun MusicPlayerSheet() {
                     com.kirox.app.ui.icons.KiroXIcon(KiroXIcon.Back, "Закрыть", Modifier.size(22.dp), Fusion.colors.textPrimary)
                 }
                 Text(if (showQueue) "Очередь" else "Музыка", color = Fusion.colors.textPrimary, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f).padding(start = 8.dp))
-                Text("Библиотека", color = Fusion.colors.accent, fontSize = 14.sp,
-                    modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { MusicPlayerUi.close(); com.kirox.app.ui.music.MusicLibraryUi.open() }.padding(8.dp))
+                com.kirox.app.ui.components.FusionTextAction("Библиотека") { MusicPlayerUi.close(); com.kirox.app.ui.music.MusicLibraryUi.open() }
                 if (queue.size > 1) Text(
                     if (showQueue) "Плеер" else "Очередь (${queue.size})", color = Fusion.colors.accent, fontSize = 14.sp,
                     modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { showQueue = !showQueue }.padding(8.dp)
@@ -176,8 +179,8 @@ fun MusicPlayerSheet() {
                 var adding by remember { mutableStateOf(false) }
                 var added by remember { mutableStateOf<String?>(null) }
                 Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Chip(if (liked) "♥ В любимом" else "♡ В любимое", active = liked) { com.kirox.app.settings.Playlists.toggleLiked(current.toItemForPlaylist()) }
-                    Chip(added ?: "+ В плейлист") { adding = true }
+                    com.kirox.app.ui.components.FusionChip(if (liked) "♥ В любимом" else "♡ В любимое", active = liked) { com.kirox.app.settings.Playlists.toggleLiked(current.toItemForPlaylist()) }
+                    com.kirox.app.ui.components.FusionChip(added ?: "+ В плейлист") { adding = true }
                 }
                 if (adding) com.kirox.app.ui.music.AddToPlaylistDialog(current.toItemForPlaylist()) { result -> adding = false; added = result?.let { "Добавлено" } }
             }
@@ -204,11 +207,11 @@ fun MusicPlayerSheet() {
             }
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                Chip("−15 с") { VoicePlayer.skipBy(-15_000) }
-                Chip("${if (speed % 1f == 0f) speed.toInt().toString() else speed.toString()}×") { VoicePlayer.cycleSpeed() }
+                com.kirox.app.ui.components.FusionChip("−15 с") { VoicePlayer.skipBy(-15_000) }
+                com.kirox.app.ui.components.FusionChip("${if (speed % 1f == 0f) speed.toInt().toString() else speed.toString()}×") { VoicePlayer.cycleSpeed() }
                 Box {
                     val minutesLeft = if (sleepAt > 0) ((sleepAt - System.currentTimeMillis()) / 60_000 + 1).coerceAtLeast(1) else 0
-                    Chip(if (sleepAt > 0) "Сон: $minutesLeft мин" else "Таймер сна", active = sleepAt > 0) { sleepMenu = true }
+                    com.kirox.app.ui.components.FusionChip(if (sleepAt > 0) "Сон: $minutesLeft мин" else "Таймер сна", active = sleepAt > 0) { sleepMenu = true }
                     androidx.compose.material3.DropdownMenu(sleepMenu, onDismissRequest = { sleepMenu = false }, containerColor = Fusion.colors.surface1) {
                         listOf(15, 30, 45, 60, 90).forEach { m ->
                             androidx.compose.material3.DropdownMenuItem(text = { Text("$m мин", color = Fusion.colors.textPrimary) }, onClick = { sleepMenu = false; VoicePlayer.sleepIn(m) })
@@ -216,19 +219,11 @@ fun MusicPlayerSheet() {
                         if (sleepAt > 0) androidx.compose.material3.DropdownMenuItem(text = { Text("Выключить таймер", color = Fusion.colors.danger) }, onClick = { sleepMenu = false; VoicePlayer.sleepIn(0) })
                     }
                 }
-                Chip("+15 с") { VoicePlayer.skipBy(15_000) }
+                com.kirox.app.ui.components.FusionChip("+15 с") { VoicePlayer.skipBy(15_000) }
             }
             Spacer(Modifier.weight(1f))
         }
     }
-}
-
-@Composable
-private fun Chip(label: String, active: Boolean = false, onClick: () -> Unit) {
-    Text(
-        label, color = if (active) Fusion.colors.accent else Fusion.colors.textSecondary, fontSize = 13.sp,
-        modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Fusion.colors.surface2).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp)
-    )
 }
 
 internal fun Track.toItemForPlaylist() = com.kirox.app.settings.PlaylistItem(chatId, messageId, title, artist, durationSec)

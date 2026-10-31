@@ -268,6 +268,9 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
     val playingPath by VoicePlayer.playingPath.collectAsState()
     val speed by VoicePlayer.speed.collectAsState()
     val playing = path != null && playingPath == path
+    // The chat's voice notes: when this one ends, the next one plays.
+    val chatVoices = LocalChatVoices.current
+    fun playVoice(p: String) = if (file != null) VoicePlayer.playVoice(context, p, file.id, chatVoices) else VoicePlayer.toggle(context, p)
     var progress by remember(path) { mutableFloatStateOf(0f) }
     var positionMs by remember(path) { androidx.compose.runtime.mutableIntStateOf(0) }
     LaunchedEffect(playing) {
@@ -280,7 +283,7 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
     val rest = ChatSecondary.copy(alpha = 0.5f)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
-            Modifier.size(38.dp).clip(CircleShape).background(if (v2) Color.White.copy(alpha = 0.94f) else Fusion.colors.surface3).clickable(enabled = path != null) { path?.let { VoicePlayer.toggle(context, it) } },
+            Modifier.size(38.dp).clip(CircleShape).background(if (v2) Color.White.copy(alpha = 0.94f) else Fusion.colors.surface3).clickable(enabled = path != null) { path?.let { playVoice(it) } },
             contentAlignment = Alignment.Center
         ) {
             // v2: white play disc as in the approved PNG.
@@ -300,7 +303,7 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
                 }.pointerInput(path, playing) {
                     detectTapGestures { offset ->
                         val p = path ?: return@detectTapGestures
-                        if (playing) VoicePlayer.seek(p, offset.x / size.width) else VoicePlayer.toggle(context, p)
+                        if (playing) VoicePlayer.seek(p, offset.x / size.width) else playVoice(p)
                     }
                 }
             ) {

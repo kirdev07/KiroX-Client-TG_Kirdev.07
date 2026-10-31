@@ -14,7 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
+import com.kirox.app.i18n.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -100,16 +100,10 @@ fun FilesExplorerScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
             if (entries == null) "Ищем файлы…" else "Файлов: ${entries.orEmpty().size} · ${formatSize(total)}",
             color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp)
         )
-        Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clip(RoundedCornerShape(14.dp)).background(Fusion.colors.surface1).padding(horizontal = 14.dp, vertical = 12.dp)) {
-            if (query.isEmpty()) Text("Поиск по имени", color = Fusion.colors.textTertiary, fontSize = 15.sp)
-            BasicTextField(query, { query = it }, singleLine = true, textStyle = TextStyle(color = Fusion.colors.textPrimary, fontSize = 15.sp), cursorBrush = SolidColor(Fusion.colors.accent), modifier = Modifier.fillMaxWidth())
-        }
+        com.kirox.app.ui.components.FusionSearchField(query, "Поиск по имени", { query = it })
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Filter.entries.filter { it != Filter.Risky || verdicts.isNotEmpty() }.forEach { f ->
-                val on = f == filter
-                Text(f.title, color = if (on) Fusion.colors.onAccent else Fusion.colors.textSecondary, fontSize = 13.sp,
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (on) Fusion.colors.accent else Fusion.colors.surface1)
-                        .combinedClickable(onClick = { filter = f }).padding(horizontal = 12.dp, vertical = 7.dp))
+                com.kirox.app.ui.components.FusionPill(f.title, f == filter) { filter = f }
             }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {

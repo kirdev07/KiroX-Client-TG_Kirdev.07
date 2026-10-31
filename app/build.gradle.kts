@@ -150,6 +150,11 @@ dependencies {
     implementation(libs.androidx.media3.transformer)
     implementation(libs.androidx.media3.effect)
     implementation(libs.androidx.annotation)
+    // 7z archives in the file viewer and the file check (xz: LZMA / LZMA2 inside 7z).
+    implementation(libs.commons.compress)
+    implementation(libs.xz)
+    // Installs src/main/baseline-prof.txt so the start-up code is compiled ahead of time.
+    implementation(libs.androidx.profileinstaller)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(composeBom)

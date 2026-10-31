@@ -67,7 +67,7 @@ internal fun MessageText(text: String, entities: List<TelegramTextEntity>, scale
         emojis.associate { (id, plain) ->
             "ce:$id" to androidx.compose.foundation.text.InlineTextContent(
                 androidx.compose.ui.text.Placeholder(size, size, androidx.compose.ui.text.PlaceholderVerticalAlign.TextCenter)
-            ) { com.kirox.app.ui.components.CustomEmojiImage(id, (15f * scale * 1.25f).dp, plain) }
+            ) { com.kirox.app.ui.components.CustomEmojiImage(id, (15f * scale * 1.25f).dp, fallback = plain) }
         }
     }
     Text(annotated, color = color, fontSize = (15f * scale).sp, lineHeight = (20f * scale).sp, inlineContent = inline, onTextLayout = onTextLayout)

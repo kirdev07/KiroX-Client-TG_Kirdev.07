@@ -48,8 +48,7 @@ class LiveLocationService : Service(), LocationListener {
             .setOngoing(true)
             .addAction(0, I18n.t("Остановить"), PendingIntent.getService(this, 1, Intent(this, LiveLocationService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE))
             .build()
-        if (android.os.Build.VERSION.SDK_INT >= 29) startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
-        else startForeground(NOTIFICATION_ID, notification)
+        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
         listen()
         return START_STICKY
     }

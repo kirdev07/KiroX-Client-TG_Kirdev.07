@@ -7,6 +7,7 @@ import android.content.pm.ShortcutManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import androidx.core.graphics.scale
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.graphics.drawable.Icon
@@ -22,9 +23,9 @@ object CustomIcon {
 
     /** The icon picture: [photo] (already square) or [background], with the plane in [plane] when [showPlane]. */
     fun render(context: Context, background: Int, plane: Int, photo: Bitmap?, showPlane: Boolean): Bitmap {
-        val bitmap = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
+        val bitmap = androidx.core.graphics.createBitmap(SIZE, SIZE)
         val canvas = Canvas(bitmap)
-        if (photo != null) canvas.drawBitmap(Bitmap.createScaledBitmap(photo, SIZE, SIZE, true), 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
+        if (photo != null) canvas.drawBitmap(photo.scale(SIZE, SIZE), 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
         else canvas.drawColor(background)
         if (showPlane) ContextCompat.getDrawable(context, com.kirox.app.R.drawable.ic_launcher_foreground)?.mutate()?.let { drawable ->
             drawable.setBounds(0, 0, SIZE, SIZE)

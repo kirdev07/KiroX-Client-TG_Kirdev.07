@@ -56,4 +56,16 @@ class PlaylistsTest {
         assertEquals("Ночь", saved.name)
         assertEquals("Song 5", saved.items.single().title)
     }
+
+    @Test fun exportAndImport() {
+        val id = Playlists.create("Share me")
+        Playlists.add(id, item(1)); Playlists.add(id, item(2))
+        val json = Playlists.export(id)!!
+        val copy = Playlists.import(json)!!
+        assertTrue(copy != id)
+        assertEquals("Share me", Playlists.get(copy)!!.name)
+        assertEquals(listOf(1L, 2L), Playlists.get(copy)!!.items.map { it.messageId })
+        assertEquals(null, Playlists.import("{\"kirox_theme\":1}"))
+        assertEquals(null, Playlists.import("not json"))
+    }
 }

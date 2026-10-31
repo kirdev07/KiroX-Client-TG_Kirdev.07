@@ -16,7 +16,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Text
+import com.kirox.app.i18n.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +39,14 @@ import com.kirox.app.telegram.TelegramAudio
 import com.kirox.app.ui.chat.MusicPlayerUi
 import com.kirox.app.ui.chat.Track
 import com.kirox.app.ui.chat.VoicePlayer
+import com.kirox.app.ui.components.FusionIconButton
+import com.kirox.app.ui.components.FusionPill
+import com.kirox.app.ui.components.FusionScreenBar
+import com.kirox.app.ui.components.FusionSearchField
+import com.kirox.app.ui.components.FusionTextAction
+import com.kirox.app.ui.components.FusionToast
+import com.kirox.app.ui.components.fusionScreenBackground
+import com.kirox.app.ui.components.rememberToast
 import com.kirox.app.ui.icons.KiroXIcon
 import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.async
@@ -84,8 +92,8 @@ private fun MusicLibraryScreen(onOpenChat: (Long) -> Unit) {
     var tab by remember { mutableStateOf(Tab.All) }
     var playlistOpen by remember { mutableStateOf<Long?>(null) }
     var chatOpen by remember { mutableStateOf<Pair<Long, String>?>(null) }
-    var notice by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(notice) { if (notice != null) { kotlinx.coroutines.delay(2500); notice = null } }
+    val toast = rememberToast()
+    var notice by toast
     // All music: pages of the server search, or the newest chats when it gives nothing.
     var query by remember { mutableStateOf("") }
     var tracks by remember { mutableStateOf<List<TelegramAudio>>(emptyList()) }
@@ -118,7 +126,7 @@ private fun MusicLibraryScreen(onOpenChat: (Long) -> Unit) {
             else -> MusicLibraryUi.close()
         }
     }
-    Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(Fusion.colors.backdrop ?: listOf(Fusion.colors.background, Fusion.colors.background)))) {
+    Box(Modifier.fillMaxSize().fusionScreenBackground()) {
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
             val playlist = playlistOpen?.let { id -> Playlists.all.collectAsState().value.firstOrNull { it.id == id } }
             val chat = chatOpen
@@ -126,17 +134,16 @@ private fun MusicLibraryScreen(onOpenChat: (Long) -> Unit) {
                 playlist != null -> PlaylistScreen(playlist, onBack = { playlistOpen = null }, onNotice = { notice = it }, onOpenChat = onOpenChat)
                 chat != null -> ChatMusicScreen(chat.first, chat.second, onBack = { chatOpen = null }, onNotice = { notice = it }, onOpenChat = onOpenChat)
                 else -> {
-                    Header("Музыка", onBack = MusicLibraryUi::close) {
+                    FusionScreenBar("Музыка", onBack = MusicLibraryUi::close, large = true) {
                         val current by VoicePlayer.track.collectAsState()
-                        if (current != null) Text("Плеер", color = Fusion.colors.accent, fontSize = 14.sp,
-                            modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { MusicPlayerUi.open() }.padding(8.dp))
+                        if (current != null) FusionTextAction("Плеер") { MusicPlayerUi.open() }
                     }
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Tab.entries.forEach { t -> Pill(t.title, t == tab) { tab = t } }
+                        Tab.entries.forEach { t -> FusionPill(t.title, t == tab) { tab = t } }
                     }
                     when (tab) {
                         Tab.All -> {
-                            SearchField(query, "Поиск музыки во всех чатах") { query = it }
+                            FusionSearchField(query, "Поиск музыки во всех чатах", { query = it })
                             PlayRow(tracks.size, onPlay = { play(context, tracks.map { it.toTrack() }, 0) }, onShuffle = { play(context, tracks.map { it.toTrack() }, -1) })
                             TrackList(tracks, loading = loading, emptyText = if (!loadedOnce) null else error?.let { "Не удалось загрузить музыку: $it" } ?: "Музыки не найдено", onEnd = { if (next.isNotEmpty()) loadMore(reset = false) },
                                 onPlay = { i -> play(context, tracks.map { it.toTrack() }, i) }, onNotice = { notice = it }, onOpenChat = onOpenChat)
@@ -164,10 +171,7 @@ private fun MusicLibraryScreen(onOpenChat: (Long) -> Unit) {
                 }
             }
         }
-        notice?.let {
-            Text(it, color = Fusion.colors.textPrimary, fontSize = 14.sp,
-                modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp).clip(RoundedCornerShape(14.dp)).background(Fusion.colors.surface2).padding(horizontal = 16.dp, vertical = 10.dp))
-        }
+        FusionToast(toast)
     }
 }
 
@@ -180,33 +184,6 @@ private fun play(context: android.content.Context, tracks: List<Track>, index: I
     } else VoicePlayer.playQueue(context, tracks, index)
 }
 
-@Composable
-private fun Header(title: String, subtitle: String? = null, onBack: () -> Unit, actions: @Composable RowScope.() -> Unit = {}) {
-    Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClick = onBack), contentAlignment = Alignment.Center) {
-            KiroXIcon(KiroXIcon.Back, "Назад", Modifier.size(22.dp), Fusion.colors.textPrimary)
-        }
-        Column(Modifier.weight(1f).padding(horizontal = 4.dp)) {
-            Text(title, color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (subtitle != null) Text(subtitle, color = Fusion.colors.textTertiary, fontSize = 12.sp)
-        }
-        actions()
-    }
-}
-
-@Composable
-private fun Pill(label: String, on: Boolean, onClick: () -> Unit) {
-    Text(label, color = if (on) Fusion.colors.onAccent else Fusion.colors.textSecondary, fontSize = 13.sp,
-        modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (on) Fusion.colors.accent else Fusion.colors.surface1).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 7.dp))
-}
-
-@Composable
-private fun SearchField(value: String, hint: String, onChange: (String) -> Unit) {
-    Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clip(RoundedCornerShape(14.dp)).background(Fusion.colors.surface1).padding(horizontal = 14.dp, vertical = 12.dp)) {
-        if (value.isEmpty()) Text(hint, color = Fusion.colors.textTertiary, fontSize = 15.sp)
-        BasicTextField(value, onChange, singleLine = true, textStyle = TextStyle(color = Fusion.colors.textPrimary, fontSize = 15.sp), cursorBrush = SolidColor(Fusion.colors.accent), modifier = Modifier.fillMaxWidth())
-    }
-}
 
 @Composable
 private fun PlayRow(count: Int, onPlay: () -> Unit, onShuffle: () -> Unit) {
@@ -313,6 +290,13 @@ fun AddToPlaylistDialog(item: PlaylistItem, onDone: (String?) -> Unit) {
 @Composable
 private fun PlaylistsTab(onOpen: (Long) -> Unit, onNotice: (String) -> Unit) {
     val playlists by Playlists.all.collectAsState()
+    val context = LocalContext.current
+    val pickFile = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val text = runCatching { context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText().take(2_000_000) } }.getOrNull()
+        val id = text?.let(Playlists::import)
+        if (id == null) onNotice("Это не плейлист kiroX") else { onNotice("Плейлист загружен"); onOpen(id) }
+    }
     var creating by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
@@ -322,6 +306,17 @@ private fun PlaylistsTab(onOpen: (Long) -> Unit, onNotice: (String) -> Unit) {
                     Text("+", color = Fusion.colors.accent, fontSize = 26.sp)
                 }
                 Text("Новый плейлист", color = Fusion.colors.accent, fontSize = 16.sp, modifier = Modifier.padding(start = 12.dp))
+            }
+        }
+        item {
+            Row(Modifier.fillMaxWidth().clickable { runCatching { pickFile.launch("*/*") } }.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(Fusion.colors.surface2), contentAlignment = Alignment.Center) {
+                    Text("↓", color = Fusion.colors.accent, fontSize = 22.sp)
+                }
+                Column(Modifier.padding(start = 12.dp)) {
+                    Text("Загрузить плейлист", color = Fusion.colors.accent, fontSize = 16.sp)
+                    Text("Файл плейлиста kiroX от друга", color = Fusion.colors.textTertiary, fontSize = 12.sp)
+                }
             }
         }
         itemsIndexed(playlists, key = { _, p -> p.id }) { _, p ->
@@ -391,12 +386,12 @@ private fun PlaylistScreen(playlist: Playlist, onBack: () -> Unit, onNotice: (St
             play(context, tracks, at)
         }
     }
-    Header(playlist.name, "Треков: ${playlist.items.size} · ${time(playlist.totalSeconds)}", onBack) {
+    FusionScreenBar(playlist.name, onBack, subtitle = "Треков: ${playlist.items.size} · ${time(playlist.totalSeconds)}", large = true) {
+        if (playlist.id == Playlists.LIKED && playlist.items.isNotEmpty()) FusionTextAction("Поделиться") { sharePlaylist(context, playlist.id, playlist.name) }
         if (playlist.id != Playlists.LIKED) Box {
-            Box(Modifier.size(44.dp).clip(CircleShape).clickable { menu = true }, contentAlignment = Alignment.Center) {
-                KiroXIcon(KiroXIcon.More, "Ещё", Modifier.size(22.dp), Fusion.colors.textPrimary)
-            }
+            FusionIconButton(KiroXIcon.More, "Ещё", onClick = { menu = true })
             DropdownMenu(menu, onDismissRequest = { menu = false }, containerColor = Fusion.colors.surface1) {
+                DropdownMenuItem(text = { Text("Поделиться плейлистом", color = Fusion.colors.textPrimary) }, onClick = { menu = false; sharePlaylist(context, playlist.id, playlist.name) })
                 DropdownMenuItem(text = { Text("Переименовать", color = Fusion.colors.textPrimary) }, onClick = { menu = false; renaming = true })
                 DropdownMenuItem(text = { Text("Удалить плейлист", color = Fusion.colors.danger) }, onClick = { menu = false; deleting = true })
             }
@@ -451,7 +446,24 @@ private fun ChatMusicScreen(chatId: Long, title: String, onBack: () -> Unit, onN
         }
     }
     LaunchedEffect(chatId) { more() }
-    Header(title.ifBlank { "Чат" }, "Музыка чата", onBack)
+    FusionScreenBar(title.ifBlank { "Чат" }, onBack, subtitle = "Музыка чата", large = true)
     PlayRow(tracks.size, onPlay = { play(context, tracks.map { it.toTrack() }, 0) }, onShuffle = { play(context, tracks.map { it.toTrack() }, -1) })
     TrackList(tracks, loading, if (done) "Музыки нет" else null, onEnd = ::more, onPlay = { i -> play(context, tracks.map { it.toTrack() }, i) }, onNotice = onNotice, onOpenChat = onOpenChat)
+}
+
+/**
+ * Sends a playlist as a small file. Tracks from channels and public groups open for anyone;
+ * tracks from private chats only for those who are in them.
+ */
+private fun sharePlaylist(context: android.content.Context, id: Long, name: String) {
+    val json = Playlists.export(id) ?: return
+    runCatching {
+        val dir = java.io.File(context.cacheDir, "shared/playlists").apply { mkdirs() }
+        val safe = name.replace(Regex("[^\\p{L}\\p{N} _-]"), "").trim().ifBlank { "playlist" }
+        val file = java.io.File(dir, "$safe.kirox-playlist.json").apply { writeText(json) }
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+        val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("application/json").putExtra(android.content.Intent.EXTRA_STREAM, uri)
+            .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
 }

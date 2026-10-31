@@ -1,0 +1,31 @@
+# kiroX baseline profile: code compiled ahead of time on install, so the first start, the chat list
+# and opening a chat do not wait for the JIT. Written by hand for the startup path; Compose, Media3
+# and other AndroidX libraries ship their own profiles. Applied by ProfileInstaller in release builds.
+
+# Start: application, activity, splash, theme
+HSPLcom/kirox/app/KiroXApplication;->**(**)**
+HSPLcom/kirox/app/MainActivity**;->**(**)**
+HSPLcom/kirox/app/AppScope**;->**(**)**
+HSPLcom/kirox/app/ui/KiroXApp**;->**(**)**
+HSPLcom/kirox/app/ui/splash/**;->**(**)**
+HSPLcom/kirox/app/ui/theme/**;->**(**)**
+HSPLcom/kirox/app/ui/navigation/**;->**(**)**
+HSPLcom/kirox/app/ui/components/**;->**(**)**
+HSPLcom/kirox/app/ui/icons/**;->**(**)**
+HSPLcom/kirox/app/i18n/**;->**(**)**
+
+# Settings read on start
+HSPLcom/kirox/app/settings/**;->**(**)**
+HSPLcom/kirox/app/security/**;->**(**)**
+
+# Telegram layer: client, repositories, mapping of chats and messages
+HSPLcom/kirox/app/telegram/**;->**(**)**
+HSPLorg/drinkless/tdlib/Client**;->**(**)**
+
+# Chat list and the open chat
+HSPLcom/kirox/app/ui/home/TelegramMainScreen**;->**(**)**
+HSPLcom/kirox/app/ui/home/ChatList**;->**(**)**
+HSPLcom/kirox/app/ui/chat/**;->**(**)**
+
+# Classes loaded on start
+Lcom/kirox/app/**;

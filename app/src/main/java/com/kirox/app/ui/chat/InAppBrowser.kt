@@ -32,7 +32,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Text
+import com.kirox.app.i18n.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +55,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import com.kirox.app.i18n.I18n
 import com.kirox.app.settings.KiroxTweaks
+import com.kirox.app.ui.components.FusionToast
 import com.kirox.app.ui.icons.KiroXIcon
 import com.kirox.app.ui.theme.Fusion
 
@@ -92,7 +93,8 @@ internal fun InAppBrowser(url: String, onTelegramLink: (String) -> Unit, onClose
     var finding by remember { mutableStateOf(false) }
     var findText by remember { mutableStateOf("") }
     var findResult by remember { mutableStateOf(0 to 0) }
-    var notice by remember { mutableStateOf<String?>(null) }
+    val toast = com.kirox.app.ui.components.rememberToast()
+    var notice by toast
     // A page's own full-screen view (a video), shown over everything while it lasts.
     var customView by remember { mutableStateOf<View?>(null) }
     var customViewCallback by remember { mutableStateOf<WebChromeClient.CustomViewCallback?>(null) }
@@ -109,7 +111,6 @@ internal fun InAppBrowser(url: String, onTelegramLink: (String) -> Unit, onClose
     }
     fun openOutside() { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, current.toUri())) }; close() }
     fun exitFullscreen() { customViewCallback?.onCustomViewHidden(); customView = null; customViewCallback = null }
-    LaunchedEffect(notice) { if (notice != null) { kotlinx.coroutines.delay(2500); notice = null } }
     Dialog(onDismissRequest = ::close, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         BackHandler {
             when {
@@ -127,9 +128,7 @@ internal fun InAppBrowser(url: String, onTelegramLink: (String) -> Unit, onClose
                     onNext = { forward -> webView?.findNext(forward) },
                     onClose = { finding = false; findText = ""; webView?.clearMatches() }
                 ) else Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClick = ::close), contentAlignment = Alignment.Center) {
-                        KiroXIcon(KiroXIcon.Back, "Закрыть", Modifier.size(22.dp), Fusion.colors.textPrimary)
-                    }
+                    com.kirox.app.ui.components.FusionIconButton(KiroXIcon.Back, "Закрыть", onClick = ::close)
                     Column(Modifier.weight(1f).padding(horizontal = 4.dp)) {
                         val host = current.toUri().host.orEmpty()
                         Text(title.ifBlank { host }, color = Fusion.colors.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -143,9 +142,7 @@ internal fun InAppBrowser(url: String, onTelegramLink: (String) -> Unit, onClose
                         }
                     }
                     Box {
-                        Box(Modifier.size(44.dp).clip(CircleShape).clickable { menu = true }, contentAlignment = Alignment.Center) {
-                            KiroXIcon(KiroXIcon.More, "Ещё", Modifier.size(22.dp), Fusion.colors.textPrimary)
-                        }
+                        com.kirox.app.ui.components.FusionIconButton(KiroXIcon.More, "Ещё", onClick = { menu = true })
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = Fusion.colors.surface1) {
                             @Composable fun Item(label: String, onClick: () -> Unit) =
                                 DropdownMenuItem(text = { Text(label, color = Fusion.colors.textPrimary) }, onClick = { menu = false; onClick() })
@@ -239,12 +236,7 @@ internal fun InAppBrowser(url: String, onTelegramLink: (String) -> Unit, onClose
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            notice?.let {
-                Text(
-                    it, color = Fusion.colors.textPrimary, fontSize = 14.sp,
-                    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp).clip(RoundedCornerShape(14.dp)).background(Fusion.colors.surface2).padding(horizontal = 16.dp, vertical = 10.dp)
-                )
-            }
+            FusionToast(toast)
         }
     }
 }

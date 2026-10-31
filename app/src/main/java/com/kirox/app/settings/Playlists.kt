@@ -76,6 +76,23 @@ object Playlists {
 
     fun toggleLiked(item: PlaylistItem) = if (isLiked(item.chatId, item.messageId)) remove(LIKED, item.chatId, item.messageId) else add(LIKED, item)
 
+    /** A playlist as a file to share: {"kirox_playlist":1,"name":…,"items":[…]}. */
+    fun export(id: Long): String? {
+        val p = get(id) ?: return null
+        val items = JSONArray(encode(listOf(p))).getJSONObject(0).getJSONArray("items")
+        return JSONObject().put("kirox_playlist", 1).put("name", p.name).put("items", items).toString(1)
+    }
+
+    /** Adds a shared playlist as a new one; returns its id, or null when [json] is not a kiroX playlist. */
+    fun import(json: String): Long? = runCatching {
+        val o = JSONObject(json)
+        if (o.optInt("kirox_playlist") != 1) return null
+        val parsed = decode(JSONArray().put(JSONObject().put("id", 0).put("name", o.getString("name")).put("items", o.getJSONArray("items")).put("x", 0)).toString()).single()
+        val id = create(parsed.name.take(40))
+        save(_all.value.map { if (it.id == id) it.copy(items = parsed.items.distinctBy { i -> i.chatId to i.messageId }) else it })
+        id
+    }.getOrNull()
+
     internal fun encode(list: List<Playlist>): String = JSONArray(list.map { p ->
         JSONObject().put("id", p.id).put("name", p.name).put("items", JSONArray(p.items.map { i ->
             JSONObject().put("c", i.chatId).put("m", i.messageId).put("t", i.title).put("a", i.artist).put("d", i.duration)

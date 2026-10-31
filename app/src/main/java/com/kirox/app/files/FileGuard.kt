@@ -127,6 +127,8 @@ object FileGuard {
         }
 
         if (real == "zip" || ext in setOf("zip", "apk", "jar", "docx", "xlsx", "pptx", "xapk", "apks")) checkZip(file, ext, ::flag)
+        // RAR, 7z and TAR: the same look for programs and path tricks, from the list of names.
+        if (real in setOf("rar", "7z", "tar", "gz") || ext in setOf("rar", "7z", "tar", "tgz")) checkListed(file, ext, ::flag)
         if (ext == "apk" || (real == "zip" && runCatching { ZipFile(file).use { it.getEntry("AndroidManifest.xml") != null } }.getOrDefault(false))) checkApk(context, file, ::flag)
         if (real == "pdf" || ext == "pdf") checkText(file, listOf("/JavaScript", "/JS ", "/Launch", "/EmbeddedFile"), "PDF с активным содержимым (скрипты, запуск программ или вложенные файлы)", ::flag)
         if (ext in setOf("html", "htm", "svg", "xhtml", "mht")) checkText(file, listOf("<script", "javascript:", "onload=", "<form", "password"), "Веб-страница со скриптами или формой ввода — так делают поддельные страницы входа", ::flag)
@@ -164,6 +166,21 @@ object FileGuard {
         flag(Level.Caution, "Архив не открывается для проверки (повреждён или защищён паролем)")
     }
 
+    private fun checkListed(file: File, ext: String, flag: (Level, String) -> Unit) {
+        when (val result = Archives.list(file, ext)) {
+            is Archives.Result.Listed -> {
+                val programs = result.entries.count { extension(it.name).let { e -> e in executable || e in installers } }
+                if (programs > 0) flag(Level.Danger, "В архиве программы или установщики: $programs")
+                result.entries.firstOrNull { it.name.contains("../") || it.name.startsWith("/") }?.let { flag(Level.Danger, "Архив пишет файлы за пределы папки («${it.name}»)") }
+                if (result.entries.count { extension(it.name) in setOf("zip", "rar", "7z") } > 3) flag(Level.Caution, "Много архивов внутри архива — так прячут содержимое от проверки")
+                val total = result.entries.sumOf { it.size.coerceAtLeast(0) }
+                if (total > 2L * 1024 * 1024 * 1024 || (file.length() > 0 && total / file.length() > 200)) flag(Level.Danger, "«Zip-бомба»: при распаковке займёт ${total / (1024 * 1024)} МБ — может забить память")
+            }
+            is Archives.Result.Failed -> flag(Level.Caution, "Архив не открывается для проверки (повреждён или защищён паролем)")
+            null -> Unit
+        }
+    }
+
     private fun checkApk(context: Context, file: File, flag: (Level, String) -> Unit) {
         val info = runCatching {
             context.packageManager.getPackageArchiveInfo(file.absolutePath, PackageManager.GET_PERMISSIONS)
@@ -177,7 +194,8 @@ object FileGuard {
         val found = all.filter { it in dangerousPermissions }
         if (found.isEmpty()) return
         val worst = found.any { it in critical }
-        flag(if (worst) Level.Danger else Level.Caution, "Приложение «${info.packageName}» просит: " + found.joinToString(", ") { dangerousPermissions.getValue(it) })
+        // Built from translated parts: the list is not one fixed sentence.
+        flag(if (worst) Level.Danger else Level.Caution, com.kirox.app.i18n.I18n.t("Приложение «${info.packageName}» просит: ") + found.joinToString(", ") { com.kirox.app.i18n.I18n.t(dangerousPermissions.getValue(it)) })
         if (worst && info.packageName.let { it.startsWith("com.android.") || it.startsWith("com.google.") || it.contains("telegram") })
             flag(Level.Danger, "Притворяется системным приложением или Telegram (${info.packageName})")
     }

@@ -280,6 +280,7 @@ object VoicePlayer {
     private fun onEnded() {
         val queue = _queue.value
         val context = appContext
+        if (_track.value == null && context != null && playNextVoice(context)) return
         if (_track.value == null || queue.isEmpty() || context == null) { stop(); return }
         when {
             _repeat.value == RepeatMode.One -> { player?.seekTo(0); player?.play() }
@@ -351,6 +352,37 @@ object VoicePlayer {
         }
     }
 
+    // ---- Voice notes play one after another, like in Telegram ----
+
+    /** The chat's voice notes in order, and the one playing now. */
+    private var voices: List<com.kirox.app.telegram.TelegramFileRef> = emptyList()
+    private var voiceId = 0
+
+    /** A voice note from a chat: plays it and remembers [chatVoices] to go on with the next one. */
+    fun playVoice(context: Context, path: String, fileId: Int, chatVoices: List<com.kirox.app.telegram.TelegramFileRef>) {
+        voices = chatVoices
+        voiceId = fileId
+        toggle(context, path)
+    }
+
+    /** After a voice note ends: the next one in the chat, downloaded first if needed. False when there is none. */
+    private fun playNextVoice(context: Context): Boolean {
+        val at = voices.indexOfFirst { it.id == voiceId }
+        val next = voices.getOrNull(at + 1) ?: return false.also { voices = emptyList() }
+        val files = (context.applicationContext as? com.kirox.app.KiroXApplication)?.telegram?.files ?: return false
+        voiceId = next.id
+        loadJob?.cancel()
+        loadJob = scope.launch {
+            val state = files.state(next)
+            val path = state.value.path ?: run {
+                files.download(next)
+                runCatching { kotlinx.coroutines.withTimeout(60_000) { state.first { it.path != null }.path } }.getOrNull()
+            }
+            if (path == null) stop() else start(context, android.net.Uri.fromFile(File(path)), path, "Голосовое сообщение", "kiroX", null)
+        }
+        return true
+    }
+
     /** The picture stored inside a music file (ID3 / MP4 cover), or null. */
     private fun embeddedCover(path: String): ByteArray? = runCatching {
         android.media.MediaMetadataRetriever().run {
@@ -366,6 +398,7 @@ object VoicePlayer {
     fun toggle(context: Context, path: String, title: String = "Голосовое сообщение", artist: String = "kiroX") {
         val p = player(context)
         if (currentPath == path) { playPause(); return }
+        if (voices.none { it.localPath == path || it.id == voiceId }) voices = emptyList()
         loadJob?.cancel()
         _track.value = null
         _queue.value = emptyList()
