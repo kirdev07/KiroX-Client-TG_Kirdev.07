@@ -61,7 +61,19 @@ class MainActivity : ComponentActivity() {
             val animate = com.kirox.app.ui.theme.KiroXFeatures.ANIMATIONS
             val motionFactor = if (animate) motion.factor else 0f
             sceneClock.Drive(speed = motionFactor, light = lightEffects)
-            FusionTheme(palette) {
+            // An own theme replaces the colors; otherwise the icon's color, when it has one, paints
+            // the selected tab and buttons so the app matches its icon.
+            val customId by com.kirox.app.settings.CustomThemes.selectedId.collectAsStateWithLifecycle()
+            val customThemes by com.kirox.app.settings.CustomThemes.themes.collectAsStateWithLifecycle()
+            val icon by com.kirox.app.settings.AppIcons.current.collectAsStateWithLifecycle()
+            val colors = customThemes.firstOrNull { it.id == customId }?.colors()
+                ?: icon.pill?.let { pill ->
+                    com.kirox.app.ui.theme.FusionColors.of(palette).copy(
+                        accent = androidx.compose.ui.graphics.Color(pill), onAccent = androidx.compose.ui.graphics.Color(icon.onPill),
+                        selectedPill = androidx.compose.ui.graphics.Color(pill), onSelectedPill = androidx.compose.ui.graphics.Color(icon.onPill)
+                    )
+                }
+            FusionTheme(palette, colors) {
                 CompositionLocalProvider(LocalMotionFactor provides motionFactor, LocalBubbleRadius provides bubbles.radiusDp, LocalSeasonalEffects provides (seasonal && animate), com.kirox.app.ui.theme.LocalGlassBlur provides glassBlur, LocalLightEffects provides lightEffects, LocalEffectScene provides scene, com.kirox.app.ui.theme.LocalChatStyle provides chatStyle, com.kirox.app.ui.components.LocalSceneClock provides sceneClock) {
                     KiroXApp()
                     // Code-password: over everything, and no screenshots or recents preview while it is on.

@@ -151,10 +151,11 @@ object KiroXFeatures {
     const val ANIMATIONS = true
 
     /**
-     * Themes offered in this version; the first (Expressive) is the default for new installs, and a
-     * saved choice outside this list falls back to it.
+     * Themes offered in this version; the first is the default, and a saved choice outside this
+     * list falls back to it.
      */
-    val THEMES = listOf(FusionPalette.Expressive, FusionPalette.Glass) + (FusionPalette.entries - setOf(FusionPalette.Expressive, FusionPalette.Glass))
+    // For now only the blue Fusion Glass; the others stay in the code. Own themes add to it.
+    val THEMES = listOf(FusionPalette.Glass)
 }
 
 /** User animation level: 1 = normal, 0.5 = reduced, 0 = off. Multiplies every Fusion duration. */
@@ -232,8 +233,8 @@ internal val FusionShapes = Shapes(
 
 /** Provides Fusion tokens and the matching Material 3 theme. */
 @Composable
-fun FusionTheme(palette: FusionPalette = FusionPalette.AmoledBlack, content: @Composable () -> Unit) {
-    val colors = FusionColors.of(palette)
+fun FusionTheme(palette: FusionPalette = FusionPalette.AmoledBlack, colorsOverride: FusionColors? = null, content: @Composable () -> Unit) {
+    val colors = colorsOverride ?: FusionColors.of(palette)
     CompositionLocalProvider(LocalFusionColors provides colors) {
         MaterialTheme(colorScheme = fusionColorScheme(colors), typography = FusionTypography, shapes = FusionShapes, content = content)
     }

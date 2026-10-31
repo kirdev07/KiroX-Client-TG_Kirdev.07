@@ -18,6 +18,8 @@ class KiroXApplication : Application() {
         com.kirox.app.security.PasscodeLock.init(this)
         com.kirox.app.i18n.I18n.init(this)
         com.kirox.app.settings.KiroxTweaks.init(this)
+        com.kirox.app.settings.AppIcons.init(this)
+        com.kirox.app.settings.CustomThemes.init(this)
         removeLegacyDemoData()
         removeOldOutgoing()
         // The call engine is large: load it off the main thread, calls check NativeCall.available.

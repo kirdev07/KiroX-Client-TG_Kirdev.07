@@ -98,7 +98,8 @@ fun AnimatedSplashScreen2(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            // The splash in the theme's own colors (Fusion Glass navy), not plain black.
+            .background(com.kirox.app.ui.theme.Fusion.colors.backdrop?.let { androidx.compose.ui.graphics.Brush.verticalGradient(it) } ?: androidx.compose.ui.graphics.SolidColor(com.kirox.app.ui.theme.Fusion.colors.background))
             .graphicsLayer { alpha = exitAlpha }
     ) {
         Canvas(Modifier.fillMaxSize()) {

@@ -3,4 +3,5 @@
     <!-- Backgrounds of the app icons offered in kiroX settings. -->
     <color name="ic_launcher_background_dark">#121214</color>
     <color name="ic_launcher_background_light">#FFFFFF</color>
+    <color name="ic_launcher_background_green">#1FA463</color>
 </resources>
