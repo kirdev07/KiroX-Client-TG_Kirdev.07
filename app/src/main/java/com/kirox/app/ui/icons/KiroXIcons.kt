@@ -15,7 +15,7 @@ enum class KiroXIcon {
     Edit, More, Stories, Media, Bookmark, Check, Pin, CallIncoming, CallOutgoing, CallMissed,
     Camera, At, Phone, Cake, File, Link, Music, Voice, Verified, Photo,
     Back, Video, Attach, Send, Emoji, Copy, Forward, Delete, Location, Reply,
-    Chats, Tune, ProfileCircle, Qr, Speaker, CallEnd, FlipCamera, Menu, Lock, Eye, Backspace
+    Chats, Tune, ProfileCircle, Qr, Speaker, CallEnd, FlipCamera, Menu, Lock, Eye, Backspace, Channel
 }
 
 /** Material Rounded glyph for each app icon; directional ones mirror in right-to-left layouts. */
@@ -75,6 +75,7 @@ private val KiroXIcon.vector: ImageVector
         KiroXIcon.ProfileCircle -> Icons.Rounded.AccountCircle
         KiroXIcon.Qr -> Icons.Rounded.QrCode
         KiroXIcon.Speaker -> Icons.AutoMirrored.Rounded.VolumeUp
+        KiroXIcon.Channel -> Icons.Rounded.Campaign
         KiroXIcon.CallEnd -> Icons.Rounded.CallEnd
         KiroXIcon.FlipCamera -> Icons.Rounded.FlipCameraAndroid
         KiroXIcon.Menu -> Icons.Rounded.Menu

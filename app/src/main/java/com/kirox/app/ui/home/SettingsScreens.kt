@@ -50,6 +50,7 @@ import com.kirox.app.telegram.KeepMedia
 import com.kirox.app.telegram.NetworkDownload
 import com.kirox.app.telegram.NetworkUsage
 import com.kirox.app.telegram.TelegramUserProfile
+import com.kirox.app.ui.icons.KiroXIcon as IconGlyph
 import com.kirox.app.ui.theme.Fusion
 import kotlinx.coroutines.launch
 
@@ -85,59 +86,60 @@ private fun Loading() {
 
 // ---------- Notifications ----------
 
-/** Settings → Notifications: per-type on/off and previews (stored in Telegram), system settings, MIUI tips. */
+/**
+ * Settings → Notifications and sounds, laid out as in Telegram: one row per chat type with its switch
+ * (stored in Telegram), events, calls, system sound settings and what keeps delivery reliable.
+ */
 @Composable
 internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
-    var exceptionsPage by remember { mutableStateOf(false) }
-    if (exceptionsPage) { NotificationExceptionsScreen(onBack = { exceptionsPage = false }); return }
-    BackHandler(onBack = onBack)
+    var page by remember { mutableStateOf<String?>(null) }
     val repo = settingsRepo()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val state = remember { mutableStateMapOf<NotifyScope, ScopeNotifications>() }
-    LaunchedEffect(Unit) { NotifyScope.entries.forEach { s -> runCatching { repo.notifications(s) }.onSuccess { state[s] = it } } }
+    var contactJoined by remember { mutableStateOf<Boolean?>(null) }
+    var confirmReset by remember { mutableStateOf(false) }
+    fun load() {
+        scope.launch { NotifyScope.entries.forEach { s -> runCatching { repo.notifications(s) }.onSuccess { state[s] = it } } }
+        scope.launch { runCatching { repo.contactJoinedNotifications() }.onSuccess { contactJoined = it } }
+    }
+    LaunchedEffect(Unit) { load() }
     fun update(s: NotifyScope, value: ScopeNotifications) {
         val old = state[s]
         state[s] = value
-        scope.launch { runCatching { repo.setNotifications(s, value.enabled, value.showPreview) }.onFailure { old?.let { state[s] = it }; onNotice("Не удалось сохранить") } }
+        scope.launch { runCatching { repo.setNotifications(s, value) }.onFailure { old?.let { state[s] = it }; onNotice("Не удалось сохранить") } }
     }
+    when (val current = page) {
+        "exceptions" -> { NotificationExceptionsScreen(onBack = { page = null; load() }); return }
+        null -> Unit
+        else -> NotifyScope.entries.firstOrNull { it.name == current }?.let { s ->
+            NotifyScopeScreen(s, state[s], onChange = { update(s, it) }, onExceptions = { page = "exceptions" }, onBack = { page = null })
+            return
+        }
+    }
+    BackHandler(onBack = onBack)
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
-        item { BackTitle("Уведомления", onBack) }
-        NotifyScope.entries.forEach { s ->
-            item(key = s.name) {
-                SmallCaption(s.title)
-                val value = state[s]
-                if (value == null) Loading() else {
-                    ToggleRow("Уведомления", checked = value.enabled) { update(s, value.copy(enabled = it)) }
-                    ToggleRow("Показывать текст", "Имя и текст сообщения в уведомлении", value.showPreview, enabled = value.enabled) { update(s, value.copy(showPreview = it)) }
+        item { BackTitle("Уведомления и звуки", onBack) }
+        item { SmallCaption("Уведомления о сообщениях") }
+        item {
+            SettingsCard {
+                NotifyScope.entries.forEachIndexed { index, s ->
+                    if (index > 0) androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 72.dp), color = Fusion.colors.outline)
+                    ScopeRow(s, state[s], onOpen = { page = s.name }) { value -> update(s, value.copy(enabled = !value.enabled)) }
                 }
             }
         }
-        item { SmallCaption("Доставка") }
+        item { LinkRow("Все исключения", "Чаты, где уведомления настроены отдельно") { page = "exceptions" } }
+        item { SmallCaption("События") }
         item {
-            // Auto: on when there is no push app (ntfy), which is the only way pushes reach KiroX.
-            var mode by remember { mutableStateOf(com.kirox.app.notify.KeepConnectedService.mode(context)) }
-            val pushApp = remember(mode) { com.kirox.app.push.UnifiedPush.hasDistributor(context) }
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
-                Text("Фоновое соединение", color = Fusion.colors.textPrimary, fontSize = 16.sp, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
-                com.kirox.app.ui.components.FusionSegmented(com.kirox.app.notify.KeepMode.entries, mode, { it.title }, onSelect = {
-                    mode = it; com.kirox.app.notify.KeepConnectedService.setMode(context, it)
-                })
-                Text(
-                    when (mode) {
-                        com.kirox.app.notify.KeepMode.Auto -> if (pushApp) "Сейчас выключено: пуши приходят через ntfy." else "Сейчас включено: приложения для пушей (ntfy) нет, поэтому kiroX сам держит связь. В шторке тихое уведомление «kiroX на связи»."
-                        com.kirox.app.notify.KeepMode.On -> "kiroX всегда на связи, сообщения приходят сразу. В шторке тихое уведомление «kiroX на связи»."
-                        com.kirox.app.notify.KeepMode.Off -> if (pushApp) "Сообщения приходят только по пушу через ntfy." else "Приложения для пушей нет: пока kiroX закрыт, сообщения не придут."
-                    },
-                    color = if (mode == com.kirox.app.notify.KeepMode.Off && !pushApp) Fusion.colors.danger else Fusion.colors.textSecondary,
-                    fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(start = 4.dp, top = 8.dp)
-                )
+            ToggleRow("Контакт присоединился к Telegram", "Сообщение, когда кто-то из ваших контактов заводит Telegram", contactJoined ?: true, enabled = contactJoined != null) { on ->
+                contactJoined = on
+                scope.launch { runCatching { repo.setContactJoinedNotifications(on) }.onFailure { contactJoined = !on; onNotice("Не удалось сохранить") } }
             }
         }
-        item { LinkRow("Исключения", "Чаты, где уведомления настроены отдельно") { exceptionsPage = true } }
-        item { SmallCaption("Система") }
+        item { SmallCaption("Звук и вибрация") }
         item {
-            LinkRow("Звук и вибрация", "Системные настройки уведомлений kiroX") {
+            LinkRow("Звук, вибрация и всплывающие", "Мелодия сообщений и звонков настраивается в системе для каждого типа") {
                 context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
         }
@@ -145,6 +147,21 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
             // Re-read when coming back from the system screens below.
             var resumes by remember { mutableIntStateOf(0) }
             androidx.lifecycle.compose.LifecycleResumeEffect(Unit) { resumes++; onPauseOrDispose { } }
+            // Android 14+: full-screen incoming calls need a separate permission the user may have turned off.
+            if (android.os.Build.VERSION.SDK_INT >= 34) {
+                SmallCaption("Звонки")
+                val notifications = remember { context.getSystemService(android.app.NotificationManager::class.java) }
+                val fullScreen = remember(resumes) { notifications?.canUseFullScreenIntent() == true }
+                LinkRow(
+                    "Звонки на весь экран",
+                    if (fullScreen) "Разрешено: входящий звонок открывается поверх блокировки" else "Выключено: входящий звонок будет только уведомлением"
+                ) {
+                    runCatching {
+                        context.startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, "package:${context.packageName}".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    }
+                }
+            }
+            SmallCaption("Надёжная доставка")
             val power = remember { context.getSystemService(android.os.PowerManager::class.java) }
             val unrestricted = remember(resumes) { power?.isIgnoringBatteryOptimizations(context.packageName) == true }
             LinkRow(
@@ -157,32 +174,93 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
                     context.startActivity(request.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
             }
-            // Android 14+: full-screen incoming calls need a separate permission the user may have turned off.
-            if (android.os.Build.VERSION.SDK_INT >= 34) {
-                val notifications = remember { context.getSystemService(android.app.NotificationManager::class.java) }
-                val fullScreen = remember(resumes) { notifications?.canUseFullScreenIntent() == true }
-                LinkRow(
-                    "Звонки на весь экран",
-                    if (fullScreen) "Разрешено: входящий звонок открывается поверх блокировки" else "Выключено: входящий звонок будет только уведомлением"
-                ) {
-                    runCatching {
-                        context.startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, "package:${context.packageName}".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                    }
-                }
-            }
-        }
-        item {
             LinkRow("Работа в фоне", "Чтобы уведомления и звонки приходили, когда kiroX свёрнут") {
                 runCatching {
                     context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
             }
-        }
-        if (android.os.Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) item {
+            // Delivery is chosen by itself: pushes through ntfy when it is installed, otherwise kiroX keeps the connection.
+            val pushApp = remember(resumes) { com.kirox.app.push.UnifiedPush.hasDistributor(context) }
             Text(
-                "На Xiaomi включите для kiroX «Автозапуск» и в «Контроле активности» выберите «Нет ограничений».",
-                color = Fusion.colors.textTertiary, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                if (pushApp) "Сообщения приходят по пушу через ntfy." else "Приложения для пушей (ntfy) нет, поэтому kiroX сам держит связь — в шторке тихое уведомление «kiroX на связи».",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
             )
+        }
+        item { SmallCaption("Сброс") }
+        item { LinkRow("Сбросить все уведомления", "Настройки Telegram по умолчанию, исключения удалятся", Fusion.colors.danger) { confirmReset = true } }
+    }
+    if (confirmReset) AlertDialog(
+        onDismissRequest = { confirmReset = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Сбросить все уведомления?", color = Fusion.colors.textPrimary) },
+        text = { Text("Для всех чатов вернутся настройки по умолчанию, отдельные настройки чатов удалятся.", color = Fusion.colors.textSecondary) },
+        confirmButton = {
+            TextButton(onClick = {
+                confirmReset = false
+                scope.launch { runCatching { repo.resetAllNotifications() }.onSuccess { onNotice("Уведомления сброшены"); load() }.onFailure { onNotice("Не удалось сбросить") } }
+            }) { Text("Сбросить", color = Fusion.colors.danger) }
+        },
+        dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
+}
+
+/** Rounded group of rows on the screen background, as Telegram's settings sections. */
+@Composable
+private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Fusion.colors.surface1), content = content)
+}
+
+private fun NotifyScope.icon(): Pair<com.kirox.app.ui.icons.KiroXIcon, Color> = when (this) {
+    NotifyScope.Private -> com.kirox.app.ui.icons.KiroXIcon.Profile to Color(0xFF4F8DF7)
+    NotifyScope.Groups -> com.kirox.app.ui.icons.KiroXIcon.Contacts to Color(0xFF34C38F)
+    NotifyScope.Channels -> com.kirox.app.ui.icons.KiroXIcon.Channel to Color(0xFFFFA94D)
+}
+
+private fun ScopeNotifications.summary(): String = buildString {
+    append(if (enabled) "Включены" else "Выключены")
+    if (enabled && !showPreview) append(" · без текста")
+    if (exceptions > 0) append(" · исключений: $exceptions")
+}
+
+/** Chat type with a colored icon, its state and a switch; the row opens the type's settings. */
+@Composable
+private fun ScopeRow(scope: NotifyScope, value: ScopeNotifications?, onOpen: () -> Unit, onToggle: (ScopeNotifications) -> Unit) {
+    val (icon, tint) = scope.icon()
+    Row(Modifier.fillMaxWidth().clickable(onClick = onOpen).heightIn(min = 68.dp).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(tint), contentAlignment = Alignment.Center) {
+            IconGlyph(icon, null, Modifier.size(22.dp), Color.White)
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(scope.title, color = Fusion.colors.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(value?.summary() ?: "…", color = Fusion.colors.textSecondary, fontSize = 13.sp)
+        }
+        // A thin line splits the row: left opens the settings, the switch only turns them on or off.
+        Box(Modifier.padding(horizontal = 12.dp).width(1.dp).height(32.dp).background(Fusion.colors.outline))
+        Switch(value?.enabled == true, { if (value != null) onToggle(value) }, enabled = value != null)
+    }
+}
+
+/** One chat type: on/off, message text, pinned messages, mentions (groups) and its exceptions. */
+@Composable
+private fun NotifyScopeScreen(scope: NotifyScope, value: ScopeNotifications?, onChange: (ScopeNotifications) -> Unit, onExceptions: () -> Unit, onBack: () -> Unit) {
+    BackHandler(onBack = onBack)
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle(scope.title, onBack) }
+        if (value == null) item { Loading() } else {
+            item {
+                SettingsCard { ToggleRow("Показывать уведомления", checked = value.enabled) { onChange(value.copy(enabled = it)) } }
+            }
+            item { SmallCaption("Настройки") }
+            item {
+                SettingsCard {
+                    ToggleRow("Текст сообщения", "Имя и текст в уведомлении; без него — только «Новое сообщение»", value.showPreview, enabled = value.enabled) { onChange(value.copy(showPreview = it)) }
+                    ToggleRow("Закреплённые сообщения", "Уведомлять, когда в чате что-то закрепили", value.pinned, enabled = value.enabled) { onChange(value.copy(pinned = it)) }
+                    if (scope == NotifyScope.Groups) ToggleRow("Упоминания и ответы", "Уведомлять об упоминаниях, даже если группа без звука", value.mentions) { onChange(value.copy(mentions = it)) }
+                }
+            }
+            item { SmallCaption("Исключения") }
+            item { LinkRow(if (value.exceptions > 0) "Чатов с отдельными настройками: ${value.exceptions}" else "Исключений нет", "Открыть список исключений", onClick = onExceptions) }
         }
     }
 }

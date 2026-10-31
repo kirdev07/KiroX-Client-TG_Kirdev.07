@@ -41,7 +41,8 @@ enum class NotifyScope(val title: String) {
     }
 }
 
-data class ScopeNotifications(val enabled: Boolean, val showPreview: Boolean)
+/** Defaults for one chat type; [exceptions] is how many chats of the type differ from them. */
+data class ScopeNotifications(val enabled: Boolean, val showPreview: Boolean, val pinned: Boolean = true, val mentions: Boolean = true, val exceptions: Int = 0)
 
 /** A blocked user or chat. */
 data class BlockedSender(val id: Long, val isChat: Boolean, val name: String, val photo: TelegramFileRef?)
@@ -104,15 +105,31 @@ data class NetworkUsage(val sinceDate: Int, val bytes: Map<DownloadNetwork, Pair
 /** Account-level settings stored in Telegram: notifications, privacy, local storage. */
 class TelegramSettingsRepository(private val client: TelegramClient) {
 
-    suspend fun notifications(scope: NotifyScope): ScopeNotifications =
-        client.query(TdApi.GetScopeNotificationSettings(scope.toTd())).let { ScopeNotifications(it.muteFor == 0, it.showPreview) }
+    suspend fun notifications(scope: NotifyScope): ScopeNotifications {
+        val settings = client.query(TdApi.GetScopeNotificationSettings(scope.toTd()))
+        val exceptions = runCatching { client.query(TdApi.GetChatNotificationSettingsExceptions(scope.toTd(), false)).chatIds.size }.getOrDefault(0)
+        return ScopeNotifications(settings.muteFor == 0, settings.showPreview, !settings.disablePinnedMessageNotifications, !settings.disableMentionNotifications, exceptions)
+    }
 
-    suspend fun setNotifications(scope: NotifyScope, enabled: Boolean, showPreview: Boolean) {
+    suspend fun setNotifications(scope: NotifyScope, value: ScopeNotifications) {
         val current = client.query(TdApi.GetScopeNotificationSettings(scope.toTd()))
-        current.muteFor = if (enabled) 0 else MUTE_FOREVER_S
-        current.showPreview = showPreview
+        current.muteFor = if (value.enabled) 0 else MUTE_FOREVER_S
+        current.showPreview = value.showPreview
+        current.disablePinnedMessageNotifications = !value.pinned
+        current.disableMentionNotifications = !value.mentions
         client.query(TdApi.SetScopeNotificationSettings(scope.toTd(), current))
     }
+
+    /** «Контакт присоединился к Telegram»: a message when someone from the contacts signs up. */
+    suspend fun contactJoinedNotifications(): Boolean =
+        (client.query(TdApi.GetOption("disable_contact_registered_notifications")) as? TdApi.OptionValueBoolean)?.value != true
+
+    suspend fun setContactJoinedNotifications(enabled: Boolean) {
+        client.query(TdApi.SetOption("disable_contact_registered_notifications", TdApi.OptionValueBoolean(!enabled)))
+    }
+
+    /** Back to Telegram's defaults for every chat type and chat; exceptions are removed. */
+    suspend fun resetAllNotifications() { client.query(TdApi.ResetAllNotificationSettings()) }
 
     suspend fun privacy(item: PrivacyItem): PrivacyLevel {
         val rules = client.query(TdApi.GetUserPrivacySettingRules(item.toTd())).rules

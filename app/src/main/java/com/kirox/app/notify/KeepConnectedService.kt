@@ -70,19 +70,18 @@ class KeepConnectedService : Service() {
         private const val CHANNEL = "kirox_connection"
         private const val ID = 7301
         private const val PREFS = "kirox_push"
-        private const val KEY = "keep_connected"
         private const val KEY_MODE = "keep_mode"
 
         /** True while the service really runs in the foreground; the setting alone does not keep TDLib alive. */
         @Volatile var running = false
             private set
 
-        /** Chosen mode; a switch turned on before modes existed counts as [KeepMode.On]. */
-        fun mode(context: Context): KeepMode {
-            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            return KeepMode.entries.firstOrNull { it.name == prefs.getString(KEY_MODE, null) }
-                ?: if (prefs.getBoolean(KEY, false)) KeepMode.On else KeepMode.Auto
-        }
+        /**
+         * Always [KeepMode.Auto] now: the choice was removed from the settings, so the connection is
+         * kept exactly when there is no push app. A mode saved earlier is ignored.
+         */
+        @Suppress("UNUSED_PARAMETER")
+        fun mode(context: Context): KeepMode = KeepMode.Auto
 
         fun isEnabled(context: Context) = when (mode(context)) {
             KeepMode.On -> true
