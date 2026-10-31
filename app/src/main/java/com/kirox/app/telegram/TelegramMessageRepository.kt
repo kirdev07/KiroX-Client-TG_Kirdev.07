@@ -441,11 +441,15 @@ class TelegramMessageRepository(
         when (update) {
             // Scheduled messages are not in the history until they are sent; they have their own list.
             is TdApi.UpdateNewMessage -> if (update.message.chatId == chatId && update.message.schedulingState == null && inTopic(update.message)) { messages[update.message.id] = update.message; schedulePublish() }
+            // A scheduled message (date 0 until it goes out) stays in «Отложенные», not in the history.
             is TdApi.UpdateMessageSendSucceeded -> if (update.message.chatId == chatId && (update.oldMessageId in messages || inTopic(update.message))) {
-                messages.remove(update.oldMessageId); messages[update.message.id] = update.message; schedulePublish()
+                messages.remove(update.oldMessageId)
+                if (update.message.schedulingState == null) messages[update.message.id] = update.message
+                schedulePublish()
             }
             is TdApi.UpdateMessageSendFailed -> if (update.message.chatId == chatId) {
-                messages.remove(update.oldMessageId); messages[update.message.id] = update.message
+                messages.remove(update.oldMessageId)
+                if (update.message.schedulingState == null) messages[update.message.id] = update.message
                 _error.value = humanError(update.error)
                 schedulePublish()
             }

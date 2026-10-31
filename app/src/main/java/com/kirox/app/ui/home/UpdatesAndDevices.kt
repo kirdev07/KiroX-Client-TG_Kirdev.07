@@ -214,12 +214,15 @@ private fun UpdateCard(updates: com.kirox.app.update.UpdateCenter, s: com.kirox.
             )
             val last = updates.lastCheck
             if (last > 0) Text(
-                "Последняя проверка: ${java.text.SimpleDateFormat("d MMM, HH:mm", java.util.Locale.getDefault()).format(java.util.Date(last))}",
+                "Последняя проверка: ${checkTime(last)}",
                 color = Fusion.colors.textTertiary, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             )
         }
     }
 }
+
+/** «30 окт., 23:55» for the last update check. */
+private fun checkTime(millis: Long): String = java.text.SimpleDateFormat("d MMM, HH:mm", java.util.Locale.getDefault()).format(java.util.Date(millis))
 
 @Composable
 private fun InfoPair(label: String, value: String) {
