@@ -117,6 +117,25 @@ internal fun ThemesScreen(palette: FusionPalette, onPalette: (FusionPalette) -> 
                 }
             }
         }
+        item { SectionCaption("Автосмена темы") }
+        item {
+            val auto by settings.autoTheme.collectAsState()
+            var choosing by remember { mutableStateOf<String?>(null) }
+            ToggleRow("По времени суток", "Днём одна тема, ночью другая — по часам телефона", auto.enabled) { settings.setAutoTheme(auto.copy(enabled = it)) }
+            if (auto.enabled) {
+                LinkRow("Днём", "${auto.day.title} · с ${auto.dayStart}:00") { choosing = "day" }
+                LinkRow("Ночью", "${auto.night.title} · с ${auto.nightStart}:00") { choosing = "night" }
+                LinkRow("День начинается", "${auto.dayStart}:00") { choosing = "dayStart" }
+                LinkRow("Ночь начинается", "${auto.nightStart}:00") { choosing = "nightStart" }
+            }
+            val themes = com.kirox.app.ui.theme.KiroXFeatures.THEMES
+            when (choosing) {
+                "day" -> ChoiceDialog("Тема днём", themes, auto.day, { it.title }, onDismiss = { choosing = null }) { settings.setAutoTheme(auto.copy(day = it)); choosing = null }
+                "night" -> ChoiceDialog("Тема ночью", themes, auto.night, { it.title }, onDismiss = { choosing = null }) { settings.setAutoTheme(auto.copy(night = it)); choosing = null }
+                "dayStart" -> ChoiceDialog("День начинается", (4..12).toList(), auto.dayStart, { "$it:00" }, onDismiss = { choosing = null }) { settings.setAutoTheme(auto.copy(dayStart = it)); choosing = null }
+                "nightStart" -> ChoiceDialog("Ночь начинается", (17..23).toList() + 0, auto.nightStart, { "$it:00" }, onDismiss = { choosing = null }) { settings.setAutoTheme(auto.copy(nightStart = it)); choosing = null }
+            }
+        }
         item { SectionCaption("Стекло") }
         item {
             ToggleRow(

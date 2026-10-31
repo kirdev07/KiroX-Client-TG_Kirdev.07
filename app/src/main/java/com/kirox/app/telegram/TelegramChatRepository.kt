@@ -53,6 +53,61 @@ class TelegramChatRepository(private val client: TelegramClient) {
     }
 
     /** Removes the folder only; its chats stay in the main list. */
+    /**
+     * «Поделиться папкой»: a t.me/addlist link with the folder's groups and channels (Telegram
+     * shares no private chats). Null when the folder has none.
+     */
+    suspend fun shareFolder(id: Int): String? {
+        val ids = client.query(TdApi.GetChatFolder(id)).includedChatIds.filter { chatId ->
+            val type = runCatching { client.query(TdApi.GetChat(chatId)).type }.getOrNull()
+            type is TdApi.ChatTypeSupergroup || type is TdApi.ChatTypeBasicGroup
+        }
+        if (ids.isEmpty()) return null
+        return client.query(TdApi.CreateChatFolderInviteLink(id, "", ids.toLongArray())).inviteLink
+    }
+
+    suspend fun checkFolderLink(link: String): FolderInvite? = runCatching {
+        val info = client.query(TdApi.CheckChatFolderInviteLink(link))
+        val chats = info.missingChatIds.map { id -> id to (runCatching { client.query(TdApi.GetChat(id)).title }.getOrNull() ?: "Чат") }
+        FolderInvite(link, info.chatFolderInfo.name.text.text, chats, info.addedChatIds.size)
+    }.getOrNull()
+
+    suspend fun addFolderByLink(link: String, chatIds: List<Long>) { client.query(TdApi.AddChatFolderByInviteLink(link, chatIds.toLongArray())) }
+
+    /**
+     * The chat as plain text, oldest first: «[31.10.2026 18:30] Имя: текст». Media become their
+     * label («Фото», «Видео»). Up to [limit] messages; [onProgress] gets the count so far.
+     */
+    suspend fun exportText(chatId: Long, limit: Int = 20_000, onProgress: (Int) -> Unit = {}): String {
+        val names = HashMap<Long, String>()
+        suspend fun sender(message: TdApi.Message): String = when (val s = message.senderId) {
+            is TdApi.MessageSenderUser -> names.getOrPut(s.userId) { runCatching { client.query(TdApi.GetUser(s.userId)).displayName() }.getOrDefault("") }
+            is TdApi.MessageSenderChat -> names.getOrPut(-s.chatId) { runCatching { client.query(TdApi.GetChat(s.chatId)).title }.getOrDefault("") }
+            else -> ""
+        }
+        val all = ArrayList<TdApi.Message>()
+        var from = 0L
+        while (all.size < limit) {
+            val page = client.query(TdApi.GetChatHistory(chatId, from, 0, 100, false)).messages
+            if (page.isEmpty()) break
+            all += page
+            from = page.last().id
+            onProgress(all.size)
+        }
+        val format = java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault())
+        val title = runCatching { client.query(TdApi.GetChat(chatId)).title }.getOrDefault("")
+        return buildString {
+            appendLine("kiroX — экспорт переписки «$title»")
+            appendLine("Сообщений: ${all.size}")
+            appendLine()
+            all.asReversed().forEach { message ->
+                append('[').append(format.format(java.util.Date(message.date * 1000L))).append("] ")
+                sender(message).takeIf { it.isNotBlank() }?.let { append(it).append(": ") }
+                appendLine(messagePreview(message))
+            }
+        }
+    }
+
     suspend fun deleteFolder(id: Int) { client.query(TdApi.DeleteChatFolder(id, LongArray(0))) }
 
     /** Chats added to folder [id] by hand (not the ones it takes by type). */

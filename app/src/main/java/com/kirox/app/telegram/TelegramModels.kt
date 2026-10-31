@@ -324,3 +324,12 @@ data class WebAppLaunch(val launchId: Long, val url: String)
 
 /** The «≡ Меню» button of a bot chat, which opens the bot's mini app. */
 data class BotMenu(val botUserId: Long, val text: String, val url: String)
+
+/** A folder someone shared by a t.me/addlist link: its name and the chats you are not in yet. */
+data class FolderInvite(val link: String, val title: String, val newChats: List<Pair<Long, String>>, val alreadyAdded: Int)
+
+/** A tag of Saved Messages (Premium): the reaction that marks messages, its own name and how many. */
+data class SavedTag(val emoji: String, val label: String, val count: Int)
+
+/** A gift shown in a profile: its picture, price in stars and who gave it. */
+data class ProfileGift(val sticker: TelegramFileRef?, val emoji: String, val stars: Long, val from: String, val title: String)

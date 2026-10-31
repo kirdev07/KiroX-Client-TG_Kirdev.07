@@ -121,6 +121,14 @@ internal fun ProfileTab(profile: TelegramUserProfile?, onOpenSettings: () -> Uni
                 }
             }
             profile?.bio?.takeIf { it.isNotBlank() }?.let { bio -> item { InfoLine(KiroXIcon.Info, bio, "О себе") } }
+            item {
+                // Telegram Stars balance and your gifts.
+                val users = (androidx.compose.ui.platform.LocalContext.current.applicationContext as com.kirox.app.KiroXApplication).telegram.users
+                val stars by produceState<Long?>(null, profile?.id) { value = profile?.id?.let { users.stars() } }
+                val gifts by produceState(0 to emptyList<com.kirox.app.telegram.ProfileGift>(), profile?.id) { value = profile?.id?.let { users.gifts(it) } ?: (0 to emptyList()) }
+                stars?.let { InfoLine(KiroXIcon.Star, "⭐ $it", "Звёзды Telegram") }
+                if (gifts.second.isNotEmpty()) com.kirox.app.ui.chat.GiftsRow(gifts.first, gifts.second)
+            }
             profile?.birthday?.takeIf { it.isNotBlank() }?.let { birthday -> item { InfoLine(KiroXIcon.Cake, birthday, "Дата рождения") } }
             item {
                 Row(

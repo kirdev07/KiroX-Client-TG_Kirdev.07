@@ -458,6 +458,23 @@ class TelegramMessageRepository(
         TdApi.SendInlineQueryResultMessage(id, topic, replyToMessageId?.let { TdApi.InputMessageReplyToMessage(it, null, 0, null) }, null, queryId, resultId, false)
     }
 
+    /** Tags of Saved Messages (Telegram Premium); empty without them. */
+    suspend fun savedTags(): List<SavedTag> = runCatching {
+        client.query(TdApi.GetSavedMessagesTags(0)).tags.mapNotNull { tag ->
+            (tag.tag as? TdApi.ReactionTypeEmoji)?.let { SavedTag(it.emoji, tag.label.orEmpty(), tag.count) }
+        }
+    }.getOrDefault(emptyList())
+
+    /** Saved messages marked with the tag [emoji], newest first. */
+    suspend fun savedByTag(emoji: String): List<TelegramMessage> {
+        val found = client.query(TdApi.SearchSavedMessages(0, TdApi.ReactionTypeEmoji(emoji), "", 0, 0, 100))
+        val deferred = kotlinx.coroutines.CompletableDeferred<List<TelegramMessage>>()
+        client.post { deferred.complete(found.messages.map { it.toModel() }) }
+        return deferred.await()
+    }
+
+    suspend fun setTagLabel(emoji: String, label: String) { client.query(TdApi.SetSavedMessagesTagLabel(TdApi.ReactionTypeEmoji(emoji), label)) }
+
     /** «Отложенные»: messages of the open chat waiting to be sent, soonest first. */
     suspend fun scheduledMessages(): List<ScheduledMessage> {
         val id = chatId.takeIf { it != 0L } ?: return emptyList()

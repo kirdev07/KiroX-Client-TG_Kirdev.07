@@ -11,6 +11,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -78,6 +80,10 @@ interface TelegramChatActions {
     suspend fun openWebApp(url: String, messageId: Long? = null, botUserId: Long? = null): com.kirox.app.telegram.WebAppLaunch? = null
     fun closeWebApp(launchId: Long) {}
     suspend fun botMenu(): com.kirox.app.telegram.BotMenu? = null
+    /** Tags of Saved Messages (Premium) and the messages of one tag. */
+    suspend fun savedTags(): List<com.kirox.app.telegram.SavedTag> = emptyList()
+    suspend fun savedByTag(emoji: String): List<TelegramMessage> = emptyList()
+    suspend fun setTagLabel(emoji: String, label: String) {}
     suspend fun sendScheduledNow(messageId: Long) {}
     suspend fun deleteScheduled(messageId: Long) {}
     fun sendPhoto(path: String, caption: String)
@@ -163,6 +169,11 @@ fun TelegramChatScreen(
     LaunchedEffect(history.chatId, history.peerKind) { botMenu = if (history.peerKind == TelegramPeerKind.Bot) runCatching { actions.botMenu() }.getOrNull() else null }
     // «Транслировать геопозицию»: what to do once location access is granted.
     var choosingLocation by remember { mutableStateOf(false) }
+    // Saved Messages tags and the tag being renamed; «Экспорт переписки» progress (-1 — not running).
+    var tags by remember(history.chatId) { mutableStateOf<List<com.kirox.app.telegram.SavedTag>>(emptyList()) }
+    LaunchedEffect(history.chatId, history.peerKind) { if (history.peerKind == TelegramPeerKind.Saved) tags = runCatching { actions.savedTags() }.getOrDefault(emptyList()) }
+    var renamingTag by remember { mutableStateOf<com.kirox.app.telegram.SavedTag?>(null) }
+    var exportCount by remember { mutableIntStateOf(-1) }
     var pendingLiveSeconds by remember { mutableIntStateOf(0) }
     val liveShares by com.kirox.app.location.LiveLocationService.active.collectAsState()
     var versionsOf by remember { mutableStateOf<MessageUi?>(null) }
@@ -629,6 +640,32 @@ fun TelegramChatScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             val results = searchResults
+            // Saved Messages tags: a tap shows that tag's messages, a long press names the tag.
+            if (tags.isNotEmpty() && !searching) androidx.compose.foundation.lazy.LazyRow(
+                Modifier.align(Alignment.TopCenter).fillMaxWidth().zIndex(1f).background(Fusion.colors.background.copy(alpha = 0.92f)),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(tags, key = { it.emoji }) { tag ->
+                    Row(
+                        Modifier.clip(RoundedCornerShape(16.dp)).background(Fusion.colors.surface2)
+                            .combinedClickable(
+                                onClick = {
+                                    scope.launch {
+                                        val found = runCatching { actions.savedByTag(tag.emoji) }.getOrDefault(emptyList())
+                                        searching = true; searchQuery = tag.label.ifBlank { tag.emoji }; searchResults = found; searchNext = 0
+                                    }
+                                },
+                                onLongClick = { renamingTag = tag }
+                            ).padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Text(tag.emoji, fontSize = 15.sp)
+                        if (tag.label.isNotBlank()) { Spacer(Modifier.width(4.dp)); androidx.compose.material3.Text(tag.label, color = Fusion.colors.textPrimary, fontSize = 13.sp) }
+                        Spacer(Modifier.width(6.dp))
+                        androidx.compose.material3.Text(tag.count.toString(), color = Fusion.colors.textSecondary, fontSize = 12.sp)
+                    }
+                }
+            }
             if (history.isForum) ForumTopicsList(history.chatId, actions, onOpen = { topic -> onOpenTopic?.invoke(topic) })
             else if (searching && results != null) SearchResults(
                 results, canLoadMore = searchNext != 0L,
@@ -987,6 +1024,39 @@ fun TelegramChatScreen(
             Spacer(Modifier.navigationBarsPadding().height(8.dp))
         }
     }
+    if (exportCount >= 0) AlertDialog(
+        onDismissRequest = {},
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Экспорт переписки", color = Fusion.colors.textPrimary) },
+        text = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(Modifier.size(22.dp), color = Fusion.colors.accent, strokeWidth = 2.dp)
+                Spacer(Modifier.width(14.dp))
+                Text("Собрано сообщений: $exportCount", color = Fusion.colors.textSecondary)
+            }
+        },
+        confirmButton = {}
+    )
+    renamingTag?.let { tag ->
+        var label by remember(tag.emoji) { mutableStateOf(tag.label) }
+        AlertDialog(
+            onDismissRequest = { renamingTag = null },
+            containerColor = Fusion.colors.surface1,
+            title = { Text("Название метки ${tag.emoji}", color = Fusion.colors.textPrimary) },
+            text = { com.kirox.app.ui.home.EditField(label, "Например, «Идеи»") { label = it.take(12) } },
+            confirmButton = {
+                TextButton(onClick = {
+                    renamingTag = null
+                    scope.launch {
+                        runCatching { actions.setTagLabel(tag.emoji, label.trim()) }
+                            .onSuccess { tags = runCatching { actions.savedTags() }.getOrDefault(tags) }
+                            .onFailure { notice = "Метки доступны с Telegram Premium" }
+                    }
+                }) { Text("Сохранить", color = Fusion.colors.accent) }
+            },
+            dismissButton = { TextButton(onClick = { renamingTag = null }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+        )
+    }
     if (choosingLocation) AlertDialog(
         onDismissRequest = { choosingLocation = false },
         containerColor = Fusion.colors.surface1,
@@ -1108,6 +1178,7 @@ fun TelegramChatScreen(
                 add(Triple(KiroXIcon.Search, "Поиск", false))
                 if (tweaks.keepDeleted) add(Triple(KiroXIcon.Bookmark, "Удалённые сообщения", false))
                 add(Triple(KiroXIcon.Palette, "Обои чата", false))
+                add(Triple(KiroXIcon.File, "Экспорт переписки", false))
                 if (history.peerKind != TelegramPeerKind.Saved) add(Triple(KiroXIcon.Shield, "Пожаловаться", true))
                 if (history.peerKind == TelegramPeerKind.User) add(Triple(KiroXIcon.Refresh, "Автоудаление", false))
                 add(Triple(KiroXIcon.Delete, "Очистить историю", true))
@@ -1121,6 +1192,20 @@ fun TelegramChatScreen(
                             "Поиск" -> searching = true
                             "Удалённые сообщения" -> keptOpen = true
                             "Обои чата" -> choosingWallpaper = true
+                            "Экспорт переписки" -> if (exportCount < 0) {
+                                exportCount = 0
+                                scope.launch {
+                                    val chats = (context.applicationContext as com.kirox.app.KiroXApplication).telegram.chats
+                                    val saved = runCatching {
+                                        val text = chats.exportText(history.chatId) { exportCount = it }
+                                        val file = withContext(Dispatchers.IO) { java.io.File(context.cacheDir, "export").apply { mkdirs() }.resolve("chat.txt").apply { writeText(text) } }
+                                        val name = history.title.ifBlank { "chat" }.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+                                        saveToDownloads(context, file.path, "$name.txt", "text/plain")
+                                    }.getOrDefault(false)
+                                    exportCount = -1
+                                    notice = if (saved) "Переписка сохранена в «Загрузки/kiroX»" else "Не удалось сохранить переписку"
+                                }
+                            }
                             "Пожаловаться" -> reportIds = emptyList()
                             "Очистить историю" -> confirmClear = true
                             "Автоудаление" -> autoDeleteOpen = true

@@ -128,6 +128,37 @@ class KiroXSettingsRepository(context: Context) {
     /** Back to defaults for every KiroX look-and-feel setting; Telegram data is not touched. */
     fun resetAll() { scope.launch { store.edit { it.clear() } } }
 
+    private val autoThemeKey = androidx.datastore.preferences.core.booleanPreferencesKey("auto_theme")
+    private val dayPaletteKey = stringPreferencesKey("day_palette")
+    private val nightPaletteKey = stringPreferencesKey("night_palette")
+    private val dayStartKey = androidx.datastore.preferences.core.intPreferencesKey("day_start")
+    private val nightStartKey = androidx.datastore.preferences.core.intPreferencesKey("night_start")
+
+    /** «Автосмена темы»: one theme by day and another by night, by the phone's clock. */
+    val autoTheme: StateFlow<AutoTheme> = store.data.catch { emit(androidx.datastore.preferences.core.emptyPreferences()) }
+        .map { prefs ->
+            AutoTheme(
+                prefs[autoThemeKey] ?: false,
+                FusionPalette.entries.firstOrNull { it.name == prefs[dayPaletteKey] } ?: FusionPalette.Expressive,
+                FusionPalette.entries.firstOrNull { it.name == prefs[nightPaletteKey] } ?: FusionPalette.AmoledBlack,
+                prefs[dayStartKey] ?: 7,
+                prefs[nightStartKey] ?: 22
+            )
+        }
+        .stateIn(scope, SharingStarted.Eagerly, AutoTheme())
+
+    fun setAutoTheme(value: AutoTheme) {
+        scope.launch {
+            store.edit {
+                it[autoThemeKey] = value.enabled
+                it[dayPaletteKey] = value.day.name
+                it[nightPaletteKey] = value.night.name
+                it[dayStartKey] = value.dayStart
+                it[nightStartKey] = value.nightStart
+            }
+        }
+    }
+
     /** Every appearance setting as plain values, for the settings backup. */
     suspend fun exportAll(): Map<String, Any> = store.data.first().asMap().mapKeys { it.key.name }
 
@@ -171,5 +202,20 @@ class KiroXSettingsRepository(context: Context) {
 
     fun setPalette(value: FusionPalette) {
         scope.launch { store.edit { it[paletteKey] = value.name } }
+    }
+}
+
+/** «Автосмена темы»: [day] from [dayStart] o'clock, [night] from [nightStart]. */
+data class AutoTheme(
+    val enabled: Boolean = false,
+    val day: FusionPalette = FusionPalette.Expressive,
+    val night: FusionPalette = FusionPalette.AmoledBlack,
+    val dayStart: Int = 7,
+    val nightStart: Int = 22
+) {
+    /** The theme for [hour] (0–23). */
+    fun paletteAt(hour: Int): FusionPalette {
+        val isDay = if (dayStart < nightStart) hour in dayStart until nightStart else hour >= dayStart || hour < nightStart
+        return if (isDay) day else night
     }
 }

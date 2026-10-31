@@ -137,6 +137,30 @@ class TelegramUserRepository(private val client: TelegramClient) {
             else -> UsernameCheck.Invalid
         }
 
+    /** Gifts shown on a user's profile (the ones they keep visible). */
+    suspend fun gifts(userId: Long): Pair<Int, List<ProfileGift>> = runCatching {
+        val result = client.query(TdApi.GetReceivedGifts("", TdApi.MessageSenderUser(userId), 0, false, false, false, false, false, false, false, false, false, "", 50))
+        result.totalCount to result.gifts.map { gift ->
+            val from = (gift.senderId as? TdApi.MessageSenderUser)?.let { s -> runCatching { client.query(TdApi.GetUser(s.userId)).displayName() }.getOrNull() }.orEmpty()
+            when (val sent = gift.gift) {
+                is TdApi.SentGiftRegular -> ProfileGift(stillOf(sent.gift.sticker), sent.gift.sticker?.emoji.orEmpty(), sent.gift.starCount, from, "")
+                is TdApi.SentGiftUpgraded -> ProfileGift(null, "🎁", 0, from, "${sent.gift.title} #${sent.gift.number}")
+                else -> ProfileGift(null, "🎁", 0, from, "")
+            }
+        }
+    }.getOrDefault(0 to emptyList())
+
+    /** Your Telegram Stars balance; null when Telegram doesn't say. */
+    suspend fun stars(): Long? = runCatching {
+        client.query(TdApi.GetStarTransactions(TdApi.MessageSenderUser(myId), "", null, "", 1)).starAmount.starCount
+    }.getOrNull()
+
+    private fun stillOf(sticker: TdApi.Sticker?): TelegramFileRef? {
+        sticker ?: return null
+        if (sticker.format is TdApi.StickerFormatWebp) return sticker.sticker.toRef()
+        return sticker.thumbnail?.takeIf { it.format is TdApi.ThumbnailFormatWebp || it.format is TdApi.ThumbnailFormatPng || it.format is TdApi.ThumbnailFormatJpeg }?.file?.toRef()
+    }
+
     /** Statuses Telegram suggests for the picker. */
     suspend fun defaultEmojiStatuses(): List<Long> = runCatching { client.query(TdApi.GetDefaultEmojiStatuses()).customEmojiIds.toList() }.getOrDefault(emptyList())
 

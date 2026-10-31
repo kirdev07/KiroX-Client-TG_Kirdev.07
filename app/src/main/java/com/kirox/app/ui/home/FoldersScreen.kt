@@ -112,7 +112,8 @@ private fun FolderRow(icon: KiroXIcon, title: String, subtitle: String, count: I
 @Composable
 private fun FolderEditor(folder: TelegramFolder?, chats: List<TelegramChatItem>, onNotice: (String) -> Unit, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
-    val repo = (LocalContext.current.applicationContext as KiroXApplication).telegram.chats
+    val context = LocalContext.current
+    val repo = (context.applicationContext as KiroXApplication).telegram.chats
     val scope = rememberCoroutineScope()
     var name by remember(folder?.id) { mutableStateOf(folder?.title.orEmpty()) }
     var picked by remember(folder?.id) { mutableStateOf<Set<Long>>(emptySet()) }
@@ -140,6 +141,16 @@ private fun FolderEditor(folder: TelegramFolder?, chats: List<TelegramChatItem>,
     val canSave = name.isNotBlank() && picked.isNotEmpty() && loaded && !busy
     Column(Modifier.fillMaxSize()) {
         BackTitle(if (folder == null) "Новая папка" else "Редактировать папку", onBack) {
+            if (folder != null) TitleAction(KiroXIcon.Link, "Поделиться папкой") {
+                scope.launch {
+                    val link = runCatching { repo.shareFolder(folder.id) }.getOrNull()
+                    if (link == null) onNotice("Делиться можно папками с группами и каналами")
+                    else {
+                        val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, link)
+                        runCatching { context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    }
+                }
+            }
             if (folder != null) TitleAction(KiroXIcon.Delete, "Удалить папку") { confirmDelete = true }
         }
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {

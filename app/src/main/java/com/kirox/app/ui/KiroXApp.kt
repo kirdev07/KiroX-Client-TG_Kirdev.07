@@ -216,10 +216,16 @@ fun KiroXApp() {
     }
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     // t.me and tg: links open the chat inside KiroX; anything else (and unknown names) in the browser.
+    // A shared folder (t.me/addlist/…): asks before adding it with its chats.
+    var folderInvite by remember { mutableStateOf<com.kirox.app.telegram.FolderInvite?>(null) }
     val linkOpener: (String) -> Unit = remember(uriHandler) {
         { url ->
             val link = com.kirox.app.telegram.telegramLinkOf(url)
-            if (link == null) runCatching { uriHandler.openUri(url) }
+            if (link is com.kirox.app.telegram.TelegramLink.AddList) scope.launch {
+                folderInvite = telegramViewModel.chats.checkFolderLink(link.url)
+                if (folderInvite == null) android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Ссылка на папку недействительна"), android.widget.Toast.LENGTH_SHORT).show()
+            }
+            else if (link == null) runCatching { uriHandler.openUri(url) }
             else scope.launch {
                 val chatId = telegramViewModel.resolveLink(link)
                 if (chatId != null) openChat(chatId)
@@ -419,6 +425,29 @@ fun KiroXApp() {
         groupCall?.let { call ->
             CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.call.GroupCallScreen(call, groupCallActions) }
         }
+        folderInvite?.let { invite ->
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { folderInvite = null },
+                title = { com.kirox.app.i18n.Text("Добавить папку «${invite.title}»?") },
+                text = {
+                    com.kirox.app.i18n.Text(
+                        if (invite.newChats.isEmpty()) "Вы уже во всех чатах этой папки."
+                        else "Вы вступите в новые чаты (${invite.newChats.size}): ${invite.newChats.take(8).joinToString { it.second }}${if (invite.newChats.size > 8) "…" else ""}"
+                    )
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        folderInvite = null
+                        scope.launch {
+                            runCatching { telegramViewModel.chats.addFolderByLink(invite.link, invite.newChats.map { it.first }) }
+                                .onSuccess { android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Папка добавлена"), android.widget.Toast.LENGTH_SHORT).show() }
+                                .onFailure { android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Не удалось добавить папку"), android.widget.Toast.LENGTH_SHORT).show() }
+                        }
+                    }) { com.kirox.app.i18n.Text("Добавить") }
+                },
+                dismissButton = { androidx.compose.material3.TextButton(onClick = { folderInvite = null }) { com.kirox.app.i18n.Text("Отмена") } }
+            )
+        }
         com.kirox.app.ui.components.InAppBanner(Modifier.align(androidx.compose.ui.Alignment.TopCenter), onOpen = { openChat(it) })
         groupCallNotice?.let { text ->
             androidx.compose.material3.AlertDialog(
@@ -455,6 +484,9 @@ private class TelegramMessageActions(
     override suspend fun openWebApp(url: String, messageId: Long?, botUserId: Long?) = repository.openWebApp(url, messageId, botUserId)
     override fun closeWebApp(launchId: Long) = repository.closeWebApp(launchId)
     override suspend fun botMenu() = repository.botMenu()
+    override suspend fun savedTags() = repository.savedTags()
+    override suspend fun savedByTag(emoji: String) = repository.savedByTag(emoji)
+    override suspend fun setTagLabel(emoji: String, label: String) = repository.setTagLabel(emoji, label)
     override suspend fun sendScheduledNow(messageId: Long) = repository.sendScheduledNow(messageId)
     override suspend fun deleteScheduled(messageId: Long) = repository.deleteScheduled(messageId)
     override fun sendPhoto(path: String, caption: String) = repository.sendPhoto(path, caption)

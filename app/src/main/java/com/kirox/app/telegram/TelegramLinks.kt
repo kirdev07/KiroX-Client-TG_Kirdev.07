@@ -8,6 +8,8 @@ sealed interface TelegramLink {
     data class Username(val name: String) : TelegramLink
     /** A user mentioned by id (mention without a username). */
     data class User(val id: Long) : TelegramLink
+    /** A shared chat folder: t.me/addlist/… */
+    data class AddList(val url: String) : TelegramLink
 }
 
 private val usernamePattern = Regex("^[A-Za-z][A-Za-z0-9_]{3,31}$")
@@ -30,6 +32,7 @@ fun telegramLinkOf(url: String): TelegramLink? {
     val host = withoutScheme.substringBefore('/').lowercase()
     if (host != "t.me" && host != "telegram.me" && host != "telegram.dog") return null
     val name = withoutScheme.substringAfter('/', "").substringBefore('/').substringBefore('?').substringBefore('#')
+    if (name.equals("addlist", ignoreCase = true)) return TelegramLink.AddList("https://t.me/" + withoutScheme.substringAfter('/'))
     if (name.isEmpty() || name.lowercase() in servicePaths || name.startsWith("+")) return null
     return if (usernamePattern.matches(name)) TelegramLink.Username(name) else null
 }
@@ -39,5 +42,7 @@ suspend fun TelegramClient.resolveLink(link: TelegramLink): Long? = runCatching 
     when (link) {
         is TelegramLink.Username -> query(TdApi.SearchPublicChat(link.name)).id
         is TelegramLink.User -> query(TdApi.CreatePrivateChat(link.id, false)).id
+        // Folder links are shown by the app as «Добавить папку», not opened as a chat.
+        is TelegramLink.AddList -> null
     }
 }.getOrNull()

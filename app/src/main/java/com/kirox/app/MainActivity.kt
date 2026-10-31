@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.CompositionLocalProvider
 import com.kirox.app.ui.KiroXApp
@@ -32,7 +33,17 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) openAccountFrom(intent)
         enableEdgeToEdge()
         setContent {
-            val palette by (application as KiroXApplication).settings.palette.collectAsStateWithLifecycle()
+            val chosenPalette by (application as KiroXApplication).settings.palette.collectAsStateWithLifecycle()
+            // «Автосмена темы»: the day or night theme by the clock, checked every minute.
+            val autoTheme by (application as KiroXApplication).settings.autoTheme.collectAsStateWithLifecycle()
+            var hour by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)) }
+            androidx.compose.runtime.LaunchedEffect(autoTheme.enabled) {
+                while (autoTheme.enabled) {
+                    hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+                    kotlinx.coroutines.delay(60_000)
+                }
+            }
+            val palette = if (autoTheme.enabled) autoTheme.paletteAt(hour) else chosenPalette
             val settings = (application as KiroXApplication).settings
             val motion by settings.motion.collectAsStateWithLifecycle()
             val bubbles by settings.bubbleShape.collectAsStateWithLifecycle()

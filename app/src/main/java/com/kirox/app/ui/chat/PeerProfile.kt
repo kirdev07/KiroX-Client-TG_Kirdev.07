@@ -70,6 +70,10 @@ internal fun PeerProfileScreen(
     var similar by remember(chatId) { mutableStateOf<List<com.kirox.app.telegram.SimilarChat>>(emptyList()) }
     LaunchedEffect(chatId) { similar = admin.similarChannels(chatId) }
     val openChat = LocalChatOpener.current
+    // Gifts a person shows on their profile (private chats only; ids of users are positive).
+    val users = (LocalContext.current.applicationContext as KiroXApplication).telegram.users
+    var gifts by remember(chatId) { mutableStateOf<Pair<Int, List<com.kirox.app.telegram.ProfileGift>>>(0 to emptyList()) }
+    LaunchedEffect(chatId) { if (chatId > 0) gifts = users.gifts(chatId) }
     rights?.takeIf { managing }?.let { r -> ChatManageScreen(chatId, r, onBack = { managing = false }); return }
     var galleryAt by remember { mutableStateOf<TelegramSharedItem?>(null) }
     galleryAt?.let { item -> item.full?.let { full -> ChatPhotoGallery(chatId, item.messageId, full) { galleryAt = null } } }
@@ -128,6 +132,7 @@ internal fun PeerProfileScreen(
                 if (muted != null && onToggleMute != null) ProfileAction(KiroXIcon.Bell, if (muted) "Вкл. звук" else "Без звука", Modifier.weight(1f)) { onToggleMute(!muted) }
             }
         }
+        if (gifts.second.isNotEmpty()) item(span = { GridItemSpan(3) }) { GiftsRow(gifts.first, gifts.second) }
         if (similar.isNotEmpty() && openChat != null) item(span = { GridItemSpan(3) }) {
             Column(Modifier.padding(top = 12.dp)) {
                 Text("Похожие каналы", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
@@ -239,5 +244,33 @@ private fun MediaTile(item: TelegramSharedItem, onClick: () -> Unit) {
             item.subtitle, color = Color.White, fontSize = 11.sp,
             modifier = Modifier.align(Alignment.BottomStart).padding(4.dp).clip(RoundedCornerShape(6.dp)).background(Color(0x99000000)).padding(horizontal = 5.dp, vertical = 1.dp)
         )
+    }
+}
+
+/** «Подарки»: the gifts a person keeps on their profile, with price and who gave them. */
+@Composable
+internal fun GiftsRow(total: Int, gifts: List<com.kirox.app.telegram.ProfileGift>) {
+    Column(Modifier.padding(top = 12.dp)) {
+        Text("Подарки · $total", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        androidx.compose.foundation.lazy.LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(gifts.size) { i ->
+                val gift = gifts[i]
+                Column(
+                    Modifier.width(88.dp).clip(RoundedCornerShape(16.dp)).background(Fusion.colors.surface1).padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val bitmap = com.kirox.app.ui.components.rememberTelegramBitmap(gift.sticker, with(androidx.compose.ui.platform.LocalDensity.current) { 56.dp.roundToPx() })
+                    Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                        if (bitmap != null) androidx.compose.foundation.Image(bitmap, gift.emoji, Modifier.size(56.dp))
+                        else androidx.compose.material3.Text(gift.emoji.ifBlank { "🎁" }, fontSize = 34.sp)
+                    }
+                    androidx.compose.material3.Text(
+                        gift.title.ifBlank { if (gift.stars > 0) "⭐ ${gift.stars}" else "" },
+                        color = Fusion.colors.textPrimary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                    if (gift.from.isNotBlank()) androidx.compose.material3.Text(gift.from, color = Fusion.colors.textSecondary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
     }
 }
