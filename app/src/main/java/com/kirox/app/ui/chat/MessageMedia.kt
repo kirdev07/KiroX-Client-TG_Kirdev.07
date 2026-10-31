@@ -81,6 +81,25 @@ import kotlin.time.Duration.Companion.milliseconds
 /** Auto-download limits for the screen; none when not provided (previews, tests). */
 val LocalAutoDownload = androidx.compose.runtime.staticCompositionLocalOf { com.kirox.app.telegram.AutoDownloadRule() }
 
+/** «Сохранять в галерею» is on for the open chat's type. */
+val LocalSaveToGallery = androidx.compose.runtime.staticCompositionLocalOf { false }
+
+/** Copies an incoming photo or video to the gallery once it is on disk; each file only once. */
+@Composable
+internal fun SaveToGalleryEffect(message: MessageUi) {
+    val (file, video) = when (message.kind) {
+        MessageKind.Photo -> (message.photo ?: return) to false
+        MessageKind.Video -> (message.media?.file ?: return) to true
+        else -> return
+    }
+    val context = LocalContext.current
+    val path = rememberFileState(file).path ?: return
+    LaunchedEffect(path) {
+        val media = (context.applicationContext as com.kirox.app.KiroXApplication).telegram.media
+        if (media.markSaved(path)) saveToGallery(context, path, video)
+    }
+}
+
 /** GIFs up to this size download and loop by themselves, like in Telegram. */
 private const val AUTO_ANIMATION_BYTES = 8L * 1024 * 1024
 

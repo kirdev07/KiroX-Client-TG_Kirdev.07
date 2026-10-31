@@ -400,7 +400,15 @@ fun TelegramChatScreen(
     }
 
     // The wallpaper spans the whole screen, so a translucent Glass header and the floating composer sit over it.
-    CompositionLocalProvider(LocalGalleryChatId provides history.chatId) {
+    // «Сохранять в галерею» for this chat's type; Saved Messages are your own files and never copied.
+    val galleryKinds by (context.applicationContext as com.kirox.app.KiroXApplication).telegram.media.saveToGallery.collectAsState()
+    val galleryKind = when (history.peerKind) {
+        TelegramPeerKind.User, TelegramPeerKind.Bot -> com.kirox.app.telegram.TelegramChatKind.Private
+        TelegramPeerKind.Group -> com.kirox.app.telegram.TelegramChatKind.Group
+        TelegramPeerKind.Channel -> com.kirox.app.telegram.TelegramChatKind.Channel
+        else -> null
+    }
+    CompositionLocalProvider(LocalGalleryChatId provides history.chatId, LocalSaveToGallery provides (galleryKind in galleryKinds)) {
     Box(Modifier.fillMaxSize()) {
     com.kirox.app.ui.components.ChatWallpaperLayer(style.wallpaper, Modifier.matchParentSize())
     Scaffold(

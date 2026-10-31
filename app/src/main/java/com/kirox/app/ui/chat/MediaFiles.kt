@@ -59,6 +59,30 @@ internal suspend fun openFile(context: Context, path: String, name: String, mime
     return runCatching { context.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
 }
 
+/** Copies a downloaded photo or video to Pictures/kiroX or Movies/kiroX (MediaStore, no storage permission). */
+internal suspend fun saveToGallery(context: Context, path: String, video: Boolean): Boolean = withContext(Dispatchers.IO) {
+    runCatching {
+        val name = File(path).name
+        val collection = if (video) MediaStore.Video.Media.EXTERNAL_CONTENT_URI else MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+            put(MediaStore.MediaColumns.MIME_TYPE, mimeTypeOf(name, "").takeIf { it != "application/octet-stream" } ?: if (video) "video/mp4" else "image/jpeg")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, (if (video) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES) + "/kiroX")
+            put(MediaStore.MediaColumns.IS_PENDING, 1)
+        }
+        val resolver = context.contentResolver
+        val uri = resolver.insert(collection, values) ?: return@runCatching false
+        try {
+            resolver.openOutputStream(uri)?.use { out -> File(path).inputStream().use { it.copyTo(out) } } ?: error("no stream")
+            resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+            true
+        } catch (error: Exception) {
+            resolver.delete(uri, null, null)
+            throw error
+        }
+    }.getOrDefault(false)
+}
+
 /** Copies a downloaded file to the public Downloads/KiroX folder (MediaStore, no storage permission). */
 internal suspend fun saveToDownloads(context: Context, path: String, name: String, mimeType: String): Boolean = withContext(Dispatchers.IO) {
     runCatching {

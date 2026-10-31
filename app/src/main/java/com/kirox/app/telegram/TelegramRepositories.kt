@@ -132,13 +132,15 @@ class TelegramServices(context: android.content.Context) {
     val autoDownload = AutoDownloadPolicy(context, client, network)
     /** «Хранить медиа» and the cache size limit, applied with TDLib's OptimizeStorage. */
     val storage = StoragePolicy(context, client)
+    /** «Сохранять в галерею» and call data saving. */
+    val media = MediaPreferences(context)
     val messages = TelegramMessageRepository(client, chats, users)
     /** "печатает…" and other member activity, ours sent with SendChatAction. */
     val activity = TelegramChatActionRepository(client, chats, users)
     val stickers = TelegramStickerRepository(client)
     val groupCalls = TelegramGroupCallRepository(client, chats, users)
     val calls = TelegramCallRepository(client, chats)
-    val voip = TelegramVoipRepository(client, users)
+    val voip = TelegramVoipRepository(client, users) { media.callDataSavingOn(network.network.value) }
     val sessions = TelegramSessionsRepository(client)
     val settings = TelegramSettingsRepository(client)
     val notifications = com.kirox.app.notify.MessageNotifications(context.applicationContext, client, chats, users)

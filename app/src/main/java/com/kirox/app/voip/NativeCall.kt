@@ -58,7 +58,7 @@ class NativeCall private constructor(private val listener: Listener) {
         ids: LongArray, ipv4s: Array<String>, ipv6s: Array<String>, ports: IntArray, isRtcs: BooleanArray,
         turns: BooleanArray, tcps: BooleanArray, usernames: Array<String>, passwords: Array<String>,
         reflectorIds: IntArray, peerTags: Array<ByteArray>,
-        video: Boolean, frontCamera: Boolean
+        video: Boolean, frontCamera: Boolean, dataSaving: Boolean
     ): Long
     private external fun nativeReceiveSignaling(handle: Long, data: ByteArray)
     private external fun nativeSetMuted(handle: Long, muted: Boolean)
@@ -104,7 +104,7 @@ class NativeCall private constructor(private val listener: Listener) {
 
         fun start(
             listener: Listener, version: String, key: ByteArray, isOutgoing: Boolean, allowP2p: Boolean,
-            customParameters: String, maxLayer: Int, servers: List<Server>, video: Boolean
+            customParameters: String, maxLayer: Int, servers: List<Server>, video: Boolean, dataSaving: Boolean = false
         ): NativeCall? {
             if (!available) return null
             val call = NativeCall(listener)
@@ -114,7 +114,7 @@ class NativeCall private constructor(private val listener: Listener) {
                 servers.map { it.port }.toIntArray(), servers.map { it.isWebrtc }.toBooleanArray(), servers.map { it.turn }.toBooleanArray(),
                 servers.map { it.tcp }.toBooleanArray(), servers.map { it.username }.toTypedArray(), servers.map { it.password }.toTypedArray(),
                 servers.map { it.reflectorId }.toIntArray(), servers.map { it.peerTag }.toTypedArray(),
-                video, true
+                video, true, dataSaving
             )
             return call.takeIf { it.handle != 0L }
         }

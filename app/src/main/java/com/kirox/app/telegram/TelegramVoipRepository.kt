@@ -45,7 +45,12 @@ data class TelegramActiveCall(
  * and relays engine signaling; the tgcalls engine ([NativeCall]) carries audio and video.
  * Without the engine library calls stay signaling-only ([mediaAvailable] is false).
  */
-class TelegramVoipRepository(private val client: TelegramClient, private val users: TelegramUserRepository) {
+class TelegramVoipRepository(
+    private val client: TelegramClient,
+    private val users: TelegramUserRepository,
+    /** Asked when a call starts: use less data on this network. */
+    private val dataSaving: () -> Boolean = { false }
+) {
     private val _call = MutableStateFlow<TelegramActiveCall?>(null)
     val call: StateFlow<TelegramActiveCall?> = _call.asStateFlow()
 
@@ -264,7 +269,7 @@ class TelegramVoipRepository(private val client: TelegramClient, private val use
         }
         engine = NativeCall.start(
             listener, version, ready.encryptionKey, call.isOutgoing, ready.allowP2p, ready.customParameters,
-            ready.protocol.maxLayer, servers, video
+            ready.protocol.maxLayer, servers, video, dataSaving()
         )?.also { native ->
             native.setSinks(remoteSink, localSink)
             // Signaling that came before the engine existed.

@@ -41,6 +41,8 @@ import com.kirox.app.telegram.PrivacyLevel
 import com.kirox.app.telegram.ScopeNotifications
 import com.kirox.app.telegram.StorageUsage
 import com.kirox.app.telegram.CacheLimit
+import com.kirox.app.telegram.CallDataSaving
+import com.kirox.app.telegram.TelegramChatKind
 import com.kirox.app.telegram.DownloadNetwork
 import com.kirox.app.telegram.KeepMedia
 import com.kirox.app.telegram.NetworkDownload
@@ -269,6 +271,9 @@ internal fun StorageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
     val gifs by autoDownload.autoplayGifs.collectAsState()
     val keepMedia by storage.keepMedia.collectAsState()
     val cacheLimit by storage.cacheLimit.collectAsState()
+    val media = services.media
+    val gallery by media.saveToGallery.collectAsState()
+    val callSaving by media.callDataSaving.collectAsState()
     val scope = rememberCoroutineScope()
     var usage by remember { mutableStateOf<StorageUsage?>(null) }
     var clearing by remember { mutableStateOf(false) }
@@ -315,12 +320,25 @@ internal fun StorageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
         item { LinkRow("Сбросить настройки автозагрузки", null, Fusion.colors.danger) { confirmReset = true } }
         item { SmallCaption("Автовоспроизведение") }
         item { ToggleRow("GIF", "Загружать и проигрывать GIF в чатах автоматически", gifs) { autoDownload.setAutoplayGifs(it) } }
+        item { SmallCaption("Сохранять в галерею") }
+        listOf(TelegramChatKind.Private to "Личные чаты", TelegramChatKind.Group to "Группы", TelegramChatKind.Channel to "Каналы").forEach { (kind, title) ->
+            item(key = "gallery_$kind") { ToggleRow(title, checked = kind in gallery) { media.setSaveToGallery(kind, it) } }
+        }
+        item {
+            Text(
+                "Полученные фото и видео копируются в «Pictures/kiroX» и «Movies/kiroX» после загрузки.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp)
+            )
+        }
+        item { SmallCaption("Звонки") }
+        item { LinkRow("Экономия трафика", callSaving.title) { choosing = "calls" } }
         item { SmallCaption("Сеть") }
         item { LinkRow("Прокси", "SOCKS5, HTTP или MTProto, если Telegram недоступен напрямую") { page = "proxy" } }
     }
     when (choosing) {
         "keep" -> ChoiceDialog("Хранить медиа", KeepMedia.entries, keepMedia, { it.title }, onDismiss = { choosing = null }) { storage.setKeepMedia(it); choosing = null; reload() }
         "limit" -> ChoiceDialog("Максимальный размер кэша", CacheLimit.entries, cacheLimit, { it.title }, onDismiss = { choosing = null }) { storage.setCacheLimit(it); choosing = null; reload() }
+        "calls" -> ChoiceDialog("Экономия трафика в звонках", CallDataSaving.entries, callSaving, { it.title }, onDismiss = { choosing = null }) { media.setCallDataSaving(it); choosing = null }
     }
     if (confirm) AlertDialog(
         onDismissRequest = { confirm = false },

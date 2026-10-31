@@ -175,6 +175,7 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
                 if (outgoing && message.delivery != DeliveryState.None) { Spacer(Modifier.width(4.dp)); Text(deliveryGlyph(message.delivery), color = ChatSecondary, fontSize = 10.sp) }
             }
             val media = message.media
+            if (!outgoing && LocalSaveToGallery.current) (if (album.size > 1) album else listOf(message)).forEach { item -> key(item.id) { SaveToGalleryEffect(item) } }
             // In a post the caption carries the time on its last line, as plain text does; elsewhere
             // the bubble is as wide as its media, so the time stays on its own line at the end.
             val captionMeta = post && message.text.isNotBlank() && (album.size > 1 || message.kind in setOf(MessageKind.Photo, MessageKind.Video, MessageKind.Animation, MessageKind.Audio) || (message.kind == MessageKind.Document && media != null))

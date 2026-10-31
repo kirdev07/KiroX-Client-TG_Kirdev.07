@@ -137,7 +137,7 @@ JNIEXPORT jlong JNICALL Java_com_kirox_app_voip_NativeCall_nativeStart(
         jlongArray ids, jobjectArray ipv4s, jobjectArray ipv6s, jintArray ports, jbooleanArray isRtcs,
         jbooleanArray turns, jbooleanArray tcps, jobjectArray usernames, jobjectArray passwords,
         jintArray reflectorIds, jobjectArray peerTags,
-        jboolean video, jboolean frontCamera) {
+        jboolean video, jboolean frontCamera, jboolean dataSaving) {
     auto *call = new Call();
     call->java = std::make_shared<JavaRef>(env, thiz);
     call->context = std::make_shared<AndroidContext>(env, thiz, nullptr, false);
@@ -158,14 +158,15 @@ JNIEXPORT jlong JNICALL Java_com_kirox_app_voip_NativeCall_nativeStart(
         .config = Config{
             .initializationTimeout = initTimeout,
             .receiveTimeout = receiveTimeout,
-            .dataSaving = DataSaving::Never,
+            // «Экономия трафика»: Kotlin decides for the current network, so here it is all or nothing.
+            .dataSaving = dataSaving ? DataSaving::Always : DataSaving::Never,
             .enableP2P = static_cast<bool>(allowP2p),
             .enableAEC = true,
             .enableNS = true,
             .enableAGC = true,
             .enableVolumeControl = true,
             .maxApiLayer = maxLayer,
-            .enableHighBitrateVideo = true,
+            .enableHighBitrateVideo = !dataSaving,
             .protocolVersion = ProtocolVersion::V1,
             .customParameters = toStd(env, customParameters),
         },
