@@ -185,7 +185,7 @@ fun TelegramChatScreen(
     /** Multi-select: ids of selected messages; empty when not selecting. */
     var selectedIds by remember(history.chatId) { mutableStateOf(setOf<Long>()) }
     var deletingMany by remember { mutableStateOf<List<Long>?>(null) }
-    var highlighted by remember(history.chatId) { mutableStateOf(0L) }
+    var highlighted by remember(history.chatId) { mutableLongStateOf(0L) }
     var reactionChoices by remember { mutableStateOf(DEFAULT_REACTIONS) }
     var attachments by rememberSaveable { mutableStateOf(false) }
     var stickerPanel by rememberSaveable { mutableStateOf(false) }
@@ -230,8 +230,8 @@ fun TelegramChatScreen(
     // Newest first for reverseLayout; date separators are inserted as system rows.
     val recorder = remember { VoiceRecorder(context) }
     var recording by remember { mutableStateOf(false) }
-    var recordLevel by remember { mutableStateOf(0f) }
-    var recordMs by remember { mutableStateOf(0L) }
+    var recordLevel by remember { mutableFloatStateOf(0f) }
+    var recordMs by remember { mutableLongStateOf(0L) }
     var recordPaused by remember { mutableStateOf(false) }
     fun startRecording() {
         if (recorder.start()) { recording = true; recordMs = 0 } else notice = "Не удалось начать запись"
@@ -295,9 +295,9 @@ fun TelegramChatScreen(
     }
     // Server search: finds messages that are not loaded yet; tapping one scrolls the chat to it.
     var searchResults by remember(history.chatId) { mutableStateOf<List<TelegramMessage>?>(null) }
-    var searchNext by remember(history.chatId) { mutableStateOf(0L) }
+    var searchNext by remember(history.chatId) { mutableLongStateOf(0L) }
     /** Bumped per query: a page that arrives for an older query is dropped. */
-    var searchGeneration by remember(history.chatId) { mutableStateOf(0) }
+    var searchGeneration by remember(history.chatId) { mutableIntStateOf(0) }
     LaunchedEffect(searchQuery, searching) {
         val q = searchQuery.trim()
         searchGeneration++

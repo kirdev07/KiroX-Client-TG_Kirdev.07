@@ -1,6 +1,7 @@
 package com.kirox.app.settings
 
 import android.content.Context
+import androidx.core.content.edit
 
 /** «Обои чата»: a wallpaper for one chat instead of the one from Appearance; kept on this phone. */
 object ChatWallpapers {
@@ -11,6 +12,6 @@ object ChatWallpapers {
         prefs(context).getString(chatId.toString(), null)?.let { name -> ChatWallpaper.entries.firstOrNull { it.name == name } }
 
     fun set(context: Context, chatId: Long, value: ChatWallpaper?) {
-        prefs(context).edit().apply { if (value == null) remove(chatId.toString()) else putString(chatId.toString(), value.name) }.apply()
+        prefs(context).edit { if (value == null) remove(chatId.toString()) else putString(chatId.toString(), value.name) }
     }
 }

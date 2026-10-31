@@ -1,6 +1,7 @@
 package com.kirox.app.telegram
 
 import android.content.Context
+import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,13 +42,13 @@ class StoragePolicy(context: Context, private val client: TelegramClient) {
 
     fun setKeepMedia(value: KeepMedia) {
         _keepMedia.value = value
-        prefs.edit().putString(KEEP_KEY, value.name).apply()
+        prefs.edit { putString(KEEP_KEY, value.name) }
         apply()
     }
 
     fun setCacheLimit(value: CacheLimit) {
         _cacheLimit.value = value
-        prefs.edit().putString(LIMIT_KEY, value.name).apply()
+        prefs.edit { putString(LIMIT_KEY, value.name) }
         apply()
     }
 

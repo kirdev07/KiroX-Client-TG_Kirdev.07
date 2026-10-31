@@ -1,6 +1,7 @@
 package com.kirox.app.settings
 
 import android.content.Context
+import androidx.core.content.edit
 import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -78,24 +79,24 @@ object KiroxTweaks {
 
     fun update(value: Tweaks) {
         _state.value = value
-        prefs.edit()
-            .putBoolean("forward_without_author", value.forwardWithoutAuthor)
-            .putBoolean("confirm_sticker", value.confirmSticker)
-            .putBoolean("confirm_gif", value.confirmGif)
-            .putBoolean("confirm_voice", value.confirmVoice)
-            .putBoolean("confirm_call", value.confirmCall)
-            .putString("double_tap", value.doubleTap.name)
-            .putBoolean("hide_calls_tab", value.hideCallsTab)
-            .putBoolean("hide_stories_tab", value.hideStoriesTab)
-            .putBoolean("show_ids", value.showIds)
-            .putBoolean("ghost", value.ghost)
-            .putBoolean("ghost_read", value.ghostNoRead)
-            .putBoolean("ghost_typing", value.ghostNoTyping)
-            .putBoolean("ghost_online", value.ghostOffline)
-            .putBoolean("ghost_stories", value.ghostStories)
-            .putBoolean("hide_keyboard_on_scroll", value.hideKeyboardOnScroll)
-            .putBoolean("keep_deleted", value.keepDeleted)
-            .putBoolean("keep_edits", value.keepEdits)
-            .apply()
+        prefs.edit {
+            putBoolean("forward_without_author", value.forwardWithoutAuthor)
+            putBoolean("confirm_sticker", value.confirmSticker)
+            putBoolean("confirm_gif", value.confirmGif)
+            putBoolean("confirm_voice", value.confirmVoice)
+            putBoolean("confirm_call", value.confirmCall)
+            putString("double_tap", value.doubleTap.name)
+            putBoolean("hide_calls_tab", value.hideCallsTab)
+            putBoolean("hide_stories_tab", value.hideStoriesTab)
+            putBoolean("show_ids", value.showIds)
+            putBoolean("ghost", value.ghost)
+            putBoolean("ghost_read", value.ghostNoRead)
+            putBoolean("ghost_typing", value.ghostNoTyping)
+            putBoolean("ghost_online", value.ghostOffline)
+            putBoolean("ghost_stories", value.ghostStories)
+            putBoolean("hide_keyboard_on_scroll", value.hideKeyboardOnScroll)
+            putBoolean("keep_deleted", value.keepDeleted)
+            putBoolean("keep_edits", value.keepEdits)
+        }
     }
 }

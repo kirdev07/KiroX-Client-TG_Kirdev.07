@@ -1,6 +1,7 @@
 package com.kirox.app.security
 
 import android.content.Context
+import androidx.core.content.edit
 import android.content.SharedPreferences
 import android.os.SystemClock
 import android.util.Base64
@@ -90,24 +91,27 @@ object PasscodeLock {
     /** Turns the code on, or changes it; the app stays unlocked. */
     fun setCode(code: String) {
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
-        prefs.edit()
-            .putString(SALT_KEY, Base64.encodeToString(salt, Base64.NO_WRAP))
-            .putString(HASH_KEY, Base64.encodeToString(hash(code, salt), Base64.NO_WRAP))
-            .apply()
+        prefs.edit {
+            putString(SALT_KEY, Base64.encodeToString(salt, Base64.NO_WRAP))
+            putString(HASH_KEY, Base64.encodeToString(hash(code, salt), Base64.NO_WRAP))
+        }
         _settings.value = _settings.value.copy(enabled = true)
     }
 
     fun disable() {
-        prefs.edit().remove(SALT_KEY).remove(HASH_KEY).apply()
+        prefs.edit {
+            remove(SALT_KEY)
+            remove(HASH_KEY)
+        }
         _settings.value = _settings.value.copy(enabled = false)
         _locked.value = false
     }
 
     fun lockNow() { if (_settings.value.enabled) _locked.value = true }
 
-    fun setAutoLock(value: AutoLock) { prefs.edit().putString(AUTO_KEY, value.name).apply(); _settings.value = _settings.value.copy(autoLock = value) }
-    fun setBiometric(value: Boolean) { prefs.edit().putBoolean(BIOMETRIC_KEY, value).apply(); _settings.value = _settings.value.copy(biometric = value) }
-    fun setHideContent(value: Boolean) { prefs.edit().putBoolean(HIDE_KEY, value).apply(); _settings.value = _settings.value.copy(hideContent = value) }
+    fun setAutoLock(value: AutoLock) { prefs.edit { putString(AUTO_KEY, value.name) }; _settings.value = _settings.value.copy(autoLock = value) }
+    fun setBiometric(value: Boolean) { prefs.edit { putBoolean(BIOMETRIC_KEY, value) }; _settings.value = _settings.value.copy(biometric = value) }
+    fun setHideContent(value: Boolean) { prefs.edit { putBoolean(HIDE_KEY, value) }; _settings.value = _settings.value.copy(hideContent = value) }
 
     private fun hash(code: String, salt: ByteArray): ByteArray =
         SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(PBEKeySpec(code.toCharArray(), salt, ITERATIONS, 256)).encoded

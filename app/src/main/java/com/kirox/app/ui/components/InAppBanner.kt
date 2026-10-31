@@ -21,6 +21,7 @@ import com.kirox.app.i18n.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,7 +48,7 @@ fun InAppBanner(modifier: Modifier = Modifier, onOpen: (Long) -> Unit) {
     var shown by remember { mutableStateOf<InAppAlert?>(null) }
     var visible by remember { mutableStateOf(false) }
     // Counts banners, so a second message from the same chat restarts the timer.
-    var shownCount by remember { mutableStateOf(0) }
+    var shownCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         InAppAlerts.alerts.collect { alert -> shown = alert; visible = true; shownCount++ }
     }

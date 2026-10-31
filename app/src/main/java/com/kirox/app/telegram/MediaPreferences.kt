@@ -1,6 +1,7 @@
 package com.kirox.app.telegram
 
 import android.content.Context
+import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,12 +26,12 @@ class MediaPreferences(context: Context) {
 
     fun setSaveToGallery(kind: TelegramChatKind, enabled: Boolean) {
         _saveToGallery.value = if (enabled) _saveToGallery.value + kind else _saveToGallery.value - kind
-        prefs.edit().putBoolean(galleryKey(kind), enabled).apply()
+        prefs.edit { putBoolean(galleryKey(kind), enabled) }
     }
 
     fun setCallDataSaving(value: CallDataSaving) {
         _callDataSaving.value = value
-        prefs.edit().putString(CALLS_KEY, value.name).apply()
+        prefs.edit { putString(CALLS_KEY, value.name) }
     }
 
     /** Whether a call started now on [network] should use less data. */
@@ -44,7 +45,7 @@ class MediaPreferences(context: Context) {
     @Synchronized
     fun markSaved(path: String): Boolean {
         if (saved.contains(path)) return false
-        saved.edit().putBoolean(path, true).apply()
+        saved.edit { putBoolean(path, true) }
         return true
     }
 

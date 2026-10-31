@@ -1651,7 +1651,7 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
         }
         item { SmallCaption("Тестирование") }
         item {
-            var crashes by remember { mutableStateOf(com.kirox.app.CrashLog.count(context)) }
+            var crashes by remember { mutableIntStateOf(com.kirox.app.CrashLog.count(context)) }
             LinkRow("Журнал ошибок", if (crashes == 0) "Ошибок не записано" else "Записей: $crashes · нажмите, чтобы отправить разработчику") {
                 if (crashes > 0) com.kirox.app.CrashLog.share(context) else onNotice("Журнал пуст")
             }

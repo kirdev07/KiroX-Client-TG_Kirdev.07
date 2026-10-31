@@ -1,6 +1,7 @@
 package com.kirox.app.telegram
 
 import android.content.Context
+import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -92,23 +93,23 @@ class AutoDownloadPolicy(context: Context, private val client: TelegramClient, m
 
     fun set(network: DownloadNetwork, value: NetworkDownload) {
         custom.value = custom.value + (network to value)
-        prefs.edit()
-            .putBoolean("${network.name}_enabled", value.enabled)
-            .putLong("${network.name}_video", value.maxVideoBytes)
-            .putLong("${network.name}_file", value.maxFileBytes)
-            .putBoolean("${network.name}_stories", value.preloadStories)
-            .putBoolean("${network.name}_photos", value.photos)
-            .apply()
+        prefs.edit {
+            putBoolean("${network.name}_enabled", value.enabled)
+            putLong("${network.name}_video", value.maxVideoBytes)
+            putLong("${network.name}_file", value.maxFileBytes)
+            putBoolean("${network.name}_stories", value.preloadStories)
+            putBoolean("${network.name}_photos", value.photos)
+        }
     }
 
     fun setAutoplayGifs(enabled: Boolean) {
         gifs.value = enabled
-        prefs.edit().putBoolean(GIFS_KEY, enabled).apply()
+        prefs.edit { putBoolean(GIFS_KEY, enabled) }
     }
 
     /** Back to Telegram's presets for every network. */
     fun reset() {
-        prefs.edit().clear().apply()
+        prefs.edit { clear() }
         custom.value = emptyMap()
         gifs.value = true
     }

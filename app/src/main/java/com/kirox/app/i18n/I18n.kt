@@ -1,6 +1,7 @@
 package com.kirox.app.i18n
 
 import android.content.Context
+import androidx.core.content.edit
 import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,7 +62,7 @@ object I18n {
         prefs.getString(OVERRIDES_KEY, null)?.let { json ->
             val names = runCatching { JSONObject(json).toMap() }.getOrNull().orEmpty()
             if (names.isNotEmpty()) { val pack = NamePack(newId(), "Мои названия", names); packs = packs + pack; activePackId = pack.id }
-            prefs.edit().remove(OVERRIDES_KEY).apply()
+            prefs.edit { remove(OVERRIDES_KEY) }
             save()
         }
         rebuildTemplates()
@@ -72,7 +73,7 @@ object I18n {
 
     fun chooseLanguage(value: AppLanguage) {
         language = value
-        prefs.edit().putString(LANGUAGE_KEY, value.code).apply()
+        prefs.edit { putString(LANGUAGE_KEY, value.code) }
         synchronized(cache) { cache.clear() }
     }
 
@@ -209,7 +210,10 @@ object I18n {
     private fun save() {
         val array = org.json.JSONArray()
         packs.forEach { array.put(JSONObject().put("id", it.id).put("title", it.title).put("names", JSONObject(it.names))) }
-        prefs.edit().putString(PACKS_KEY, array.toString()).putString(ACTIVE_KEY, activePackId).apply()
+        prefs.edit {
+            putString(PACKS_KEY, array.toString())
+            putString(ACTIVE_KEY, activePackId)
+        }
         synchronized(cache) { cache.clear() }
     }
 

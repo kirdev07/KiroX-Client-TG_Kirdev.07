@@ -28,6 +28,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -74,7 +75,7 @@ internal fun StickerPanel(source: StickerPanelSource?, onEmoji: (String) -> Unit
     var items by remember { mutableStateOf<List<TelegramPanelItem>?>(null) }
     LaunchedEffect(source) { sets = source?.installedSets().orEmpty() }
     var gifQuery by remember { mutableStateOf("") }
-    var reload by remember { mutableStateOf(0) }
+    var reload by remember { mutableIntStateOf(0) }
     var menuFor by remember { mutableStateOf<TelegramPanelItem?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     LaunchedEffect(tab, source, gifQuery, reload) {

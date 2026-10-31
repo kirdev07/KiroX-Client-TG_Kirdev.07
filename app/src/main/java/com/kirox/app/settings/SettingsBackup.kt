@@ -2,6 +2,7 @@ package com.kirox.app.settings
 
 import android.content.Context
 import android.content.Intent
+import androidx.core.content.edit
 import com.kirox.app.KiroXApplication
 import org.json.JSONArray
 import org.json.JSONObject
@@ -49,19 +50,21 @@ object SettingsBackup {
         val prefs = json.optJSONObject("prefs") ?: JSONObject()
         FILES.forEach { name ->
             val values = prefs.optJSONObject(name) ?: return@forEach
-            val editor = context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear()
-            values.keys().forEach { key ->
-                val typed = values.optJSONObject(key) ?: return@forEach
-                when (typed.optString("t")) {
-                    "b" -> editor.putBoolean(key, typed.optBoolean("v"))
-                    "i" -> editor.putInt(key, typed.optInt("v"))
-                    "l" -> editor.putLong(key, typed.optLong("v"))
-                    "f" -> editor.putFloat(key, typed.optDouble("v").toFloat())
-                    "s" -> editor.putString(key, typed.optString("v"))
-                    "set" -> typed.optJSONArray("v")?.let { array -> editor.putStringSet(key, (0 until array.length()).map { array.getString(it) }.toSet()) }
+            // Written at once (commit), so the restart right after reads the restored values.
+            context.getSharedPreferences(name, Context.MODE_PRIVATE).edit(commit = true) {
+                clear()
+                values.keys().forEach { key ->
+                    val typed = values.optJSONObject(key) ?: return@forEach
+                    when (typed.optString("t")) {
+                        "b" -> putBoolean(key, typed.optBoolean("v"))
+                        "i" -> putInt(key, typed.optInt("v"))
+                        "l" -> putLong(key, typed.optLong("v"))
+                        "f" -> putFloat(key, typed.optDouble("v").toFloat())
+                        "s" -> putString(key, typed.optString("v"))
+                        "set" -> typed.optJSONArray("v")?.let { array -> putStringSet(key, (0 until array.length()).map { array.getString(it) }.toSet()) }
+                    }
                 }
             }
-            editor.commit()
         }
         json.optJSONObject("appearance")?.let { appearance ->
             val values = appearance.keys().asSequence().mapNotNull { key -> appearance.opt(key)?.let { key to it } }.toMap()

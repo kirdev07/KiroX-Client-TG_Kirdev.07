@@ -1,6 +1,7 @@
 package com.kirox.app.notify
 
 import android.content.Context
+import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -37,13 +38,13 @@ class NotificationPreferences(context: Context) {
 
     fun update(value: LocalNotificationSettings) {
         _settings.value = value
-        prefs.edit()
-            .putBoolean("in_app_sound", value.inAppSound)
-            .putBoolean("in_app_vibrate", value.inAppVibrate)
-            .putBoolean("in_app_preview", value.inAppPreview)
-            .putBoolean("badge", value.badge)
-            .putBoolean("badge_messages", value.badgeCountsMessages)
-            .apply()
+        prefs.edit {
+            putBoolean("in_app_sound", value.inAppSound)
+            putBoolean("in_app_vibrate", value.inAppVibrate)
+            putBoolean("in_app_preview", value.inAppPreview)
+            putBoolean("badge", value.badge)
+            putBoolean("badge_messages", value.badgeCountsMessages)
+        }
     }
 
     /** Back to the defaults above (part of «Сбросить все уведомления»). */
