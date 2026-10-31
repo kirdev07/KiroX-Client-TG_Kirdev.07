@@ -130,8 +130,9 @@ internal fun TdApi.User.toContact() = TelegramContact(
     id, displayName(), usernames?.activeUsernames?.firstOrNull(), status.toStatus(), profilePhoto?.small?.toRef(), phoneNumber.orEmpty()
 )
 
+// The editable username is the one SetUsername changes; collectible ones only come after it.
 internal fun TdApi.User.toProfile(bio: String, birthday: String = "") = TelegramUserProfile(
-    id, displayName(), usernames?.activeUsernames?.firstOrNull(), phoneNumber.orEmpty(), bio, profilePhoto?.small?.toRef(),
+    id, displayName(), usernames?.editableUsername?.takeIf { it.isNotEmpty() } ?: usernames?.activeUsernames?.firstOrNull(), phoneNumber.orEmpty(), bio, profilePhoto?.small?.toRef(),
     isPremium = isPremium, isVerified = verificationStatus?.isVerified == true, birthday = birthday,
     firstName = firstName.orEmpty(), lastName = lastName.orEmpty()
 )

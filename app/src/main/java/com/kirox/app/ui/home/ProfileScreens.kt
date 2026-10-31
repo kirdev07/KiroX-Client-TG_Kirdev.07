@@ -251,7 +251,8 @@ internal fun ProfileEditScreen(profile: TelegramUserProfile?, onBack: () -> Unit
         item { EditField(bio, "Пара слов о себе", singleLine = false) { bio = it.take(140) } }
         item { Text("${bio.length}/140", color = Fusion.colors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         item { SmallCaption("Имя пользователя") }
-        item { EditField(username, "username") { username = it.filter { c -> c.isLetterOrDigit() || c == '_' }.take(32) } }
+        item { EditField(username, "username", prefix = "@") { username = it.removePrefix("@").filter { c -> c.isLetterOrDigit() || c == '_' }.take(32) } }
+        if (username.isNotEmpty()) item { Text("t.me/$username", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)) }
         item { Text("Можно использовать a–z, 0–9 и _, от 5 символов. Пустое поле — без имени пользователя.", color = Fusion.colors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) }
         error?.let { message -> item { Text(message, color = Fusion.colors.danger, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) } }
         item {
@@ -281,13 +282,18 @@ private fun profileError(message: String): String = when {
 }
 
 @Composable
-internal fun EditField(value: String, hint: String, singleLine: Boolean = true, onChange: (String) -> Unit) {
+internal fun EditField(value: String, hint: String, singleLine: Boolean = true, prefix: String? = null, onChange: (String) -> Unit) {
     androidx.compose.foundation.text.BasicTextField(
         value, onChange, singleLine = singleLine,
         textStyle = androidx.compose.ui.text.TextStyle(Fusion.colors.textPrimary, 16.sp),
         cursorBrush = androidx.compose.ui.graphics.SolidColor(Fusion.colors.textPrimary),
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth().heightIn(min = 52.dp)
             .clip(RoundedCornerShape(14.dp)).background(Fusion.colors.surface1).padding(horizontal = 16.dp, vertical = 15.dp),
-        decorationBox = { inner -> Box { if (value.isEmpty()) Text(hint, color = Fusion.colors.textTertiary, fontSize = 16.sp); inner() } }
+        decorationBox = { inner ->
+            androidx.compose.foundation.layout.Row {
+                prefix?.let { Text(it, color = Fusion.colors.textSecondary, fontSize = 16.sp) }
+                Box { if (value.isEmpty()) Text(hint, color = Fusion.colors.textTertiary, fontSize = 16.sp); inner() }
+            }
+        }
     )
 }
