@@ -1480,6 +1480,34 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
                 color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
             )
         }
+        item { SmallCaption("Сохранение сообщений") }
+        item {
+            val archive = (context.applicationContext as KiroXApplication).telegram.archive
+            var keptCount by remember { mutableStateOf<Int?>(null) }
+            var reload by remember { mutableIntStateOf(0) }
+            LaunchedEffect(reload) { keptCount = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { archive.count() }.getOrNull() } }
+            SettingsCard {
+                ToggleRow("Удалённые сообщения", "Если собеседник удалит сообщение, вы всё равно сможете его прочитать: ⋮ в чате → «Удалённые сообщения»", tweaks.keepDeleted) {
+                    set(tweaks.copy(keepDeleted = it))
+                }
+                ToggleRow("История изменений", "Прежний текст изменённого сообщения: долгое нажатие → «История изменений»", tweaks.keepEdits) {
+                    set(tweaks.copy(keepEdits = it))
+                }
+                if ((keptCount ?: 0) > 0) LinkRow("Очистить сохранённое", "Сохранено сообщений: $keptCount", Fusion.colors.danger) {
+                    scope.launch {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { archive.clear() }
+                        reload++
+                        onNotice("Сохранённые сообщения удалены")
+                    }
+                }
+            }
+        }
+        item {
+            Text(
+                "Копии текста хранятся только на этом телефоне 30 дней. Секретные чаты и исчезающие сообщения не сохраняются. Собеседник об этом не узнает — пользуйтесь честно.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            )
+        }
         item { SmallCaption("Спрашивать перед отправкой") }
         item {
             SettingsCard {

@@ -116,6 +116,7 @@ internal fun TelegramMessage.toUi(time: String) = MessageUi(
     photo = photo,
     photoAspect = photoAspect,
     edited = edited,
+    deleted = deleted,
     media = media,
     thumbnail = thumbnail,
     entities = entities,

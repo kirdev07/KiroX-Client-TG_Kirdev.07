@@ -29,7 +29,11 @@ data class Tweaks(
     val ghostOffline: Boolean = true,
     val ghostStories: Boolean = true,
     /** Scrolling a chat closes the keyboard. */
-    val hideKeyboardOnScroll: Boolean = false
+    val hideKeyboardOnScroll: Boolean = false,
+    /** «Сохранять удалённые сообщения»: copies kept on this phone (MessageArchive). */
+    val keepDeleted: Boolean = false,
+    /** «Сохранять историю изменений». */
+    val keepEdits: Boolean = false
 ) {
     /** Opened chats are not marked read for the other side. */
     val ghostRead get() = ghost && ghostNoRead
@@ -66,7 +70,9 @@ object KiroxTweaks {
             ghostNoTyping = prefs.getBoolean("ghost_typing", true),
             ghostOffline = prefs.getBoolean("ghost_online", true),
             ghostStories = prefs.getBoolean("ghost_stories", true),
-            hideKeyboardOnScroll = prefs.getBoolean("hide_keyboard_on_scroll", false)
+            hideKeyboardOnScroll = prefs.getBoolean("hide_keyboard_on_scroll", false),
+            keepDeleted = prefs.getBoolean("keep_deleted", false),
+            keepEdits = prefs.getBoolean("keep_edits", false)
         )
     }
 
@@ -88,6 +94,8 @@ object KiroxTweaks {
             .putBoolean("ghost_online", value.ghostOffline)
             .putBoolean("ghost_stories", value.ghostStories)
             .putBoolean("hide_keyboard_on_scroll", value.hideKeyboardOnScroll)
+            .putBoolean("keep_deleted", value.keepDeleted)
+            .putBoolean("keep_edits", value.keepEdits)
             .apply()
     }
 }

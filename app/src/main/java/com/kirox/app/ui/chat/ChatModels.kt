@@ -29,6 +29,8 @@ data class MessageUi(
     val photo: com.kirox.app.telegram.TelegramFileRef? = null,
     val photoAspect: Float = 0f,
     val edited: Boolean = false,
+    /** Deleted by its author, kept on screen («Сохранять удалённые»). */
+    val deleted: Boolean = false,
     /** File of a video, GIF, video note, music, document or sticker, with its metadata. */
     val media: com.kirox.app.telegram.TelegramMedia? = null,
     val thumbnail: com.kirox.app.telegram.TelegramFileRef? = null,

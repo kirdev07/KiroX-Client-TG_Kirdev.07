@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -140,6 +141,10 @@ fun TelegramChatScreen(
     var scheduled by remember { mutableStateOf<List<com.kirox.app.telegram.ScheduledMessage>>(emptyList()) }
     var scheduledOpen by remember { mutableStateOf(false) }
     var scheduledReload by remember { mutableIntStateOf(0) }
+    // «Сохранять удалённые и изменённые»: the kept list of this chat and one message's earlier versions.
+    val archive = remember { (context.applicationContext as com.kirox.app.KiroXApplication).telegram.archive }
+    var keptOpen by remember { mutableStateOf(false) }
+    var versionsOf by remember { mutableStateOf<MessageUi?>(null) }
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
     val style = com.kirox.app.ui.theme.LocalChatStyle.current
@@ -755,6 +760,7 @@ fun TelegramChatScreen(
                     "Закрепить" -> { actions.pin(message.id); notice = "Сообщение закреплено" }
                     "Открепить" -> actions.unpin(message.id)
                     "Выбрать" -> selectedIds = idsOf(message).toSet()
+                    "История изменений" -> versionsOf = message
                     "Перевести" -> {
                         translation = message.text to null
                         scope.launch {
@@ -771,6 +777,7 @@ fun TelegramChatScreen(
                 if (history.isSecret) add("Закрепить")
                 if (source?.canEdit != true) add("Редактировать")
                 if (source?.delivery == TelegramDelivery.Sending) { add("Переслать"); add("Ответить"); add("Повторить") }
+                if (!tweaks.keepEdits || !message.edited) add("История изменений")
                 // Only content that can be sent again: no polls, calls or service messages.
                 if (message.poll != null || message.direction == MessageDirection.System) add("Повторить")
             }
@@ -899,6 +906,55 @@ fun TelegramChatScreen(
             Spacer(Modifier.navigationBarsPadding().height(8.dp))
         }
     }
+    if (keptOpen) ModalBottomSheet(onDismissRequest = { keptOpen = false }, containerColor = Fusion.colors.surface1) {
+        val kept by produceState<List<com.kirox.app.telegram.KeptMessage>?>(null, history.chatId) {
+            value = withContext(Dispatchers.IO) { runCatching { archive.deleted(history.chatId) }.getOrDefault(emptyList()) }
+        }
+        Text("Удалённые сообщения", color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        val list = kept
+        LazyColumn(Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
+            if (list == null) item { Box(Modifier.fillMaxWidth().padding(24.dp), Alignment.Center) { CircularProgressIndicator(Modifier.size(22.dp), color = Fusion.colors.textSecondary, strokeWidth = 2.dp) } }
+            else if (list.isEmpty()) item {
+                Text("Здесь появятся сообщения, которые удалят после включения сохранения.", color = Fusion.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(24.dp))
+            } else items(list, key = { it.id }) { kept ->
+                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
+                    Text(listOf(kept.sender, scheduledTime(kept.date)).filter { it.isNotBlank() }.joinToString(" · "), color = Fusion.colors.accent, fontSize = 13.sp)
+                    androidx.compose.material3.Text(kept.text, color = Fusion.colors.textPrimary, fontSize = 15.sp)
+                    Text("удалено ${scheduledTime(kept.deletedAt)}", color = Fusion.colors.danger, fontSize = 12.sp)
+                }
+            }
+        }
+        Spacer(Modifier.navigationBarsPadding().height(8.dp))
+    }
+    versionsOf?.let { message ->
+        val versions by produceState<List<com.kirox.app.telegram.MessageVersion>?>(null, message.id) {
+            value = withContext(Dispatchers.IO) { runCatching { archive.versions(history.chatId, message.id) }.getOrDefault(emptyList()) }
+        }
+        AlertDialog(
+            onDismissRequest = { versionsOf = null },
+            containerColor = Fusion.colors.surface1,
+            title = { Text("История изменений", color = Fusion.colors.textPrimary) },
+            text = {
+                val list = versions
+                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                    when {
+                        list == null -> CircularProgressIndicator(Modifier.size(22.dp), color = Fusion.colors.textSecondary, strokeWidth = 2.dp)
+                        list.isEmpty() -> Text("Прежний текст не сохранён: сообщение изменили до включения сохранения.", color = Fusion.colors.textSecondary)
+                        else -> {
+                            list.forEach { version ->
+                                Text("до ${scheduledTime(version.editedAt)}", color = Fusion.colors.textTertiary, fontSize = 12.sp)
+                                androidx.compose.material3.Text(version.text, color = Fusion.colors.textSecondary, fontSize = 15.sp)
+                                Spacer(Modifier.height(10.dp))
+                            }
+                            Text("Сейчас", color = Fusion.colors.accent, fontSize = 12.sp)
+                            androidx.compose.material3.Text(message.text, color = Fusion.colors.textPrimary, fontSize = 15.sp)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { versionsOf = null }) { Text("Закрыть", color = Fusion.colors.textSecondary) } }
+        )
+    }
     if (schedulePicking) ScheduleSendDialog(onDismiss = { schedulePicking = false }) { at -> schedulePicking = false; sendScheduled(at) }
     if (scheduledOpen) ModalBottomSheet(onDismissRequest = { scheduledOpen = false }, containerColor = Fusion.colors.surface1) {
         Text("Отложенные сообщения", color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
@@ -935,6 +991,7 @@ fun TelegramChatScreen(
             val items = buildList {
                 add(Triple(KiroXIcon.Bell, if (muted == true) "Включить звук" else "Без звука", false))
                 add(Triple(KiroXIcon.Search, "Поиск", false))
+                if (tweaks.keepDeleted) add(Triple(KiroXIcon.Bookmark, "Удалённые сообщения", false))
                 if (history.peerKind == TelegramPeerKind.User) add(Triple(KiroXIcon.Refresh, "Автоудаление", false))
                 add(Triple(KiroXIcon.Delete, "Очистить историю", true))
                 add(Triple(KiroXIcon.Delete, if (history.peerKind == TelegramPeerKind.User || history.peerKind == TelegramPeerKind.Bot) "Удалить чат" else "Покинуть", true))
@@ -945,6 +1002,7 @@ fun TelegramChatScreen(
                         menuOpen = false
                         when (title) {
                             "Поиск" -> searching = true
+                            "Удалённые сообщения" -> keptOpen = true
                             "Очистить историю" -> confirmClear = true
                             "Автоудаление" -> autoDeleteOpen = true
                             "Удалить чат", "Покинуть" -> confirmDelete = true

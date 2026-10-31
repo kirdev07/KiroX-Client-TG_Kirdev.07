@@ -172,6 +172,7 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
                     Text(compactCount(views), color = ChatSecondary, fontSize = 10.sp)
                     Spacer(Modifier.width(8.dp))
                 }
+                if (message.deleted) { Text("удалено", color = Fusion.colors.danger, fontSize = 10.sp); Spacer(Modifier.width(4.dp)) }
                 Text(if (message.edited) "изм. ${message.time}" else message.time, color = ChatSecondary, fontSize = 10.sp)
                 if (outgoing && message.delivery != DeliveryState.None) { Spacer(Modifier.width(4.dp)); Text(deliveryGlyph(message.delivery), color = ChatSecondary, fontSize = 10.sp) }
             }
@@ -427,7 +428,7 @@ internal fun ChatComposer(value: TextFieldValue, reply: MessageUi?, editing: Mes
 @Composable internal fun MessageActionsSheet(message: MessageUi, onDismiss: () -> Unit, onReply: () -> Unit, onReaction: (String) -> Unit, onAction: (String) -> Unit, reactions: Boolean = true, hidden: Set<String> = emptySet(), isPinned: Boolean = false, reactionChoices: List<String> = DEFAULT_REACTIONS) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Fusion.colors.surface1, contentColor = ChatWhite) {
         if (reactions) Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceAround) { reactionChoices.forEach { emoji -> Text(emoji, fontSize = 23.sp, modifier = Modifier.clip(CircleShape).clickable { onReaction(emoji) }.padding(9.dp)) } }
-        val actions = buildList { add(KiroXIcon.Reply to "Ответить"); if (message.text.isNotBlank() && message.kind != MessageKind.Voice) add(KiroXIcon.Copy to "Копировать"); if (message.text.isNotBlank() && message.kind == MessageKind.Text && message.poll == null) add(KiroXIcon.Info to "Перевести"); if (message.media != null && message.kind != MessageKind.Sticker || message.kind == MessageKind.Photo) add(KiroXIcon.Storage to "Сохранить"); add(KiroXIcon.Forward to "Переслать"); add(KiroXIcon.Refresh to "Повторить"); add(KiroXIcon.Pin to if (isPinned) "Открепить" else "Закрепить"); if (message.canEdit) add(KiroXIcon.Edit to "Редактировать"); if (message.canDelete) add(KiroXIcon.Delete to "Удалить"); add(KiroXIcon.Check to "Выбрать") }.filterNot { it.second in hidden }
+        val actions = buildList { add(KiroXIcon.Reply to "Ответить"); if (message.text.isNotBlank() && message.kind != MessageKind.Voice) add(KiroXIcon.Copy to "Копировать"); if (message.text.isNotBlank() && message.kind == MessageKind.Text && message.poll == null) add(KiroXIcon.Info to "Перевести"); if (message.media != null && message.kind != MessageKind.Sticker || message.kind == MessageKind.Photo) add(KiroXIcon.Storage to "Сохранить"); add(KiroXIcon.Forward to "Переслать"); add(KiroXIcon.Refresh to "Повторить"); add(KiroXIcon.Pin to if (isPinned) "Открепить" else "Закрепить"); if (message.canEdit) add(KiroXIcon.Edit to "Редактировать"); if (message.canDelete) add(KiroXIcon.Delete to "Удалить"); add(KiroXIcon.Check to "Выбрать"); add(KiroXIcon.Refresh to "История изменений") }.filterNot { it.second in hidden }
         actions.forEach { (icon, title) ->
             val color = if (title == "Удалить") Fusion.colors.danger else ChatWhite
             androidx.compose.material3.ListItem(

@@ -21,6 +21,10 @@ class TelegramMessageRepository(
     private var lastReadOutbox = 0L
     private var publishScheduled = false
     private val viewed = HashSet<Long>()
+    /** Messages of the open chat deleted by their author but kept on screen («Сохранять удалённые»). */
+    private val deletedIds = HashSet<Long>()
+    /** Deletions made from kiroX: they disappear at once and are never kept. */
+    private val ownDeletes = HashSet<Long>()
     private var savedChat = false
     /** Comment thread or forum topic shown instead of the whole chat; null for the chat itself. */
     private var topic: TdApi.MessageTopic? = null
@@ -144,7 +148,7 @@ class TelegramMessageRepository(
     private fun openLoaded(id: Long) {
         if (chatId != 0L) client.send(TdApi.CloseChat(chatId))
         chatId = id
-        messages.clear(); viewed.clear()
+        messages.clear(); viewed.clear(); deletedIds.clear()
         loadingOlder = false; reachedStart = false
         pinnedIds.clear(); pinnedCache.clear(); jumpTarget = 0; jumpPagesLeft = 0
         lastReadOutbox = chats.chat(id)?.lastReadOutboxMessageId ?: 0
@@ -223,7 +227,7 @@ class TelegramMessageRepository(
         // the chat screen going away during the transition must not close it.
         if (chatId != id || topic != null) return@post
         client.send(TdApi.CloseChat(id))
-        chatId = 0; messages.clear(); viewed.clear()
+        chatId = 0; messages.clear(); viewed.clear(); deletedIds.clear()
         _history.value = TelegramChatHistory()
     }
 
@@ -234,7 +238,7 @@ class TelegramMessageRepository(
         // After a background pause chatId is 0 and the thread waits in resumeChatId: drop that too.
         if (chatId != 0L) client.send(TdApi.CloseChat(chatId))
         chatId = 0; resumeChatId = 0; topic = null; threadTitle = null; threadRoot = 0; threadDraft = ""
-        messages.clear(); viewed.clear(); pinnedIds.clear(); pinnedCache.clear()
+        messages.clear(); viewed.clear(); deletedIds.clear(); pinnedIds.clear(); pinnedCache.clear()
         _history.value = TelegramChatHistory()
     }
 
@@ -335,7 +339,7 @@ class TelegramMessageRepository(
         else TdApi.AddMessageReaction(id, messageId, TdApi.ReactionTypeEmoji(emoji), false, true)
     }
 
-    fun delete(messageIds: List<Long>, forEveryone: Boolean) = act { id -> TdApi.DeleteMessages(id, messageIds.toLongArray(), forEveryone) }
+    fun delete(messageIds: List<Long>, forEveryone: Boolean) = act { id -> ownDeletes += messageIds; TdApi.DeleteMessages(id, messageIds.toLongArray(), forEveryone) }
 
     /** [asCopy]: sent as your own messages, without «Переслано от»; [removeCaption] also drops media captions. */
     fun forward(toChatId: Long, messageIds: List<Long>, asCopy: Boolean = false, removeCaption: Boolean = false) =
@@ -453,7 +457,14 @@ class TelegramMessageRepository(
             }
             is TdApi.UpdateMessageInteractionInfo -> if (update.chatId == chatId) messages[update.messageId]?.let { it.interactionInfo = update.interactionInfo; schedulePublish() }
             is TdApi.UpdateDeleteMessages -> if (update.chatId == chatId && update.isPermanent) {
-                update.messageIds.forEach { messages.remove(it) }; schedulePublish()
+                // Kept with a mark when deleted by someone else and «Сохранять удалённые» is on; own deletions just go.
+                val keep = com.kirox.app.settings.KiroxTweaks.current.keepDeleted && !update.fromCache
+                update.messageIds.forEach { id ->
+                    val message = messages[id]
+                    if (keep && message != null && !message.isOutgoing && id !in ownDeletes) deletedIds += id else messages.remove(id)
+                }
+                ownDeletes.removeAll(update.messageIds.toSet())
+                schedulePublish()
             }
             is TdApi.UpdateChatReadOutbox -> if (update.chatId == chatId) { lastReadOutbox = update.lastReadOutboxMessageId; schedulePublish() }
             // Keeps the open topic's draft current when it changes on another device.
@@ -475,7 +486,7 @@ class TelegramMessageRepository(
                 // A thread or topic stays as it was (topic, title, root, draft) and reopens as itself.
                 is TdApi.AuthorizationStateClosed -> {
                     resumeChatId = if (client.paused) chatId else 0
-                    chatId = 0; messages.clear(); viewed.clear()
+                    chatId = 0; messages.clear(); viewed.clear(); deletedIds.clear()
                     if (resumeChatId == 0L) {
                         topic = null; threadTitle = null; threadRoot = 0; threadDraft = ""
                         _history.value = TelegramChatHistory()
@@ -589,6 +600,7 @@ class TelegramMessageRepository(
             replyToMessageId = reply?.takeIf { it.chatId == 0L || it.chatId == chatId }?.messageId ?: 0L,
             date = date,
             edited = editDate > 0,
+            deleted = id in deletedIds,
             delivery = when {
                 !isOutgoing || savedChat -> TelegramDelivery.None
                 sendingState is TdApi.MessageSendingStatePending -> TelegramDelivery.Sending

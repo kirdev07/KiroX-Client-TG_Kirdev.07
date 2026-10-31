@@ -152,7 +152,9 @@ data class TelegramMessage(
     /** Inline buttons under a bot message, by rows. */
     val buttons: List<List<TelegramButton>> = emptyList(),
     /** Message this one answers, in the same chat; 0 when none. */
-    val replyToMessageId: Long = 0
+    val replyToMessageId: Long = 0,
+    /** Deleted by its author while the chat was open; kept on screen with a mark («Сохранять удалённые»). */
+    val deleted: Boolean = false
 )
 
 /** A poll or quiz in a message. */
