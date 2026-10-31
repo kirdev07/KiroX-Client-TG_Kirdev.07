@@ -373,7 +373,7 @@ internal fun toChatItem(chat: TdApi.Chat, position: TdApi.ChatPosition, archived
     return TelegramChatItem(
         id = chat.id,
         title = if (saved) "Избранное" else chat.title.orEmpty(),
-        preview = messagePreview(last),
+        preview = messagePreview(last).let { if ((chat.type as? TdApi.ChatTypePrivate)?.userId == TELEGRAM_SERVICE_USER) hideLoginCode(it) else it },
         timestamp = maxOf(last?.date ?: 0, if (draft != null) chat.draftMessage?.date ?: 0 else 0),
         unreadCount = chat.unreadCount,
         unreadMentionCount = chat.unreadMentionCount,
@@ -399,6 +399,15 @@ internal fun toChatItem(chat: TdApi.Chat, position: TdApi.ChatPosition, archived
 }
 
 internal fun TdApi.File.toRef() = TelegramFileRef(id, local?.path?.takeIf { local.isDownloadingCompleted && it.isNotBlank() })
+
+/** Telegram's service account, which sends sign-in codes. */
+internal const val TELEGRAM_SERVICE_USER = 777000L
+
+/**
+ * Sign-in codes from Telegram are hidden in the chat list, as the official app does: anyone glancing
+ * at the screen could read them there. Inside the chat the code is shown as sent.
+ */
+internal fun hideLoginCode(preview: String): String = preview.replace(Regex("""(?<![\d-])\d{5,6}(?![\d-])""")) { "•".repeat(it.value.length) }
 
 internal fun messagePreview(message: TdApi.Message?): String = when (val content = message?.content) {
     is TdApi.MessageText -> content.text.text
