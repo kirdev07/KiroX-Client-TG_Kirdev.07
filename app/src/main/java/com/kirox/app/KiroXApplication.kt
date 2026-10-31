@@ -15,6 +15,7 @@ class KiroXApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashLog.install(this)
+        com.kirox.app.security.PasscodeLock.init(this)
         removeLegacyDemoData()
         removeOldOutgoing()
         // The call engine is large: load it off the main thread, calls check NativeCall.available.

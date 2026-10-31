@@ -349,6 +349,7 @@ object AppVisibility {
             if (field == value) return
             field = value
             listener?.invoke(value)
+            com.kirox.app.security.PasscodeLock.onVisibilityChanged(value)
         }
     @Volatile internal var listener: ((Boolean) -> Unit)? = null
 }

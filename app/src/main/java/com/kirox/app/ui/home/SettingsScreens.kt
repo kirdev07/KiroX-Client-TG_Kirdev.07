@@ -370,7 +370,9 @@ internal fun PrivacyScreen(onBack: () -> Unit, onNotice: (String) -> Unit, onOpe
     when (page) {
         "password" -> { CloudPasswordScreen(onBack = { page = ""; load() }, onNotice = onNotice); return }
         "blocked" -> { BlockedUsersScreen(onBack = { page = ""; load() }, onNotice = onNotice); return }
+        "passcode" -> { PasscodeSettingsScreen(onBack = { page = "" }, onNotice = onNotice); return }
     }
+    val passcode by com.kirox.app.security.PasscodeLock.settings.collectAsState()
     BackHandler(onBack = onBack)
     /** Saves one message-privacy switch; a refusal (often Telegram Premium only) puts it back. */
     fun saveMessages(next: MessagePrivacy, save: suspend () -> Unit) {
@@ -388,7 +390,9 @@ internal fun PrivacyScreen(onBack: () -> Unit, onNotice: (String) -> Unit, onOpe
         item { SmallCaption("Безопасность") }
         item {
             SettingsCard {
-                IconRow(IconGlyphs.Lock, Color(0xFF34C38F), "Облачный пароль", when (password?.hasPassword) { true -> "Включён"; false -> "Выключен"; null -> "…" }) { page = "password" }
+                IconRow(IconGlyphs.Lock, Color(0xFF9B6BFF), "Код-пароль", if (passcode.enabled) "Включён · ${passcode.autoLock.title.lowercase()}" else "Выключен: kiroX открывается без кода") { page = "passcode" }
+                CardDivider()
+                IconRow(IconGlyphs.Shield, Color(0xFF34C38F), "Облачный пароль", when (password?.hasPassword) { true -> "Включён"; false -> "Выключен"; null -> "…" }) { page = "password" }
                 CardDivider()
                 IconRow(IconGlyphs.Devices, Color(0xFF4F8DF7), "Устройства", "Где выполнен вход в ваш аккаунт", onClick = onOpenDevices)
                 CardDivider()
@@ -487,6 +491,100 @@ internal fun PrivacyScreen(onBack: () -> Unit, onNotice: (String) -> Unit, onOpe
         },
         dismissButton = { TextButton(onClick = { confirmClearContacts = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
     )
+}
+
+/**
+ * Код-пароль: turn the local app lock on (code twice), change it, auto-lock delay, fingerprint,
+ * hiding the content, lock now, turn it off (current code first).
+ */
+@Composable
+private fun PasscodeSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
+    val context = LocalContext.current
+    val settings by com.kirox.app.security.PasscodeLock.settings.collectAsState()
+    // "" settings; "new" / "repeat" setting a code; "off" / "change" checking the current one first.
+    var step by remember { mutableStateOf("") }
+    var firstCode by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var shake by remember { mutableIntStateOf(0) }
+    var choosingAuto by remember { mutableStateOf(false) }
+    val canBiometric = remember { com.kirox.app.ui.auth.biometricAvailable(context) }
+    fun reset() { step = ""; firstCode = ""; error = null }
+    if (step.isNotEmpty()) {
+        BackHandler { reset() }
+        val (title, subtitle) = when (step) {
+            "new" -> "Придумайте код-пароль" to "4 цифры. Код хранится только на этом телефоне"
+            "repeat" -> "Повторите код-пароль" to null
+            else -> "Введите текущий код" to null
+        }
+        com.kirox.app.ui.auth.PasscodeEntry(title, subtitle, error, shake) { code ->
+            when (step) {
+                "new" -> { firstCode = code; error = null; step = "repeat" }
+                "repeat" -> if (code == firstCode) {
+                    val changing = settings.enabled
+                    com.kirox.app.security.PasscodeLock.setCode(code)
+                    reset()
+                    onNotice(if (changing) "Код-пароль изменён" else "Код-пароль включён")
+                } else { error = "Коды не совпадают, придумайте заново"; firstCode = ""; step = "new"; shake++ }
+                "off" -> if (com.kirox.app.security.PasscodeLock.matches(code)) { com.kirox.app.security.PasscodeLock.disable(); reset(); onNotice("Код-пароль выключен") } else { error = "Неверный код"; shake++ }
+                "change" -> if (com.kirox.app.security.PasscodeLock.matches(code)) { error = null; step = "new" } else { error = "Неверный код"; shake++ }
+            }
+        }
+        return
+    }
+    BackHandler(onBack = onBack)
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Код-пароль", onBack) }
+        item {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(72.dp).clip(RoundedCornerShape(22.dp)).background(Color(0xFF9B6BFF)), contentAlignment = Alignment.Center) {
+                    IconGlyph(IconGlyphs.Lock, null, Modifier.size(36.dp), Color.White)
+                }
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    if (settings.enabled) "kiroX просит код при запуске и после того, как побыл в фоне."
+                    else "Защитите переписку на этом телефоне: kiroX будет просить 4-значный код при открытии. Это не облачный пароль Telegram.",
+                    color = Fusion.colors.textSecondary, fontSize = 14.sp, lineHeight = 20.sp, textAlign = TextAlign.Center
+                )
+            }
+        }
+        if (!settings.enabled) {
+            item { com.kirox.app.ui.components.FusionButton("Включить код-пароль", onClick = { step = "new" }, modifier = Modifier.padding(16.dp)) }
+        } else {
+            item {
+                SettingsCard {
+                    LinkRow("Сменить код-пароль") { step = "change" }
+                    LinkRow("Автоблокировка", settings.autoLock.title) { choosingAuto = true }
+                }
+            }
+            item { SmallCaption("Вход") }
+            item {
+                SettingsCard {
+                    ToggleRow(
+                        "Вход по отпечатку", if (canBiometric) "Вместо кода; код тоже всегда подходит" else "На телефоне не настроен отпечаток или лицо",
+                        settings.biometric && canBiometric, enabled = canBiometric
+                    ) { com.kirox.app.security.PasscodeLock.setBiometric(it) }
+                    ToggleRow("Скрывать содержимое", "Пустой экран в списке недавних приложений, скриншоты запрещены", settings.hideContent) {
+                        com.kirox.app.security.PasscodeLock.setHideContent(it)
+                    }
+                }
+            }
+            item {
+                SettingsCard {
+                    LinkRow("Заблокировать сейчас") { com.kirox.app.security.PasscodeLock.lockNow() }
+                    LinkRow("Выключить код-пароль", null, Fusion.colors.danger) { step = "off" }
+                }
+            }
+            item {
+                Text(
+                    "Если забудете код, его не восстановить: придётся выйти из аккаунта и войти снова по номеру телефона.",
+                    color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+                )
+            }
+        }
+    }
+    if (choosingAuto) ChoiceDialog("Автоблокировка", com.kirox.app.security.AutoLock.entries, settings.autoLock, { it.title }, onDismiss = { choosingAuto = false }) {
+        com.kirox.app.security.PasscodeLock.setAutoLock(it); choosingAuto = false
+    }
 }
 
 @Composable

@@ -53,6 +53,17 @@ class MainActivity : ComponentActivity() {
             FusionTheme(palette) {
                 CompositionLocalProvider(LocalMotionFactor provides motionFactor, LocalBubbleRadius provides bubbles.radiusDp, LocalSeasonalEffects provides (seasonal && animate), com.kirox.app.ui.theme.LocalGlassBlur provides glassBlur, LocalLightEffects provides lightEffects, LocalEffectScene provides scene, com.kirox.app.ui.theme.LocalChatStyle provides chatStyle, com.kirox.app.ui.components.LocalSceneClock provides sceneClock) {
                     KiroXApp()
+                    // Code-password: over everything, and no screenshots or recents preview while it is on.
+                    val passcode by com.kirox.app.security.PasscodeLock.settings.collectAsStateWithLifecycle()
+                    val locked by com.kirox.app.security.PasscodeLock.locked.collectAsStateWithLifecycle()
+                    androidx.compose.runtime.LaunchedEffect(passcode.enabled && passcode.hideContent) {
+                        if (passcode.enabled && passcode.hideContent) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                        else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                    }
+                    if (locked) com.kirox.app.ui.auth.PasscodeLockScreen(onForgot = {
+                        com.kirox.app.security.PasscodeLock.disable()
+                        (application as KiroXApplication).telegram.auth.logOut()
+                    })
                 }
             }
         }
