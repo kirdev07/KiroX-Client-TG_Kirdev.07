@@ -99,7 +99,7 @@ internal fun SettingsTab(profile: TelegramUserProfile?, onOpenProfile: () -> Uni
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
         item {
             Box {
-                if (Fusion.colors.glass) com.kirox.app.ui.components.FusionArtHeader(Modifier.matchParentSize())
+                if (Fusion.colors.scenery) com.kirox.app.ui.components.FusionArtHeader(Modifier.matchParentSize())
                 SeasonalLayer(Modifier.matchParentSize())
                 Column {
                     Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {

@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
             val customId by com.kirox.app.settings.CustomThemes.selectedId.collectAsStateWithLifecycle()
             val customThemes by com.kirox.app.settings.CustomThemes.themes.collectAsStateWithLifecycle()
             val icon by com.kirox.app.settings.AppIcons.current.collectAsStateWithLifecycle()
-            val colors = customThemes.firstOrNull { it.id == customId }?.colors()
+            val colors = com.kirox.app.settings.CustomThemes.find(customId, customThemes)?.colors()
                 ?: icon.pill?.let { pill ->
                     com.kirox.app.ui.theme.FusionColors.of(palette).copy(
                         accent = androidx.compose.ui.graphics.Color(pill), onAccent = androidx.compose.ui.graphics.Color(icon.onPill),

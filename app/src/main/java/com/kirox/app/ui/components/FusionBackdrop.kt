@@ -49,7 +49,7 @@ fun FusionBackdrop(modifier: Modifier = Modifier) {
  * palettes; translucent tint with a thin light stroke in Glass (the backdrop shows through).
  */
 fun Modifier.fusionPanel(colors: com.kirox.app.ui.theme.FusionColors, shape: Shape = RoundedCornerShape(20.dp), opaque: Color = colors.surface1): Modifier =
-    if (colors.glass) this.background(Color(0x8C1B3554), shape).border(1.dp, Color(0x2EFFFFFF), shape)
+    if (colors.glass) this.background(colors.glassPanel, shape).border(1.dp, colors.glassStroke, shape)
     else this.background(opaque, shape)
 
 /** Full-screen background in the current style: the v2 gradient, or the plain palette black. */

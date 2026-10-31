@@ -137,12 +137,12 @@ class ScreenshotTest(private val palette: FusionPalette) {
     )
 
     /** Draws [content] in [palette] with animations off, as in the app, and saves `<style>_<name>.png`. */
-    private fun shot(name: String, content: @Composable () -> Unit) {
+    private fun shot(name: String, colors: com.kirox.app.ui.theme.FusionColors? = null, content: @Composable () -> Unit) {
         // Only in the screenshots workflow; the normal unit test run skips it.
         org.junit.Assume.assumeTrue(System.getenv("KIROX_SCREENSHOTS") == "true")
         rule.mainClock.autoAdvance = false
         rule.setContent {
-            FusionTheme(palette) {
+            FusionTheme(palette, colors) {
                 androidx.compose.runtime.CompositionLocalProvider(com.kirox.app.ui.theme.LocalMotionFactor provides 0f) { content() }
             }
         }
@@ -157,6 +157,28 @@ class ScreenshotTest(private val palette: FusionPalette) {
     }
 
     @Test fun chats() = shot("01_chats") { Main(0) }
+
+    @Test fun customization() = shot("14_customization") {
+        com.kirox.app.ui.home.CustomizationScreen(palette, BubbleShape.entries.first(), "Выкл.", false, {}, {}, {}, onNotice = {}, onBack = {})
+    }
+
+    @Test fun themes() = shot("15_themes") { com.kirox.app.ui.home.ThemesScreen(palette, {}, onBack = {}) }
+
+    @Test fun themeEditor() = shot("16_theme_editor") {
+        com.kirox.app.ui.home.CustomThemeEditor(com.kirox.app.settings.CustomTheme.fromAccent("x", "Моя тема", 0xFFFF8E5E), onBack = {})
+    }
+
+    /** The chat list in ready-made themes (Glass run only: they don't depend on the base style). */
+    @Test fun presetOcean() = presetShot("ocean")
+    @Test fun presetSunset() = presetShot("sunset")
+    @Test fun presetSakura() = presetShot("sakura")
+    @Test fun presetAmoled() = presetShot("amoled")
+    @Test fun presetMidnight() = presetShot("midnight")
+
+    private fun presetShot(key: String) {
+        org.junit.Assume.assumeTrue(palette == FusionPalette.Glass)
+        shot("17_preset_$key", com.kirox.app.settings.CustomTheme.PRESETS.first { it.id == "preset:$key" }.colors()) { Main(0) }
+    }
 
     @Test fun calls() = shot("02_calls") { Main(1) }
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -47,6 +48,8 @@ fun FusionBottomBar(items: List<FusionNavItem>, selected: Int, onSelect: (Int) -
         // a wide rounded plate holding icon and label, as in the approved PNG.
         val shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
         val container = if (colors.glass) modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp).clip(shape).fusionPanel(colors, shape)
+            // A clear outline in the theme's accent, fading down, so the dock stands out on any backdrop.
+            .border(1.5.dp, androidx.compose.ui.graphics.Brush.verticalGradient(listOf(colors.dockStroke, colors.dockStroke.copy(alpha = colors.dockStroke.alpha * 0.35f))), shape)
             else modifier.fillMaxWidth().background(colors.background).navigationBarsPadding()
         Row(container.selectableGroup().padding(horizontal = 8.dp, vertical = 6.dp)) {
             items.forEachIndexed { index, item ->

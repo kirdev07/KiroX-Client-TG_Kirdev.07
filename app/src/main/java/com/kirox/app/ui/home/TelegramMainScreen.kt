@@ -165,6 +165,7 @@ fun TelegramMainScreen(
                         onOpenThemes = { sub = SubScreen.Themes },
                         onOpenChats = { sub = SubScreen.ChatStyle },
                         onOpenAnimations = { sub = SubScreen.Animations },
+                        onNotice = showNotice,
                         onBack = { sub = SubScreen.None }
                     )
                     subScreen == SubScreen.Notifications -> NotificationSettingsScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice)

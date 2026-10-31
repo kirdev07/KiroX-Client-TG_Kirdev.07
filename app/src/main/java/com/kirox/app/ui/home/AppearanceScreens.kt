@@ -30,6 +30,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
@@ -53,7 +58,7 @@ import com.kirox.app.ui.theme.FusionPalette
 
 // Appearance: customization hub, themes, chat style and animations.
 
-/** Customization hub: three clear sections, each with its current value. */
+/** Customization hub: the theme live on top, quick theme switch, then everything about the look. */
 @Composable
 internal fun CustomizationScreen(
     palette: FusionPalette,
@@ -63,40 +68,81 @@ internal fun CustomizationScreen(
     onOpenThemes: () -> Unit,
     onOpenChats: () -> Unit,
     onOpenAnimations: () -> Unit,
+    onNotice: (String) -> Unit,
     onBack: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var customIconPage by remember { mutableStateOf(false) }
+    if (customIconPage) { CustomIconScreen(onBack = { customIconPage = false }, onNotice = onNotice); return }
     BackHandler(onBack = onBack)
+    val customs by com.kirox.app.settings.CustomThemes.themes.collectAsState()
+    val customId by com.kirox.app.settings.CustomThemes.selectedId.collectAsState()
+    val tweaks by com.kirox.app.settings.KiroxTweaks.state.collectAsState()
+    var appIcon by remember { mutableStateOf(com.kirox.app.settings.AppIcons.current(context)) }
+    var choosingIcon by remember { mutableStateOf(false) }
+    val current = com.kirox.app.settings.CustomThemes.find(customId, customs)
+    val themeName = current?.let { if (it.isPreset) com.kirox.app.i18n.I18n.t(it.name) else it.name } ?: palette.title
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Кастомизация", onBack) }
-        item { StyleBanner(palette.title, animationsSummary, animationsOn) }
-        item { TileRow(KiroXIcon.Palette, "Темы", trailing = palette.title, onClick = onOpenThemes) }
-        item { TileRow(KiroXIcon.Chat, "Чаты", trailing = bubbleShape.title, onClick = onOpenChats) }
-        item { TileRow(KiroXIcon.Star, "Анимации", trailing = animationsSummary, onClick = onOpenAnimations) }
+        item { Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) { ThemePreview(Fusion.colors) } }
+        item { SmallCaption("Тема · $themeName") }
+        item {
+            // One tap switches: built-in Glass, the ready-made themes and own ones.
+            val all: List<Pair<String?, com.kirox.app.ui.theme.FusionColors>> = listOf<Pair<String?, com.kirox.app.ui.theme.FusionColors>>(null to com.kirox.app.ui.theme.FusionColors.Glass) +
+                (com.kirox.app.settings.CustomTheme.PRESETS + customs).map { it.id to it.colors() }
+            Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                all.forEach { (id, colors) ->
+                    val selected = id == customId
+                    Box(
+                        Modifier.size(44.dp).clip(CircleShape)
+                            .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(colors.accent, colors.outgoingBubble, colors.background)))
+                            .border(if (selected) 3.dp else 1.dp, if (selected) Fusion.colors.textPrimary else Fusion.colors.outlineStrong, CircleShape)
+                            .clickable { com.kirox.app.settings.CustomThemes.select(id) },
+                        contentAlignment = Alignment.Center
+                    ) { if (selected) IconGlyph(KiroXIcon.Check, null, Modifier.size(18.dp), colors.onAccent) }
+                }
+                Box(
+                    Modifier.size(44.dp).clip(CircleShape).background(Fusion.colors.surface2).border(1.dp, Fusion.colors.outlineStrong, CircleShape).clickable(onClick = onOpenThemes),
+                    contentAlignment = Alignment.Center
+                ) { androidx.compose.material3.Text("+", color = Fusion.colors.textPrimary, fontSize = 20.sp) }
+            }
+        }
+        item { Spacer(Modifier.height(8.dp)) }
+        item {
+            SettingsCard {
+                IconRow(KiroXIcon.Palette, Fusion.colors.accent, "Темы", "Готовые темы, свои цвета, загрузить тему", trailing = themeName, onClick = onOpenThemes)
+                CardDivider()
+                IconRow(KiroXIcon.Chat, Color(0xFF34B7A6), "Чаты", "Пузыри, обои, размер текста", trailing = bubbleShape.title, onClick = onOpenChats)
+                CardDivider()
+                IconRow(KiroXIcon.Star, Color(0xFFE8A33D), "Анимации", if (animationsOn) "Сцена и скорость интерфейса" else "Выключены", trailing = animationsSummary, onClick = onOpenAnimations)
+            }
+        }
+        item { SmallCaption("Нижняя панель") }
+        item {
+            SettingsCard {
+                ToggleRow("Вкладка «Звонки»", "Показывать в нижней панели", !tweaks.hideCallsTab) { com.kirox.app.settings.KiroxTweaks.update(tweaks.copy(hideCallsTab = !it)) }
+                ToggleRow("Вкладка «Истории»", "Показывать в нижней панели", !tweaks.hideStoriesTab) { com.kirox.app.settings.KiroxTweaks.update(tweaks.copy(hideStoriesTab = !it)) }
+            }
+        }
+        item { SmallCaption("Иконка") }
+        item {
+            SettingsCard {
+                IconRow(KiroXIcon.Palette, Color(0xFF6C4CE0), "Иконка приложения", "Как kiroX выглядит на рабочем столе", trailing = appIcon.title) { choosingIcon = true }
+            }
+        }
+        item { Note("Всё это — оформление kiroX на этом телефоне. Собеседники его не видят.") }
     }
-}
-
-/** kiroX logo over the chosen animation, with the current theme and animation under it. */
-@Composable
-private fun StyleBanner(theme: String, animation: String, animationsOn: Boolean) {
-    Box(
-        Modifier.padding(16.dp).fillMaxWidth().height(150.dp).clip(RoundedCornerShape(20.dp))
-            .background(Fusion.colors.surface1).border(1.dp, Fusion.colors.outline, RoundedCornerShape(20.dp))
-    ) {
-        if (animationsOn) SeasonalLayer(Modifier.matchParentSize(), mode = com.kirox.app.ui.components.SeasonalMode.Banner, force = true)
-        Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                androidx.compose.ui.text.buildAnnotatedString {
-                    append("kiro")
-                    withStyle(androidx.compose.ui.text.SpanStyle(color = Fusion.colors.textSecondary)) { append("X") }
-                },
-                color = Fusion.colors.textPrimary, fontSize = 36.sp, fontWeight = FontWeight.Light
-            )
-            Text("$theme · $animation", color = Fusion.colors.textSecondary, fontSize = 13.sp)
+    if (choosingIcon) AppIconDialog(appIcon, onDismiss = { choosingIcon = false }, onCustom = { choosingIcon = false; customIconPage = true }) { icon ->
+        choosingIcon = false
+        if (icon != appIcon) {
+            com.kirox.app.settings.AppIcons.set(context, icon)
+            appIcon = icon
+            onNotice("Иконка изменится на рабочем столе через несколько секунд")
         }
     }
 }
 
-/** Theme picker: a grid of cards, each a small screen painted in that theme. Dark themes only. */
+/** Themes: the current one large, ready-made themes in a grid, own themes, and the editor. */
 @Composable
 internal fun ThemesScreen(palette: FusionPalette, onPalette: (FusionPalette) -> Unit, onBack: () -> Unit) {
     var editing by remember { mutableStateOf<com.kirox.app.settings.CustomTheme?>(null) }
@@ -124,31 +170,54 @@ internal fun ThemesScreen(palette: FusionPalette, onPalette: (FusionPalette) -> 
     }
     val settings = (androidx.compose.ui.platform.LocalContext.current.applicationContext as com.kirox.app.KiroXApplication).settings
     val blur by settings.glassBlur.collectAsState()
-    val v2 = listOf(FusionPalette.Expressive, FusionPalette.Glass).filter { it in com.kirox.app.ui.theme.KiroXFeatures.THEMES }
-    val classic = com.kirox.app.ui.theme.KiroXFeatures.THEMES - v2.toSet()
+    val current = com.kirox.app.settings.CustomThemes.find(customId, customs)
+    // A copy of a theme to edit: own themes change in place, built-in ones become a new own theme.
+    fun copyOf(theme: com.kirox.app.settings.CustomTheme?) = theme?.takeUnless { it.isPreset }
+        ?: (theme ?: com.kirox.app.settings.CustomTheme.fromGlass("", "")).copy(
+            id = com.kirox.app.settings.CustomThemes.newId(), name = theme?.let { "${it.name} · моя" } ?: "Моя тема", subtitle = ""
+        )
+    // Built-in Fusion Glass first, then the ready-made themes.
+    val ready: List<Pair<com.kirox.app.settings.CustomTheme?, com.kirox.app.ui.theme.FusionColors>> =
+        listOf(null to com.kirox.app.ui.theme.FusionColors.Glass) + com.kirox.app.settings.CustomTheme.PRESETS.map { it to it.colors() }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Темы", onBack) }
-        item { SectionCaption("Fusion UI v2") }
-        listOf(v2, classic).forEachIndexed { group, options ->
-            if (group == 1 && options.isNotEmpty()) item { SectionCaption("Классические монохромные") }
-            options.chunked(2).forEach { pair ->
-                item(key = pair.first().name) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        pair.forEach { option ->
-                            ThemeCard(option, option == palette && customId == null, Modifier.weight(1f)) { com.kirox.app.settings.CustomThemes.select(null); onPalette(option) }
-                        }
-                        if (pair.size == 1) Spacer(Modifier.weight(1f))
+        item {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                ThemePreview(Fusion.colors)
+                Spacer(Modifier.height(10.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        androidx.compose.material3.Text(current?.let { if (it.isPreset) com.kirox.app.i18n.I18n.t(it.name) else it.name } ?: FusionPalette.Glass.title, color = Fusion.colors.textPrimary, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                        Text(if (current == null) FusionPalette.Glass.subtitle else if (current.isPreset) current.subtitle else "Своя тема", color = Fusion.colors.textSecondary, fontSize = 13.sp)
                     }
+                    androidx.compose.material3.FilledTonalButton(onClick = { editing = copyOf(current) }) { Text(if (current != null && !current.isPreset) "Изменить" else "Изменить цвета") }
                 }
             }
         }
-        item { SectionCaption("Свои темы") }
-        customs.chunked(2).forEach { pair ->
-            item(key = "custom_" + pair.first().id) {
+        item { SectionCaption("Готовые темы") }
+        ready.chunked(3).forEach { row ->
+            item(key = "ready_" + (row.first().first?.id ?: "glass")) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    pair.forEach { theme ->
+                    row.forEach { (theme, colors) ->
+                        val selected = if (theme == null) customId == null && palette == FusionPalette.Glass else theme.id == customId
+                        ColorsCard(theme?.name?.let(com.kirox.app.i18n.I18n::t) ?: FusionPalette.Glass.title, "", colors, selected, Modifier.weight(1f), compact = true,
+                            onLongClick = { editing = copyOf(theme) }) {
+                            if (theme == null) { com.kirox.app.settings.CustomThemes.select(null); onPalette(FusionPalette.Glass) }
+                            else com.kirox.app.settings.CustomThemes.select(theme.id)
+                        }
+                    }
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+        }
+        item { Note("Удерживайте тему, чтобы сделать свою на её основе.") }
+        item { SectionCaption("Свои темы") }
+        customs.chunked(3).forEach { row ->
+            item(key = "custom_" + row.first().id) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    row.forEach { theme ->
                         Box(Modifier.weight(1f)) {
-                            ColorsCard(theme.name, "Своя тема · ⋮ — действия", theme.colors(), theme.id == customId, Modifier.fillMaxWidth(), onLongClick = { menuFor = theme.id }) {
+                            ColorsCard(theme.name, "", theme.colors(), theme.id == customId, Modifier.fillMaxWidth(), compact = true, onLongClick = { menuFor = theme.id }) {
                                 if (theme.id == customId) menuFor = theme.id else com.kirox.app.settings.CustomThemes.select(theme.id)
                             }
                             androidx.compose.material3.DropdownMenu(menuFor == theme.id, onDismissRequest = { menuFor = null }, modifier = Modifier.background(Fusion.colors.surface2)) {
@@ -172,51 +241,26 @@ internal fun ThemesScreen(palette: FusionPalette, onPalette: (FusionPalette) -> 
                             }
                         }
                     }
-                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
         item {
+            val accent = Fusion.colors.accent.toArgb().toLong() and 0xFFFFFFFFL
             Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                androidx.compose.material3.OutlinedButton(onClick = {
-                    editing = com.kirox.app.settings.CustomTheme.fromGlass(com.kirox.app.settings.CustomThemes.newId(), "Моя тема")
+                androidx.compose.material3.Button(onClick = {
+                    editing = com.kirox.app.settings.CustomTheme.fromAccent(com.kirox.app.settings.CustomThemes.newId(), "Моя тема", accent)
                 }, modifier = Modifier.weight(1f)) { Text("Создать тему") }
-                androidx.compose.material3.OutlinedButton(onClick = { loading = true }, modifier = Modifier.weight(1f)) { Text("Загрузить тему") }
+                androidx.compose.material3.OutlinedButton(onClick = { loading = true }, modifier = Modifier.weight(1f)) { Text("Загрузить") }
             }
         }
-        item {
-            Text("Своя тема — ваши цвета фона, панелей, кнопок и сообщений. Ею можно поделиться с друзьями, а их тему — загрузить.",
-                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
-        }
-        if (com.kirox.app.ui.theme.KiroXFeatures.THEMES.size > 1) item { SectionCaption("Автосмена темы") }
-        if (com.kirox.app.ui.theme.KiroXFeatures.THEMES.size > 1) item {
-            val auto by settings.autoTheme.collectAsState()
-            var choosing by remember { mutableStateOf<String?>(null) }
-            ToggleRow("По времени суток", "Днём одна тема, ночью другая — по часам телефона", auto.enabled) { settings.setAutoTheme(auto.copy(enabled = it)) }
-            if (auto.enabled) {
-                LinkRow("Днём", "${auto.day.title} · с ${auto.dayStart}:00") { choosing = "day" }
-                LinkRow("Ночью", "${auto.night.title} · с ${auto.nightStart}:00") { choosing = "night" }
-                LinkRow("День начинается", "${auto.dayStart}:00") { choosing = "dayStart" }
-                LinkRow("Ночь начинается", "${auto.nightStart}:00") { choosing = "nightStart" }
-            }
-            val themes = com.kirox.app.ui.theme.KiroXFeatures.THEMES
-            when (choosing) {
-                "day" -> ChoiceDialog("Тема днём", themes, auto.day, { it.title }, onDismiss = { choosing = null }) { settings.setAutoTheme(auto.copy(day = it)); choosing = null }
-                "night" -> ChoiceDialog("Тема ночью", themes, auto.night, { it.title }, onDismiss = { choosing = null }) { settings.setAutoTheme(auto.copy(night = it)); choosing = null }
-                "dayStart" -> ChoiceDialog("День начинается", (4..12).toList(), auto.dayStart, { "$it:00" }, onDismiss = { choosing = null }) { settings.setAutoTheme(auto.copy(dayStart = it)); choosing = null }
-                "nightStart" -> ChoiceDialog("Ночь начинается", (17..23).toList() + 0, auto.nightStart, { "$it:00" }, onDismiss = { choosing = null }) { settings.setAutoTheme(auto.copy(nightStart = it)); choosing = null }
-            }
-        }
+        item { Note("Своя тема — ваши цвета фона, панелей, кнопок и сообщений. Ею можно поделиться с друзьями, а их тему — загрузить.") }
         item { SectionCaption("Стекло") }
         item {
             ToggleRow(
-                "Размытие фона", if (android.os.Build.VERSION.SDK_INT >= 31) "Мягкое свечение за панелями Fusion Glass" else "Нужен Android 12 или новее; без него свечение остаётся без размытия",
+                "Размытие фона", if (android.os.Build.VERSION.SDK_INT >= 31) "Мягкое свечение за стеклянными панелями" else "Нужен Android 12 или новее; без него свечение остаётся без размытия",
                 checked = blur, onChange = settings::setGlassBlur
             )
-        }
-        item {
-            Text("Сейчас в kiroX одна встроенная тема — Fusion Glass. Остальные вернутся позже, а свои темы можно делать уже сейчас.", color = Fusion.colors.textTertiary, fontSize = 12.sp,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp))
         }
     }
     deleting?.let { theme ->
@@ -258,6 +302,58 @@ internal fun ThemesScreen(palette: FusionPalette, onPalette: (FusionPalette) -> 
             confirmButton = { androidx.compose.material3.TextButton(onClick = { pasting = false; installed(com.kirox.app.settings.CustomThemes.import(text)) }, enabled = text.isNotBlank()) { Text("Загрузить", color = Fusion.colors.accent) } },
             dismissButton = { androidx.compose.material3.TextButton(onClick = { pasting = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
         )
+    }
+}
+
+/** A small phone screen in [colors]: top bar, two messages and the bottom dock with its outline. */
+@Composable
+private fun ThemePreview(colors: com.kirox.app.ui.theme.FusionColors, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(24.dp)
+    Box(
+        modifier.fillMaxWidth().height(250.dp).clip(shape)
+            .background(androidx.compose.ui.graphics.Brush.verticalGradient(colors.backdrop ?: listOf(colors.background, colors.background)))
+            .border(1.dp, colors.outline, shape)
+    ) {
+        Box(Modifier.matchParentSize().drawBehind {
+            colors.glow.firstOrNull()?.let { glow ->
+                val center = androidx.compose.ui.geometry.Offset(size.width * 0.85f, size.height * 0.1f)
+                drawCircle(androidx.compose.ui.graphics.Brush.radialGradient(listOf(glow, androidx.compose.ui.graphics.Color.Transparent), center, size.width * 0.6f), size.width * 0.6f, center)
+            }
+        })
+        Column(Modifier.fillMaxSize().padding(12.dp)) {
+            val bar = RoundedCornerShape(16.dp)
+            Row(Modifier.fillMaxWidth().clip(bar).background(colors.glassPanel).border(1.dp, colors.glassStroke, bar).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(28.dp).clip(CircleShape).background(colors.avatar), contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.Text("K", color = colors.textPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    androidx.compose.material3.Text("kiroX", color = colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("в сети", color = colors.accent, fontSize = 11.sp)
+                }
+            }
+            Column(Modifier.weight(1f).fillMaxWidth().padding(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)) {
+                listOf("Привет! Как тебе тема?" to false, "Цвета то, что надо 👌" to true, "Нижняя панель тоже видна" to false).forEach { (text, mine) ->
+                    Text(text, color = if (mine) colors.onOutgoing else colors.textPrimary, fontSize = 12.sp,
+                        modifier = Modifier.align(if (mine) Alignment.End else Alignment.Start).clip(RoundedCornerShape(14.dp))
+                            .background(if (mine) colors.outgoingBubble else colors.incomingBubble).padding(horizontal = 10.dp, vertical = 6.dp))
+                }
+            }
+            val dock = RoundedCornerShape(20.dp)
+            Row(
+                Modifier.fillMaxWidth().clip(dock).background(colors.glassPanel)
+                    .border(1.5.dp, androidx.compose.ui.graphics.Brush.verticalGradient(listOf(colors.dockStroke, colors.dockStroke.copy(alpha = colors.dockStroke.alpha * 0.35f))), dock)
+                    .padding(5.dp)
+            ) {
+                repeat(4) { i ->
+                    Box(
+                        Modifier.weight(1f).padding(horizontal = 3.dp).height(26.dp).clip(RoundedCornerShape(13.dp))
+                            .background(if (i == 0) colors.selectedPill else androidx.compose.ui.graphics.Color.Transparent),
+                        contentAlignment = Alignment.Center
+                    ) { Box(Modifier.size(10.dp).clip(CircleShape).background(if (i == 0) colors.onSelectedPill else colors.textSecondary)) }
+                }
+            }
+        }
     }
 }
 
@@ -344,9 +440,9 @@ private fun LivePreview(
             com.kirox.app.ui.components.ChatWallpaperLayer(wallpaper, Modifier.matchParentSize())
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(density.spacingDp.dp + 2.dp)) {
                 listOf("Привет! Как тебе новый kiroX?" to false, "Чисто и быстро 👌" to true, "Обои и размер текста тоже меняются" to false).forEach { (text, mine) ->
-                    Text(text, color = Fusion.colors.textPrimary, fontSize = (14f * textScale).sp,
+                    Text(text, color = if (mine) Fusion.colors.onOutgoing else Fusion.colors.textPrimary, fontSize = (14f * textScale).sp,
                         modifier = Modifier.align(if (mine) Alignment.End else Alignment.Start).clip(RoundedCornerShape(radius.dp))
-                            .background(if (mine) Fusion.colors.surface3 else Fusion.colors.surface2).padding(horizontal = 12.dp, vertical = density.paddingDp.dp))
+                            .background(if (mine) Fusion.colors.outgoingBubble else Fusion.colors.incomingBubble).padding(horizontal = 12.dp, vertical = density.paddingDp.dp))
                 }
             }
         }
@@ -371,76 +467,99 @@ private fun OptionCard(selected: Boolean, modifier: Modifier, onClick: () -> Uni
     )
 }
 
-@Composable
-private fun ThemeCard(palette: FusionPalette, selected: Boolean, modifier: Modifier, onClick: () -> Unit) =
-
-    ColorsCard(palette.title, palette.subtitle, com.kirox.app.ui.theme.FusionColors.of(palette), selected, modifier, onClick = onClick)
-
-/** A theme card: a small chat painted with [colors], the name and a line under it. */
+/** A theme card: a small chat painted with [colors], the name and a line under it ([compact]: no line). */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun ColorsCard(title: String, subtitle: String, colors: com.kirox.app.ui.theme.FusionColors, selected: Boolean, modifier: Modifier, onLongClick: (() -> Unit)? = null, onClick: () -> Unit) {
-    OptionCard(selected, modifier, onClick) {
-        // Mini chat painted with that theme's own colors.
+private fun ColorsCard(
+    title: String, subtitle: String, colors: com.kirox.app.ui.theme.FusionColors, selected: Boolean, modifier: Modifier,
+    compact: Boolean = false, onLongClick: (() -> Unit)? = null, onClick: () -> Unit
+) {
+    Column(
+        modifier.clip(RoundedCornerShape(16.dp)).background(Fusion.colors.surface1)
+            .border(if (selected) 2.dp else 1.dp, if (selected) Fusion.colors.accent else Fusion.colors.outline, RoundedCornerShape(16.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(if (compact) 7.dp else 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Mini chat painted with that theme's own colors, its dock at the bottom.
         Column(
-            Modifier.fillMaxWidth().height(86.dp).clip(RoundedCornerShape(10.dp))
-                .then(if (onLongClick != null) Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick) else Modifier)
+            Modifier.fillMaxWidth().height(if (compact) 78.dp else 86.dp).clip(RoundedCornerShape(10.dp))
                 .background(colors.backdrop?.let { androidx.compose.ui.graphics.Brush.verticalGradient(it) } ?: androidx.compose.ui.graphics.SolidColor(colors.background))
                 .border(1.dp, colors.outline, RoundedCornerShape(10.dp))
+                .padding(5.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Row(Modifier.fillMaxWidth().background(colors.surface1).padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(12.dp).clip(CircleShape).background(colors.avatar))
-                Spacer(Modifier.width(5.dp))
-                Box(Modifier.width(34.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(colors.textSecondary))
-                Spacer(Modifier.weight(1f))
-                Box(Modifier.width(18.dp).height(8.dp).clip(RoundedCornerShape(4.dp)).background(colors.selectedPill))
-            }
-            Column(Modifier.fillMaxWidth().padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Box(Modifier.fillMaxWidth(0.7f).height(11.dp).clip(RoundedCornerShape(6.dp)).background(colors.incomingBubble))
-                Box(Modifier.fillMaxWidth(0.55f).height(11.dp).clip(RoundedCornerShape(6.dp)).background(colors.outgoingBubble).align(Alignment.End))
-                Box(Modifier.fillMaxWidth(0.45f).height(11.dp).clip(RoundedCornerShape(6.dp)).background(colors.incomingBubble))
+            Box(Modifier.fillMaxWidth(0.72f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(colors.incomingBubble))
+            Box(Modifier.fillMaxWidth(0.58f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(colors.outgoingBubble).align(Alignment.End))
+            Box(Modifier.fillMaxWidth(0.45f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(colors.incomingBubble))
+            Spacer(Modifier.weight(1f))
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(colors.glassPanel).border(1.dp, colors.dockStroke, RoundedCornerShape(8.dp)).padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                repeat(3) { i -> Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(if (i == 0) colors.selectedPill else colors.textTertiary.copy(alpha = 0.35f))) }
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(if (compact) 6.dp else 8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (selected) { IconGlyph(KiroXIcon.Check, null, Modifier.size(15.dp), Fusion.colors.textPrimary); Spacer(Modifier.width(4.dp)) }
-            androidx.compose.material3.Text(title, color = if (selected) Fusion.colors.textPrimary else Fusion.colors.textSecondary, fontSize = 14.sp,
+            if (selected) { IconGlyph(KiroXIcon.Check, null, Modifier.size(14.dp), Fusion.colors.accent); Spacer(Modifier.width(3.dp)) }
+            androidx.compose.material3.Text(title, color = if (selected) Fusion.colors.textPrimary else Fusion.colors.textSecondary, fontSize = if (compact) 12.sp else 14.sp,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Text(subtitle, color = Fusion.colors.textTertiary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (!compact && subtitle.isNotEmpty()) Text(subtitle, color = Fusion.colors.textTertiary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
-/** Colors offered for an own theme; any other can be typed as #RRGGBB. */
+/** Colors offered for an own theme; any other is mixed with the sliders or typed as #RRGGBB. */
 private val ThemeSwatches = listOf(
-    0xFF071424, 0xFF0B0F1A, 0xFF000000, 0xFF14102A, 0xFF0F2A1E, 0xFF2A1010, 0xFF1A1A1A,
-    0xFF122640, 0xFF1B2433, 0xFF242424, 0xFF2A2142, 0xFF183A2B, 0xFF3A1E1E, 0xFF2E2A24,
-    0xFF396FDB, 0xFF6C4CE0, 0xFF1FA463, 0xFFE0475B, 0xFFF29D38, 0xFF2AABEE, 0xFFFFFFFF,
-    0xFF426CF2, 0xFF7354D8, 0xFF2E8B57, 0xFFC2185B, 0xFF8D6E63, 0xFF455A64, 0xFF37474F
+    0xFF000000, 0xFF0B0C0E, 0xFF071424, 0xFF10163A, 0xFF1C0F36, 0xFF06292E, 0xFF0B2519, 0xFF301510,
+    0xFF121212, 0xFF202327, 0xFF122640, 0xFF181D3D, 0xFF241743, 0xFF0D343A, 0xFF123125, 0xFF36201A,
+    0xFF4C9DFF, 0xFF6B91FF, 0xFF8C9BFF, 0xFFB794FF, 0xFF34D8C4, 0xFF4ADE8E, 0xFFFFC34D, 0xFFFF8E5E,
+    0xFF2A6CDF, 0xFF426CF2, 0xFF5263E8, 0xFF7550DA, 0xFF128A80, 0xFF1D8A55, 0xFFFF80BD, 0xFFFF6680
 )
 
-/** «Своя тема»: name and six colors, with a live preview; «Сохранить» uses it at once. */
+/** Accents for «Из одного цвета»: one tap builds the whole theme in that hue. */
+private val BaseColors = listOf(0xFF4C9DFF, 0xFF8C9BFF, 0xFFB794FF, 0xFFFF80BD, 0xFFFF6680, 0xFFFF8E5E, 0xFFFFC34D, 0xFF4ADE8E, 0xFF34D8C4, 0xFF9AA3AE)
+
+/** «Своя тема»: live preview, a whole theme from one color, then each of the six colors. */
 @Composable
-private fun CustomThemeEditor(initial: com.kirox.app.settings.CustomTheme, onBack: () -> Unit) {
+internal fun CustomThemeEditor(initial: com.kirox.app.settings.CustomTheme, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     var theme by remember { mutableStateOf(initial) }
     var picking by remember { mutableStateOf<String?>(null) }
     val fields = listOf(
         "top" to ("Фон сверху" to theme.backgroundTop), "bottom" to ("Фон снизу" to theme.backgroundBottom),
-        "panel" to ("Панели и карточки" to theme.panel), "accent" to ("Кнопки и выбранная вкладка" to theme.accent),
+        "panel" to ("Панели и карточки" to theme.panel), "accent" to ("Кнопки, вкладка и обводка панели" to theme.accent),
         "out" to ("Мои сообщения" to theme.outgoing), "in" to ("Сообщения собеседника" to theme.incoming)
     )
+    fun fromBase(color: Long) { theme = com.kirox.app.settings.CustomTheme.fromAccent(theme.id, theme.name, color) }
     fun set(key: String, color: Long) {
         theme = when (key) {
+            "base" -> com.kirox.app.settings.CustomTheme.fromAccent(theme.id, theme.name, color)
             "top" -> theme.copy(backgroundTop = color); "bottom" -> theme.copy(backgroundBottom = color); "panel" -> theme.copy(panel = color)
             "accent" -> theme.copy(accent = color); "out" -> theme.copy(outgoing = color); else -> theme.copy(incoming = color)
         }
     }
+    val colors = theme.colors()
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen).imePadding(), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Своя тема", onBack) }
-        item { Box(Modifier.padding(horizontal = 60.dp, vertical = 6.dp)) { ColorsCard(theme.name, "Так будет выглядеть", theme.colors(), true, Modifier.fillMaxWidth()) {} } }
+        item { Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) { ThemePreview(colors) } }
         item { SmallCaption("Название") }
         item { EditField(theme.name, "Моя тема") { theme = theme.copy(name = it.take(32)) } }
+        item { SmallCaption("Быстро: тема из одного цвета") }
+        item {
+            Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                BaseColors.forEach { color ->
+                    Box(Modifier.size(38.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color(color))
+                        .border(if (theme.accent == color) 3.dp else 1.dp, if (theme.accent == color) Fusion.colors.textPrimary else Fusion.colors.outlineStrong, CircleShape)
+                        .clickable { fromBase(color) })
+                }
+                Box(
+                    Modifier.size(38.dp).clip(CircleShape).background(Fusion.colors.surface2).border(1.dp, Fusion.colors.outlineStrong, CircleShape).clickable { picking = "base" },
+                    contentAlignment = Alignment.Center
+                ) { androidx.compose.material3.Text("+", color = Fusion.colors.textPrimary, fontSize = 20.sp) }
+            }
+        }
+        item { Note("Фон, панели и сообщения подберутся под выбранный цвет. Потом любой цвет можно поменять ниже.") }
         item { SmallCaption("Цвета") }
         fields.forEach { (key, value) ->
             val (title, color) = value
@@ -454,38 +573,81 @@ private fun CustomThemeEditor(initial: com.kirox.app.settings.CustomTheme, onBac
             }
         }
         item {
-            com.kirox.app.ui.components.FusionButton("Сохранить", onClick = {
-                com.kirox.app.settings.CustomThemes.put(theme.copy(name = theme.name.trim().ifBlank { "Моя тема" }))
+            com.kirox.app.ui.components.FusionButton("Сохранить и включить", onClick = {
+                com.kirox.app.settings.CustomThemes.put(theme.copy(name = theme.name.trim().ifBlank { "Моя тема" }, subtitle = ""))
                 onBack()
             }, modifier = Modifier.padding(16.dp))
         }
     }
     picking?.let { key ->
-        var hex by remember(key) { mutableStateOf("") }
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { picking = null },
-            containerColor = Fusion.colors.surface1,
-            title = { Text(fields.first { it.first == key }.second.first, color = Fusion.colors.textPrimary) },
-            text = {
-                Column {
-                    ThemeSwatches.chunked(7).forEach { row ->
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            row.forEach { color ->
-                                Box(Modifier.padding(3.dp).size(30.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color(color))
-                                    .border(1.dp, Fusion.colors.outlineStrong, CircleShape).clickable { set(key, color); picking = null })
-                            }
+        val start = if (key == "base") theme.accent else fields.first { it.first == key }.second.second
+        ColorPickerDialog(
+            title = if (key == "base") "Основной цвет" else fields.first { it.first == key }.second.first,
+            initial = start,
+            onDismiss = { picking = null },
+            onPick = { set(key, it); picking = null }
+        )
+    }
+}
+
+/** Color picker: ready swatches, hue / saturation / brightness sliders and #RRGGBB. */
+@Composable
+private fun ColorPickerDialog(title: String, initial: Long, onDismiss: () -> Unit, onPick: (Long) -> Unit) {
+    val (h0, s0, v0) = remember(initial) { com.kirox.app.settings.CustomTheme.hsvOf(initial) }
+    var hue by remember { mutableFloatStateOf(h0) }
+    var sat by remember { mutableFloatStateOf(s0) }
+    var value by remember { mutableFloatStateOf(v0) }
+    var hex by remember { mutableStateOf("") }
+    val color = com.kirox.app.settings.CustomTheme.toArgb(hue, sat, value)
+    fun take(c: Long) { val (h, s, v) = com.kirox.app.settings.CustomTheme.hsvOf(c); hue = h; sat = s; value = v }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Fusion.colors.surface1,
+        title = { Text(title, color = Fusion.colors.textPrimary) },
+        text = {
+            Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(44.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color(color)).border(1.dp, Fusion.colors.outlineStrong, CircleShape))
+                    Spacer(Modifier.width(12.dp))
+                    androidx.compose.material3.Text(com.kirox.app.settings.CustomThemes.hex(color).replace("#FF", "#"), color = Fusion.colors.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.height(10.dp))
+                ThemeSwatches.chunked(8).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        row.forEach { c ->
+                            Box(Modifier.padding(2.dp).size(26.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color(c))
+                                .border(if (c == color) 2.dp else 1.dp, if (c == color) Fusion.colors.textPrimary else Fusion.colors.outlineStrong, CircleShape).clickable { take(c) })
                         }
                     }
-                    Spacer(Modifier.height(10.dp))
-                    EditField(hex, "#RRGGBB") { hex = it.take(9) }
                 }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    runCatching { com.kirox.app.settings.CustomThemes.parse(hex) }.onSuccess { set(key, it); picking = null }
-                }, enabled = hex.isNotBlank()) { Text("Готово", color = Fusion.colors.accent) }
-            },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { picking = null }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+                Spacer(Modifier.height(8.dp))
+                GradientSlider("Оттенок", hue / 360f, (0..6).map { androidx.compose.ui.graphics.Color(com.kirox.app.settings.CustomTheme.toArgb(it * 60f % 360f, 1f, 1f)) }) { hue = it * 360f }
+                GradientSlider("Насыщенность", sat, listOf(androidx.compose.ui.graphics.Color(com.kirox.app.settings.CustomTheme.toArgb(hue, 0f, value)), androidx.compose.ui.graphics.Color(com.kirox.app.settings.CustomTheme.toArgb(hue, 1f, value)))) { sat = it }
+                GradientSlider("Яркость", value, listOf(androidx.compose.ui.graphics.Color.Black, androidx.compose.ui.graphics.Color(com.kirox.app.settings.CustomTheme.toArgb(hue, sat, 1f)))) { value = it }
+                Spacer(Modifier.height(6.dp))
+                EditField(hex, "#RRGGBB") { text ->
+                    hex = text.take(9)
+                    runCatching { com.kirox.app.settings.CustomThemes.parse(hex) }.onSuccess(::take)
+                }
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { onPick(color) }) { Text("Готово", color = Fusion.colors.accent) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
+}
+
+/** A 0..1 slider over a gradient track that shows what it changes. */
+@Composable
+private fun GradientSlider(title: String, fraction: Float, track: List<androidx.compose.ui.graphics.Color>, onChange: (Float) -> Unit) {
+    Text(title, color = Fusion.colors.textSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+    Box(contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().padding(horizontal = 10.dp).height(10.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Brush.horizontalGradient(track)))
+        androidx.compose.material3.Slider(
+            value = fraction.coerceIn(0f, 1f), onValueChange = onChange,
+            colors = androidx.compose.material3.SliderDefaults.colors(
+                thumbColor = androidx.compose.ui.graphics.Color.White,
+                activeTrackColor = androidx.compose.ui.graphics.Color.Transparent, inactiveTrackColor = androidx.compose.ui.graphics.Color.Transparent
+            )
         )
     }
 }
@@ -585,4 +747,10 @@ private fun <T> CompactSegment(title: String, options: List<T>, selected: T, lab
 @Composable
 private fun Hint(text: String) {
     Text(text, color = Fusion.colors.textTertiary, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(start = 70.dp, end = 16.dp, bottom = 10.dp))
+}
+
+/** A grey note under a block, aligned with the cards. */
+@Composable
+private fun Note(text: String) {
+    Text(text, color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
 }

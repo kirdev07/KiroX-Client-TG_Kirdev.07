@@ -21,7 +21,7 @@ import com.kirox.app.ui.theme.Fusion
 fun FusionArt(modifier: Modifier = Modifier) {
     val colors = Fusion.colors
     Canvas(modifier) {
-        if (colors.glass) drawMountains() else drawFlowers(colors.chatWallpaper ?: listOf(colors.background, colors.background))
+        if (colors.scenery) drawMountains() else drawFlowers(colors.chatWallpaper ?: listOf(colors.background, colors.background), colors.accent, colors.outgoingBubble)
     }
 }
 
@@ -35,17 +35,17 @@ fun FusionArtHeader(modifier: Modifier = Modifier) {
     }
 }
 
-private fun DrawScope.drawFlowers(base: List<Color>) {
+private fun DrawScope.drawFlowers(base: List<Color>, accent: Color, second: Color) {
     drawRect(Brush.verticalGradient(base))
     val w = size.width
     val h = size.height
     // Flower center (fractions of the size), radius in widths, petal color.
     val flowers = listOf(
-        Triple(Offset(0.18f, 0.16f), 0.42f, Color(0xFF8A55E8)),
-        Triple(Offset(0.92f, 0.38f), 0.50f, Color(0xFF6C3FD6)),
-        Triple(Offset(0.22f, 0.66f), 0.46f, Color(0xFF9A4FD8)),
-        Triple(Offset(0.86f, 0.90f), 0.40f, Color(0xFF5E3BC4)),
-        Triple(Offset(0.55f, 0.02f), 0.30f, Color(0xFF7448D2))
+        Triple(Offset(0.18f, 0.16f), 0.42f, accent),
+        Triple(Offset(0.92f, 0.38f), 0.50f, second),
+        Triple(Offset(0.22f, 0.66f), 0.46f, mix(accent, second, 0.5f)),
+        Triple(Offset(0.86f, 0.90f), 0.40f, mix(second, Color.Black, 0.15f)),
+        Triple(Offset(0.55f, 0.02f), 0.30f, mix(accent, second, 0.3f))
     )
     flowers.forEachIndexed { index, (centerFraction, radiusFraction, tint) ->
         val center = Offset(centerFraction.x * w, centerFraction.y * h)
@@ -60,7 +60,7 @@ private fun DrawScope.drawFlowers(base: List<Color>) {
                 )
             }
         }
-        drawCircle(Brush.radialGradient(listOf(Color(0x66E0B8FF), Color.Transparent), center = center, radius = r * 0.22f), r * 0.22f, center)
+        drawCircle(Brush.radialGradient(listOf(mix(accent, Color.White, 0.6f).copy(alpha = 0.4f), Color.Transparent), center = center, radius = r * 0.22f), r * 0.22f, center)
     }
     // Dark veil: the art stays a background, bubbles stay readable.
     drawRect(Color(0x40070512))
@@ -104,3 +104,5 @@ private fun DrawScope.drawMountains(scrim: Boolean = true) {
     listOf(0.02f, 0.06f, 0.1f, 0.15f, 0.84f, 0.89f, 0.93f, 0.97f).forEachIndexed { i, x -> fir(x * w, h * (0.05f + (i % 3) * 0.015f)) }
     if (scrim) drawRect(Brush.verticalGradient(listOf(Color(0x10071424), Color(0x66071424))))
 }
+
+private fun mix(a: Color, b: Color, t: Float) = Color(a.red + (b.red - a.red) * t, a.green + (b.green - a.green) * t, a.blue + (b.blue - a.blue) * t, 1f)

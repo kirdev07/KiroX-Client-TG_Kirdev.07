@@ -73,8 +73,6 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
     if (languagePage) { LanguageScreen(onBack = { languagePage = false }, onNotice = onNotice); return }
     var stickersPage by remember { mutableStateOf(false) }
     if (stickersPage) { StickerSetsScreen(onBack = { stickersPage = false }, onNotice = onNotice); return }
-    var customIconPage by remember { mutableStateOf(false) }
-    if (customIconPage) { CustomIconScreen(onBack = { customIconPage = false }, onNotice = onNotice); return }
     var filtersPage by remember { mutableStateOf(false) }
     if (filtersPage) { MessageFiltersScreen(onBack = { filtersPage = false }); return }
     var powerPage by remember { mutableStateOf(false) }
@@ -91,8 +89,6 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
     val tweaks by com.kirox.app.settings.KiroxTweaks.state.collectAsState()
     fun set(value: com.kirox.app.settings.Tweaks) = com.kirox.app.settings.KiroxTweaks.update(value)
     var choosingDoubleTap by remember { mutableStateOf(false) }
-    var appIcon by remember { mutableStateOf(com.kirox.app.settings.AppIcons.current(context)) }
-    var choosingIcon by remember { mutableStateOf(false) }
     var restoreText by remember { mutableStateOf<String?>(null) }
     val pickBackup = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -193,14 +189,10 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
         item { SmallCaption("Интерфейс") }
         item {
             SettingsCard {
-                ToggleRow("Вкладка «Звонки»", "Показывать в нижней панели", !tweaks.hideCallsTab) { set(tweaks.copy(hideCallsTab = !it)) }
-                ToggleRow("Вкладка «Истории»", "Показывать в нижней панели", !tweaks.hideStoriesTab) { set(tweaks.copy(hideStoriesTab = !it)) }
                 ToggleRow("ID в профилях", "Номер пользователя или чата в Telegram; нажатие копирует его", tweaks.showIds) { set(tweaks.copy(showIds = it)) }
                 ToggleRow("Скрывать клавиатуру при прокрутке", "Проведите по переписке — клавиатура закроется", tweaks.hideKeyboardOnScroll) { set(tweaks.copy(hideKeyboardOnScroll = it)) }
                 LinkRow("Встроенный браузер", if (tweaks.inAppBrowser) "Включён" else "Выключен") { browserPage = true }
                 LinkRow("Энергосбережение", tweaks.powerSaving.title) { powerPage = true }
-                CardDivider()
-                IconRow(IconGlyphs.Palette, Color(0xFF6C4CE0), "Иконка приложения", null, trailing = appIcon.title) { choosingIcon = true }
             }
         }
         item { SmallCaption("Резервная копия") }
@@ -245,14 +237,6 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
         item { SmallCaption("Сброс") }
         item { LinkRow("Сбросить настройки kiroX", "Тема, анимации, чаты — к значениям по умолчанию. Telegram не затрагивается", Fusion.colors.danger) { confirmReset = true } }
         item { LinkRow("Выйти из аккаунта", null, Fusion.colors.danger) { confirmLogout = true } }
-    }
-    if (choosingIcon) AppIconDialog(appIcon, onDismiss = { choosingIcon = false }, onCustom = { choosingIcon = false; customIconPage = true }) { icon ->
-        choosingIcon = false
-        if (icon != appIcon) {
-            com.kirox.app.settings.AppIcons.set(context, icon)
-            appIcon = icon
-            onNotice("Иконка изменится на рабочем столе через несколько секунд")
-        }
     }
     if (choosingDoubleTap) ChoiceDialog("Двойной тап по сообщению", com.kirox.app.settings.DoubleTapAction.entries, tweaks.doubleTap, { it.title }, onDismiss = { choosingDoubleTap = false }) {
         set(tweaks.copy(doubleTap = it)); choosingDoubleTap = false

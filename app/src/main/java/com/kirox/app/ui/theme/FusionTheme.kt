@@ -60,7 +60,14 @@ data class FusionColors(
     val glow: List<Color> = emptyList(),
     /** Glass style: bars and cards are translucent over the backdrop, with a light stroke. */
     val glass: Boolean = false,
-    val chatWallpaper: List<Color>? = null
+    val chatWallpaper: List<Color>? = null,
+    /** Glass style: translucent tint of cards and bars, and their thin light stroke. */
+    val glassPanel: Color = Color(0x8C1B3554),
+    val glassStroke: Color = Color(0x2EFFFFFF),
+    /** Outline of the floating bottom dock, strong enough to see on any backdrop. */
+    val dockStroke: Color = Color(0x806B91FF),
+    /** Evening mountains as the chat and profile art (the built-in Fusion Glass); otherwise soft flowers in the accent. */
+    val scenery: Boolean = false
 ) {
     /** Background of a screen inside the main shell: see-through over the v2 backdrop, solid otherwise. */
     val screen: Color get() = if (backdrop != null) Color.Transparent else background
@@ -118,7 +125,8 @@ data class FusionColors(
             backdrop = listOf(Color(0xFF091B34), Color(0xFF12305A), Color(0xFF071424)),
             glow = listOf(Color(0x556B91FF), Color(0x449A83FF)),
             glass = true,
-            chatWallpaper = listOf(Color(0xFF0B2242), Color(0xFF173863), Color(0xFF081628))
+            chatWallpaper = listOf(Color(0xFF0B2242), Color(0xFF173863), Color(0xFF081628)),
+            scenery = true
         )
 
         fun of(palette: FusionPalette) = when (palette) {
@@ -204,7 +212,7 @@ internal fun fusionColorScheme(colors: FusionColors) = darkColorScheme(
     surfaceContainer = colors.surface1, surfaceContainerHigh = colors.surface2, surfaceContainerHighest = colors.surface3
 ).let { scheme ->
     // Glass dialogs, menus and sheets stay opaque: text over a translucent dialog is hard to read.
-    if (colors.glass) scheme.copy(surfaceContainerHigh = Color(0xFF1B3554), surfaceContainer = Color(0xFF122640)) else scheme
+    if (colors.glass) scheme.copy(surfaceContainerHigh = colors.surface2.copy(alpha = 1f), surfaceContainer = colors.surface1.copy(alpha = 1f)) else scheme
 }
 
 /** M3 type scale, sized like the old Fusion screens (bold titles, 16 sp body). */

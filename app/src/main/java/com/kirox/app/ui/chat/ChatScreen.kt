@@ -156,7 +156,7 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
             (if (post) Modifier.widthIn(max = windowWidthDp().coerceAtLeast(320).dp * .94f).fillMaxWidth() else Modifier.widthIn(max = windowWidthDp().coerceAtLeast(320).dp * .84f))
                 .clip(shape)
                 .background(bubbleBrush(outgoing, appearance))
-                .then(if (Fusion.colors.glass) Modifier.border(1.dp, Color(0x29FFFFFF), shape) else Modifier)
+                .then(if (Fusion.colors.glass) Modifier.border(1.dp, Fusion.colors.glassStroke, shape) else Modifier)
                 .combinedClickable(onClick = { onClick?.invoke() }, onLongClick = onLongClick, onDoubleClick = onDoubleClick)
                 .padding(horizontal = 12.dp, vertical = appearance.bubblePaddingDp.dp)
         ) {
@@ -364,7 +364,7 @@ internal fun ChatComposer(value: TextFieldValue, reply: MessageUi?, editing: Mes
             Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.Bottom) {
             Surface(
                 color = Color(appearance.inputColor), shape = RoundedCornerShape(26.dp),
-                modifier = Modifier.weight(1f).border(1.dp, if (Fusion.colors.glass) Color(0x2EFFFFFF) else Fusion.colors.outline, RoundedCornerShape(26.dp))
+                modifier = Modifier.weight(1f).border(1.dp, if (Fusion.colors.glass) Fusion.colors.glassStroke else Fusion.colors.outline, RoundedCornerShape(26.dp))
             ) {
                 // Emoji and stickers on the left, attachments and send/voice on the right, as in Telegram.
                 Row(verticalAlignment = Alignment.Bottom) {
