@@ -224,42 +224,27 @@ internal fun VideoNoteMessage(media: TelegramMedia, thumbnail: TelegramFileRef?)
     }
 }
 
+/**
+ * A file as Telegram shows it: colored tile (or the file's own preview), name and size, the download
+ * arrow and progress on the tile. Music sent as a plain file plays like any track.
+ */
 @Composable
-internal fun DocumentMessage(media: TelegramMedia, onNotice: (String) -> Unit) {
+internal fun DocumentMessage(media: TelegramMedia, onNotice: (String) -> Unit, thumbnail: TelegramFileRef? = null) {
+    if (com.kirox.app.files.FileGuard.extension(media.title) in com.kirox.app.ui.files.audioExtensions) {
+        AudioMessage(media.copy(title = media.title.substringBeforeLast('.')), thumbnail)
+        return
+    }
     val files = LocalTelegramFiles.current
     var viewing by remember(media.file.id) { mutableStateOf<String?>(null) }
     viewing?.let { path -> com.kirox.app.ui.files.FileViewer(path, media.title.ifBlank { java.io.File(path).name }, media.mimeType) { viewing = null } }
     val state = rememberFileState(media.file)
     val rule = LocalAutoDownload.current
     LaunchedEffect(media.file.id, rule) { if (state.path == null && !state.downloading && media.size in 1..rule.maxOtherBytes) files?.download(media.file) }
-    Row(
-        Modifier.clip(RoundedCornerShape(12.dp)).clickable {
-            val path = state.path
-            when {
-                path != null -> viewing = path
-                state.downloading -> files?.cancel(media.file)
-                else -> files?.download(media.file)
-            }
-        },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(Modifier.size(42.dp).clip(CircleShape).background(Fusion.colors.surface3), contentAlignment = Alignment.Center) {
-            when {
-                state.downloading -> {
-                    CircularProgressIndicator(progress = { state.fraction.coerceAtLeast(0.02f) }, modifier = Modifier.size(34.dp), color = Fusion.colors.textPrimary, strokeWidth = 2.dp)
-                    Text("×", color = Fusion.colors.textPrimary, fontSize = 15.sp)
-                }
-                state.path != null -> IconGlyph(KiroXIcon.File, "Файл", Modifier.size(20.dp), Fusion.colors.textPrimary)
-                else -> Text("↓", color = Fusion.colors.textPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-        Spacer(Modifier.width(10.dp))
-        Column(Modifier.widthIn(max = 220.dp)) {
-            Text(media.title.ifBlank { "Файл" }, color = Fusion.colors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            val size = if (state.downloading) "${formatFileSize(state.downloaded)} из ${formatFileSize(state.total)}" else formatFileSize(media.size)
-            Text(size, color = Fusion.colors.textSecondary, fontSize = 12.sp)
-        }
-    }
+    com.kirox.app.ui.files.TelegramFileRow(
+        media.title, media.file, media.size, onOpen = { viewing = it },
+        modifier = Modifier.widthIn(min = 200.dp, max = 280.dp).clip(RoundedCornerShape(12.dp)).padding(vertical = 2.dp),
+        thumbnail = thumbnail
+    )
 }
 
 /**

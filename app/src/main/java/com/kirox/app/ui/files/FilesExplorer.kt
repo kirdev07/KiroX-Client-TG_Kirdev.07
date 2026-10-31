@@ -167,8 +167,14 @@ private fun FileRow(e: Entry, verdict: FileGuard.Level?, onOpen: () -> Unit, onL
         Modifier.fillMaxWidth().combinedClickable(onClick = onOpen, onLongClick = onLongPress).padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Fusion.colors.surface2), contentAlignment = Alignment.Center) {
-            Text(e.ext.uppercase().take(4).ifEmpty { "?" }, color = Fusion.colors.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Box {
+            // Music shows its cover, pictures themselves; everything else the colored tile.
+            val px = with(androidx.compose.ui.platform.LocalDensity.current) { 46.dp.roundToPx() }
+            val picture = when {
+                e.folder == "music" || e.ext in audioExtensions -> com.kirox.app.ui.music.rememberLocalAudioCover(e.file.path, px)
+                else -> null
+            }
+            FileTile(e.ext, picture, null, size = 46.dp)
             if (badge != null) Box(Modifier.align(Alignment.TopEnd).size(12.dp).clip(CircleShape).background(badge))
         }
         Column(Modifier.weight(1f).padding(start = 12.dp)) {

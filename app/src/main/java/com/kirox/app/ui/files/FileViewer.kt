@@ -68,7 +68,7 @@ private sealed interface Preview {
 private val textTypes = setOf("txt", "log", "md", "csv", "tsv", "json", "xml", "yml", "yaml", "ini", "cfg", "conf", "properties", "srt", "vtt",
     "kt", "kts", "java", "py", "js", "ts", "c", "h", "cpp", "cs", "go", "rs", "swift", "php", "rb", "sh", "bat", "ps1", "sql", "gradle", "toml", "html", "htm", "css", "svg")
 private val imageTypes = setOf("jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif")
-private val audioTypes = setOf("mp3", "m4a", "ogg", "oga", "opus", "wav", "flac", "aac")
+private val audioTypes = audioExtensions
 private val videoTypes = setOf("mp4", "mov", "mkv", "webm", "avi", "3gp", "m4v")
 private const val TEXT_LIMIT = 512 * 1024
 private const val LIST_LIMIT = 2000
@@ -234,7 +234,7 @@ fun FileViewer(path: String, name: String, mimeType: String = "", onClose: () ->
                             }
                             items(p.permissions) { Text(it, color = Fusion.colors.textPrimary, fontSize = 13.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(vertical = 3.dp)) }
                         }
-                        is Preview.Media -> Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                        is Preview.Media -> if (!p.video) AudioCard(path, name, Modifier.align(Alignment.Center)) else Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                             KiroXIcon(if (p.video) KiroXIcon.Video else KiroXIcon.Music, null, Modifier.size(64.dp), Fusion.colors.textTertiary)
                             com.kirox.app.ui.components.FusionButton(if (p.video) "Смотреть" else "Слушать", onClick = {
                                 if (p.video) video = true else com.kirox.app.ui.chat.VoicePlayer.toggle(context, path, name, "kiroX")
@@ -331,4 +331,67 @@ internal fun formatSize(bytes: Long): String = when {
     bytes >= 1L shl 20 -> "%.1f МБ".format(bytes / (1L shl 20).toDouble())
     bytes >= 1L shl 10 -> "${bytes shr 10} КБ"
     else -> "$bytes Б"
+}
+
+/** A music file: its cover, title and artist from the tags, play / pause and a seek bar. */
+@Composable
+private fun AudioCard(path: String, name: String, modifier: Modifier) {
+    val context = LocalContext.current
+    val px = with(androidx.compose.ui.platform.LocalDensity.current) { 240.dp.roundToPx() }
+    val cover = com.kirox.app.ui.music.rememberLocalAudioCover(path, px)
+    var tags by remember(path) { mutableStateOf(Triple(name.substringBeforeLast('.'), "", 0L)) }
+    LaunchedEffect(path) {
+        tags = withContext(Dispatchers.IO) {
+            runCatching {
+                android.media.MediaMetadataRetriever().run {
+                    try {
+                        setDataSource(path)
+                        Triple(
+                            extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE)?.takeIf { it.isNotBlank() } ?: tags.first,
+                            extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST).orEmpty(),
+                            extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+                        )
+                    } finally { release() }
+                }
+            }.getOrDefault(tags)
+        }
+    }
+    val playingPath by com.kirox.app.ui.chat.VoicePlayer.playingPath.collectAsState()
+    val mine = playingPath == path
+    var playing by remember { mutableStateOf(false) }
+    var progress by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(mine) {
+        while (mine) {
+            playing = com.kirox.app.ui.chat.VoicePlayer.isPlaying
+            progress = com.kirox.app.ui.chat.VoicePlayer.progress
+            kotlinx.coroutines.delay(300)
+        }
+        playing = false
+    }
+    Column(modifier.padding(horizontal = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(240.dp).clip(RoundedCornerShape(20.dp)).background(fileColor("mp3")), contentAlignment = Alignment.Center) {
+            if (cover != null) Image(cover, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            else KiroXIcon(KiroXIcon.Music, null, Modifier.size(84.dp), Color.White)
+        }
+        Text(tags.first, color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 20.dp))
+        if (tags.second.isNotBlank()) Text(tags.second, color = Fusion.colors.textSecondary, fontSize = 15.sp, maxLines = 1)
+        androidx.compose.material3.Slider(
+            value = if (mine) progress else 0f,
+            onValueChange = { f -> progress = f; if (mine) com.kirox.app.ui.chat.VoicePlayer.seek(path, f) },
+            enabled = mine,
+            colors = androidx.compose.material3.SliderDefaults.colors(thumbColor = Fusion.colors.accent, activeTrackColor = Fusion.colors.accent),
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+        )
+        Row(Modifier.fillMaxWidth()) {
+            val total = tags.third / 1000
+            Text(if (mine) "%d:%02d".format((total * progress).toLong() / 60, (total * progress).toLong() % 60) else "0:00", color = Fusion.colors.textTertiary, fontSize = 12.sp)
+            Spacer(Modifier.weight(1f))
+            if (total > 0) Text("%d:%02d".format(total / 60, total % 60), color = Fusion.colors.textTertiary, fontSize = 12.sp)
+        }
+        Box(
+            Modifier.padding(top = 12.dp).size(68.dp).clip(CircleShape).background(Fusion.colors.accent)
+                .clickable { com.kirox.app.ui.chat.VoicePlayer.toggle(context, path, tags.first, tags.second.ifBlank { "kiroX" }) },
+            contentAlignment = Alignment.Center
+        ) { KiroXIcon(if (mine && playing) KiroXIcon.Pause else KiroXIcon.Play, if (mine && playing) "Пауза" else "Слушать", Modifier.size(34.dp), Fusion.colors.onAccent) }
+    }
 }

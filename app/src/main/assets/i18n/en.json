@@ -1910,5 +1910,13 @@
  "Слушаете на: ": "Listening on: ",
  "Треков: {}": "Tracks: {}",
  "Куда выводить звук": "Where the sound goes",
- "Подключите Bluetooth-наушники или колонку — они появятся здесь.": "Connect Bluetooth headphones or a speaker — they will show up here."
+ "Подключите Bluetooth-наушники или колонку — они появятся здесь.": "Connect Bluetooth headphones or a speaker — they will show up here.",
+ "Подписаться": "Join",
+ "Вступить": "Join",
+ "Вы подписались на канал": "You joined the channel",
+ "Вы вступили в группу": "You joined the group",
+ "Не удалось подписаться": "Couldn't join",
+ "ПОДПИСЫВАЕМ…": "JOINING…",
+ "ПОДПИСАТЬСЯ": "JOIN",
+ "из": "of"
 }

@@ -254,8 +254,9 @@ private fun ChatsTab(
     onNotice: (UiNotice) -> Unit
 ) {
     var confirmReadAll by remember { mutableStateOf(false) }
-    var searching by rememberSaveable { mutableStateOf(false) }
-    var query by rememberSaveable { mutableStateOf("") }
+    // Kept outside the screen: back from a chat opened in the search returns to the same results.
+    var searching by ChatSearchMemory.searching
+    var query by ChatSearchMemory.query
     var menuFor by remember { mutableStateOf<TelegramChatItem?>(null) }
     var deleteFor by remember { mutableStateOf<TelegramChatItem?>(null) }
     val scope = rememberCoroutineScope()
@@ -270,12 +271,12 @@ private fun ChatsTab(
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 HeaderAction(KiroXIcon.Back, "Закрыть поиск") { searching = false; query = "" }
-                Box(Modifier.weight(1f)) { SearchField(query, "Поиск чатов", autoFocus = true) { query = it } }
+                Box(Modifier.weight(1f)) { SearchField(query, "Поиск чатов", autoFocus = query.isEmpty()) { query = it } }
             }
             ChatSearchResults(
                 query, actions::search, actions::searchMessages,
-                onOpenMessage = { found -> searching = false; query = ""; onOpenChat(found.chatId); actions.jumpToMessage(found.messageId) }
-            ) { chat -> ChatRow(chat) { searching = false; query = ""; onOpenChat(chat.id) } }
+                onOpenMessage = { found -> onOpenChat(found.chatId); actions.jumpToMessage(found.messageId) }
+            ) { chat -> ChatRow(chat) { onOpenChat(chat.id) } }
         }
         return
     }
@@ -1004,3 +1005,9 @@ private fun <T> SectionTabs(tabs: List<Pair<String, T>>, selected: T, onSelect: 
 
 @Composable
 private fun Modifier.verticalScrollCompat(): Modifier = this.then(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()))
+
+/** The chat search while a chat found in it is open, so «назад» comes back to the results. */
+private object ChatSearchMemory {
+    val searching = mutableStateOf(false)
+    val query = mutableStateOf("")
+}

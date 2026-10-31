@@ -158,6 +158,21 @@ class TelegramChatRepository(private val client: TelegramClient) {
         client.query(TdApi.SetChatNotificationSettings(chatId, settings))
     }
 
+    /** A channel or group: whether this account is in it, and whether it may post (channel admins). */
+    suspend fun membership(chatId: Long): Pair<Boolean, Boolean> {
+        val type = client.query(TdApi.GetChat(chatId)).type as? TdApi.ChatTypeSupergroup ?: return true to true
+        return when (val status = client.query(TdApi.GetSupergroup(type.supergroupId)).status) {
+            is TdApi.ChatMemberStatusLeft, is TdApi.ChatMemberStatusBanned -> false to false
+            is TdApi.ChatMemberStatusCreator -> status.isMember to status.isMember
+            is TdApi.ChatMemberStatusAdministrator -> true to (!type.isChannel || status.rights.canPostMessages)
+            is TdApi.ChatMemberStatusRestricted -> status.isMember to false
+            else -> true to !type.isChannel
+        }
+    }
+
+    /** Subscribes to a channel or joins a public group. */
+    suspend fun join(chatId: Long) { client.query(TdApi.JoinChat(chatId)) }
+
     /** New messages disappear [seconds] after they are read (secret chats) or sent; 0 turns it off. */
     suspend fun setAutoDelete(chatId: Long, seconds: Int) { client.query(TdApi.SetChatMessageAutoDeleteTime(chatId, seconds)) }
 
@@ -247,6 +262,7 @@ class TelegramChatRepository(private val client: TelegramClient) {
         val filter: TdApi.SearchMessagesFilter = when (kind) {
             SharedMediaKind.Media -> TdApi.SearchMessagesFilterPhotoAndVideo()
             SharedMediaKind.Files -> TdApi.SearchMessagesFilterDocument()
+            SharedMediaKind.Music -> TdApi.SearchMessagesFilterAudio()
             SharedMediaKind.Voice -> TdApi.SearchMessagesFilterVoiceNote()
             SharedMediaKind.Links -> TdApi.SearchMessagesFilterUrl()
         }
@@ -255,8 +271,16 @@ class TelegramChatRepository(private val client: TelegramClient) {
             when (val content = message.content) {
                 is TdApi.MessagePhoto -> TelegramSharedItem(message.id, message.date, thumb = content.photo.sizes.minByOrNull { kotlin.math.abs(it.width - 320) }?.photo?.toRef(), full = content.photo.sizes.maxByOrNull { it.width }?.photo?.toRef())
                 is TdApi.MessageVideo -> TelegramSharedItem(message.id, message.date, thumb = content.video.thumbnail?.file?.toRef(), subtitle = durationText(content.video.duration), isVideo = true)
-                is TdApi.MessageDocument -> TelegramSharedItem(message.id, message.date, title = content.document.fileName.ifBlank { "Файл" }, subtitle = sizeText(content.document.document.size))
-                is TdApi.MessageVoiceNote -> TelegramSharedItem(message.id, message.date, title = "Голосовое сообщение", subtitle = durationText(content.voiceNote.duration))
+                is TdApi.MessageDocument -> content.document.let { d ->
+                    TelegramSharedItem(message.id, message.date, thumb = d.thumbnail?.file?.toRef(), title = d.fileName.ifBlank { "Файл" }, subtitle = sizeText(d.document.size),
+                        file = d.document.toRef(), size = d.document.size.takeIf { it > 0 } ?: d.document.expectedSize, mimeType = d.mimeType.orEmpty())
+                }
+                is TdApi.MessageAudio -> content.audio.let { a ->
+                    TelegramSharedItem(message.id, message.date, thumb = a.albumCoverThumbnail?.file?.toRef(), title = a.title.ifBlank { a.fileName.substringBeforeLast('.') }.ifBlank { "Аудио" },
+                        subtitle = listOf(a.performer, durationText(a.duration)).filter { it.isNotBlank() }.joinToString(" · "),
+                        file = a.audio.toRef(), size = a.audio.size, mimeType = a.mimeType.orEmpty(), performer = a.performer.orEmpty(), duration = a.duration)
+                }
+                is TdApi.MessageVoiceNote -> TelegramSharedItem(message.id, message.date, title = "Голосовое сообщение", subtitle = durationText(content.voiceNote.duration), file = content.voiceNote.voice.toRef(), duration = content.voiceNote.duration)
                 is TdApi.MessageText -> TelegramSharedItem(message.id, message.date, title = Regex("https?://\\S+|t\\.me/\\S+|[\\w.-]+\\.[a-z]{2,}/\\S*").find(content.text.text)?.value ?: content.text.text.take(80), subtitle = content.text.text.take(120))
                 else -> TelegramSharedItem(message.id, message.date, title = messagePreview(message))
             }
@@ -493,7 +517,7 @@ internal fun TdApi.User.emojiStatusId(): Long {
     return (status.type as? TdApi.EmojiStatusTypeCustomEmoji)?.customEmojiId ?: 0L
 }
 
-enum class SharedMediaKind(val title: String) { Media("Медиа"), Files("Файлы"), Voice("Голосовые"), Links("Ссылки") }
+enum class SharedMediaKind(val title: String) { Media("Медиа"), Files("Файлы"), Music("Музыка"), Voice("Голосовые"), Links("Ссылки") }
 
 data class TelegramSharedItem(
     val messageId: Long,
@@ -503,7 +527,14 @@ data class TelegramSharedItem(
     val subtitle: String = "",
     val isVideo: Boolean = false,
     /** Largest size of a photo, for the full-screen viewer. */
-    val full: TelegramFileRef? = null
+    val full: TelegramFileRef? = null,
+    /** The file itself (documents, music, voice notes), to download and open from the profile. */
+    val file: TelegramFileRef? = null,
+    val size: Long = 0,
+    val mimeType: String = "",
+    /** Music: performer and length in seconds. */
+    val performer: String = "",
+    val duration: Int = 0
 )
 
 private const val SHARED_LIMIT = 60

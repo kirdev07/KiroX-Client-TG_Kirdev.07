@@ -205,7 +205,7 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
                 MessageKind.VideoNote -> if (media != null) VideoNoteMessage(media, message.thumbnail) else MediaPlaceholder(message.kind)
                 MessageKind.Voice -> VoiceMessage(message.text, message.photo, message.media?.waveform.orEmpty())
                 MessageKind.Audio -> { if (media != null) AudioMessage(media, message.photo); Caption() }
-                MessageKind.Document -> if (media != null) { DocumentMessage(media, onNotice); Caption() } else MessageText(message.text, message.entities, textScale)
+                MessageKind.Document -> if (media != null) { DocumentMessage(media, onNotice, message.thumbnail); Caption() } else MessageText(message.text, message.entities, textScale)
                 MessageKind.Sticker -> if (media != null) StickerMessage(media, message.thumbnail) else MessageText(message.text, message.entities, textScale)
                 MessageKind.Text -> {
                     val poll = message.poll
@@ -543,7 +543,7 @@ private fun AlbumGrid(items: List<MessageUi>, modifier: Modifier = Modifier, wid
                                 if (open) FullscreenPhoto(photo) { open = false }
                             }
                             item.kind == MessageKind.Video && media != null -> VideoMessage(media, item.thumbnail)
-                            media != null -> DocumentMessage(media) {}
+                            media != null -> DocumentMessage(media, {}, item.thumbnail)
                             else -> MediaPlaceholder(item.kind)
                         }
                     }

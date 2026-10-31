@@ -56,6 +56,14 @@ private object EmbeddedCovers {
     }
 }
 
+/** The picture inside a music file already on the phone; null while it loads or when there is none. */
+@Composable
+fun rememberLocalAudioCover(path: String, sizePx: Int): ImageBitmap? {
+    var image by remember(path) { mutableStateOf(EmbeddedCovers.cached(path)) }
+    LaunchedEffect(path) { if (!EmbeddedCovers.known(path)) image = withContext(Dispatchers.IO) { EmbeddedCovers.read(path, sizePx) } }
+    return image
+}
+
 /**
  * A track's cover: Telegram's album thumbnail when there is one, otherwise the picture inside the
  * music file once it is on the phone (many MP3s carry one even when Telegram shows none).

@@ -194,6 +194,8 @@ fun KiroXApp() {
             override suspend fun clearHistory(chatId: Long) = telegramViewModel.chats.clearHistory(chatId)
             override suspend fun setAutoDelete(chatId: Long, seconds: Int) = telegramViewModel.chats.setAutoDelete(chatId, seconds)
             override suspend fun deleteChat(chatId: Long) = telegramViewModel.chats.deleteChat(chatId)
+            override suspend fun membership(chatId: Long) = telegramViewModel.chats.membership(chatId)
+            override suspend fun join(chatId: Long) = telegramViewModel.chats.join(chatId)
         }
     }
     val chatError by telegramViewModel.chats.error.collectAsStateWithLifecycle()
@@ -209,13 +211,24 @@ fun KiroXApp() {
     val chatDensity by settings.chatDensity.collectAsStateWithLifecycle()
     val weakDevice = remember { com.kirox.app.settings.prefersLightEffects(context) }
     val scope = rememberCoroutineScope()
+    // Chats left by following a link from them, newest last: Back walks this trail before the list.
+    val chatTrail = remember { mutableStateListOf<Long>() }
     fun openChat(id: Long) {
+        val fromChat = Screen.Conversation in stack || Screen.Thread in stack
+        if (!fromChat) chatTrail.clear() else if (openChatId != 0L && openChatId != id) chatTrail.add(openChatId)
         openChatId = id
         telegramViewModel.messages.open(id)
         // One open conversation id: a chat opened from inside another (a t.me link in comments)
         // replaces it, so Back never lands on a Conversation that shows a different chat.
-        if (Screen.Conversation in stack || Screen.Thread in stack) stack.resetTo(Screen.Chats, Screen.Conversation)
+        if (fromChat) stack.resetTo(Screen.Chats, Screen.Conversation)
         else stack.push(Screen.Conversation)
+    }
+    /** Back from a chat: to the chat whose link opened it, else to the list. */
+    fun closeChat() {
+        val previous = chatTrail.removeLastOrNull()
+        if (previous == null) { stack.pop(); return }
+        openChatId = previous
+        telegramViewModel.messages.open(previous)
     }
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     // t.me and tg: links open the chat inside KiroX; anything else (and unknown names) in the browser.
@@ -377,7 +390,7 @@ fun KiroXApp() {
                                 onErrorShown = telegramViewModel.messages::clearError,
                                 forwardTargets = chatLists.main.chats,
                                 actions = actions,
-                                onBack = { stack.pop() },
+                                onBack = ::closeChat,
                                 menu = chatMenu,
                                 activityLine = activityLines[chatId],
                                 stickers = stickerSource,

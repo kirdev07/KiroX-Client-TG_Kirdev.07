@@ -67,6 +67,10 @@ interface TelegramChatMenuActions {
     suspend fun clearHistory(chatId: Long)
     suspend fun setAutoDelete(chatId: Long, seconds: Int)
     suspend fun deleteChat(chatId: Long)
+    /** Whether this account is in the channel or group, and whether it may post there. */
+    suspend fun membership(chatId: Long): Pair<Boolean, Boolean> = true to true
+    /** Subscribes to the channel or joins the group. */
+    suspend fun join(chatId: Long) {}
 }
 
 interface TelegramChatActions {
@@ -537,9 +541,27 @@ fun TelegramChatScreen(
         initial = history.title.take(1).uppercase(),
         photo = history.photo,
         canVoiceCall = onCall != null && history.peerKind == TelegramPeerKind.User && !history.isSecret ||
-            onGroupCall != null && history.threadTitle == null && (history.peerKind == TelegramPeerKind.Group || history.peerKind == TelegramPeerKind.Channel),
+            onGroupCall != null && history.threadTitle == null && history.peerKind == TelegramPeerKind.Group,
         canVideoCall = onCall != null && history.peerKind == TelegramPeerKind.User && !history.isSecret
     )
+    // Channels and groups: subscribed or not, and whether this account posts (channel admins get the composer).
+    var membership by remember(history.chatId) { mutableStateOf<Pair<Boolean, Boolean>?>(null) }
+    var joining by remember(history.chatId) { mutableStateOf(false) }
+    LaunchedEffect(history.chatId, history.peerKind) {
+        if (menu != null && history.chatId != 0L && (history.peerKind == TelegramPeerKind.Channel || history.peerKind == TelegramPeerKind.Group))
+            membership = runCatching { menu.membership(history.chatId) }.getOrNull()
+    }
+    val channelPoster = history.peerKind == TelegramPeerKind.Channel && membership?.second == true
+    fun join() {
+        if (menu == null || joining) return
+        joining = true
+        scope.launch {
+            runCatching { menu.join(history.chatId) }
+                .onSuccess { membership = runCatching { menu.membership(history.chatId) }.getOrNull() ?: (true to false); notice = if (history.peerKind == TelegramPeerKind.Channel) "Вы подписались на канал" else "Вы вступили в группу" }
+                .onFailure { notice = "Не удалось подписаться" }
+            joining = false
+        }
+    }
     if (profileOpen) androidx.compose.ui.window.Dialog(
         onDismissRequest = { profileOpen = false },
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
@@ -553,7 +575,9 @@ fun TelegramChatScreen(
             onSearch = { profileOpen = false; searching = true },
             onOpenMessage = { id -> profileOpen = false; actions.jumpTo(id) },
             onBack = { profileOpen = false },
-            onLeave = if (menu != null && (history.peerKind == TelegramPeerKind.Group || history.peerKind == TelegramPeerKind.Channel)) ({
+            isChannel = history.peerKind == TelegramPeerKind.Channel,
+            onJoin = if (membership?.first == false) ({ join() }) else null,
+            onLeave = if (menu != null && membership?.first != false && (history.peerKind == TelegramPeerKind.Group || history.peerKind == TelegramPeerKind.Channel)) ({
                 profileOpen = false
                 scope.launch { runCatching { menu.deleteChat(history.chatId) }.onSuccess { onBack() }.onFailure { notice = "Не удалось выйти" } }
             }) else null
@@ -634,7 +658,7 @@ fun TelegramChatScreen(
                 Box(Modifier.fillMaxWidth().background(Fusion.colors.background).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp)) {
                     com.kirox.app.ui.components.FusionButton("Запустить", onClick = { actions.sendText("/start", null) })
                 }
-            } else if ((history.peerKind != TelegramPeerKind.Channel || history.threadTitle != null) && !history.isForum) Column {
+            } else if ((history.peerKind != TelegramPeerKind.Channel || history.threadTitle != null || channelPoster) && !history.isForum) Column {
                 if (history.chatId in liveShares) Row(
                     Modifier.fillMaxWidth().background(Fusion.colors.background).padding(horizontal = 16.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -811,7 +835,7 @@ fun TelegramChatScreen(
                 reverseLayout = true,
                 modifier = Modifier.fillMaxSize(),
                 // A read-only channel keeps room at the bottom for the notifications button.
-                contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 10.dp, bottom = if (history.peerKind == TelegramPeerKind.Channel && history.threadTitle == null && menu != null) 84.dp else 10.dp),
+                contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 10.dp, bottom = if (history.peerKind == TelegramPeerKind.Channel && history.threadTitle == null && menu != null && !channelPoster) 84.dp else 10.dp),
                 verticalArrangement = Arrangement.spacedBy(appearance.messageSpacingDp.dp)
             ) {
                 itemsIndexed(rows, key = { _, row -> row.key }, contentType = { _, row -> row.message.direction }) { index, row ->
@@ -887,9 +911,14 @@ fun TelegramChatScreen(
                 }
             }
                     // Read-only channel (approved board 6): a notifications switch where the composer would be.
-            if (history.peerKind == TelegramPeerKind.Channel && history.threadTitle == null && menu != null && history.chatId != 0L) {
+            if (history.peerKind == TelegramPeerKind.Channel && history.threadTitle == null && menu != null && history.chatId != 0L && !channelPoster) {
                 LaunchedEffect(history.chatId) { muted = runCatching { menu.isMuted(history.chatId) }.getOrNull() }
-                muted?.let { isMuted ->
+                // Not subscribed yet: «Подписаться», like in Telegram; the notifications switch comes after.
+                if (membership?.first == false) Text(
+                    if (joining) "ПОДПИСЫВАЕМ…" else "ПОДПИСАТЬСЯ", color = Fusion.colors.onAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp))
+                        .background(Fusion.colors.accent).clickable(enabled = !joining) { join() }.padding(vertical = 14.dp)
+                ) else muted?.let { isMuted ->
                     Text(
                         if (isMuted) "ВКЛ. УВЕДОМЛЕНИЯ" else "ВЫКЛ. УВЕДОМЛЕНИЯ", color = Fusion.colors.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
                         modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp))

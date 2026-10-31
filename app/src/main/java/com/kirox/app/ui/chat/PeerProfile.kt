@@ -5,6 +5,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -45,6 +49,7 @@ import com.kirox.app.ui.theme.Fusion
  * Full-screen profile of a chat, after the approved contacts board (3 «Карточка пользователя»,
  * 8 «Медиа пользователя»): cover with the avatar, quick actions, info card and shared media tabs.
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 internal fun PeerProfileScreen(
     chatId: Long,
@@ -59,7 +64,10 @@ internal fun PeerProfileScreen(
     onOpenMessage: (Long) -> Unit,
     onBack: () -> Unit,
     /** Groups and channels: leave after a confirmation. */
-    onLeave: (() -> Unit)? = null
+    onLeave: (() -> Unit)? = null,
+    /** A channel or group this account is not in: subscribe / join. */
+    onJoin: (() -> Unit)? = null,
+    isChannel: Boolean = false
 ) {
     var confirmLeave by remember { mutableStateOf(false) }
     // «Управление» for groups and channels you run.
@@ -85,6 +93,10 @@ internal fun PeerProfileScreen(
     LaunchedEffect(chatId) { if (chatId > 0) gifts = users.gifts(chatId) }
     rights?.takeIf { managing }?.let { r -> ChatManageScreen(chatId, r, onBack = { managing = false }); return }
     var galleryAt by remember { mutableStateOf<TelegramSharedItem?>(null) }
+    val context = LocalContext.current
+    // A downloaded file opened from «Файлы»: path, name, MIME type.
+    var viewing by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+    viewing?.let { (path, name, mime) -> com.kirox.app.ui.files.FileViewer(path, name, mime) { viewing = null } }
     galleryAt?.let { item -> item.full?.let { full -> ChatPhotoGallery(chatId, item.messageId, full) { galleryAt = null } } }
     if (confirmLeave && onLeave != null) androidx.compose.material3.AlertDialog(
         onDismissRequest = { confirmLeave = false },
@@ -131,6 +143,7 @@ internal fun PeerProfileScreen(
         }
         item(span = { GridItemSpan(3) }) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (onJoin != null) ProfileAction(KiroXIcon.Add, if (isChannel) "Подписаться" else "Вступить", Modifier.weight(1f), onJoin)
                 if (rights?.any == true) ProfileAction(KiroXIcon.Tune, "Управление", Modifier.weight(1f)) { managing = true }
                 if (onLeave != null) ProfileAction(KiroXIcon.Back, "Выйти", Modifier.weight(1f)) { confirmLeave = true }
                 if (canCall) {
@@ -170,10 +183,10 @@ internal fun PeerProfileScreen(
             }
         }
         item(span = { GridItemSpan(3) }) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 @Composable fun TabChip(title: String, selected: Boolean, onClick: () -> Unit) = Text(
                     title, color = if (selected) Fusion.colors.onAccent else Fusion.colors.textSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, maxLines = 1,
-                    modifier = Modifier.weight(1f).clip(CircleShape).background(if (selected) accent else Color.Transparent).clickable(onClick = onClick).padding(vertical = 8.dp)
+                    modifier = Modifier.clip(CircleShape).background(if (selected) accent else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp)
                 )
                 if (members != null) TabChip("Участники", showMembers) { showMembers = true }
                 SharedMediaKind.entries.forEach { kind -> TabChip(kind.title, !showMembers && kind == tab) { showMembers = false; tab = kind } }
@@ -197,6 +210,35 @@ internal fun PeerProfileScreen(
             list.isEmpty() -> item(span = { GridItemSpan(3) }) { Text("Здесь пока ничего нет", color = Fusion.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(32.dp)) }
             // Photos open the swipeable gallery (approved media board); videos jump to their message.
             tab == SharedMediaKind.Media -> items(list, key = { it.messageId }) { item -> MediaTile(item) { if (item.full != null) galleryAt = item else onOpenMessage(item.messageId) } }
+            // Files like in Telegram: a tap downloads, then opens; a long press shows the message.
+            tab == SharedMediaKind.Files -> items(list, key = { it.messageId }, span = { GridItemSpan(3) }) { item ->
+                val file = item.file
+                if (file != null) com.kirox.app.ui.files.TelegramFileRow(
+                    item.title, file, item.size, onOpen = { path -> viewing = Triple(path, item.title, item.mimeType) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    thumbnail = item.thumb, extra = TelegramFormat.chatTime(item.date), onLongClick = { onOpenMessage(item.messageId) }
+                )
+            }
+            // Music of the chat: a tap plays it all from that track, a long press shows the message.
+            tab == SharedMediaKind.Music -> itemsIndexed(list, key = { _, it -> it.messageId }, span = { _, _ -> GridItemSpan(3) }) { index, item ->
+                val playing by VoicePlayer.track.collectAsState()
+                val current = playing?.messageId == item.messageId && playing?.chatId == chatId
+                Row(
+                    Modifier.fillMaxWidth().combinedClickable(onLongClick = { onOpenMessage(item.messageId) }) {
+                        val tracks = list.mapNotNull { s -> s.file?.let { f -> Track(f, s.title, s.performer.ifBlank { "kiroX" }, s.duration, chatId, s.messageId, s.thumb) } }
+                        val at = tracks.indexOfFirst { it.messageId == item.messageId }
+                        if (at >= 0) { VoicePlayer.playQueue(context, tracks, at, title); MusicPlayerUi.open() }
+                    }.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    com.kirox.app.ui.music.TrackArt(item.thumb, 48.dp, 10.dp, file = item.file)
+                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text(item.title, color = if (current) accent else Fusion.colors.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(item.subtitle, color = Fusion.colors.textSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    if (current) KiroXIcon(KiroXIcon.Equalizer, null, Modifier.size(20.dp), accent)
+                }
+            }
             else -> items(list, key = { it.messageId }, span = { GridItemSpan(3) }) { item ->
                 Row(Modifier.fillMaxWidth().clickable { onOpenMessage(item.messageId) }.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(accent.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
