@@ -386,6 +386,11 @@ class TelegramMessageRepository(
         })
     }
 
+    /** Throws an animated 🎲 🎯 🏀 ⚽ 🎳 🎰: Telegram picks the result. */
+    fun sendDice(emoji: String, replyToMessageId: Long?) = act { id ->
+        TdApi.SendMessage(id, topic, replyToMessageId?.let { TdApi.InputMessageReplyToMessage(it, null, 0, null) }, null, null, TdApi.InputMessageDice(emoji, false))
+    }
+
     /** Sends a sticker or saved GIF from the panel by its file id (no upload). */
     fun sendPanelItem(item: TelegramPanelItem, replyToMessageId: Long?) = act { id ->
         val file = TdApi.InputFileId(item.fileId)
@@ -523,6 +528,14 @@ class TelegramMessageRepository(
     /** Saved messages marked with the tag [emoji], newest first. */
     suspend fun savedByTag(emoji: String): List<TelegramMessage> {
         val found = client.query(TdApi.SearchSavedMessages(0, TdApi.ReactionTypeEmoji(emoji), "", 0, 0, 100))
+        val deferred = kotlinx.coroutines.CompletableDeferred<List<TelegramMessage>>()
+        client.post { deferred.complete(found.messages.map { it.toModel() }) }
+        return deferred.await()
+    }
+
+    /** Saved messages forwarded from one chat (a Saved Messages topic), newest first. */
+    suspend fun savedFromTopic(topicId: Long): List<TelegramMessage> {
+        val found = client.query(TdApi.GetSavedMessagesTopicHistory(topicId, 0, 0, 100))
         val deferred = kotlinx.coroutines.CompletableDeferred<List<TelegramMessage>>()
         client.post { deferred.complete(found.messages.map { it.toModel() }) }
         return deferred.await()

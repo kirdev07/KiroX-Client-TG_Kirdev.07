@@ -496,6 +496,7 @@ internal fun messagePreview(message: TdApi.Message?): String = when (val content
     is TdApi.MessageVoiceNote -> content.caption.text.ifBlank { "Голосовое сообщение" }
     is TdApi.MessageVideoNote -> "Видеосообщение"
     is TdApi.MessageSticker -> "Стикер ${content.sticker.emoji}".trim()
+    is TdApi.MessageDice -> diceText(content)
     is TdApi.MessageAnimation -> content.caption.text.ifBlank { "GIF" }
     is TdApi.MessageAudio -> content.caption.text.ifBlank { "Аудио" }
     is TdApi.MessageCall -> "Звонок"

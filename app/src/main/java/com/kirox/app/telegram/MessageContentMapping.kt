@@ -13,6 +13,8 @@ internal fun kindOf(content: TdApi.MessageContent?): TelegramMessageKind = when 
     is TdApi.MessageAudio -> TelegramMessageKind.Audio
     is TdApi.MessageDocument -> TelegramMessageKind.Document
     is TdApi.MessageSticker -> TelegramMessageKind.Sticker
+    // 🎲🎯🏀⚽🎳: the rolled face is a sticker; the slot machine (several layers) is told in text.
+    is TdApi.MessageDice -> if (content.finalState is TdApi.DiceStickersRegular) TelegramMessageKind.Sticker else TelegramMessageKind.Text
     else -> TelegramMessageKind.Other
 }
 
@@ -25,8 +27,12 @@ internal fun formattedTextOf(content: TdApi.MessageContent?): TdApi.FormattedTex
     is TdApi.MessageAudio -> content.caption
     is TdApi.MessageDocument -> content.caption
     is TdApi.MessageVoiceNote -> content.caption
+    is TdApi.MessageDice -> if (content.finalState is TdApi.DiceStickersRegular) null else TdApi.FormattedText(diceText(content), emptyArray())
     else -> null
 }
+
+/** «🎰 64»: a dice message as text, for the slot machine and previews. */
+internal fun diceText(dice: TdApi.MessageDice): String = if (dice.value == 0) dice.emoji else "${dice.emoji} ${dice.value}"
 
 /** Main file of the message with its metadata, and a preview image when there is one. */
 internal fun mediaOf(content: TdApi.MessageContent?): Pair<TelegramMedia?, TelegramFileRef?> = when (content) {
@@ -49,6 +55,7 @@ internal fun mediaOf(content: TdApi.MessageContent?): Pair<TelegramMedia?, Teleg
         TelegramMedia(d.document.toRef(), d.document.sizeOrExpected(), mimeType = d.mimeType.orEmpty(), title = d.fileName.orEmpty()) to d.thumbnail?.file?.toRef()
     }
     is TdApi.MessageSticker -> stickerMedia(content.sticker)
+    is TdApi.MessageDice -> (content.finalState as? TdApi.DiceStickersRegular)?.let { stickerMedia(it.sticker) } ?: (null to null)
     is TdApi.MessageVoiceNote -> content.voiceNote.let { v ->
         TelegramMedia(v.voice.toRef(), v.voice.sizeOrExpected(), v.duration, mimeType = v.mimeType.orEmpty(), waveform = decodeWaveform(v.waveform)) to null
     }

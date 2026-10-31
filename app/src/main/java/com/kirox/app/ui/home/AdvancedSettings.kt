@@ -66,35 +66,6 @@ import kotlinx.coroutines.launch
 
 // kiroX settings (Advanced), Premium and the QR profile.
 
-@Composable
-internal fun PremiumScreen(profile: TelegramUserProfile?, onBack: () -> Unit) {
-    BackHandler(onBack = onBack)
-    val context = LocalContext.current
-    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
-        item { BackTitle("Telegram Premium", onBack) }
-        item {
-            Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("★", color = Fusion.colors.textPrimary, fontSize = 56.sp)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    if (profile?.isPremium == true) "Telegram Premium активен" else "Telegram Premium не подключён",
-                    color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Подписка оформляется и управляется в официальном приложении Telegram. Возможности Premium работают и в kiroX там, где их поддерживает TDLib.",
-                    color = Fusion.colors.textSecondary, fontSize = 14.sp, lineHeight = 20.sp, textAlign = TextAlign.Center
-                )
-            }
-        }
-        item {
-            LinkRow("Открыть Telegram Premium", "telegram.org/premium") {
-                context.startActivity(Intent(Intent.ACTION_VIEW, "https://telegram.org/faq_premium".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }
-        }
-    }
-}
-
 /** Settings → Advanced: app info, reset of local KiroX settings, log out. */
 @Composable
 internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: (String) -> Unit) {

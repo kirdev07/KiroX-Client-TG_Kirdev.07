@@ -382,7 +382,7 @@ fun KiroXApp() {
                             }
                             val actions = remember { TelegramMessageActions(telegramViewModel.messages, telegramViewModel.activity) }
                             val activityLines by telegramViewModel.activity.lines.collectAsStateWithLifecycle()
-                            val stickerSource = remember { TelegramStickerSource(telegramViewModel.stickers) }
+                            val stickerSource = remember { TelegramStickerSource(telegramViewModel.stickers) { telegramViewModel.users.myId() } }
                             TelegramChatScreen(
                                 // A topic of this forum has the same chat id but belongs to the Thread screen.
                                 history = if (history.chatId == chatId && history.threadTitle == null) history else TelegramChatHistory(chatId = chatId),
@@ -428,7 +428,7 @@ fun KiroXApp() {
                                 }
                                 DisposableEffect(spec) { onDispose { telegramViewModel.messages.closeThread() } }
                                 val actions = remember { TelegramMessageActions(telegramViewModel.messages, telegramViewModel.activity) }
-                                val stickerSource = remember { TelegramStickerSource(telegramViewModel.stickers) }
+                                val stickerSource = remember { TelegramStickerSource(telegramViewModel.stickers) { telegramViewModel.users.myId() } }
                                 val title = when (spec) { is ThreadSpec.Comments -> "Комментарии"; is ThreadSpec.Topic -> spec.title }
                                 TelegramChatScreen(
                                     history = if (history.threadTitle != null) history else TelegramChatHistory(threadTitle = title),
@@ -506,8 +506,10 @@ private class TelegramMessageActions(
     private val activityRepository: com.kirox.app.telegram.TelegramChatActionRepository
 ) : TelegramChatActions {
     override fun editableText(messageId: Long): String? = repository.editableText(messageId)
+    // A lone 🎲 🎯 🏀 ⚽ 🎳 🎰 is thrown, as in Telegram.
     override fun sendTextWith(text: String, replyToMessageId: Long?, quote: String?, noLinkPreview: Boolean) =
-        repository.sendText(text, replyToMessageId, quote = quote, noLinkPreview = noLinkPreview)
+        if (quote == null && text.trim() in com.kirox.app.ui.chat.diceEmoji) repository.sendDice(text.trim(), replyToMessageId)
+        else repository.sendText(text, replyToMessageId, quote = quote, noLinkPreview = noLinkPreview)
     override fun sendPhotoWith(path: String, caption: String, spoiler: Boolean, viewOnce: Boolean) = repository.sendPhoto(path, caption, spoiler, viewOnce)
     override suspend fun readBy(messageId: Long) = repository.readBy(messageId)
     override suspend fun reactedBy(messageId: Long) = repository.reactedBy(messageId)
@@ -521,12 +523,14 @@ private class TelegramMessageActions(
     override fun closeWebApp(launchId: Long) = repository.closeWebApp(launchId)
     override suspend fun botMenu() = repository.botMenu()
     override suspend fun savedTags() = repository.savedTags()
+    override suspend fun savedFromTopic(topicId: Long) = repository.savedFromTopic(topicId)
     override suspend fun savedByTag(emoji: String) = repository.savedByTag(emoji)
     override suspend fun setTagLabel(emoji: String, label: String) = repository.setTagLabel(emoji, label)
     override suspend fun sendScheduledNow(messageId: Long) = repository.sendScheduledNow(messageId)
     override suspend fun deleteScheduled(messageId: Long) = repository.deleteScheduled(messageId)
     override fun sendPhoto(path: String, caption: String) = repository.sendPhoto(path, caption)
     override fun sendDocument(path: String, caption: String) = repository.sendDocument(path, caption)
+    override fun sendDice(emoji: String, replyToMessageId: Long?) = repository.sendDice(emoji, replyToMessageId)
     override fun sendLocation(latitude: Double, longitude: Double) = repository.sendLocation(latitude, longitude)
     override fun sendContact(userId: Long, firstName: String, lastName: String, phone: String) = repository.sendContact(userId, firstName, lastName, phone)
     override fun sendVoice(path: String, durationSeconds: Int, waveform: ByteArray) = repository.sendVoice(path, durationSeconds, waveform)
@@ -576,7 +580,8 @@ private class TelegramChatListActionsImpl(private val repository: TelegramChatRe
     override suspend fun deleteChat(chatId: Long) = repository.deleteChat(chatId)
 }
 
-private class TelegramStickerSource(private val repository: com.kirox.app.telegram.TelegramStickerRepository) : com.kirox.app.ui.chat.StickerPanelSource {
+private class TelegramStickerSource(private val repository: com.kirox.app.telegram.TelegramStickerRepository, private val myId: () -> Long = { 0L }) : com.kirox.app.ui.chat.StickerPanelSource {
+    override suspend fun createSet(title: String, stickers: List<Pair<String, String>>) = repository.createSet(myId(), title, stickers)
     override suspend fun installedSets() = repository.installedSets()
     override suspend fun set(id: Long) = repository.set(id)
     override suspend fun recent() = repository.recent()
@@ -584,6 +589,7 @@ private class TelegramStickerSource(private val repository: com.kirox.app.telegr
     override suspend fun favorites() = repository.favorites()
     override suspend fun setFavorite(item: com.kirox.app.telegram.TelegramPanelItem, favorite: Boolean) = repository.setFavorite(item, favorite)
     override suspend fun searchGifs(chatId: Long, query: String) = repository.searchGifs(chatId, query)
+    override suspend fun searchStickers(query: String) = repository.searchStickers(query)
 }
 
 /** What Screen.Thread shows; saved with the back stack across rotation and process death. */

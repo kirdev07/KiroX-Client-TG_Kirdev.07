@@ -150,6 +150,22 @@ class TelegramUserRepository(private val client: TelegramClient) {
         }
     }.getOrDefault(0 to emptyList())
 
+    /** Gifts that can be bought for Stars now, cheapest first. */
+    suspend fun giftCatalog(): List<GiftOption> = runCatching {
+        client.query(TdApi.GetAvailableGifts()).gifts.map { it.gift }.filter { !it.isPremium || it.starCount > 0 }.map { g ->
+            val limits = g.overallLimits
+            GiftOption(g.id, stillOf(g.sticker), g.sticker?.emoji.orEmpty(), g.starCount, limits != null && limits.totalCount > 0 && limits.remainingCount == 0)
+        }.sortedBy { it.stars }
+    }.getOrDefault(emptyList())
+
+    /** Buys [giftId] for [userId] with Stars; [private] hides the sender's name from others. */
+    suspend fun sendGift(giftId: Long, userId: Long, text: String, private: Boolean) {
+        client.query(TdApi.SendGift(giftId, TdApi.MessageSenderUser(userId), TdApi.FormattedText(text, emptyArray()), private, false))
+    }
+
+    /** Gifts this account received. */
+    suspend fun myGifts(): Pair<Int, List<ProfileGift>> = gifts(myId)
+
     /** Your Telegram Stars balance; null when Telegram doesn't say. */
     suspend fun stars(): Long? = runCatching {
         client.query(TdApi.GetStarTransactions(TdApi.MessageSenderUser(myId), "", null, "", 1)).starAmount.starCount

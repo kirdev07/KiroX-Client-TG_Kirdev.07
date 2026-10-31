@@ -202,8 +202,8 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
                 }
                 MessageKind.Video -> { if (media != null) VideoMessage(media, message.thumbnail) else MediaPlaceholder(message.kind); Caption() }
                 MessageKind.Animation -> { if (media != null) AnimationMessage(media, message.thumbnail) else MediaPlaceholder(message.kind); Caption() }
-                MessageKind.VideoNote -> if (media != null) VideoNoteMessage(media, message.thumbnail) else MediaPlaceholder(message.kind)
-                MessageKind.Voice -> VoiceMessage(message.text, message.photo, message.media?.waveform.orEmpty())
+                MessageKind.VideoNote -> { if (media != null) VideoNoteMessage(media, message.thumbnail) else MediaPlaceholder(message.kind); TranscribeButton(message.id) }
+                MessageKind.Voice -> { VoiceMessage(message.text, message.photo, message.media?.waveform.orEmpty()); TranscribeButton(message.id) }
                 MessageKind.Audio -> { if (media != null) AudioMessage(media, message.photo); Caption() }
                 MessageKind.Document -> if (media != null) { DocumentMessage(media, onNotice, message.thumbnail); Caption() } else MessageText(message.text, message.entities, textScale)
                 MessageKind.Sticker -> if (media != null) StickerMessage(media, message.thumbnail) else MessageText(message.text, message.entities, textScale)

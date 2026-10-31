@@ -334,4 +334,7 @@ data class FolderInvite(val link: String, val title: String, val newChats: List<
 data class SavedTag(val emoji: String, val label: String, val count: Int)
 
 /** A gift shown in a profile: its picture, price in stars and who gave it. */
+/** A gift from Telegram's catalog: its sticker, price in Stars, and whether it is sold out. */
+data class GiftOption(val id: Long, val sticker: TelegramFileRef?, val emoji: String, val stars: Long, val soldOut: Boolean)
+
 data class ProfileGift(val sticker: TelegramFileRef?, val emoji: String, val stars: Long, val from: String, val title: String)

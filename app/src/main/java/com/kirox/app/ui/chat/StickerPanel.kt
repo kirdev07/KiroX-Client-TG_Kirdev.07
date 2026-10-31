@@ -51,6 +51,10 @@ interface StickerPanelSource {
     suspend fun savedGifs(): List<TelegramPanelItem>
     suspend fun searchGifs(chatId: Long, query: String): List<TelegramPanelItem> = emptyList()
     suspend fun favorites(): List<TelegramPanelItem> = emptyList()
+    /** Makes your own sticker set from prepared WEBP files and their emoji; returns its link name. */
+    suspend fun createSet(title: String, stickers: List<Pair<String, String>>): String = throw UnsupportedOperationException()
+    /** Stickers from all of Telegram for a word or an emoji. */
+    suspend fun searchStickers(query: String): List<TelegramPanelItem> = emptyList()
     suspend fun setFavorite(item: TelegramPanelItem, favorite: Boolean): Boolean = false
 }
 
@@ -59,6 +63,7 @@ private sealed interface PanelTab {
     data object Recent : PanelTab
     data object Favorites : PanelTab
     data object Gifs : PanelTab
+    data object Search : PanelTab
     data class Set(val info: TelegramStickerSetInfo) : PanelTab
 }
 
@@ -75,24 +80,33 @@ internal fun StickerPanel(source: StickerPanelSource?, onEmoji: (String) -> Unit
     var items by remember { mutableStateOf<List<TelegramPanelItem>?>(null) }
     LaunchedEffect(source) { sets = source?.installedSets().orEmpty() }
     var gifQuery by remember { mutableStateOf("") }
+    var stickerQuery by remember { mutableStateOf("") }
+    var making by remember { mutableStateOf(false) }
     var reload by remember { mutableIntStateOf(0) }
     var menuFor by remember { mutableStateOf<TelegramPanelItem?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    LaunchedEffect(tab, source, gifQuery, reload) {
+    LaunchedEffect(tab, source, gifQuery, stickerQuery, reload) {
         items = null
-        if (tab == PanelTab.Gifs && gifQuery.isNotBlank()) kotlinx.coroutines.delay(400.milliseconds)
+        if (tab == PanelTab.Gifs && gifQuery.isNotBlank() || tab == PanelTab.Search) kotlinx.coroutines.delay(400.milliseconds)
         items = when (val current = tab) {
             PanelTab.Emoji -> emptyList()
             PanelTab.Recent -> source?.recent().orEmpty()
             PanelTab.Favorites -> source?.favorites().orEmpty()
             PanelTab.Gifs -> if (gifQuery.isBlank()) source?.savedGifs().orEmpty() else source?.searchGifs(chatId, gifQuery.trim()).orEmpty()
             is PanelTab.Set -> source?.set(current.info.id).orEmpty()
+            PanelTab.Search -> source?.searchStickers(stickerQuery).orEmpty()
         }
+    }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    if (making && source != null) StickerSetMaker(source, onDismiss = { making = false }) { name ->
+        making = false
+        scope.launch { sets = source.installedSets() }
+        android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Набор создан") + ": t.me/addstickers/" + name, android.widget.Toast.LENGTH_LONG).show()
     }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Fusion.colors.surface1, contentColor = Fusion.colors.textPrimary) {
         Column(Modifier.fillMaxWidth().height(420.dp).navigationBarsPadding()) {
             // Approved media board: Стикеры · GIF · Эмодзи on top, sticker sets as round covers below.
-            val stickersOn = tab == PanelTab.Recent || tab == PanelTab.Favorites || tab is PanelTab.Set
+            val stickersOn = tab == PanelTab.Recent || tab == PanelTab.Favorites || tab is PanelTab.Set || tab == PanelTab.Search
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (source != null) {
                     Box(Modifier.weight(1f)) { SegmentTab("Стикеры", stickersOn) { tab = PanelTab.Recent } }
@@ -111,8 +125,16 @@ internal fun StickerPanel(source: StickerPanelSource?, onEmoji: (String) -> Unit
                 PanelPill("Сохранённые", gifQuery.isBlank()) { gifQuery = "" }
                 GIF_CATEGORIES.forEach { (label, query) -> PanelPill(label, gifQuery == query) { gifQuery = query } }
             }
-            if (stickersOn) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Sticker search: a word («кот») or an emoji (😂) finds stickers from all of Telegram.
+            if (stickersOn && source != null) androidx.compose.foundation.text.BasicTextField(
+                stickerQuery, { q -> stickerQuery = q; tab = if (q.isBlank()) PanelTab.Recent else PanelTab.Search }, singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(Fusion.colors.textPrimary, 15.sp), cursorBrush = androidx.compose.ui.graphics.SolidColor(Fusion.colors.accent),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Fusion.colors.surface2).padding(horizontal = 16.dp, vertical = 11.dp),
+                decorationBox = { inner -> Box { if (stickerQuery.isEmpty()) Text("Поиск стикеров: слово или эмодзи", color = Fusion.colors.textTertiary, fontSize = 15.sp); inner() } }
+            )
+            if (stickersOn && tab != PanelTab.Search) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (source != null) {
+                    PanelPill("＋ Свой набор", false) { making = true }
                     PanelPill("Избранные", tab == PanelTab.Favorites) { tab = PanelTab.Favorites }
                     PanelPill("Недавние", tab == PanelTab.Recent) { tab = PanelTab.Recent }
                     sets.forEach { set ->
@@ -144,6 +166,7 @@ internal fun StickerPanel(source: StickerPanelSource?, onEmoji: (String) -> Unit
                     Text(
                         when {
                             tab == PanelTab.Gifs -> if (gifQuery.isBlank()) "Сохранённых GIF пока нет — найдите в поиске" else "Ничего не найдено"
+                            tab == PanelTab.Search -> "Ничего не найдено"
                             tab == PanelTab.Favorites -> "Избранных пока нет — удерживайте стикер,\nчтобы добавить"
                             else -> "Здесь пока пусто"
                         },

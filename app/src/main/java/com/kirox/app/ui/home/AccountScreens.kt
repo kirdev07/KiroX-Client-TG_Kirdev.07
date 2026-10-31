@@ -63,7 +63,7 @@ internal fun SettingsTab(profile: TelegramUserProfile?, onOpenProfile: () -> Uni
     if (showAccounts) AccountsSheet { showAccounts = false }
     // Three compact groups in the order of the approved Fusion PNG.
     val groups = listOf(
-        listOf(KiroXIcon.Profile to "Изменить профиль", KiroXIcon.Star to "Telegram Premium"),
+        listOf(KiroXIcon.Profile to "Изменить профиль"),
         listOf(KiroXIcon.Bell to "Уведомления и звуки", KiroXIcon.Shield to "Конфиденциальность", KiroXIcon.Storage to "Данные и память", KiroXIcon.Palette to "Оформление", KiroXIcon.Link to "Язык"),
         listOf(KiroXIcon.Music to "Музыка", KiroXIcon.Sliders to "kiroX Настройки", KiroXIcon.Info to "Помощь", KiroXIcon.Refresh to "О приложении")
     )
@@ -118,6 +118,8 @@ internal fun SettingsTab(profile: TelegramUserProfile?, onOpenProfile: () -> Uni
                 }
             }
         }
+        // Premium, Stars and gifts: a block of their own, not mixed into the settings.
+        if (query.isBlank()) item { PremiumCard(profile, onPremium = { onOpenSection("Telegram Premium") }, onGifts = { onOpenSection("Подарки") }) }
         if (shown.isEmpty()) item { Text("Ничего не найдено", color = Fusion.colors.textSecondary, modifier = Modifier.padding(20.dp)) }
         items(shown.size) { index ->
             val rows = shown[index]

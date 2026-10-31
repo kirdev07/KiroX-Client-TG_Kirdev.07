@@ -94,6 +94,22 @@ class TelegramStickerRepository(private val client: TelegramClient) {
         }
     }.getOrDefault(emptyList())
 
+    /**
+     * A new sticker set of your own from ready 512 px WEBP files, each with its emoji. Telegram picks
+     * the set's link name. Returns that name (t.me/addstickers/<name>).
+     */
+    suspend fun createSet(userId: Long, title: String, stickers: List<Pair<String, String>>): String {
+        val list = stickers.map { (path, emoji) -> TdApi.NewSticker(TdApi.InputFileLocal(path), TdApi.StickerFormatWebp(), emoji, null, emptyArray()) }.toTypedArray()
+        return client.query(TdApi.CreateNewStickerSet(userId, title, "", TdApi.StickerTypeRegular(), false, list, "kiroX")).name
+    }
+
+    /** Stickers from all of Telegram for a word («кот») or an emoji (😂). */
+    suspend fun searchStickers(query: String): List<TelegramPanelItem> = runCatching {
+        val q = query.trim()
+        val emoji = q.takeIf { s -> s.codePoints().anyMatch { it >= 0x2600 } }.orEmpty()
+        client.query(TdApi.SearchStickers(TdApi.StickerTypeRegular(), emoji, if (emoji.isEmpty()) q else "", arrayOf("ru", "en"), 0, 60)).stickers.map(::stickerItem)
+    }.getOrDefault(emptyList())
+
     private fun stickerItem(sticker: TdApi.Sticker): TelegramPanelItem {
         val (media, thumbnail) = stickerMedia(sticker)
         return TelegramPanelItem(sticker.sticker.id, media, thumbnail)

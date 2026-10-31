@@ -99,11 +99,15 @@ interface TelegramChatActions {
     /** Tags of Saved Messages (Premium) and the messages of one tag. */
     suspend fun savedTags(): List<com.kirox.app.telegram.SavedTag> = emptyList()
     suspend fun savedByTag(emoji: String): List<TelegramMessage> = emptyList()
+    /** Saved messages that came from one chat. */
+    suspend fun savedFromTopic(topicId: Long): List<TelegramMessage> = emptyList()
     suspend fun setTagLabel(emoji: String, label: String) {}
     suspend fun sendScheduledNow(messageId: Long) {}
     suspend fun deleteScheduled(messageId: Long) {}
     fun sendPhoto(path: String, caption: String)
     fun sendDocument(path: String, caption: String)
+    /** An animated 🎲 🎯 🏀 ⚽ 🎳 🎰. */
+    fun sendDice(emoji: String, replyToMessageId: Long?) {}
     fun sendLocation(latitude: Double, longitude: Double) {}
     fun sendContact(userId: Long, firstName: String, lastName: String, phone: String) {}
     fun sendVoice(path: String, durationSeconds: Int, waveform: ByteArray)
@@ -224,6 +228,8 @@ fun TelegramChatScreen(
     var creatingPoll by remember { mutableStateOf(false) }
     var translation by remember { mutableStateOf<Pair<String, String?>?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
+    var choosingDice by remember { mutableStateOf(false) }
+    var choosingSource by remember { mutableStateOf(false) }
     fun openWebApp(title: String, url: String, messageId: Long? = null, botUserId: Long? = null) {
         scope.launch {
             val launch = actions.openWebApp(url, messageId, botUserId)
@@ -576,6 +582,7 @@ fun TelegramChatScreen(
             onOpenMessage = { id -> profileOpen = false; actions.jumpTo(id) },
             onBack = { profileOpen = false },
             isChannel = history.peerKind == TelegramPeerKind.Channel,
+            canGift = history.peerKind == TelegramPeerKind.User && !history.isSecret,
             onJoin = if (membership?.first == false) ({ join() }) else null,
             onLeave = if (menu != null && membership?.first != false && (history.peerKind == TelegramPeerKind.Group || history.peerKind == TelegramPeerKind.Channel)) ({
                 profileOpen = false
@@ -762,10 +769,17 @@ fun TelegramChatScreen(
         Box(Modifier.fillMaxSize().padding(padding)) {
             val results = searchResults
             // Saved Messages tags: a tap shows that tag's messages, a long press names the tag.
-            if (tags.isNotEmpty() && !searching) androidx.compose.foundation.lazy.LazyRow(
+            if ((tags.isNotEmpty() || history.peerKind == TelegramPeerKind.Saved) && !searching) androidx.compose.foundation.lazy.LazyRow(
                 Modifier.align(Alignment.TopCenter).fillMaxWidth().zIndex(1f).background(Fusion.colors.background.copy(alpha = 0.92f)),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // «По чатам»: Saved Messages split by the chat each message was forwarded from.
+                if (history.peerKind == TelegramPeerKind.Saved) item(key = "sources") {
+                    Row(
+                        Modifier.clip(RoundedCornerShape(16.dp)).background(Fusion.colors.surface2).clickable { telegram.extras.loadSavedTopics(); choosingSource = true }.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) { androidx.compose.material3.Text("💬", fontSize = 15.sp); Spacer(Modifier.width(4.dp)); Text("По чатам", color = Fusion.colors.textPrimary, fontSize = 13.sp) }
+                }
                 items(tags, key = { it.emoji }) { tag ->
                     Row(
                         Modifier.clip(RoundedCornerShape(16.dp)).background(Fusion.colors.surface2)
@@ -940,6 +954,18 @@ fun TelegramChatScreen(
         val first = contact.name.substringBefore(' ')
         actions.sendContact(contact.id, first, contact.name.substringAfter(' ', ""), contact.phone)
     }
+    if (choosingSource) SavedSourcesSheet(telegram.extras.savedTopics.collectAsState().value, onDismiss = { choosingSource = false }) { topic ->
+        choosingSource = false
+        scope.launch {
+            val found = runCatching { actions.savedFromTopic(topic.id) }.getOrDefault(emptyList())
+            searching = true; searchQuery = topic.title; searchResults = found; searchNext = 0
+        }
+    }
+    if (choosingDice) DiceSheet(onDismiss = { choosingDice = false }) { emoji ->
+        choosingDice = false
+        actions.sendDice(emoji, replyTo?.id)
+        replyTo = null
+    }
     if (attachments) AttachmentSheet(
         onDismiss = { attachments = false },
         onPick = { choice ->
@@ -964,6 +990,7 @@ fun TelegramChatScreen(
                     else cameraPermission.launch(android.Manifest.permission.CAMERA)
                 }
                 "Опрос" -> creatingPoll = true
+                "Игры" -> choosingDice = true
                 "Видеосообщение" -> {
                     val needed = arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO)
                     if (needed.all { context.checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED }) videoNote = true
@@ -985,6 +1012,7 @@ fun TelegramChatScreen(
             if (history.peerKind != TelegramPeerKind.Channel) add(KiroXIcon.Voice to "Видеосообщение")
             add(KiroXIcon.Music to "Музыка")
             if (!history.isSecret) add(KiroXIcon.Sliders to "Опрос")
+            if (!history.isSecret) add(KiroXIcon.Emoji to "Игры")
         },
         footer = if (input.text.isNotBlank()) "Текст из поля ввода станет подписью" else null,
         top = if (history.isSecret) null else ({
@@ -1368,4 +1396,44 @@ fun TelegramChatScreen(
         },
         dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
     )
+}
+
+/** The emoji Telegram animates with a random result. */
+internal val diceEmoji = listOf("🎲", "🎯", "🏀", "⚽", "🎳", "🎰")
+
+/** «Игры»: throw a dice, darts, basketball, football, bowling or the slot machine. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DiceSheet(onDismiss: () -> Unit, onPick: (String) -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Fusion.colors.surface1) {
+        Text("Игры", color = Fusion.colors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
+        Text("Результат выбирает Telegram — его увидят все в чате", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            diceEmoji.forEach { e ->
+                androidx.compose.material3.Text(e, fontSize = 34.sp, modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable { onPick(e) }.padding(8.dp))
+            }
+        }
+        Spacer(Modifier.navigationBarsPadding().height(8.dp))
+    }
+}
+
+/** Where saved messages came from: one row per chat, newest first. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SavedSourcesSheet(topics: List<com.kirox.app.telegram.SavedTopic>, onDismiss: () -> Unit, onPick: (com.kirox.app.telegram.SavedTopic) -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Fusion.colors.surface1) {
+        Text("Избранное по чатам", color = Fusion.colors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        if (topics.isEmpty()) Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) { CircularProgressIndicator(Modifier.size(24.dp), color = Fusion.colors.accent, strokeWidth = 2.dp) }
+        else androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 520.dp)) {
+            items(topics, key = { it.id }) { topic ->
+                Row(Modifier.fillMaxWidth().clickable { onPick(topic) }.padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        androidx.compose.material3.Text(topic.title, color = Fusion.colors.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        androidx.compose.material3.Text(topic.preview, color = Fusion.colors.textSecondary, fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.navigationBarsPadding().height(8.dp))
+    }
 }

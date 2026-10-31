@@ -71,7 +71,7 @@ private enum class MainTab(val item: FusionNavItem) {
     Stories(FusionNavItem("Истории", KiroXIcon.Stories)),
     Settings(FusionNavItem("Настройки", KiroXIcon.Tune))
 }
-private enum class SubScreen { None, Contacts, Profile, NewMessage, Customization, Themes, ChatStyle, Animations, Updates, Devices, ProfileEdit, Notifications, Privacy, Storage, Premium, Advanced, Language }
+private enum class SubScreen { None, Contacts, Profile, NewMessage, Customization, Themes, ChatStyle, Animations, Updates, Devices, ProfileEdit, Notifications, Privacy, Storage, Premium, Gifts, Advanced, Language }
 private enum class RealChatSection { Archive, Messages }
 
 /** chatId → "печатает…"-style line shown in a chat row instead of its last message. */
@@ -170,7 +170,9 @@ fun TelegramMainScreen(
                     subScreen == SubScreen.Notifications -> NotificationSettingsScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice)
                     subScreen == SubScreen.Privacy -> PrivacyScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice, onOpenDevices = { sub = SubScreen.Devices })
                     subScreen == SubScreen.Storage -> StorageScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice)
-                    subScreen == SubScreen.Premium -> PremiumScreen(profile, onBack = { sub = SubScreen.None })
+                    subScreen == SubScreen.Premium -> PremiumScreen(profile, onBack = { sub = SubScreen.None },
+                        onSubscribe = { linkOpener?.invoke("https://t.me/PremiumBot") }, onGifts = { sub = SubScreen.Gifts })
+                    subScreen == SubScreen.Gifts -> GiftsScreen(onBack = { sub = SubScreen.None })
                     subScreen == SubScreen.Language -> LanguageScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice)
                     subScreen == SubScreen.Advanced -> AdvancedScreen(onBack = { sub = SubScreen.None }, onLogOut = onLogOut, onNotice = showNotice)
                     subScreen == SubScreen.ProfileEdit -> ProfileEditScreen(profile, onBack = { sub = SubScreen.None }, onNotice = showNotice)
@@ -196,13 +198,12 @@ fun TelegramMainScreen(
                     current == MainTab.Calls -> CallsTab(calls, onLoadCalls, onOpenChat, showNotice, onStartCall, onOpenContacts = { tab = MainTab.Contacts; sub = SubScreen.None })
                     current == MainTab.Stories -> StoriesTab(storyChats, profile, onOpen = { viewingStoriesOf = it.chatId }, onNotice = { notice = it })
                     else -> SettingsTab(profile, onOpenProfile = { sub = SubScreen.Profile }, onOpenContacts = { tab = MainTab.Contacts; sub = SubScreen.None }, onOpenCustomization = { sub = SubScreen.Customization }, onOpenUpdates = { sub = SubScreen.Updates }, onOpenDevices = { sub = SubScreen.Devices }, onEditProfile = { sub = SubScreen.ProfileEdit }, onOpenSection = { section ->
-                        // Premium is bought through Telegram's own bot: open its chat right away.
-                        if (section == "Telegram Premium" && linkOpener != null) { linkOpener("https://t.me/PremiumBot"); return@SettingsTab }
                         sub = when (section) {
                             "Уведомления" -> SubScreen.Notifications
                             "Конфиденциальность" -> SubScreen.Privacy
                             "Данные и память" -> SubScreen.Storage
                             "Telegram Premium" -> SubScreen.Premium
+                            "Подарки" -> SubScreen.Gifts
                             "Чаты и папки" -> SubScreen.ChatStyle
                             "Возможности kiroX" -> SubScreen.Customization
                             "Язык" -> SubScreen.Language

@@ -150,6 +150,7 @@ class TelegramServices(context: android.content.Context) {
     val music = TelegramMusic(client)
     val mentions = TelegramMentions(client)
     val account = TelegramAccountTools(client)
+    val extras = TelegramExtras(client, chats)
     val audioTags = AudioTags(client)
     /** In-app alerts and the icon counter, kept on this device. */
     val notificationPrefs = com.kirox.app.notify.NotificationPreferences(context)

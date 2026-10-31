@@ -67,7 +67,9 @@ internal fun PeerProfileScreen(
     onLeave: (() -> Unit)? = null,
     /** A channel or group this account is not in: subscribe / join. */
     onJoin: (() -> Unit)? = null,
-    isChannel: Boolean = false
+    isChannel: Boolean = false,
+    /** A person (not a bot or yourself): «Подарок» buys them a gift for Stars. */
+    canGift: Boolean = false
 ) {
     var confirmLeave by remember { mutableStateOf(false) }
     // «Управление» for groups and channels you run.
@@ -93,6 +95,11 @@ internal fun PeerProfileScreen(
     LaunchedEffect(chatId) { if (chatId > 0) gifts = users.gifts(chatId) }
     rights?.takeIf { managing }?.let { r -> ChatManageScreen(chatId, r, onBack = { managing = false }); return }
     var galleryAt by remember { mutableStateOf<TelegramSharedItem?>(null) }
+    // Gifts for Stars go to people (not bots, not yourself).
+    var gifting by remember { mutableStateOf(false) }
+    var giftNotice by remember { mutableStateOf<String?>(null) }
+    if (gifting) com.kirox.app.ui.home.GiftPickerSheet(chatId, title, onDismiss = { gifting = false }) { giftNotice = it }
+    giftNotice?.let { text -> val toastContext = LocalContext.current; LaunchedEffect(text) { android.widget.Toast.makeText(toastContext, com.kirox.app.i18n.I18n.t(text), android.widget.Toast.LENGTH_SHORT).show(); giftNotice = null } }
     val context = LocalContext.current
     // A downloaded file opened from «Файлы»: path, name, MIME type.
     var viewing by remember { mutableStateOf<Triple<String, String, String>?>(null) }
@@ -151,6 +158,7 @@ internal fun PeerProfileScreen(
                     ProfileAction(KiroXIcon.Video, "Видео", Modifier.weight(1f)) { onCall(true) }
                 }
                 ProfileAction(KiroXIcon.Search, "Поиск", Modifier.weight(1f), onSearch)
+                if (canGift) ProfileAction(KiroXIcon.Star, "Подарок", Modifier.weight(1f)) { gifting = true }
                 if (muted != null && onToggleMute != null) ProfileAction(KiroXIcon.Bell, if (muted) "Вкл. звук" else "Без звука", Modifier.weight(1f)) { onToggleMute(!muted) }
             }
         }
