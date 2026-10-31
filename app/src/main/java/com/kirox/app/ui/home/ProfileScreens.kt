@@ -321,6 +321,37 @@ internal fun ProfileEditScreen(profile: TelegramUserProfile?, onBack: () -> Unit
                 modifier = Modifier.clickable { choosingStatus = true }
             )
         }
+        item { SmallCaption("День рождения и канал") }
+        item {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val account = remember { (context.applicationContext as com.kirox.app.KiroXApplication).telegram.account }
+            val scope = rememberCoroutineScope()
+            var extras by remember { mutableStateOf<com.kirox.app.telegram.ProfileExtras?>(null) }
+            var reload by remember { mutableIntStateOf(0) }
+            LaunchedEffect(reload) { extras = account.myExtras() }
+            var pickingDate by remember { mutableStateOf(false) }
+            var channels by remember { mutableStateOf<List<Pair<Long, String>>?>(null) }
+            var changingNumber by remember { mutableStateOf(false) }
+            SettingsCard {
+                LinkRow("День рождения", extras?.birthday?.text ?: "Не указан") { pickingDate = true }
+                LinkRow("Личный канал", extras?.personalChatTitle?.ifBlank { null } ?: "Не выбран") {
+                    scope.launch { channels = account.channelsForProfile() }
+                }
+                LinkRow("Сменить номер", "Перенести аккаунт на другой номер телефона") { changingNumber = true }
+            }
+            if (pickingDate) BirthdayDialog(extras?.birthday, onDismiss = { pickingDate = false }) { value ->
+                pickingDate = false
+                scope.launch { runCatching { account.setBirthday(value) }.onSuccess { reload++; onNotice(if (value == null) "День рождения убран" else "День рождения сохранён") }.onFailure { onNotice("Не удалось сохранить") } }
+            }
+            channels?.let { list ->
+                ChoiceDialog("Личный канал", listOf(0L to "Без канала") + list, list.firstOrNull { it.first == extras?.personalChatId } ?: (0L to "Без канала"), { it.second }, onDismiss = { channels = null }) { (id, _) ->
+                    channels = null
+                    scope.launch { runCatching { account.setPersonalChannel(id) }.onSuccess { reload++ }.onFailure { onNotice("Не удалось сохранить") } }
+                }
+                if (list.isEmpty()) LaunchedEffect(Unit) { onNotice("Нет своих публичных каналов, которые можно показать") }
+            }
+            if (changingNumber) ChangeNumberDialog(onDismiss = { changingNumber = false }, onNotice = onNotice)
+        }
         item { SmallCaption("Имя пользователя") }
         item { EditField(username, "username", prefix = "@") { username = it.removePrefix("@").filter { c -> c.isLetterOrDigit() || c == '_' }.take(32) } }
         if (username.isNotEmpty()) item { Text("t.me/$username", color = Fusion.colors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp)) }
@@ -365,4 +396,36 @@ private fun profileError(message: String): String = when {
     message.contains("FIRSTNAME_INVALID", true) -> "Недопустимое имя"
     message.contains("ABOUT_TOO_LONG", true) -> "Слишком длинное «О себе»"
     else -> "Не удалось сохранить профиль"
+}
+
+/** Day, month and an optional year of the own birthday; «Убрать» removes it. */
+@Composable
+private fun BirthdayDialog(current: com.kirox.app.telegram.Birthday?, onDismiss: () -> Unit, onPick: (com.kirox.app.telegram.Birthday?) -> Unit) {
+    var day by remember { mutableStateOf(current?.day?.toString() ?: "") }
+    var month by remember { mutableStateOf(current?.month?.toString() ?: "") }
+    var year by remember { mutableStateOf(current?.year?.takeIf { it > 0 }?.toString() ?: "") }
+    val d = day.toIntOrNull()
+    val m = month.toIntOrNull()
+    val y = year.toIntOrNull() ?: 0
+    val valid = d != null && m != null && m in 1..12 && d in 1..31 && (year.isEmpty() || y in 1900..2026)
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Fusion.colors.surface1,
+        title = { Text("День рождения", color = Fusion.colors.textPrimary) },
+        text = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val digits = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                androidx.compose.material3.OutlinedTextField(day, { day = it.filter(Char::isDigit).take(2) }, Modifier.weight(1f), singleLine = true, label = { Text("День") }, keyboardOptions = digits)
+                androidx.compose.material3.OutlinedTextField(month, { month = it.filter(Char::isDigit).take(2) }, Modifier.weight(1f), singleLine = true, label = { Text("Месяц") }, keyboardOptions = digits)
+                androidx.compose.material3.OutlinedTextField(year, { year = it.filter(Char::isDigit).take(4) }, Modifier.weight(1.3f), singleLine = true, label = { Text("Год") }, keyboardOptions = digits)
+            }
+        },
+        confirmButton = { TextButton(enabled = valid, onClick = { onPick(com.kirox.app.telegram.Birthday(d!!, m!!, y)) }) { Text("Сохранить", color = Fusion.colors.accent) } },
+        dismissButton = {
+            Row {
+                if (current != null) TextButton(onClick = { onPick(null) }) { Text("Убрать", color = Fusion.colors.danger) }
+                TextButton(onClick = onDismiss) { Text("Отмена", color = Fusion.colors.textSecondary) }
+            }
+        }
+    )
 }

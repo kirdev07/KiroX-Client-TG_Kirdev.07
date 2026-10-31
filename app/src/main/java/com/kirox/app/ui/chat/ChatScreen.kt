@@ -219,7 +219,7 @@ internal fun MessageRow(message: MessageUi, grouped: Boolean, appearance: ChatAp
                 Box(Modifier.align(Alignment.End)) { Meta() }
             }
             if (message.reactions.isNotEmpty()) {
-                Row(Modifier.padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) { message.reactions.forEach { reaction -> Text("${reaction.emoji} ${reaction.count}", color = ChatWhite, fontSize = 11.sp, modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (reaction.selected) Fusion.colors.textTertiary else Fusion.colors.surface3).padding(horizontal = 8.dp, vertical = 4.dp)) } }
+                Row(Modifier.padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) { message.reactions.forEach { reaction -> Row(Modifier.clip(RoundedCornerShape(12.dp)).background(if (reaction.selected) Fusion.colors.textTertiary else Fusion.colors.surface3).padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) { ReactionGlyph(reaction.emoji, 13); Text(" ${reaction.count}", color = ChatWhite, fontSize = 11.sp) } } }
             }
             if (message.buttons.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
@@ -433,8 +433,8 @@ internal fun ChatComposer(value: TextFieldValue, reply: MessageUi?, editing: Mes
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable internal fun MessageActionsSheet(message: MessageUi, onDismiss: () -> Unit, onReply: () -> Unit, onReaction: (String) -> Unit, onAction: (String) -> Unit, reactions: Boolean = true, hidden: Set<String> = emptySet(), isPinned: Boolean = false, reactionChoices: List<String> = DEFAULT_REACTIONS) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Fusion.colors.surface1, contentColor = ChatWhite) {
-        if (reactions) Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceAround) { reactionChoices.forEach { emoji -> Text(emoji, fontSize = 23.sp, modifier = Modifier.clip(CircleShape).clickable { onReaction(emoji) }.padding(9.dp)) } }
-        val actions = buildList { add(KiroXIcon.Reply to "Ответить"); if (message.text.isNotBlank() && message.kind != MessageKind.Voice) add(KiroXIcon.Copy to "Копировать"); if (message.text.isNotBlank() && message.kind == MessageKind.Text && message.poll == null) add(KiroXIcon.Info to "Перевести"); if (message.media != null && message.kind != MessageKind.Sticker || message.kind == MessageKind.Photo) add(KiroXIcon.Storage to "Сохранить"); add(KiroXIcon.Forward to "Переслать"); if (message.kind == MessageKind.Audio) add(KiroXIcon.Music to "В плейлист"); add(KiroXIcon.Refresh to "Отправить ещё раз"); add(KiroXIcon.Pin to if (isPinned) "Открепить" else "Закрепить"); if (message.canEdit) add(KiroXIcon.Edit to "Редактировать"); if (message.canDelete) add(KiroXIcon.Delete to "Удалить"); add(KiroXIcon.Check to "Выбрать"); add(KiroXIcon.Refresh to "История изменений"); add(KiroXIcon.Link to "Копировать ссылку"); add(KiroXIcon.Eye to "Скрывать сообщения автора"); add(KiroXIcon.Shield to "Пожаловаться") }.filterNot { it.second in hidden }
+        if (reactions) Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceAround) { reactionChoices.forEach { emoji -> Box(Modifier.clip(CircleShape).clickable { onReaction(emoji) }.padding(9.dp)) { ReactionGlyph(emoji, 23) } } }
+        val actions = buildList { add(KiroXIcon.Reply to "Ответить"); if (message.text.isNotBlank() && message.kind == MessageKind.Text) add(KiroXIcon.Reply to "Цитировать"); if (message.text.isNotBlank() && message.kind != MessageKind.Voice) add(KiroXIcon.Copy to "Копировать"); if (message.text.isNotBlank() && message.kind == MessageKind.Text && message.poll == null) add(KiroXIcon.Info to "Перевести"); if (message.media != null && message.kind != MessageKind.Sticker || message.kind == MessageKind.Photo) add(KiroXIcon.Storage to "Сохранить"); add(KiroXIcon.Forward to "Переслать"); if (message.kind == MessageKind.Audio) add(KiroXIcon.Music to "В плейлист"); add(KiroXIcon.Refresh to "Отправить ещё раз"); add(KiroXIcon.Pin to if (isPinned) "Открепить" else "Закрепить"); if (message.canEdit) add(KiroXIcon.Edit to "Редактировать"); if (message.canEdit && (message.kind == MessageKind.Photo || message.kind == MessageKind.Video)) add(KiroXIcon.Photo to "Заменить фото или видео"); add(KiroXIcon.Eye to "Кто прочитал"); add(KiroXIcon.Emoji to "Кто отреагировал"); if (message.canDelete) add(KiroXIcon.Delete to "Удалить"); add(KiroXIcon.Check to "Выбрать"); add(KiroXIcon.Refresh to "История изменений"); add(KiroXIcon.Link to "Копировать ссылку"); add(KiroXIcon.Eye to "Скрывать сообщения автора"); add(KiroXIcon.Shield to "Пожаловаться") }.filterNot { it.second in hidden }
         actions.forEach { (icon, title) ->
             val color = if (title == "Удалить") Fusion.colors.danger else ChatWhite
             androidx.compose.material3.ListItem(
@@ -721,4 +721,12 @@ private fun FormatBar(value: TextFieldValue, onValueChange: (TextFieldValue) -> 
         },
         dismissButton = { androidx.compose.material3.TextButton(onClick = { linking = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
     )
+}
+
+/** A reaction: an emoji as text, or a custom emoji («ce:<id>») as its picture. */
+@Composable
+internal fun ReactionGlyph(key: String, size: Int) {
+    val custom = key.removePrefix("ce:").toLongOrNull()?.takeIf { key.startsWith("ce:") }
+    if (custom != null) com.kirox.app.ui.components.CustomEmojiImage(custom, (size * 1.2f).dp)
+    else androidx.compose.material3.Text(key, fontSize = size.sp)
 }

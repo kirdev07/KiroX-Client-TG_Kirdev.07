@@ -215,7 +215,7 @@ class TelegramMessageRepository(
             val available = client.query(TdApi.GetMessageAvailableReactions(id, messageId, 8))
             (available.topReactions + available.recentReactions + available.popularReactions)
                 .filter { !it.needsPremium }
-                .mapNotNull { (it.type as? TdApi.ReactionTypeEmoji)?.emoji }
+                .mapNotNull { reactionKey(it.type) }
                 .distinct()
                 .take(8)
         }.getOrNull()
@@ -285,22 +285,77 @@ class TelegramMessageRepository(
      * [silent]: delivered without sound («Отправить без звука»). [scheduleAt]: unix time to send at,
      * [SEND_WHEN_ONLINE] — when the other person comes online, 0 — now.
      */
-    fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false, scheduleAt: Int = 0) = act { id ->
+    fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false, scheduleAt: Int = 0, quote: String? = null, noLinkPreview: Boolean = false) = act { id ->
         val schedule = when {
             scheduleAt == SEND_WHEN_ONLINE -> TdApi.MessageSchedulingStateSendWhenOnline()
             scheduleAt > 0 -> TdApi.MessageSchedulingStateSendAtDate(scheduleAt, 0)
             else -> null
         }
         val options = if (silent || schedule != null) TdApi.MessageSendOptions(null, silent, false, false, false, 0, false, schedule, 0, 0, false) else null
-        TdApi.SendMessage(id, topic, replyToMessageId?.let { TdApi.InputMessageReplyToMessage(it, null, 0, null) }, options, null, inputText(text))
+        TdApi.SendMessage(id, topic, replyToMessageId?.let { TdApi.InputMessageReplyToMessage(it, quote?.let { q -> quoteOf(it, q) }, 0, null) }, options, null, inputText(text, noLinkPreview))
     }
 
-    fun sendPhoto(path: String, caption: String) = act { id ->
+    /** [spoiler]: hidden under a spoiler; [viewOnce]: disappears after it is opened (private chats). */
+    fun sendPhoto(path: String, caption: String, spoiler: Boolean = false, viewOnce: Boolean = false) = act { id ->
         TdApi.SendMessage(id, topic, null, null, null, TdApi.InputMessagePhoto().apply {
             photo = TdApi.InputPhoto().apply { photo = TdApi.InputFileLocal(path); addedStickerFileIds = IntArray(0) }
             this.caption = formatted(caption)
+            hasSpoiler = spoiler
+            if (viewOnce) selfDestructType = TdApi.MessageSelfDestructTypeImmediately()
         })
     }
+
+    /** Puts another photo or video in place of the one in [messageId] (own messages). */
+    fun replaceMedia(messageId: Long, path: String, video: Boolean) = act { id ->
+        val caption = (messages[messageId]?.content as? TdApi.MessagePhoto)?.caption ?: (messages[messageId]?.content as? TdApi.MessageVideo)?.caption ?: TdApi.FormattedText("", emptyArray())
+        val content: TdApi.InputMessageContent = if (video) TdApi.InputMessageVideo().apply {
+            this.video = TdApi.InputVideo().apply { this.video = TdApi.InputFileLocal(path); addedStickerFileIds = IntArray(0) }
+            this.caption = caption
+        } else TdApi.InputMessagePhoto().apply {
+            photo = TdApi.InputPhoto().apply { photo = TdApi.InputFileLocal(path); addedStickerFileIds = IntArray(0) }
+            this.caption = caption
+        }
+        TdApi.EditMessageMedia(id, messageId, null, content)
+    }
+
+    /** Who read [messageId] (own messages in small groups, for 7 days): name and when. */
+    suspend fun readBy(messageId: Long): List<Pair<String, Int>> {
+        val id = chatId.takeIf { it != 0L } ?: return emptyList()
+        return client.query(TdApi.GetMessageViewers(id, messageId)).viewers.map { userName(it.userId) to it.viewDate }
+    }
+
+    /** Who reacted to [messageId] and with what. */
+    suspend fun reactedBy(messageId: Long): List<Pair<String, String>> {
+        val id = chatId.takeIf { it != 0L } ?: return emptyList()
+        return client.query(TdApi.GetMessageAddedReactions(id, messageId, null, "", 100)).reactions.mapNotNull { r ->
+            val key = reactionKey(r.type) ?: return@mapNotNull null
+            val name = when (val s = r.senderId) {
+                is TdApi.MessageSenderUser -> userName(s.userId)
+                is TdApi.MessageSenderChat -> runCatching { client.query(TdApi.GetChat(s.chatId)).title }.getOrDefault("")
+                else -> ""
+            }
+            name to key
+        }
+    }
+
+    private suspend fun userName(userId: Long): String =
+        runCatching { client.query(TdApi.GetUser(userId)).let { "${it.firstName} ${it.lastName}".trim() } }.getOrDefault("").ifBlank { "Пользователь" }
+
+    /** The quoted part of [messageId]: its text and where it is in the message. */
+    private fun quoteOf(messageId: Long, quote: String): TdApi.InputTextQuote {
+        val whole = (messages[messageId]?.content as? TdApi.MessageText)?.text?.text.orEmpty()
+        return TdApi.InputTextQuote(TdApi.FormattedText(quote, emptyArray()), emptyArray(), whole.indexOf(quote).coerceAtLeast(0))
+    }
+
+    /** Reactions as strings: an emoji itself, or «ce:<id>» for a custom emoji. */
+    private fun reactionKey(type: TdApi.ReactionType?): String? = when (type) {
+        is TdApi.ReactionTypeEmoji -> type.emoji
+        is TdApi.ReactionTypeCustomEmoji -> "ce:${type.customEmojiId}"
+        else -> null
+    }
+
+    private fun reactionType(key: String): TdApi.ReactionType =
+        key.removePrefix("ce:").toLongOrNull()?.takeIf { key.startsWith("ce:") }?.let { TdApi.ReactionTypeCustomEmoji(it) } ?: TdApi.ReactionTypeEmoji(key)
 
     fun sendVoice(path: String, durationSeconds: Int, waveform: ByteArray) = act { id ->
         TdApi.SendMessage(id, topic, null, null, null, TdApi.InputMessageVoiceNote(
@@ -371,9 +426,9 @@ class TelegramMessageRepository(
     /** Adds the emoji reaction, or removes it when this account already chose it. */
     fun toggleReaction(messageId: Long, emoji: String) = act { id ->
         val chosen = messages[messageId]?.interactionInfo?.reactions?.reactions
-            ?.any { (it.type as? TdApi.ReactionTypeEmoji)?.emoji == emoji && it.isChosen } == true
-        if (chosen) TdApi.RemoveMessageReaction(id, messageId, TdApi.ReactionTypeEmoji(emoji))
-        else TdApi.AddMessageReaction(id, messageId, TdApi.ReactionTypeEmoji(emoji), false, true)
+            ?.any { reactionKey(it.type) == emoji && it.isChosen } == true
+        if (chosen) TdApi.RemoveMessageReaction(id, messageId, reactionType(emoji))
+        else TdApi.AddMessageReaction(id, messageId, reactionType(emoji), false, true)
     }
 
     fun delete(messageIds: List<Long>, forEveryone: Boolean) = act { id -> ownDeletes += messageIds; TdApi.DeleteMessages(id, messageIds.toLongArray(), forEveryone) }
@@ -496,7 +551,8 @@ class TelegramMessageRepository(
         client.query(TdApi.DeleteMessages(id, longArrayOf(messageId), true))
     }
 
-    private fun inputText(text: String) = TdApi.InputMessageText(formatted(text), null, true)
+    private fun inputText(text: String, noLinkPreview: Boolean = false) =
+        TdApi.InputMessageText(formatted(text), if (noLinkPreview) TdApi.LinkPreviewOptions(true, "", false, false, false) else null, true)
 
     /**
      * Text as Telegram's apps send it: **жирный**, __курсив__, ~~зачёркнутый~~, ||спойлер||, `код`,
@@ -730,7 +786,7 @@ class TelegramMessageRepository(
             forwardedFrom = forwardInfo?.origin?.let(::originName),
             photo = photo?.photo?.toRef() ?: (content as? TdApi.MessageVoiceNote)?.voiceNote?.voice?.toRef(),
             reactions = interactionInfo?.reactions?.reactions.orEmpty().mapNotNull { reaction ->
-                (reaction.type as? TdApi.ReactionTypeEmoji)?.let { Triple(it.emoji, reaction.totalCount, reaction.isChosen) }
+                reactionKey(reaction.type)?.let { Triple(it, reaction.totalCount, reaction.isChosen) }
             },
             photoAspect = photo?.let { if (it.height > 0) it.width.toFloat() / it.height else 0f } ?: 0f,
             fileName = (content as? TdApi.MessageDocument)?.document?.fileName ?: (content as? TdApi.MessageAudio)?.audio?.fileName,

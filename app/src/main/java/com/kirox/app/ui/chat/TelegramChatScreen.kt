@@ -72,6 +72,16 @@ interface TelegramChatMenuActions {
 interface TelegramChatActions {
     /** The message text with its formatting as markdown, for editing; null keeps the plain text. */
     fun editableText(messageId: Long): String? = null
+    /** Text with a quoted reply ([quote] is part of the replied message) and without a link preview. */
+    fun sendTextWith(text: String, replyToMessageId: Long?, quote: String?, noLinkPreview: Boolean) = sendText(text, replyToMessageId)
+    /** A photo under a spoiler, or one that disappears after it is opened. */
+    fun sendPhotoWith(path: String, caption: String, spoiler: Boolean, viewOnce: Boolean) = sendPhoto(path, caption)
+    /** Who read an own message in a group: name and unix time. */
+    suspend fun readBy(messageId: Long): List<Pair<String, Int>> = emptyList()
+    /** Who reacted to a message: name and reaction. */
+    suspend fun reactedBy(messageId: Long): List<Pair<String, String>> = emptyList()
+    /** Another photo or video in place of the one in an own message. */
+    fun replaceMedia(messageId: Long, path: String, video: Boolean) {}
     fun loadOlder()
     fun sendText(text: String, replyToMessageId: Long?, silent: Boolean = false, scheduleAt: Int = 0)
     suspend fun scheduledMessages(): List<com.kirox.app.telegram.ScheduledMessage> = emptyList()
@@ -310,7 +320,22 @@ fun TelegramChatScreen(
     val filters by com.kirox.app.settings.MessageFilters.state.collectAsState()
     var showFiltered by remember(history.chatId) { mutableStateOf(false) }
     var playlistItem by remember { mutableStateOf<com.kirox.app.settings.PlaylistItem?>(null) }
+    // Reply with a quote: the chosen part of the replied message.
+    var quoting by remember { mutableStateOf<MessageUi?>(null) }
+    var replyQuote by remember { mutableStateOf<String?>(null) }
+    var quotedId by remember { mutableLongStateOf(0L) }
+    // A link in the text: send it without the preview card.
+    var noLinkPreview by remember { mutableStateOf(false) }
+    // «Кто прочитал» / «Кто отреагировал»: the sheet title and what to load.
+    var people by remember { mutableStateOf<Pair<String, suspend () -> List<Pair<String, String>>>?>(null) }
+    var replacing by remember { mutableStateOf<MessageUi?>(null) }
+    // The next gallery photo: under a spoiler, or disappearing after it is opened.
+    var photoSpoiler by remember { mutableStateOf(false) }
+    var photoViewOnce by remember { mutableStateOf(false) }
     playlistItem?.let { item -> com.kirox.app.ui.music.AddToPlaylistDialog(item) { result -> playlistItem = null; result?.let { notice = it } } }
+    quoting?.let { message -> QuotePickDialog(message.text, onDismiss = { quoting = null }) { quote -> quoting = null; replyTo = message; editing = null; replyQuote = quote; quotedId = message.id } }
+    LaunchedEffect(replyTo?.id) { if (replyTo?.id != quotedId) { replyQuote = null; quotedId = 0L } }
+    people?.let { (title, load) -> PeopleSheet(title, load) { people = null } }
     val filterable = history.peerKind == TelegramPeerKind.Group || history.peerKind == TelegramPeerKind.Channel
     val unfiltered = remember(history.messages, filters, filterable) {
         if (!filterable || !filters.enabled) history.messages
@@ -432,6 +457,30 @@ fun TelegramChatScreen(
         }
     }
     // Gallery: photos and videos; several are sent as one album, like in Telegram.
+    // One photo with a spoiler or «исчезнет после просмотра».
+    val pickSpecialPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val spoiler = photoSpoiler
+        val viewOnce = photoViewOnce
+        scope.launch {
+            val path = withContext(Dispatchers.IO) { copyToCache(context, uri) }
+            if (path == null) { notice = "Не удалось прочитать файл"; return@launch }
+            actions.sendPhotoWith(path, input.text.trim(), spoiler, viewOnce)
+            input = TextFieldValue()
+        }
+    }
+    // «Заменить фото или видео» in an own message.
+    val pickReplacement = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        val target = replacing
+        replacing = null
+        if (uri == null || target == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val path = withContext(Dispatchers.IO) { copyToCache(context, uri) }
+            if (path == null) { notice = "Не удалось прочитать файл"; return@launch }
+            actions.replaceMedia(target.id, path, context.contentResolver.getType(uri)?.startsWith("video/") == true)
+            notice = "Заменяю…"
+        }
+    }
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(ALBUM_LIMIT)) { uris ->
         when {
             uris.size == 1 -> sendPicked(uris[0], asPhoto = true)
@@ -622,9 +671,17 @@ fun TelegramChatScreen(
                     modifier = Modifier.fillMaxWidth().background(Fusion.colors.background).clickable { showBotKeyboard = !showBotKeyboard }.padding(vertical = 6.dp),
                     textAlign = TextAlign.Center
                 )
+                // A link in the text: whether it goes with the preview card.
+                val hasLink = editing == null && (input.text.contains("http://") || input.text.contains("https://") || input.text.contains("t.me/"))
+                if (hasLink) Text(
+                    if (noLinkPreview) "Превью ссылки: выключено" else "Превью ссылки: включено",
+                    color = if (noLinkPreview) Fusion.colors.textTertiary else Fusion.colors.accent, fontSize = 12.sp,
+                    modifier = Modifier.fillMaxWidth().clickable { noLinkPreview = !noLinkPreview }.padding(vertical = 6.dp),
+                    textAlign = TextAlign.Center
+                )
                 ChatComposer(
                 value = input,
-                reply = replyTo,
+                reply = replyTo?.let { r -> replyQuote?.let { q -> r.copy(text = "«$q»") } ?: r },
                 editing = editing,
                 onValueChange = { value ->
                     // Typing is reported only for new text, not for edits or cursor moves.
@@ -640,8 +697,8 @@ fun TelegramChatScreen(
                     val text = input.text.trim()
                     if (text.isNotEmpty()) {
                         val edited = editing
-                        if (edited != null) actions.edit(edited.id, text) else actions.sendText(text, replyTo?.id)
-                        input = TextFieldValue(); replyTo = null; editing = null
+                        if (edited != null) actions.edit(edited.id, text) else actions.sendTextWith(text, replyTo?.id, replyQuote, noLinkPreview)
+                        input = TextFieldValue(); replyTo = null; editing = null; replyQuote = null; noLinkPreview = false
                     }
                 },
                 onMic = {
@@ -848,6 +905,11 @@ fun TelegramChatScreen(
             when (choice) {
                 "Фото и видео" -> pickPhoto.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
                 "Галерея" -> pickPhoto.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                "Фото со спойлером", "Исчезающее фото" -> {
+                    photoSpoiler = choice == "Фото со спойлером"
+                    photoViewOnce = choice == "Исчезающее фото"
+                    pickSpecialPhoto.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                }
                 "Видео" -> pickPhoto.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
                 "Музыка" -> pickFile.launch("audio/*")
                 "Контакт" -> pickingContact = true
@@ -871,6 +933,8 @@ fun TelegramChatScreen(
         // Order of the approved media board: Галерея · Видео · Файлы / Камера … / Опрос · Музыка.
         actions = buildList {
             add(KiroXIcon.Media to "Галерея")
+            add(KiroXIcon.Eye to "Фото со спойлером")
+            if (history.peerKind == TelegramPeerKind.User && !history.isSecret) add(KiroXIcon.Lock to "Исчезающее фото")
             add(KiroXIcon.Video to "Видео")
             add(KiroXIcon.File to "Файл")
             add(KiroXIcon.Camera to "Камера")
@@ -914,6 +978,10 @@ fun TelegramChatScreen(
                     "Выбрать" -> selectedIds = idsOf(message).toSet()
                     "История изменений" -> versionsOf = message
                     "Пожаловаться" -> reportIds = idsOf(message)
+                    "Цитировать" -> quoting = message
+                    "Кто прочитал" -> people = "Прочитали" to { actions.readBy(message.id).map { (name, date) -> name to scheduledTime(date) } }
+                    "Кто отреагировал" -> people = "Реакции" to { actions.reactedBy(message.id) }
+                    "Заменить фото или видео" -> { replacing = message; pickReplacement.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) }
                     "В плейлист" -> source?.media?.let { media -> playlistItem = com.kirox.app.settings.PlaylistItem(history.chatId, message.id, media.title.ifBlank { "Аудио" }, media.performer, media.duration) }
                     "Скрывать сообщения автора" -> source?.takeIf { it.senderId != 0L }?.let {
                         com.kirox.app.settings.MessageFilters.hidePerson(it.senderId, it.senderName.ifBlank { history.title })
@@ -947,6 +1015,10 @@ fun TelegramChatScreen(
                 // Links exist for groups and channels; reports are for what others sent.
                 if (history.peerKind != TelegramPeerKind.Group && history.peerKind != TelegramPeerKind.Channel) add("Копировать ссылку")
                 if (message.direction != MessageDirection.Incoming || history.peerKind == TelegramPeerKind.Saved) add("Пожаловаться")
+                // Read receipts exist for own messages in groups; reactions lists in groups.
+                if (message.direction != MessageDirection.Outgoing || history.peerKind != TelegramPeerKind.Group) add("Кто прочитал")
+                if (message.reactions.isEmpty() || history.peerKind != TelegramPeerKind.Group) add("Кто отреагировал")
+                if (source?.isProtected == true) add("Цитировать")
                 if (!filterable || message.direction != MessageDirection.Incoming || source?.senderId == 0L) add("Скрывать сообщения автора")
                 // Only content that can be sent again: no polls, calls or service messages.
                 if (message.poll != null || message.direction == MessageDirection.System) add("Отправить ещё раз")

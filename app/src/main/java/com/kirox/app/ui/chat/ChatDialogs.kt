@@ -232,3 +232,53 @@ internal fun JumpBubble(label: String, count: Int, onClick: () -> Unit, onLongCl
         )
     }
 }
+
+/** «Цитировать»: select the part of the message to quote; nothing selected quotes all of it. */
+@Composable
+internal fun QuotePickDialog(text: String, onDismiss: () -> Unit, onQuote: (String) -> Unit) {
+    var value by remember { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(text, androidx.compose.ui.text.TextRange(0, text.length))) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Выделите цитату", color = Fusion.colors.textPrimary) },
+        text = {
+            androidx.compose.material3.OutlinedTextField(value, { value = it.copy(text = text) }, readOnly = true, modifier = Modifier.heightIn(max = 320.dp))
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val part = if (value.selection.collapsed) text else text.substring(value.selection.min, value.selection.max)
+                onQuote(part.trim().take(1024))
+            }) { Text("Цитировать", color = Fusion.colors.accent) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
+}
+
+/** «Прочитали» / «Реакции»: people, with a time or their reaction. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun PeopleSheet(title: String, load: suspend () -> List<Pair<String, String>>, onDismiss: () -> Unit) {
+    var list by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    LaunchedEffect(title) { runCatching { load() }.onSuccess { list = it }.onFailure { failed = true; list = emptyList() } }
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Fusion.colors.surface1) {
+        Text(title, color = Fusion.colors.textPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        val people = list
+        LazyColumn(Modifier.fillMaxWidth().heightIn(max = 480.dp)) {
+            when {
+                people == null -> item { Box(Modifier.fillMaxWidth().padding(24.dp), Alignment.Center) { CircularProgressIndicator(Modifier.size(22.dp), color = Fusion.colors.textSecondary, strokeWidth = 2.dp) } }
+                people.isEmpty() -> item {
+                    Text(if (failed) "Telegram не дал список: так бывает в больших группах и для сообщений старше недели" else "Пока никого", color = Fusion.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(24.dp))
+                }
+                else -> items(people) { (name, detail) ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        com.kirox.app.ui.components.TelegramAvatar(name, null, 36.dp)
+                        androidx.compose.material3.Text(name, color = Fusion.colors.textPrimary, fontSize = 15.sp, modifier = Modifier.weight(1f).padding(start = 12.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (detail.startsWith("ce:") || detail.length <= 4) ReactionGlyph(detail, 20) else Text(detail, color = Fusion.colors.textTertiary, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.navigationBarsPadding().height(8.dp))
+    }
+}

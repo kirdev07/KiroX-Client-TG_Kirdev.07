@@ -82,6 +82,8 @@ internal fun PrivacyScreen(onBack: () -> Unit, onNotice: (String) -> Unit, onOpe
     var blockedCount by remember { mutableStateOf<Int?>(null) }
     var messages by remember { mutableStateOf<MessagePrivacy?>(null) }
     var ttl by remember { mutableStateOf<AccountTtl?>(null) }
+    var deletingAccount by remember { mutableStateOf(false) }
+    if (deletingAccount) DeleteAccountDialog(onDismiss = { deletingAccount = false }) { deletingAccount = false; onNotice("Аккаунт удалён") }
     var choosingTtl by remember { mutableStateOf(false) }
     var confirmClearContacts by remember { mutableStateOf(false) }
     fun load() {
@@ -179,6 +181,8 @@ internal fun PrivacyScreen(onBack: () -> Unit, onNotice: (String) -> Unit, onOpe
         item {
             SettingsCard {
                 IconRow(IconGlyphs.Delete, Color(0xFF8E8E93), "Если меня не было", null, trailing = ttl?.title ?: "…") { if (ttl != null) choosingTtl = true }
+                CardDivider()
+                IconRow(IconGlyphs.Delete, Fusion.colors.danger, "Удалить аккаунт сейчас", "Навсегда, со всеми сообщениями и контактами") { deletingAccount = true }
             }
         }
         item {

@@ -252,8 +252,21 @@ internal fun DevicesScreen(sessions: com.kirox.app.telegram.TelegramSessionsRepo
         scope.launch { runCatching { sessions.sessions() }.onSuccess { list = it; failed = false }.onFailure { failed = true } }
     }
     LaunchedEffect(Unit) { reload() }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val account = remember { (context.applicationContext as com.kirox.app.KiroXApplication).telegram.account }
+    var scanning by remember { mutableStateOf(false) }
+    if (scanning) { QrLoginScreen(onBack = { scanning = false; reload() }, onNotice = onNotice); return }
+    var inactiveDays by remember { mutableIntStateOf(0) }
+    var choosingDays by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { inactiveDays = account.inactiveSessionDays() }
     LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { BackTitle("Устройства", onBack) }
+        item {
+            SettingsCard {
+                LinkRow("Подключить устройство", "Войти на компьютере или в браузере по QR-коду") { scanning = true }
+                LinkRow("Завершать неактивные сеансы", if (inactiveDays > 0) daysText(inactiveDays) else "…") { if (inactiveDays > 0) choosingDays = true }
+            }
+        }
         val current = list?.firstOrNull { it.isCurrent }
         val others = list?.filterNot { it.isCurrent }.orEmpty()
         when {
@@ -280,6 +293,12 @@ internal fun DevicesScreen(sessions: com.kirox.app.telegram.TelegramSessionsRepo
                 }
             }
         }
+    }
+    if (choosingDays) ChoiceDialog("Завершать неактивные сеансы", listOf(7, 30, 90, 183, 365), listOf(7, 30, 90, 183, 365).minByOrNull { kotlin.math.abs(it - inactiveDays) } ?: 183, ::daysText, onDismiss = { choosingDays = false }) { days ->
+        choosingDays = false
+        val before = inactiveDays
+        inactiveDays = days
+        scope.launch { runCatching { account.setInactiveSessionDays(days) }.onFailure { inactiveDays = before; onNotice("Не удалось сохранить") } }
     }
     confirm?.let { session ->
         androidx.compose.material3.AlertDialog(
@@ -351,3 +370,14 @@ private fun releaseNotesText(markdown: String, strong: androidx.compose.ui.graph
             }
         }
     }
+
+/** «Через неделю», «через 3 месяца»… for the inactive sessions choice. */
+private fun daysText(days: Int): String = when (days) {
+    7 -> "Через неделю"
+    in 28..31 -> "Через месяц"
+    in 89..92 -> "Через 3 месяца"
+    // Telegram keeps «полгода» as 183 days and «год» as 365 or 366.
+    in 180..184 -> "Через полгода"
+    in 365..366 -> "Через год"
+    else -> "Через $days дн."
+}

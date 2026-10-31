@@ -71,6 +71,12 @@ internal fun PeerProfileScreen(
     LaunchedEffect(chatId) { similar = admin.similarChannels(chatId) }
     // «Общие группы» with a person: a private chat's id is the user's id (positive).
     var common by remember(chatId) { mutableStateOf<List<com.kirox.app.telegram.SimilarChat>>(emptyList()) }
+    // A person's birthday and personal channel; all their profile photos on a tap on the avatar.
+    val account = (LocalContext.current.applicationContext as KiroXApplication).telegram.account
+    var extras by remember(chatId) { mutableStateOf(com.kirox.app.telegram.ProfileExtras()) }
+    LaunchedEffect(chatId) { if (chatId > 0) extras = account.extras(chatId) }
+    var photosOpen by remember { mutableStateOf(false) }
+    if (photosOpen) com.kirox.app.ui.home.ProfilePhotosViewer(chatId, title) { photosOpen = false }
     LaunchedEffect(chatId) { if (chatId > 0) common = admin.commonGroups(chatId) }
     val openChat = LocalChatOpener.current
     // Gifts a person shows on their profile (private chats only; ids of users are positive).
@@ -113,7 +119,7 @@ internal fun PeerProfileScreen(
                     KiroXIcon(KiroXIcon.Back, "Назад", Modifier.size(24.dp), Fusion.colors.textPrimary)
                 }
                 Column(Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.size(128.dp).border(2.dp, accent, CircleShape).padding(5.dp), contentAlignment = Alignment.Center) { TelegramAvatar(title, photo, 116.dp) }
+                    Box(Modifier.size(128.dp).border(2.dp, accent, CircleShape).padding(5.dp).clip(CircleShape).clickable(enabled = chatId > 0 && photo != null) { photosOpen = true }, contentAlignment = Alignment.Center) { TelegramAvatar(title, photo, 116.dp) }
                     Spacer(Modifier.height(12.dp))
                     Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(title, color = Fusion.colors.textPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
@@ -143,6 +149,8 @@ internal fun PeerProfileScreen(
                 if (info.username.isNotBlank()) InfoRow(KiroXIcon.At, "@${info.username}", "Имя пользователя")
                 if (info.about.isNotBlank()) InfoRow(KiroXIcon.Info, info.about, "О себе")
                 if (info.phone.isNotBlank()) InfoRow(KiroXIcon.Phone, TelegramFormat.phone(info.phone), "Телефон")
+                extras.birthday?.let { InfoRow(KiroXIcon.Cake, it.text, "День рождения") }
+                if (extras.personalChatId != 0L) InfoRow(KiroXIcon.Channel, extras.personalChatTitle.ifBlank { "Канал" }, "Личный канал") { openChat?.invoke(extras.personalChatId) }
                 if (com.kirox.app.settings.KiroxTweaks.state.collectAsState().value.showIds) {
                     val context = androidx.compose.ui.platform.LocalContext.current
                     InfoRow(KiroXIcon.Info, chatId.toString(), "ID · нажмите, чтобы скопировать") {
