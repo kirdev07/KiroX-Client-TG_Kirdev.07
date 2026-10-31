@@ -11,7 +11,7 @@ import com.kirox.app.ui.components.SeasonalLayer
 import com.kirox.app.ui.components.SeasonalMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
+import com.kirox.app.i18n.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier

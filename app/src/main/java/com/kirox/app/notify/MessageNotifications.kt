@@ -321,7 +321,7 @@ class MessageActionReceiver : BroadcastReceiver() {
                 try {
                     val ok = notifications.reply(groupId, intent.getLongExtra(MessageNotifications.EXTRA_CHAT, 0), intent.getIntExtra(MessageNotifications.EXTRA_MAX, 0), text, MessageNotifications.topicOf(intent))
                     if (ok) notifications.dismiss(groupId)
-                    else android.os.Handler(android.os.Looper.getMainLooper()).post { android.widget.Toast.makeText(context, "Не удалось отправить ответ", android.widget.Toast.LENGTH_SHORT).show() }
+                    else android.os.Handler(android.os.Looper.getMainLooper()).post { android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Не удалось отправить ответ"), android.widget.Toast.LENGTH_SHORT).show() }
                 } finally {
                     pending.finish()
                 }

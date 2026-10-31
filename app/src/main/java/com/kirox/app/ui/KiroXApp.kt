@@ -105,16 +105,16 @@ fun KiroXApp() {
         val camera = granted(android.Manifest.permission.CAMERA)
         when {
             !granted(android.Manifest.permission.RECORD_AUDIO) ->
-                android.widget.Toast.makeText(context, "Без доступа к микрофону звонок невозможен", android.widget.Toast.LENGTH_LONG).show()
+                android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Без доступа к микрофону звонок невозможен"), android.widget.Toast.LENGTH_LONG).show()
             // Turning the camera on needs the camera; nothing to do without it.
             pendingNeedsCamera && !camera ->
-                android.widget.Toast.makeText(context, "Нет доступа к камере", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Нет доступа к камере"), android.widget.Toast.LENGTH_SHORT).show()
             else -> {
                 action?.invoke()
                 // A video call without camera access goes on as a voice call with the camera off.
                 if (pendingWantsVideo && !camera) {
                     telegramViewModel.voip.setCamera(false)
-                    android.widget.Toast.makeText(context, "Нет доступа к камере — звонок без видео", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Нет доступа к камере — звонок без видео"), android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -168,7 +168,7 @@ fun KiroXApp() {
     // Screen sharing problems (Telegram refused, capture failed) as a short toast.
     val groupCallError by telegramViewModel.groupCalls.error.collectAsStateWithLifecycle()
     LaunchedEffect(groupCallError) {
-        groupCallError?.let { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show(); telegramViewModel.groupCalls.clearError() }
+        groupCallError?.let { android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t(it), android.widget.Toast.LENGTH_SHORT).show(); telegramViewModel.groupCalls.clearError() }
     }
     val permittedCallActions = remember(callActions) {
         object : com.kirox.app.ui.call.CallActions by callActions {
@@ -421,8 +421,8 @@ fun KiroXApp() {
         groupCallNotice?.let { text ->
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { groupCallNotice = null },
-                text = { androidx.compose.material3.Text(text) },
-                confirmButton = { androidx.compose.material3.TextButton(onClick = { groupCallNotice = null }) { androidx.compose.material3.Text("Понятно") } }
+                text = { com.kirox.app.i18n.Text(text) },
+                confirmButton = { androidx.compose.material3.TextButton(onClick = { groupCallNotice = null }) { com.kirox.app.i18n.Text("Понятно") } }
             )
         }
         activeCall?.let { call ->

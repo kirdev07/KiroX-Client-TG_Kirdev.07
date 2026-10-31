@@ -1,6 +1,6 @@
 package com.kirox.app.ui.chat
 
-import androidx.compose.material3.Text
+import com.kirox.app.i18n.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

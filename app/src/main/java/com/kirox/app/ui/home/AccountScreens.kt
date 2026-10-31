@@ -22,7 +22,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import com.kirox.app.i18n.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -88,7 +88,8 @@ internal fun SettingsTab(profile: TelegramUserProfile?, onOpenProfile: () -> Uni
         "Конфиденциальность" -> onOpenSection("Конфиденциальность")
         "Данные и память" -> onOpenSection("Данные и память")
         "Оформление" -> onOpenCustomization()
-        "Язык", "kiroX Настройки" -> onOpenSection("Дополнительно")
+        "Язык" -> onOpenSection("Язык")
+        "kiroX Настройки" -> onOpenSection("Дополнительно")
         "Помощь" -> runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, "https://telegram.org/faq".toUri())) }
             .getOrElse { onNotice("Не удалось открыть telegram.org/faq") }.let { }
         else -> onOpenUpdates()
@@ -122,7 +123,7 @@ internal fun SettingsTab(profile: TelegramUserProfile?, onOpenProfile: () -> Uni
                 rows.forEachIndexed { i, (icon, title) ->
                     if (i > 0) HorizontalDivider(Modifier.padding(start = 56.dp), color = Fusion.colors.outline)
                     val trailing = when (title) {
-                        "Язык" -> "Русский"
+                        "Язык" -> com.kirox.app.i18n.I18n.language.title
                         "Telegram Premium" -> if (profile?.isPremium == true) "Активен" else null
                         "О приложении" -> BuildConfig.VERSION_NAME
                         else -> null

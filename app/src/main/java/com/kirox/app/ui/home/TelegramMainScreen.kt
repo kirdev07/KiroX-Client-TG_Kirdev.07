@@ -25,7 +25,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.kirox.app.i18n.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -71,7 +71,7 @@ private enum class MainTab(val item: FusionNavItem) {
     Stories(FusionNavItem("Истории", KiroXIcon.Stories)),
     Settings(FusionNavItem("Настройки", KiroXIcon.Tune))
 }
-private enum class SubScreen { None, Contacts, Profile, NewMessage, Customization, Themes, ChatStyle, Animations, Updates, Devices, ProfileEdit, Notifications, Privacy, Storage, Premium, Advanced }
+private enum class SubScreen { None, Contacts, Profile, NewMessage, Customization, Themes, ChatStyle, Animations, Updates, Devices, ProfileEdit, Notifications, Privacy, Storage, Premium, Advanced, Language }
 private enum class RealChatSection { Archive, Messages }
 
 /** chatId → "печатает…"-style line shown in a chat row instead of its last message. */
@@ -163,6 +163,7 @@ fun TelegramMainScreen(
                     subScreen == SubScreen.Privacy -> PrivacyScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice, onOpenDevices = { sub = SubScreen.Devices })
                     subScreen == SubScreen.Storage -> StorageScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice)
                     subScreen == SubScreen.Premium -> PremiumScreen(profile, onBack = { sub = SubScreen.None })
+                    subScreen == SubScreen.Language -> LanguageScreen(onBack = { sub = SubScreen.None }, onNotice = showNotice)
                     subScreen == SubScreen.Advanced -> AdvancedScreen(onBack = { sub = SubScreen.None }, onLogOut = onLogOut, onNotice = showNotice)
                     subScreen == SubScreen.ProfileEdit -> ProfileEditScreen(profile, onBack = { sub = SubScreen.None }, onNotice = showNotice)
                     subScreen == SubScreen.Devices -> DevicesScreen(
@@ -196,6 +197,7 @@ fun TelegramMainScreen(
                             "Telegram Premium" -> SubScreen.Premium
                             "Чаты и папки" -> SubScreen.ChatStyle
                             "Возможности kiroX" -> SubScreen.Customization
+                            "Язык" -> SubScreen.Language
                             else -> SubScreen.Advanced
                         }
                     }, onNotice = showNotice)
@@ -206,7 +208,7 @@ fun TelegramMainScreen(
             LaunchedEffect(notice) {
                 val current = notice ?: return@LaunchedEffect
                 val result = snackbars.showSnackbar(
-                    current.text, current.actionLabel,
+                    com.kirox.app.i18n.I18n.t(current.text), current.actionLabel?.let(com.kirox.app.i18n.I18n::t),
                     duration = if (current.actionLabel != null) androidx.compose.material3.SnackbarDuration.Long else androidx.compose.material3.SnackbarDuration.Short
                 )
                 if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) current.action?.invoke()
@@ -835,8 +837,8 @@ private fun ContactActions(contact: TelegramContact, onDismiss: () -> Unit, onDo
                 TextButton(enabled = first.isNotBlank(), onClick = { renaming = false
                     scope.launch {
                         runCatching { users.renameContact(contact.id, first.trim(), last.trim()) }
-                            .onSuccess { android.widget.Toast.makeText(context, "Контакт сохранён", android.widget.Toast.LENGTH_SHORT).show(); onDone() }
-                            .onFailure { android.widget.Toast.makeText(context, "Не получилось, попробуйте ещё раз", android.widget.Toast.LENGTH_SHORT).show() }
+                            .onSuccess { android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Контакт сохранён"), android.widget.Toast.LENGTH_SHORT).show(); onDone() }
+                            .onFailure { android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Не получилось, попробуйте ещё раз"), android.widget.Toast.LENGTH_SHORT).show() }
                     } }) {
                     Text("Сохранить", color = if (first.isNotBlank()) Fusion.colors.accent else Fusion.colors.textTertiary)
                 }
@@ -845,8 +847,8 @@ private fun ContactActions(contact: TelegramContact, onDismiss: () -> Unit, onDo
         )
     }
     fun run(action: suspend () -> Unit, ok: String) = scope.launch {
-        runCatching { action() }.onSuccess { android.widget.Toast.makeText(context, ok, android.widget.Toast.LENGTH_SHORT).show(); onDone() }
-            .onFailure { android.widget.Toast.makeText(context, "Не получилось, попробуйте ещё раз", android.widget.Toast.LENGTH_SHORT).show() }
+        runCatching { action() }.onSuccess { android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t(ok), android.widget.Toast.LENGTH_SHORT).show(); onDone() }
+            .onFailure { android.widget.Toast.makeText(context, com.kirox.app.i18n.I18n.t("Не получилось, попробуйте ещё раз"), android.widget.Toast.LENGTH_SHORT).show() }
     }
     confirm?.let { what ->
         AlertDialog(

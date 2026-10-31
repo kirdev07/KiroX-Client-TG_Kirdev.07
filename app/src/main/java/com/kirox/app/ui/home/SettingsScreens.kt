@@ -14,9 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import com.kirox.app.i18n.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -992,6 +993,147 @@ internal fun formatBytes(bytes: Long): String = when {
     else -> "$bytes Б"
 }
 
+// ---------- Language ----------
+
+/** Settings → Language: interface language and the user's own names for any text. */
+@Composable
+internal fun LanguageScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
+    var renaming by remember { mutableStateOf(false) }
+    if (renaming) { RenameTextsScreen(onBack = { renaming = false }, onNotice = onNotice); return }
+    BackHandler(onBack = onBack)
+    val i18n = com.kirox.app.i18n.I18n
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Язык", onBack) }
+        item { SmallCaption("Язык интерфейса") }
+        item {
+            SettingsCard {
+                com.kirox.app.i18n.AppLanguage.entries.forEachIndexed { index, language ->
+                    if (index > 0) CardDivider()
+                    val selected = i18n.language == language
+                    Row(
+                        Modifier.fillMaxWidth().clickable { i18n.chooseLanguage(language) }.heightIn(min = 56.dp).padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            // Each language is named in itself and never translated.
+                            androidx.compose.material3.Text(language.title, color = Fusion.colors.textPrimary, fontSize = 16.sp)
+                            androidx.compose.material3.Text(
+                                if (language == com.kirox.app.i18n.AppLanguage.Russian) "Russian" else "Английский",
+                                color = Fusion.colors.textSecondary, fontSize = 13.sp
+                            )
+                        }
+                        androidx.compose.material3.RadioButton(selected, onClick = { i18n.chooseLanguage(language) })
+                    }
+                }
+            }
+        }
+        item {
+            Text(
+                "Сообщения и названия чатов не переводятся — меняется только интерфейс kiroX.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+            )
+        }
+        item { SmallCaption("Свои названия") }
+        item {
+            SettingsCard {
+                IconRow(
+                    IconGlyphs.Edit, Color(0xFF9B6BFF), "Переименовать надписи",
+                    if (i18n.overrides.isEmpty()) "Любую кнопку, пункт или заголовок можно назвать по-своему" else "Своих названий: ${i18n.overrides.size}"
+                ) { renaming = true }
+            }
+        }
+    }
+}
+
+/** «Свои названия»: every text of kiroX with search; tap one to give it your own name. */
+@Composable
+private fun RenameTextsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
+    BackHandler(onBack = onBack)
+    val i18n = com.kirox.app.i18n.I18n
+    var query by rememberSaveable { mutableStateOf("") }
+    var onlyMine by rememberSaveable { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<String?>(null) }
+    var confirmReset by remember { mutableStateOf(false) }
+    val all = remember { i18n.keys.filter { it.isNotBlank() && "{\"" !in it && "\${" !in it } }
+    val overrides = i18n.overrides
+    val shown = remember(query, onlyMine, overrides, i18n.language) {
+        val q = query.trim()
+        all.filter { key -> (!onlyMine || key in overrides) && (q.isEmpty() || key.contains(q, true) || i18n.shown(key).contains(q, true)) }
+    }
+    LazyColumn(Modifier.fillMaxSize().background(Fusion.colors.screen), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { BackTitle("Свои названия", onBack) }
+        item { com.kirox.app.ui.components.FusionSearchField(query, { query = it }, "Найти надпись", Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) }
+        item {
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(false to "Все надписи", true to "Мои (${overrides.size})").forEach { (mine, title) ->
+                    androidx.compose.material3.FilterChip(onlyMine == mine, onClick = { onlyMine = mine }, label = { Text(title) })
+                }
+            }
+        }
+        item {
+            Text(
+                "Нажмите на надпись и впишите своё название — оно заменит её во всём приложении на любом языке. {} — место для имени, числа или даты.",
+                color = Fusion.colors.textTertiary, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            )
+        }
+        if (shown.isEmpty()) item {
+            Text(if (onlyMine) "Своих названий пока нет" else "Ничего не найдено", color = Fusion.colors.textSecondary, modifier = Modifier.fillMaxWidth().padding(32.dp), textAlign = TextAlign.Center)
+        }
+        items(shown, key = { it }) { key ->
+            val own = overrides[key]
+            androidx.compose.material3.ListItem(
+                // Raw material3 Text: the list shows the texts as they are, not run through the engine again.
+                headlineContent = { androidx.compose.material3.Text(own ?: i18n.base(key), color = if (own != null) Fusion.colors.accent else Fusion.colors.textPrimary, maxLines = 2) },
+                supportingContent = if (own != null || i18n.base(key) != key) ({ androidx.compose.material3.Text(if (own != null) "было: ${i18n.base(key)}" else key, maxLines = 2) }) else null,
+                colors = fusionListColors(),
+                modifier = Modifier.clickable { editing = key }
+            )
+        }
+        if (overrides.isNotEmpty()) item {
+            LinkRow("Сбросить все свои названия", null, Fusion.colors.danger) { confirmReset = true }
+        }
+    }
+    editing?.let { key ->
+        var value by remember(key) { mutableStateOf(overrides[key] ?: i18n.base(key)) }
+        AlertDialog(
+            onDismissRequest = { editing = null },
+            containerColor = Fusion.colors.surface1,
+            title = { Text("Своё название", color = Fusion.colors.textPrimary) },
+            text = {
+                Column {
+                    androidx.compose.material3.Text(i18n.base(key), color = Fusion.colors.textSecondary, fontSize = 13.sp)
+                    Spacer(Modifier.height(10.dp))
+                    EditField(value, "Новое название", singleLine = false) { value = it.take(200) }
+                    if ("{}" in key && "{}" !in value) Text(
+                        "В исходной надписи есть {} — без него имя или число не покажется.",
+                        color = Fusion.colors.danger, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    i18n.setOverride(key, value.trim().takeIf { it != i18n.base(key) })
+                    editing = null
+                }) { Text("Сохранить", color = Fusion.colors.accent) }
+            },
+            dismissButton = {
+                Row {
+                    if (key in overrides) TextButton(onClick = { i18n.setOverride(key, null); editing = null }) { Text("Вернуть", color = Fusion.colors.danger) }
+                    TextButton(onClick = { editing = null }) { Text("Отмена", color = Fusion.colors.textSecondary) }
+                }
+            }
+        )
+    }
+    if (confirmReset) AlertDialog(
+        onDismissRequest = { confirmReset = false },
+        containerColor = Fusion.colors.surface1,
+        title = { Text("Сбросить свои названия?", color = Fusion.colors.textPrimary) },
+        text = { Text("Все надписи вернутся к обычным для выбранного языка.", color = Fusion.colors.textSecondary) },
+        confirmButton = { TextButton(onClick = { confirmReset = false; i18n.clearOverrides(); onNotice("Свои названия сброшены") }) { Text("Сбросить", color = Fusion.colors.danger) } },
+        dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Отмена", color = Fusion.colors.textSecondary) } }
+    )
+}
+
 // ---------- Premium ----------
 
 @Composable
@@ -1028,6 +1170,8 @@ internal fun PremiumScreen(profile: TelegramUserProfile?, onBack: () -> Unit) {
 /** Settings → Advanced: app info, reset of local KiroX settings, log out. */
 @Composable
 internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: (String) -> Unit) {
+    var languagePage by remember { mutableStateOf(false) }
+    if (languagePage) { LanguageScreen(onBack = { languagePage = false }, onNotice = onNotice); return }
     BackHandler(onBack = onBack)
     val context = LocalContext.current
     var confirmReset by remember { mutableStateOf(false) }
@@ -1042,12 +1186,7 @@ internal fun AdvancedScreen(onBack: () -> Unit, onLogOut: () -> Unit, onNotice: 
             }
         }
         item {
-            LinkRow("Язык", "Русский · системные настройки языка") {
-                // Per-app language settings exist from Android 13.
-                if (android.os.Build.VERSION.SDK_INT < 33) onNotice("Пока доступен только русский язык")
-                else runCatching { context.startActivity(Intent(Settings.ACTION_APP_LOCALE_SETTINGS, "package:${context.packageName}".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                    .onFailure { onNotice("Пока доступен только русский язык") }
-            }
+            LinkRow("Язык", "${com.kirox.app.i18n.I18n.language.title} · свои названия") { languagePage = true }
         }
         item { SmallCaption("Тестирование") }
         item {
