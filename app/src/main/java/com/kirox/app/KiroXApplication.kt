@@ -21,6 +21,7 @@ class KiroXApplication : Application() {
         com.kirox.app.settings.AppIcons.init(this)
         com.kirox.app.settings.CustomThemes.init(this)
         com.kirox.app.settings.MessageFilters.init(this)
+        com.kirox.app.settings.Playlists.init(this)
         com.kirox.app.settings.PowerSaver.init(this)
         removeLegacyDemoData()
         removeOldOutgoing()

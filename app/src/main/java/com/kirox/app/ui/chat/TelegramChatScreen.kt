@@ -303,6 +303,8 @@ fun TelegramChatScreen(
     // people are left out until «Показать».
     val filters by com.kirox.app.settings.MessageFilters.state.collectAsState()
     var showFiltered by remember(history.chatId) { mutableStateOf(false) }
+    var playlistItem by remember { mutableStateOf<com.kirox.app.settings.PlaylistItem?>(null) }
+    playlistItem?.let { item -> com.kirox.app.ui.music.AddToPlaylistDialog(item) { result -> playlistItem = null; result?.let { notice = it } } }
     val filterable = history.peerKind == TelegramPeerKind.Group || history.peerKind == TelegramPeerKind.Channel
     val unfiltered = remember(history.messages, filters, filterable) {
         if (!filterable || !filters.enabled) history.messages
@@ -504,7 +506,7 @@ fun TelegramChatScreen(
     }
     // The chat's music, oldest first: tapping one plays the rest after it.
     val chatTracks = remember(history.messages) {
-        history.messages.filter { it.kind == com.kirox.app.telegram.TelegramMessageKind.Audio }.mapNotNull { it.media?.toTrack() }
+        history.messages.filter { it.kind == com.kirox.app.telegram.TelegramMessageKind.Audio }.mapNotNull { m -> m.media?.toTrack()?.copy(chatId = m.chatId, messageId = m.id) }
     }
     CompositionLocalProvider(LocalGalleryChatId provides history.chatId, LocalSaveToGallery provides (galleryKind in galleryKinds), LocalChatTracks provides chatTracks) {
     Box(Modifier.fillMaxSize()) {
@@ -895,6 +897,7 @@ fun TelegramChatScreen(
                     "Выбрать" -> selectedIds = idsOf(message).toSet()
                     "История изменений" -> versionsOf = message
                     "Пожаловаться" -> reportIds = idsOf(message)
+                    "В плейлист" -> source?.media?.let { media -> playlistItem = com.kirox.app.settings.PlaylistItem(history.chatId, message.id, media.title.ifBlank { "Аудио" }, media.performer, media.duration) }
                     "Скрывать сообщения автора" -> source?.takeIf { it.senderId != 0L }?.let {
                         com.kirox.app.settings.MessageFilters.hidePerson(it.senderId, it.senderName.ifBlank { history.title })
                         notice = "Сообщения автора скрыты — фильтры в настройках kiroX"

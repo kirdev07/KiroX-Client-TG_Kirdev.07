@@ -130,6 +130,8 @@ fun MusicPlayerSheet() {
                     com.kirox.app.ui.icons.KiroXIcon(KiroXIcon.Back, "Закрыть", Modifier.size(22.dp), Fusion.colors.textPrimary)
                 }
                 Text(if (showQueue) "Очередь" else "Музыка", color = Fusion.colors.textPrimary, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                Text("Библиотека", color = Fusion.colors.accent, fontSize = 14.sp,
+                    modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { MusicPlayerUi.close(); com.kirox.app.ui.music.MusicLibraryUi.open() }.padding(8.dp))
                 if (queue.size > 1) Text(
                     if (showQueue) "Плеер" else "Очередь (${queue.size})", color = Fusion.colors.accent, fontSize = 14.sp,
                     modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { showQueue = !showQueue }.padding(8.dp)
@@ -167,6 +169,18 @@ fun MusicPlayerSheet() {
             Spacer(Modifier.height(28.dp))
             Text(current.title, color = Fusion.colors.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
             Text(current.artist, color = Fusion.colors.textSecondary, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+            // ♥ and «В плейлист» for tracks that come from a message.
+            if (current.chatId != 0L) {
+                val playlists by com.kirox.app.settings.Playlists.all.collectAsState()
+                val liked = playlists.firstOrNull { it.id == com.kirox.app.settings.Playlists.LIKED }?.has(current.chatId, current.messageId) == true
+                var adding by remember { mutableStateOf(false) }
+                var added by remember { mutableStateOf<String?>(null) }
+                Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Chip(if (liked) "♥ В любимом" else "♡ В любимое", active = liked) { com.kirox.app.settings.Playlists.toggleLiked(current.toItemForPlaylist()) }
+                    Chip(added ?: "+ В плейлист") { adding = true }
+                }
+                if (adding) com.kirox.app.ui.music.AddToPlaylistDialog(current.toItemForPlaylist()) { result -> adding = false; added = result?.let { "Добавлено" } }
+            }
             Spacer(Modifier.height(20.dp))
             val fraction = dragging ?: if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
             Slider(
@@ -216,3 +230,5 @@ private fun Chip(label: String, active: Boolean = false, onClick: () -> Unit) {
         modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Fusion.colors.surface2).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp)
     )
 }
+
+internal fun Track.toItemForPlaylist() = com.kirox.app.settings.PlaylistItem(chatId, messageId, title, artist, durationSec)

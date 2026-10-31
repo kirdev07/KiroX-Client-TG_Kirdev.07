@@ -147,6 +147,7 @@ class TelegramServices(context: android.content.Context) {
     val archive = MessageArchive(context, client, chats, users)
     /** Managing groups and channels, reports and message links. */
     val admin = TelegramChatAdmin(client)
+    val music = TelegramMusic(client)
     /** In-app alerts and the icon counter, kept on this device. */
     val notificationPrefs = com.kirox.app.notify.NotificationPreferences(context)
     val notifications = com.kirox.app.notify.MessageNotifications(context.applicationContext, client, chats, users, notificationPrefs)

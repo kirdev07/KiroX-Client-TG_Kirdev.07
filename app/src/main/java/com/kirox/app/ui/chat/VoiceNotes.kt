@@ -132,7 +132,11 @@ class VoiceRecorder(private val context: Context) {
 }
 
 /** A music file in the player's queue; it is downloaded when its turn comes. */
-data class Track(val file: com.kirox.app.telegram.TelegramFileRef, val title: String, val artist: String, val durationSec: Int)
+data class Track(
+    val file: com.kirox.app.telegram.TelegramFileRef, val title: String, val artist: String, val durationSec: Int,
+    /** The message it was sent in, for playlists; 0 when unknown. */
+    val chatId: Long = 0, val messageId: Long = 0
+)
 
 /** «Повтор» in the music player: off, the whole queue, or one track. */
 enum class RepeatMode { Off, All, One }

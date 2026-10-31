@@ -433,6 +433,7 @@ fun KiroXApp() {
         groupCall?.let { call ->
             CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.call.GroupCallScreen(call, groupCallActions) }
         }
+        com.kirox.app.ui.music.MusicLibraryHost(onOpenChat = { openChat(it) })
         com.kirox.app.ui.chat.MusicPlayerSheet()
         browserUrl?.let { url -> com.kirox.app.ui.chat.InAppBrowser(url, onTelegramLink = { browserUrl = null; linkOpener(it) }) { browserUrl = null } }
         folderInvite?.let { invite ->
