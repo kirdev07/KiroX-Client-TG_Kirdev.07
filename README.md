@@ -53,7 +53,7 @@ kiroX создаётся для тех, кому нужен привычный T
 ## Автор и статус проекта
 
 **KirDev Studio / kirdev07**  
-[GitHub](https://github.com/kirdev07) · [Telegram-канал разработки](https://t.me/kirdev_studio)
+[GitHub](https://github.com/kirdev07) · [Канал kiroX](https://t.me/kiroxclient) · [Канал разработчика](https://t.me/kirdev_07)
 
 Проект находится в разработке; сроки, состав функций и интерфейс могут меняться. Этот репозиторий публикует исходники, а не обещает готовый APK.
 

@@ -1313,7 +1313,6 @@
  "kiroX сам проверяет обновления раз в день. Файл скачивается с GitHub и устанавливается, только если его контрольная сумма и подпись совпали.": "kiroX checks for updates once a day. The file is downloaded from GitHub and installed only if its checksum and signature match.",
  "Проект": "Project",
  "Telegram-канал kiroX": "kiroX Telegram channel",
- "Новости, версии и планы — t.me/kirdev_studio": "News, versions and plans — t.me/kirdev_studio",
  "Все версии": "All versions",
  "Список выпусков на GitHub": "Releases on GitHub",
  "Сообщить об ошибке": "Report a bug",
@@ -1333,5 +1332,7 @@
  "Не получилось": "Something went wrong",
  "Последняя проверка: {}": "Last check: {}",
  "отладочная": "debug",
- "релиз": "release"
+ "релиз": "release",
+ "Новости и версии клиента — t.me/kiroxclient": "Client news and versions — t.me/kiroxclient",
+ "Канал разработчика": "Developer's channel"
 }

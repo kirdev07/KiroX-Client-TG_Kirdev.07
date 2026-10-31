@@ -256,8 +256,10 @@ class UpdateCenter(private val context: Context) {
         const val RELEASES_URL = "https://github.com/$REPO/releases"
         const val REPO_URL = "https://github.com/$REPO"
         const val ISSUES_URL = "https://github.com/$REPO/issues"
-        /** The project's news channel in Telegram. */
-        const val CHANNEL_URL = "https://t.me/kirdev_studio"
+        /** The kiroX channel in Telegram: news and versions of the client. */
+        const val CHANNEL_URL = "https://t.me/kiroxclient"
+        /** The developer's channel. */
+        const val DEVELOPER_URL = "https://t.me/kirdev_07"
         private const val KEY_BETA = "beta_channel"
         private const val KEY_LAST_CHECK = "last_check"
         private const val KEY_LAST_ATTEMPT = "last_attempt"

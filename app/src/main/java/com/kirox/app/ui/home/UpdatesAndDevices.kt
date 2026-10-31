@@ -134,7 +134,9 @@ internal fun UpdatesScreen(updates: com.kirox.app.update.UpdateCenter, onBack: (
         item { SmallCaption("Проект") }
         item {
             SettingsCard {
-                IconRow(KiroXIcon.Channel, androidx.compose.ui.graphics.Color(0xFF2AABEE), "Telegram-канал kiroX", "Новости, версии и планы — t.me/kirdev_studio") { open(com.kirox.app.update.UpdateCenter.CHANNEL_URL) }
+                IconRow(KiroXIcon.Channel, androidx.compose.ui.graphics.Color(0xFF2AABEE), "Telegram-канал kiroX", "Новости и версии клиента — t.me/kiroxclient") { open(com.kirox.app.update.UpdateCenter.CHANNEL_URL) }
+                CardDivider()
+                IconRow(KiroXIcon.Profile, androidx.compose.ui.graphics.Color(0xFF6C4CE0), "Канал разработчика", "t.me/kirdev_07") { open(com.kirox.app.update.UpdateCenter.DEVELOPER_URL) }
                 CardDivider()
                 IconRow(KiroXIcon.Refresh, androidx.compose.ui.graphics.Color(0xFF9B6BFF), "Все версии", "Список выпусков на GitHub") { open(com.kirox.app.update.UpdateCenter.RELEASES_URL) }
                 CardDivider()
