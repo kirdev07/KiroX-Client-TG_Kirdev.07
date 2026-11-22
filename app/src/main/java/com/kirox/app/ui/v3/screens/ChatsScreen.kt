@@ -24,6 +24,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.border
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -50,14 +52,30 @@ fun ChatsScreen(
     onOpenStories: () -> Unit,
     onSearch: () -> Unit,
     onNewMessage: () -> Unit,
-    onLongPressChat: (KxChat) -> Unit = {},
+    onSelectionChange: (Boolean) -> Unit = {},
     bottomPadding: androidx.compose.ui.unit.Dp = 110.dp,
 ) {
     var folder by rememberSaveable { mutableIntStateOf(0) }
     val chats = store.chatsIn(folder)
+    // Board «Выбор чатов»: long press starts selection, then taps toggle; the dock gives way to an action bar.
+    val selected = remember { mutableStateListOf<Long>() }
+    var confirm by remember { mutableStateOf<KxConfirm?>(null) }
+    val toast = LocalKxToast.current
+    LaunchedEffect(selected.isEmpty()) { onSelectionChange(selected.isNotEmpty()) }
+    androidx.activity.compose.BackHandler(enabled = selected.isNotEmpty()) { selected.clear() }
+    fun toggle(id: Long) { if (id in selected) selected.remove(id) else selected.add(id) }
     KxGlow()
     Column(Modifier.fillMaxSize()) {
-        ChatsHeader(store, onOpenStories, onSearch, onNewMessage)
+        if (selected.isEmpty()) ChatsHeader(store, onOpenStories, onSearch, onNewMessage)
+        else Row(Modifier.fillMaxWidth().background(Kx.accent.copy(alpha = .06f))
+            .drawBehind { drawLine(Kx.accent.copy(alpha = .2f), androidx.compose.ui.geometry.Offset(0f, size.height), androidx.compose.ui.geometry.Offset(size.width, size.height), 1f) }
+            .statusBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            KxIconButton(Icons.Rounded.Close, "Отменить выбор", tint = Kx.text) { selected.clear() }
+            Text(selected.size.toString(), style = KxType.style(20.sp, FontWeight.ExtraBold).copy(fontFeatureSettings = "tnum"), modifier = Modifier.weight(1f))
+            val all = selected.size == chats.size
+            Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(Kx.fill).kxClick { if (all) selected.clear() else { selected.clear(); selected.addAll(chats.map { it.id }) } }.padding(horizontal = 12.dp),
+                contentAlignment = Alignment.Center) { Text(if (all) "Снять выбор" else "Выбрать все", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent)) }
+        }
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 6.dp).kxRise(140),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -73,7 +91,36 @@ fun ChatsScreen(
             itemsIndexed(chats, key = { _, c -> c.id }) { i, chat ->
                 if (i >= chats.size - 10) LaunchedEffect(chats.size, folder) { store.loadMoreChats(folder) }
                 SwipeToRead(enabled = chat.unread > 0, onRead = { store.markRead(chat.id) }) {
-                    ChatRow(chat, onClick = { onOpenChat(chat.id) }, onLongClick = { onLongPressChat(chat) })
+                    ChatRow(chat, onClick = { if (selected.isNotEmpty()) toggle(chat.id) else onOpenChat(chat.id) }, onLongClick = { toggle(chat.id) }, selected = chat.id in selected)
+                }
+            }
+        }
+    }
+    if (selected.isNotEmpty()) SelectionBar(store, chats.filter { it.id in selected }, onDone = { selected.clear() }, toast = toast, ask = { confirm = it })
+    confirm?.let { KxConfirmDialog(it) { confirm = null } }
+}
+
+/** Glass action bar of the selection (left/right 10, bottom 14, 5 actions). */
+@Composable
+private fun SelectionBar(store: KxStore, sel: List<KxChat>, onDone: () -> Unit, toast: (String) -> Unit, ask: (KxConfirm) -> Unit) {
+    val n = sel.size
+    val word = plural(n, "чат", "чата", "чатов")
+    val allMuted = sel.all { it.muted }; val allPinned = sel.all { it.pinned }
+    Box(Modifier.fillMaxSize()) {
+        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 10.dp, end = 10.dp, bottom = 14.dp).fillMaxWidth()
+            .clip(RoundedCornerShape(26.dp)).background(Color(0xF2161B18)).background(Brush.verticalGradient(listOf(Kx.w(.16f), Kx.w(.07f))))
+            .border(1.dp, Kx.w(.16f), RoundedCornerShape(26.dp)).padding(8.dp)) {
+            data class A(val icon: androidx.compose.ui.graphics.vector.ImageVector, val label: String, val ink: Color, val run: () -> Unit)
+            listOf(
+                A(Icons.Rounded.MarkChatRead, "Прочитать", Kx.text) { sel.forEach { store.markRead(it.id) }; toast("Прочитано: $n $word"); onDone() },
+                A(if (allMuted) Icons.Rounded.Notifications else Icons.Rounded.NotificationsOff, if (allMuted) "Звук" else "Без звука", Kx.text) { sel.forEach { store.setMuted(it.id, !allMuted) }; toast(if (allMuted) "Звук включён" else "Без звука: $n $word"); onDone() },
+                A(Icons.Rounded.PushPin, if (allPinned) "Открепить" else "Закрепить", Kx.text) { sel.forEach { store.setPinned(it.id, !allPinned) }; onDone() },
+                A(Icons.Rounded.Archive, "В архив", Kx.text) { sel.forEach { store.setArchived(it.id, true) }; toast("В архиве: $n $word"); onDone() },
+                A(Icons.Rounded.Delete, "Удалить", Kx.danger) { ask(KxConfirm("Удалить выбранные чаты?", "Личные чаты удалятся у вас, из групп и каналов вы выйдете.", "Удалить") { sel.forEach { store.deleteChat(it.id) }; onDone() }) },
+            ).forEach { a ->
+                Column(Modifier.weight(1f).height(58.dp).clip(RoundedCornerShape(18.dp)).kxClick(a.label, onClick = a.run),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically)) {
+                    Icon(a.icon, null, tint = a.ink); Text(a.label, style = KxType.style(11.sp, FontWeight.Bold, a.ink), maxLines = 1)
                 }
             }
         }
@@ -87,7 +134,9 @@ private fun ChatsHeader(store: KxStore, onOpenStories: () -> Unit, onSearch: () 
         Text(buildAnnotatedString {
             append("kiro"); withStyle(SpanStyle(color = Kx.accent, fontWeight = FontWeight.ExtraBold)) { append("X") }
         }, style = KxType.brand.copy(letterSpacing = .2.sp))
-        val unseen = store.stories.filter { it.unseen && !it.mine }
+        // People only: the board's chip shows «2 истории» (А + М); channel/group stories stay on the Stories tab.
+        val groupIds = store.chats.filter { it.kind != KxChatKind.Private }.map { it.id }.toSet()
+        val unseen = store.stories.filter { it.unseen && !it.mine && it.id !in groupIds }
         if (unseen.isNotEmpty()) Row(
             Modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).kxClick("Истории: ${unseen.size} ${plural(unseen.size, "новая", "новых", "новых")}", onClick = onOpenStories)
                 .padding(start = 4.dp, end = 8.dp),
@@ -129,7 +178,7 @@ private fun ArchiveRow(chats: List<KxChat>, onClick: () -> Unit) {
 @Composable
 fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected: Boolean = false) {
     Row(
-        Modifier.fillMaxWidth().height(72.dp).background(if (selected) Kx.accent.copy(alpha = .1f) else Kx.bg)
+        Modifier.fillMaxWidth().height(72.dp).background(if (selected) Kx.accent.copy(alpha = .08f) else Color.Transparent)
             .combinedClickable(interactionSource = null, indication = ripple(color = Kx.accent), onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)
@@ -142,7 +191,13 @@ fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected
         // Rows carry no story ring: stories live in the header chip (board «Чаты»).
         if (chat.kind == KxChatKind.Saved) KxAvatar(chat.title, chat.id, size = 54.dp, icon = icon,
             swatch = KxAvatarPalette.Swatch(Color(0xFF2F6E4D), Color(0xFF173A28), Color(0xFFC8F0D8)))
-        else KxAvatar(chat.title, chat.id, size = 54.dp, icon = icon, online = chat.online, colorIndex = chat.colorIndex)
+        else Box {
+            val sc by androidx.compose.animation.core.animateFloatAsState(if (selected) .9f else 1f, label = "sel")
+            KxAvatar(chat.title, chat.id, Modifier.graphicsLayer { scaleX = sc; scaleY = sc }, size = 54.dp, icon = icon, online = chat.online && !selected, colorIndex = chat.colorIndex)
+            if (selected) Box(Modifier.align(Alignment.BottomEnd).offset(3.dp, 3.dp).size(22.dp).clip(CircleShape).background(Kx.accent).border(2.dp, Kx.bg, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Check, null, Modifier.size(14.dp), tint = Kx.onAccent)
+            }
+        }
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
               Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -199,12 +254,12 @@ fun SwipeToRead(enabled: Boolean, onRead: () -> Unit, content: @Composable () ->
     val scope = rememberCoroutineScope()
     val limit = with(LocalDensity.current) { 104.dp.toPx() }
     Box(Modifier.height(72.dp).clip(RoundedCornerShape(0.dp))) {
-        Row(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(Color(0xFF1E5A3C), Color(0xFF2F7A55)))).padding(start = 22.dp),
+        if (x.value > 0f) Row(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(Color(0xFF1E5A3C), Color(0xFF2F7A55)))).padding(start = 22.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Rounded.MarkChatRead, null, tint = Color(0xFFDDF5E5))
             Text("Прочитано", style = KxType.style(13.sp, FontWeight.SemiBold, Color(0xFFDDF5E5)))
         }
-        Box(Modifier.graphicsLayer { translationX = x.value }.pointerInput(Unit) {
+        Box(Modifier.graphicsLayer { translationX = x.value }.background(if (x.value > 0f) Kx.bg else Color.Transparent).pointerInput(Unit) {
             detectHorizontalDragGestures(
                 onDragEnd = { scope.launch { if (x.value > limit * .8f) onRead(); x.animateTo(0f, tween(250, easing = KxMotion.rise)) } },
                 onDragCancel = { scope.launch { x.animateTo(0f) } }

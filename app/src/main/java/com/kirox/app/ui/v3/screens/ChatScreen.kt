@@ -32,6 +32,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
@@ -86,7 +88,9 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
     val messages = store.messages(chatId).filter { it.id != pending?.message?.id }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex) }
+    LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(0) }
+    var hint by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(hint) { if (hint != null) { delay(1800); hint = null } }
     LaunchedEffect(recording) { recSecs = 0; while (recording != null) { delay(1000); recSecs++ } }
     LaunchedEffect(pending?.id) { val p = pending ?: return@LaunchedEffect; delay(5000); store.delete(chatId, listOf(p.message.id), p.forAll); if (pending?.id == p.id) pending = null }
     val latestPending by rememberUpdatedState(pending)
@@ -105,22 +109,25 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
         }
         val top = if (header.pinned != null) 184.dp else 130.dp
         LazyColumn(
-            Modifier.fillMaxSize(), state = listState,
+            Modifier.fillMaxSize().then(if (menuFor != null) Modifier.blur(10.dp) else Modifier), state = listState, reverseLayout = true,
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = top, bottom = 104.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)
         ) {
-            items(messages, key = { it.id }) { m ->
-                Column(Modifier.fillMaxWidth().animateItem()) {
+            items(messages.asReversed(), key = { it.id }) { m ->
+                Column(Modifier.fillMaxWidth().animateItem(fadeInSpec = tween(250), fadeOutSpec = tween(350), placementSpec = tween(350, easing = KxMotion.rise))) {
                     m.dayHeader?.let { DayPill(it) }
                     MessageBubble(m, isGroup = header.kind == KxChatKind.Group, onLongPress = { menuFor = m }, onReact = { store.react(chatId, m.id, it) })
                 }
             }
         }
-        val atBottom by remember { derivedStateOf { val info = listState.layoutInfo; info.visibleItemsInfo.lastOrNull()?.index?.let { it >= info.totalItemsCount - 1 } ?: true } }
+        if (messages.isEmpty() && header.kind != KxChatKind.Saved && header.kind != KxChatKind.Channel)
+            EmptyChatCard(if (header.kind == KxChatKind.Private) store.peer(chatId) else null, onSend = { store.send(chatId, it) },
+                Modifier.align(Alignment.Center).padding(top = 40.dp))
+        val atBottom by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
         AnimatedVisibility(!atBottom, Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 14.dp, bottom = 112.dp), enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut()) {
             Box(Modifier.size(44.dp).shadow(20.dp, CircleShape, spotColor = Color.Black.copy(alpha = .5f)).clip(CircleShape)
                 .background(Color(0xCC161B18)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f)))).border(1.dp, Kx.w(.16f), CircleShape)
-                .kxClick("Вниз") { scope.launch { listState.animateScrollToItem((messages.size - 1).coerceAtLeast(0)) } }, contentAlignment = Alignment.Center) {
+                .kxClick("Вниз") { scope.launch { listState.animateScrollToItem(0) } }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.KeyboardArrowDown, null, tint = Kx.text)
             }
         }
@@ -142,7 +149,7 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
                     }
                 },
                 attachOpen = attach, onAttach = { attach = !attach },
-                circleMode = circleMode, onToggleMode = { circleMode = !circleMode; toast(if (circleMode) "Удерживайте, чтобы записать кружок" else "Удерживайте, чтобы записать голосовое") },
+                circleMode = circleMode, onToggleMode = { circleMode = !circleMode; hint = if (circleMode) "Удерживайте, чтобы записать кружок" else "Удерживайте, чтобы записать голосовое" },
                 recording = recording, recSecs = recSecs,
                 onRecStart = { recording = circleMode; store.recordStart(chatId, circleMode) },
                 onRecEnd = { send ->
@@ -156,6 +163,12 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
             }
         }
         pending?.let { p -> UndoBar(p, Modifier.align(Alignment.BottomCenter)) { pending = null } }
+        // Mic hint: small bubble above the button (right 12, bottom 90), not the generic toast.
+        AnimatedVisibility(hint != null, Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 12.dp, bottom = 90.dp),
+            enter = fadeIn(tween(250)) + slideInVertically(tween(250)) { it / 2 }, exit = fadeOut(tween(200))) {
+            Text(hint ?: "", style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(Color(0xF21E2823))
+                .border(1.dp, Kx.w(.12f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 7.dp))
+        }
         if (attach) AttachSheet(onClose = { attach = false }, onSend = { n -> attach = false; toast(if (n == 1) "Фото отправлено" else "Отправлено фото: $n") })
         menuFor?.let { m ->
             MessageMenuSheet(
@@ -237,7 +250,18 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
                 VideoNoteCircle(m)
                 if (!m.out) Text(m.time, style = KxType.style(11.sp, color = Kx.text4), modifier = Modifier.padding(bottom = 6.dp))
             }
-            KxMsgKind.Voice -> Column(
+            KxMsgKind.Voice -> if (m.out && m.played == 0f && m.status != KxOutState.Read) Row(
+                press.width(220.dp).clip(OutShape).outBubble().padding(start = 10.dp, end = 10.dp, top = 9.dp, bottom = 7.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(Modifier.size(38.dp).clip(CircleShape).background(OutMeta).kxClick("Слушать") {}, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.PlayArrow, null, tint = Color(0xFF0B2216)) }
+                Canvas(Modifier.weight(1f).height(22.dp)) {
+                    val hs = listOf(.5f, .85f, .4f, .7f, .95f, .55f, .3f, .65f, .45f, .8f); val w = 3.dp.toPx(); val gap = 2.dp.toPx()
+                    hs.forEachIndexed { i, v -> val h = size.height * v; val x = i * (w + gap) + w / 2
+                        drawLine(OutMeta.copy(alpha = .6f), Offset(x, (size.height - h) / 2), Offset(x, (size.height + h) / 2), w, StrokeCap.Round) }
+                }
+                Text("${m.meta} ✓", style = KxType.style(11.sp, color = OutMeta))
+            } else Column(
                 press.width(236.dp).clip(if (m.out) RoundedCornerShape(20.dp, 6.dp, 20.dp, 20.dp) else InShape).bubble(m.out)
                     .padding(start = 10.dp, end = 10.dp, top = 9.dp, bottom = 7.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -553,16 +577,16 @@ private fun AttachSheet(onClose: () -> Unit, onSend: (Int) -> Unit) {
                 Box(Modifier.size(36.dp).clip(CircleShape).background(Kx.fillHi).kxClick("Закрыть", onClick = onClose), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Close, null, Modifier.size(20.dp), tint = Kx.text) }
             }
             val cells = listOf(-1) + tiles.indices
-            cells.chunked(3).forEach { row ->
-                Row(Modifier.padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.clip(RoundedCornerShape(18.dp)), verticalArrangement = Arrangement.spacedBy(4.dp)) { cells.chunked(3).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     row.forEach { i ->
-                        if (i < 0) Column(Modifier.weight(1f).height(108.dp).clip(RoundedCornerShape(18.dp)).background(Kx.fillHi).kxClick("Снять фото") {},
+                        if (i < 0) Column(Modifier.weight(1f).height(108.dp).background(Color(0xFF151A17)).kxClick("Снять фото") {},
                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(28.dp), tint = Kx.text); Text("Камера", style = KxType.style(12.sp, FontWeight.SemiBold), modifier = Modifier.padding(top = 4.dp))
+                            Icon(Icons.Outlined.PhotoCamera, null, Modifier.size(30.dp), tint = Kx.accent); Text("Камера", style = KxType.style(12.sp, FontWeight.SemiBold, Kx.accent), modifier = Modifier.padding(top = 4.dp))
                         } else {
                             val order = picked.indexOf(i)
                             val s by animateFloatAsState(if (order >= 0) .92f else 1f, label = "tile")
-                            Box(Modifier.weight(1f).height(108.dp).graphicsLayer { scaleX = s; scaleY = s }.clip(RoundedCornerShape(18.dp))
+                            Box(Modifier.weight(1f).height(108.dp).graphicsLayer { scaleX = s; scaleY = s }
                                 .drawBehind { drawRect(Brush.linearGradient(tiles[i], cssAngleStart(150f, size), cssAngleEnd(150f, size))) }
                                 .kxClick("Фото ${i + 1}") { if (order >= 0) picked.remove(i) else picked.add(i) }) {
                                 Box(Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp).clip(CircleShape).background(if (order >= 0) Kx.accent else Color.Black.copy(alpha = .25f))
@@ -576,7 +600,7 @@ private fun AttachSheet(onClose: () -> Unit, onSend: (Int) -> Unit) {
                     }
                     repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
-            }
+            } }
             if (picked.isEmpty()) kinds.chunked(4).forEach { row ->
                 Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     row.forEach { (ic, label, colors) ->

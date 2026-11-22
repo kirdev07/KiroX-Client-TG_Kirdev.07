@@ -3,6 +3,9 @@ package com.kirox.app.ui.v3.screens
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -83,11 +86,16 @@ fun StoriesScreen(store: KxStore, onOpenViewer: (Int) -> Unit, onOpen: (String) 
 @Composable
 private fun StoryCard(p: KxStoryPeer, modifier: Modifier, onClick: () -> Unit) {
     val first = p.slides.first()
-    Box(modifier.height(214.dp).clip(RoundedCornerShape(24.dp)).look(first.look).kxClick("История: ${p.name}", onClick = onClick)) {
+    val spin = remember { Animatable(0f) }
+    val reduced = LocalKxReducedMotion.current
+    LaunchedEffect(p.unseen, reduced) { if (p.unseen && !reduced) spin.animateTo(720f, tween(12000, easing = LinearEasing)) }
+    Box(modifier.height(214.dp).clip(RoundedCornerShape(24.dp)).look(first.look)
+        .then(if (p.unseen) Modifier.border(1.dp, Kx.accent.copy(alpha = .35f), RoundedCornerShape(24.dp)) else Modifier)
+        .kxClick("История: ${p.name}", onClick = onClick)) {
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(.45f to Color.Transparent, 1f to Color.Black.copy(alpha = .65f))))
         Icon(Looks[first.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.16f)).size(44.dp), tint = Color.White.copy(alpha = .28f))
         Box(Modifier.padding(10.dp).size(40.dp), contentAlignment = Alignment.Center) {
-            Box(Modifier.matchParentSize().graphicsLayer { rotationZ = -90f }.clip(CircleShape).background(if (p.unseen) Kx.storyRing else Brush.linearGradient(listOf(Kx.w(.35f), Kx.w(.35f)))))
+            Box(Modifier.matchParentSize().graphicsLayer { rotationZ = -90f + spin.value }.clip(CircleShape).background(if (p.unseen) Kx.storyRing else Brush.linearGradient(listOf(Kx.w(.3f), Kx.w(.3f)))))
             KxAvatar(p.name, p.id, Modifier.border(2.dp, Kx.bg, CircleShape), size = 34.dp, colorIndex = p.colorIndex)
         }
         if (p.slides.size > 1) Text(p.slides.size.toString(), style = KxType.style(11.sp, FontWeight.Bold), modifier = Modifier.align(Alignment.TopEnd).padding(top = 14.dp, end = 10.dp)
@@ -125,13 +133,13 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
         if (!paused) { progress.animateTo(1f, tween(((1f - progress.value) * 5000).toInt().coerceAtLeast(1), easing = LinearEasing)); advance(1) }
         else progress.stop()
     }
-    val zoom = remember { Animatable(.92f) }
+    val zoom = remember { Animatable(.88f) }
     LaunchedEffect(Unit) { zoom.animateTo(1f, tween(300, easing = KxMotion.rise)) }
-    val ken = remember(open, slide) { Animatable(1.08f) }
+    val ken = remember(open, slide) { Animatable(1f) }
     val reduced = LocalKxReducedMotion.current
-    LaunchedEffect(open, slide) { if (!reduced) ken.animateTo(1f, tween(6000, easing = FastOutSlowInEasing)) }
+    LaunchedEffect(open, slide) { if (!reduced) ken.animateTo(1.12f, tween(6000, easing = LinearOutSlowInEasing)) }
 
-    Box(Modifier.fillMaxSize().background(Color.Black).graphicsLayer { scaleX = zoom.value; scaleY = zoom.value }) {
+    Box(Modifier.fillMaxSize().background(Color.Black).graphicsLayer { scaleX = zoom.value; scaleY = zoom.value; alpha = ((zoom.value - .88f) / .12f).coerceIn(0f, 1f) }) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))) {
             Box(Modifier.fillMaxSize().graphicsLayer { scaleX = ken.value; scaleY = ken.value }.look(s.look))
             Icon(Looks[s.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.1f)).size(90.dp), tint = Color.White.copy(alpha = .22f))
@@ -158,8 +166,8 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
             Text(s.caption, style = KxType.style(18.sp, FontWeight.Bold).copy(shadow = androidx.compose.ui.graphics.Shadow(Color.Black.copy(alpha = .5f), blurRadius = 20f)),
                 modifier = Modifier.align(Alignment.BottomStart).navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 120.dp))
             Row(Modifier.fillMaxSize().padding(top = 80.dp, bottom = 100.dp)) {
-                Box(Modifier.weight(.35f).fillMaxHeight().kxClick("Назад") { advance(-1) })
-                Box(Modifier.weight(.65f).fillMaxHeight().kxClick("Дальше") { advance(1) })
+                Box(Modifier.weight(.35f).fillMaxHeight().clickable(interactionSource = null, indication = null) { advance(-1) }.semantics { contentDescription = "Назад" })
+                Box(Modifier.weight(.65f).fillMaxHeight().clickable(interactionSource = null, indication = null) { advance(1) }.semantics { contentDescription = "Дальше" })
             }
             flying.forEach { (id, e) -> key(id) { FlyingEmoji(e) { flying.removeAll { it.first == id } } } }
         }

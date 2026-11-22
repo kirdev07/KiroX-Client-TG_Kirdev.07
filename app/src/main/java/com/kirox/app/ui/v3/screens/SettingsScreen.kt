@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -37,9 +38,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
     var menu by remember { mutableStateOf(false) }
     val me = store.me
     Box(Modifier.fillMaxSize()) {
-        Canvas(Modifier.align(Alignment.TopEnd).offset(90.dp, (-110).dp).size(380.dp)) {
-            drawCircle(Brush.radialGradient(listOf(Color(0x2E46A06E), Color.Transparent), radius = size.minDimension * .33f), radius = size.minDimension / 2)
-        }
+        KxGlow(diameter = 380.dp, x = (-90).dp, y = (-110).dp, alpha = .20f, alignEnd = true)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = bottomPadding)) {
             Row(Modifier.statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp).kxRise(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Настройки", style = KxType.style(30.sp, FontWeight.ExtraBold).copy(letterSpacing = (-.4).sp), modifier = Modifier.weight(1f))
@@ -69,9 +68,9 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                         Row(Modifier.fillMaxWidth().height(58.dp).clip(shape).background(Kx.w(.045f)).kxClick { onOpen(r.route) }.padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                             Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(r.bg), contentAlignment = Alignment.Center) { Icon(r.icon, null, Modifier.size(20.dp), tint = r.fg) }
-                            Text(r.title, style = KxType.style(15.sp, FontWeight.Medium), modifier = Modifier.weight(1f))
+                            Text(r.title, style = KxType.style(15.sp, FontWeight.Normal), modifier = Modifier.weight(1f))
                             r.value?.let { Text(it, style = KxType.style(13.sp, color = Kx.text4)) }
-                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, Modifier.size(20.dp), tint = Kx.text4)
+                            Icon(Icons.Rounded.ChevronRight, null, Modifier.size(20.dp), tint = Kx.text4)
                         }
                     }
                 }
@@ -82,7 +81,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Tile(Icons.Rounded.HelpOutline, "Помощь", Kx.link, Modifier.weight(1f)) { onOpen("Help") }
-                        Tile(Icons.Rounded.Info, "О приложении", Color(0xFFFFD58A), Modifier.weight(1f), corner = "v" + com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-').removeSuffix(".0")) { onOpen("WhatsNew") }
+                        Tile(androidx.compose.material.icons.Icons.Outlined.Info, "О приложении", Color(0xFFFFD58A), Modifier.weight(1f), corner = "v" + com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-').removeSuffix(".0")) { onOpen("WhatsNew") }
                     }
                 }
             }
@@ -90,9 +89,9 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
         if (menu) {
             Box(Modifier.fillMaxSize().kxClick("Закрыть меню") { menu = false })
             Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 58.dp, end = 16.dp).width(210.dp)
-                .clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Color(0xF22E3A34), Color(0xF5181E1B)))).border(1.dp, Kx.stroke, RoundedCornerShape(20.dp)).padding(6.dp)) {
-                listOf(Icons.Rounded.AccountCircle to "Мой профиль", Icons.Rounded.SwitchAccount to "Аккаунты", Icons.Rounded.Contacts to "Контакты",
-                    Icons.Rounded.Devices to "Устройства", Icons.Rounded.Folder to "Чаты и папки", Icons.Rounded.History to "Старый дизайн").forEach { (ic, t) ->
+                .clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Color(0xF22E3A34), Color(0xF5181E1B)))).border(1.dp, Kx.stroke, RoundedCornerShape(20.dp)).topHighlight(Kx.w(.22f)).padding(6.dp)) {
+                listOf(androidx.compose.material.icons.Icons.Outlined.AccountCircle to "Мой профиль", androidx.compose.material.icons.Icons.Outlined.SwitchAccount to "Аккаунты", androidx.compose.material.icons.Icons.Outlined.Contacts to "Контакты",
+                    androidx.compose.material.icons.Icons.Outlined.Devices to "Устройства", androidx.compose.material.icons.Icons.Outlined.Folder to "Чаты и папки", androidx.compose.material.icons.Icons.Outlined.History to "Старый дизайн").forEach { (ic, t) ->
                     Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick { menu = false; onOpen(mapOf("Мой профиль" to "EditProfile", "Аккаунты" to "Accounts", "Контакты" to "Contacts", "Устройства" to "Devices", "Чаты и папки" to "Folders")[t] ?: t) }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(ic, null, Modifier.size(20.dp), tint = Kx.accent); Text(t, style = KxType.style(15.sp))
@@ -107,7 +106,7 @@ private data class Row5(val icon: ImageVector, val title: String, val value: Str
 
 @Composable
 private fun GlassRound(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Box(Modifier.size(42.dp).clip(CircleShape).background(Kx.fill).border(1.dp, Kx.w(.09f), CircleShape).kxClick(label, onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(42.dp).clip(CircleShape).background(Kx.fill).border(1.dp, Kx.w(.09f), CircleShape).topHighlight(Kx.w(.14f)).kxClick(label, onClick = onClick), contentAlignment = Alignment.Center) {
         Icon(icon, null, Modifier.size(22.dp), tint = Kx.text2)
     }
 }
@@ -118,11 +117,11 @@ private fun ProfileCard(store: KxStore, onOpen: (String) -> Unit) {
     val shape = RoundedCornerShape(28.dp)
     Column(Modifier.kxRise(60).fillMaxWidth().clip(shape)
         .background(Brush.linearGradient(0f to Color(0x473F9A6C), .6f to Color(0xE6121815), start = Offset.Zero, end = Offset(900f, 700f)))
-        .border(1.dp, Kx.accent.copy(alpha = .18f), shape).padding(16.dp)) {
+        .border(1.dp, Kx.accent.copy(alpha = .18f), shape).topHighlight(Kx.w(.12f)).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Box {
-                KxAvatar(me.name, me.id, size = 70.dp, swatch = KxAvatarPalette.Swatch(Color(0xFF3E7A5A), Color(0xFF173A28), Color(0xFFDDF5E5)))
-                Box(Modifier.align(Alignment.BottomEnd).offset(2.dp, 2.dp).size(26.dp).clip(CircleShape).background(Color(0xFF14201A)).padding(2.dp).clip(CircleShape).background(Kx.accent)
+                KxAvatar(me.name, me.id, size = 70.dp, swatch = KxAvatarPalette.Swatch(Color(0xFF3E7A5A), Color(0xFF173A28), Color(0xFFDDF5E5)), letterWeight = FontWeight.ExtraBold, letterSize = 26.sp)
+                Box(Modifier.align(Alignment.BottomEnd).offset(5.dp, 5.dp).size(32.dp).clip(CircleShape).background(Color(0xFF14201A)).padding(3.dp).clip(CircleShape).background(Kx.accent)
                     .kxClick("Сменить фото") { onOpen("Avatars") }, contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(14.dp), tint = Kx.onAccent)
                 }
@@ -132,7 +131,7 @@ private fun ProfileCard(store: KxStore, onOpen: (String) -> Unit) {
                 KxLine(listOf(me.phone, if (me.username.isNotEmpty()) "@${me.username}" else "").filter { it.isNotEmpty() }.joinToString(" · "), KxType.style(14.sp, color = Color(0xFFA6B5AC)))
             }
             Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(Color.Black.copy(alpha = .25f)).kxClick("Мой QR-код") { onOpen("MyQr") }, contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.QrCode2, null, tint = Kx.text)
+                Icon(Icons.Rounded.QrCode2, null, tint = Color(0xFFC8F0D8))
             }
         }
         Row(Modifier.padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -142,8 +141,14 @@ private fun ProfileCard(store: KxStore, onOpen: (String) -> Unit) {
             }
             Spacer(Modifier.weight(1f))
             Text("Аккаунты", style = KxType.caption)
-            Box(Modifier.kxClick("Аккаунты") { onOpen("Accounts") }) {
-                KxAvatar(me.name, me.id, size = 30.dp, swatch = KxAvatarPalette.Swatch(Color(0xFF3E7A5A), Color(0xFF173A28), Color(0xFFDDF5E5)))
+            Row(Modifier.kxClick("Аккаунты") { onOpen("Accounts") }) {
+                store.accounts.forEachIndexed { i, a ->
+                    val sw = if (i == 0) KxAvatarPalette.Swatch(Color(0xFF3E7A5A), Color(0xFF173A28), Color(0xFFDDF5E5)) else KxAvatarPalette.Swatch(Color(0xFF3C7BD0), Color(0xFF142A4A), Color(0xFFD6E6FF))
+                    KxAvatar(a.name, a.id, Modifier.offset(x = (-8 * i).dp).border(2.dp, Color(0xFF14201A), CircleShape), size = 30.dp, swatch = sw, letterWeight = FontWeight.ExtraBold, letterSize = 12.sp)
+                }
+                Box(Modifier.offset(x = (-8 * store.accounts.size).dp).size(30.dp).clip(CircleShape).background(Color(0xFF26302B)).border(2.dp, Color(0xFF14201A), CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Add, "Добавить аккаунт", Modifier.size(16.dp), tint = Kx.text2)
+                }
             }
         }
     }
@@ -172,6 +177,7 @@ private fun PremiumButton(modifier: Modifier, onClick: () -> Unit) {
 private fun Tile(icon: ImageVector, title: String, tint: Color, modifier: Modifier, green: Boolean = false, corner: String? = null, onClick: () -> Unit) {
     Column(modifier.height(74.dp).clip(RoundedCornerShape(22.dp))
         .background(if (green) Brush.linearGradient(listOf(Color(0x383F9A6C), Kx.w(.03f))) else Brush.linearGradient(listOf(Kx.w(.045f), Kx.w(.045f))))
+        .then(if (green) Modifier.border(1.dp, Kx.accent.copy(alpha = .16f), RoundedCornerShape(22.dp)) else Modifier)
         .kxClick(onClick = onClick).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, Modifier.size(22.dp), tint = tint)

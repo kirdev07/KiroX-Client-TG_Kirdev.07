@@ -22,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -45,7 +46,10 @@ private val GifLooks = listOf(listOf(Color(0xFF8FD3AC), Color(0xFF2E6B4B)), list
 @Composable
 fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit, onSearch: () -> Unit, onOpen: (String) -> Unit) {
     val p = store.peer(chatId)
-    val sw = if (p.colorIndex >= 0) KxAvatarPalette.all[p.colorIndex % 8] else KxAvatarPalette.of(p.id)
+    val base = if (p.colorIndex >= 0) KxAvatarPalette.all[p.colorIndex % 8] else KxAvatarPalette.of(p.id)
+    // Hero variant (board «Профиль»): lighter start colour; for the violet one exactly #6E58C9→#2A2240, ink #E6DEFF.
+    val sw = if (p.colorIndex == 0) KxAvatarPalette.Swatch(Color(0xFF6E58C9), Color(0xFF2A2240), Color(0xFFE6DEFF))
+        else KxAvatarPalette.Swatch(androidx.compose.ui.graphics.lerp(base.from, Color.White, .18f), base.to, base.ink)
     var tab by rememberSaveable { mutableStateOf(KxSharedTab.Media) }
     val toast = LocalKxToast.current
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -55,10 +59,10 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
                 val pop = remember { Animatable(.6f) }
                 LaunchedEffect(Unit) { pop.animateTo(1f, tween(500, easing = KxMotion.rise)) }
                 Box(Modifier.size(112.dp).graphicsLayer { scaleX = pop.value; scaleY = pop.value }) {
-                    Box(Modifier.matchParentSize().graphicsLayer { scaleX = 1.32f; scaleY = 1.32f }.drawBehind {
-                        drawCircle(Brush.radialGradient(listOf(sw.from.copy(alpha = .45f), Color.Transparent), radius = size.minDimension / 2 * 1.41f * .65f))
+                    Box(Modifier.matchParentSize().graphicsLayer { scaleX = 148f / 112f; scaleY = scaleX }.drawBehind {
+                        drawCircle(Brush.radialGradient(listOf(Color(0x598F78E6), Color.Transparent), radius = size.minDimension / 2 * 1.41f * .65f))
                     })
-                    KxAvatar(p.name, p.id, size = 112.dp, colorIndex = p.colorIndex)
+                    KxAvatar(p.name, p.id, Modifier.shadow(40.dp, CircleShape, spotColor = Color.Black.copy(alpha = .5f)), size = 112.dp, swatch = sw, letterWeight = FontWeight.ExtraBold, letterSize = 44.sp)
                     if (p.online) Box(Modifier.align(Alignment.BottomEnd).offset((-4).dp, (-4).dp).size(30.dp).clip(CircleShape).background(Color(0xFF141019)).padding(4.dp).clip(CircleShape).background(Kx.accent))
                 }
                 Row(Modifier.padding(top = 12.dp).kxRise(80, 500), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -12,6 +12,8 @@ package com.kirox.app.ui.v3.model
  */
 interface KxStore {
     val me: KxProfile
+    /** Accounts on this phone (Telegram allows several); the first is the current one. */
+    val accounts: List<KxProfile> get() = listOf(me)
     /** First item is the main list (id 0, «Все»); the rest are the user's Telegram folders. */
     val folders: List<KxFolder>
     val chats: List<KxChat>

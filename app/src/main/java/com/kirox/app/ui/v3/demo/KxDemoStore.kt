@@ -15,6 +15,8 @@ import com.kirox.app.ui.v3.model.*
 class KxDemoStore : KxStore {
     override val me = KxProfile(1, "Алекс Миронов", "alex_codes", "+7 701 123 45 67", "Пишу Android-приложения. Люблю тёмные темы.", colorIndex = 7)
 
+    override val accounts get() = listOf(me, KxProfile(2, "Рабочий", phone = "+7 702 *** ** 11", colorIndex = 6))
+
     // Demo keeps the board's type tabs; the real store shows the user's Telegram folders.
     override val folders = listOf(KxFolder(0, "Все", 6), KxFolder(-1, "Личные"), KxFolder(-2, "Группы"), KxFolder(-3, "Каналы"), KxFolder(4, "Работа", 2))
 
@@ -48,7 +50,7 @@ class KxDemoStore : KxStore {
     override val calls = listOf(
         KxCall(1, 11, "Анна", "21:40", KxCallDir.Incoming, duration = "12 мин", colorIndex = 0),
         KxCall(2, 20, "Максим", "20:15", KxCallDir.Missed, colorIndex = 1),
-        KxCall(3, 12, "Команда kiroX", "18:02", KxCallDir.Outgoing, video = true, duration = "41 мин", colorIndex = 2),
+        KxCall(3, 12, "Команда kiroX", "18:02", KxCallDir.Outgoing, video = true, duration = "41 мин", colorIndex = 2, group = true),
         KxCall(4, 13, "Мама", "16:30", KxCallDir.Outgoing, duration = "3 мин", colorIndex = 3),
         KxCall(5, 16, "Света", "12:08", KxCallDir.Missed, video = true, colorIndex = 6),
         KxCall(6, 15, "Илья", "10:21", KxCallDir.Incoming, duration = "1 мин", colorIndex = 5),
@@ -189,3 +191,6 @@ class KxDemoStore : KxStore {
         }
     }
 }
+
+/** A store for screens shown before sign-in (they only use ctx.auth). */
+object KxDemoStoreHolder { val empty: KxStore by lazy { KxDemoStore() } }

@@ -1,0 +1,161 @@
+package com.kirox.app.ui.v3.screens.settings
+
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.Forward
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Contacts
+import androidx.compose.material.icons.rounded.Devices
+import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Pin
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.VerifiedUser
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.components.*
+import com.kirox.app.ui.v3.theme.*
+
+private data class PrivDef(val key: String, val icon: ImageVector, val label: String, val hint: String)
+
+private val PrivDefs = listOf(
+    PrivDef("phone", Icons.Outlined.Call, "Номер телефона", "Кто видит ваш номер в профиле"),
+    PrivDef("seen", Icons.Outlined.Schedule, "Время захода", "Скрыв время, вы тоже не увидите его у других"),
+    PrivDef("photo", Icons.Outlined.AccountCircle, "Фото профиля", "Кто видит ваши фотографии"),
+    PrivDef("calls", Icons.Outlined.PhoneInTalk, "Звонки", "Кто может вам звонить"),
+    PrivDef("invites", Icons.Outlined.GroupAdd, "Приглашения", "Кто может добавлять вас в группы"),
+    PrivDef("forward", Icons.AutoMirrored.Outlined.Forward, "Пересылка", "Будет ли ссылка на вас в пересланных сообщениях"),
+)
+private val PrivOpts = listOf("Все", "Мои контакты", "Никто")
+
+/** Board «Конфиденциальность»: protection score, 4 security tiles, «Кто видит» rows with a picker sheet, 2 switches. */
+@Composable
+fun PrivacyScreen(ctx: KxScreenCtx) {
+    // demo: needs store (privacy rules, passcode/cloud password state, sessions and blocked counts)
+    var vals by remember { mutableStateOf(mapOf("phone" to 2, "seen" to 1, "photo" to 0, "calls" to 1, "invites" to 1, "forward" to 0)) }
+    val pin = true
+    var picking by rememberSaveable { mutableStateOf<String?>(null) }
+    var readTime by rememberSaveable { mutableStateOf(true) }
+    var archive by rememberSaveable { mutableStateOf(false) }
+    val strict = vals.values.count { it > 0 } + (if (pin) 1 else 0)
+    val good = strict >= 5
+
+    Box(Modifier.fillMaxSize().background(Kx.bg)) {
+        SGlow(glowGreen(.18f))
+        Column(Modifier.fillMaxSize()) {
+            SHeader("Конфиденциальность", ctx.back, bottom = 2.dp)
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp).navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // score card
+                val shape = RoundedCornerShape(24.dp)
+                Row(Modifier.sRise(0).fillMaxWidth().clip(shape).cssGradient(150f, 0f to Kx.accentDeep.copy(alpha = .24f), 1f to Kx.w(.03f))
+                    .border(1.dp, Kx.accent.copy(alpha = .18f), shape).padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    val reduced = LocalKxReducedMotion.current
+                    val pulse = remember { Animatable(0f) }
+                    LaunchedEffect(reduced) { if (!reduced) repeat(2) { pulse.animateTo(1f, tween(1500, easing = CssEaseInOut)); pulse.animateTo(0f, tween(1500, easing = CssEaseInOut)) } }
+                    Box(Modifier.size(52.dp).graphicsLayer { val s = 1f + .06f * pulse.value; scaleX = s; scaleY = s }.clip(RoundedCornerShape(18.dp))
+                        .background(Kx.accent.copy(alpha = .16f)), contentAlignment = Alignment.Center) {
+                        Icon(if (good) Icons.Rounded.VerifiedUser else Icons.Rounded.Shield, null, Modifier.size(30.dp), tint = Kx.accent)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(if (good) "Аккаунт хорошо защищён" else "Можно защитить лучше", style = KxType.style(15.sp, FontWeight.Bold))
+                        Text(if (good) "Код-пароль и облачный пароль включены" else "Включите код-пароль и закройте номер", style = KxType.style(12.sp, color = Color(0xFFA6B5AC)))
+                    }
+                }
+                // security tiles
+                Column(Modifier.sRise(50)) {
+                    GroupLabel("Безопасность")
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SecTile(Icons.Rounded.Pin, Kx.accent, if (pin) "Включён" else "Выключен", if (pin) Kx.accent else Kx.danger, "Код-пароль", Modifier.weight(1f)) { ctx.open("Lock") }
+                            SecTile(Icons.Rounded.Key, Kx.link, "Включён", Kx.accent, "Облачный пароль", Modifier.weight(1f)) { ctx.open("TwoStep") }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SecTile(Icons.Rounded.Devices, Color(0xFFFFD27A), "3", Kx.text3, "Устройства", Modifier.weight(1f)) { ctx.open("Devices") }
+                            SecTile(Icons.Rounded.Block, Kx.danger, "2", Kx.text3, "Чёрный список", Modifier.weight(1f)) { ctx.open("Blocked") }
+                        }
+                    }
+                }
+                // who sees
+                Column(Modifier.sRise(100)) {
+                    GroupLabel("Кто видит")
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        PrivDefs.forEachIndexed { i, d ->
+                            val v = vals[d.key] ?: 0
+                            val vc by animateColorAsState(when (v) { 2 -> Kx.accent; 1 -> Kx.text2; else -> Kx.text3 }, tween(300), label = "vc")
+                            Row(Modifier.fillMaxWidth().height(52.dp).clip(groupShape(i, PrivDefs.size, 20.dp)).background(TileBg).kxClick { picking = d.key }.padding(horizontal = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Icon(d.icon, null, Modifier.size(20.dp), tint = Kx.text4)
+                                Text(d.label, style = KxType.style(15.sp), modifier = Modifier.weight(1f))
+                                Text(PrivOpts[v], style = KxType.style(13.sp, FontWeight.SemiBold, vc))
+                                Icon(Icons.Rounded.ChevronRight, null, Modifier.size(18.dp), tint = Kx.text4)
+                            }
+                        }
+                    }
+                }
+                Column(Modifier.sRise(150), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    SSwitchRow(null, "Время прочтения", readTime, groupShape(0, 2, 20.dp), sub = "Показывать, когда вы прочитали сообщение", small = true, subSize = 11) { readTime = !readTime }
+                    SSwitchRow(null, "Новые чаты — в архив", archive, groupShape(1, 2, 20.dp), sub = "Сообщения от незнакомцев не мешают", small = true, subSize = 11) { archive = !archive }
+                }
+            }
+        }
+        val cur = PrivDefs.firstOrNull { it.key == picking }
+        if (cur != null) SSheet({ picking = null }, cur.label) {
+            Text(cur.label, style = KxType.style(20.sp, FontWeight.ExtraBold))
+            Text(cur.hint, style = KxType.style(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 4.dp))
+            Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                val icons = listOf(Icons.Outlined.Public to Icons.Rounded.Public, Icons.Outlined.Contacts to Icons.Rounded.Contacts, Icons.Outlined.Lock to Icons.Rounded.Lock)
+                PrivOpts.forEachIndexed { i, label ->
+                    SChoice(icons[i].first, icons[i].second, label, vals[cur.key] == i) { vals = vals + (cur.key to i) }
+                }
+            }
+            Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Всегда разрешать…", "Никогда не разрешать…").forEach { t ->
+                    Box(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(16.dp)).background(Kx.fill).kxClick { ctx.toast("Выбор людей ещё переносится") },
+                        contentAlignment = Alignment.Center) { Text(t, style = KxType.style(13.sp, FontWeight.SemiBold)) }
+                }
+            }
+        }
+    }
+}
+
+/** CSS ease-in-out. */
+internal val CssEaseInOut = CubicBezierEasing(.42f, 0f, .58f, 1f)
+
+/** Group label: 13sp/800 accent, padding 0 4 6. */
+@Composable
+internal fun GroupLabel(text: String) =
+    Text(text, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 6.dp))
+
+@Composable
+private fun SecTile(icon: ImageVector, tint: Color, state: String, stateColor: Color, title: String, modifier: Modifier, onClick: () -> Unit) {
+    Column(modifier.height(72.dp).clip(RoundedCornerShape(20.dp)).background(TileBg).kxClick(onClick = onClick).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Icon(icon, null, Modifier.size(22.dp), tint = tint)
+            Text(state, style = KxType.style(11.sp, FontWeight.Bold, stateColor))
+        }
+        Text(title, style = KxType.style(14.sp, FontWeight.SemiBold), maxLines = 1)
+    }
+}

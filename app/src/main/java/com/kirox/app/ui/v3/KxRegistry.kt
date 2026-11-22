@@ -17,6 +17,8 @@ class KxScreenCtx(
     val toast: (String) -> Unit,
     /** Optional argument passed with open("Name:arg"), e.g. a chat id. */
     val arg: String? = null,
+    /** Sign-in state when the screen is a sign-in board (Password, QrLogin, ProfileSetup); null otherwise. */
+    val auth: com.kirox.app.ui.v3.model.KxAuth? = null,
 )
 
 typealias KxScreenFn = @Composable (KxScreenCtx) -> Unit

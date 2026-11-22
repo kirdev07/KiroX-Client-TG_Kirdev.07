@@ -299,6 +299,19 @@ fun KiroXApp() {
                 )
             } else {
                 val state = requireNotNull(phoneState)
+                // «Новый дизайн»: the v3 auth boards on the same auth repository and phone state (ui/v3/data).
+                val kxAuth = remember(state) {
+                    com.kirox.app.ui.v3.data.TelegramKxAuth(
+                        telegramViewModel, state,
+                        authState = { telegramAuth }, isBusy = { telegramBusy }, authError = { telegramError }, blocked = { telegramBlocked },
+                        onChooseCountry = { stack.push(Screen.Countries) },
+                        recoverySent = { recoveryCodeSent },
+                        cancellable = { accounts.size > 1 && tdClient.isAddingAccount() },
+                        onCancel = { tdClient.cancelNewAccount() }
+                    )
+                }
+                // Password / ProfileSetup / QrLogin go to v3 only once their boards are registered.
+                val v3Auth = newDesign == true && com.kirox.app.ui.v3.data.TelegramKxAuth.supports(telegramAuth, com.kirox.app.ui.v3.KxRegistry.screens.keys)
                 val slide = motionMs(FusionMotion.SLOW)
                 AnimatedContent(
                     targetState = stack.current,
@@ -312,8 +325,9 @@ fun KiroXApp() {
                     label = "navigation"
                 ) { screen ->
                     when (screen) {
-                        // First sign-in in the Fusion v2 look: the welcome pages come first, once (approved auth board).
-                        Screen.Phone -> if (!welcomeSeen && accounts.size <= 1 && com.kirox.app.ui.theme.Fusion.colors.backdrop != null) com.kirox.app.ui.auth.WelcomeScreen {
+                        // v3 boards for phone and code; steps without a v3 board yet keep the old screens.
+                        // Old design: first sign-in in the Fusion v2 look, the welcome pages come first, once (approved auth board).
+                        Screen.Phone, Screen.AuthStep -> if (v3Auth) com.kirox.app.ui.v3.data.KxTelegramAuthHost(kxAuth) else if (screen == Screen.AuthStep) TelegramAuthStepScreen(telegramAuth, telegramViewModel.auth, telegramBusy, telegramError, recoveryCodeSent) else if (!welcomeSeen && accounts.size <= 1 && com.kirox.app.ui.theme.Fusion.colors.backdrop != null) com.kirox.app.ui.auth.WelcomeScreen {
                             welcomeSeen = true
                             runCatching { context.getSharedPreferences("kirox_ui", android.content.Context.MODE_PRIVATE).edit().putBoolean("welcome_seen", true).apply() }
                         } else PhoneLoginScreen(
@@ -326,7 +340,6 @@ fun KiroXApp() {
                             onCancel = if (accounts.size > 1 && tdClient.isAddingAccount()) tdClient::cancelNewAccount else null
                         )
                         Screen.Countries -> CountryPickerScreen(state, onBack = { stack.pop() })
-                        Screen.AuthStep -> TelegramAuthStepScreen(telegramAuth, telegramViewModel.auth, telegramBusy, telegramError, recoveryCodeSent)
                         // «Новый дизайн» on: the kiroX v3 UI on the real account (ui/v3/data); calls and banners below still work.
                         Screen.Chats -> if (newDesign == true) com.kirox.app.ui.v3.data.KxTelegramHost(Modifier.fillMaxSize(), telegramViewModel) else CompositionLocalProvider(
                             LocalTelegramFiles provides telegramViewModel.files,

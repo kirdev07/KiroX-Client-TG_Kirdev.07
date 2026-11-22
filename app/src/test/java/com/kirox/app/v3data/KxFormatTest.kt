@@ -89,6 +89,13 @@ class KxFormatTest {
         } finally { Locale.setDefault(saved) }
     }
 
+    @Test fun storyAgo() {
+        assertEquals("только что", KxFormat.ago(nowS - 20, now, utc))
+        assertEquals("5 мин назад", KxFormat.ago(nowS - 300, now, utc))
+        assertEquals("3 ч назад", KxFormat.ago(nowS - 3 * 3600, now, utc))
+        assertEquals("", KxFormat.ago(0, now, utc))
+    }
+
     @Test fun compactViews() {
         assertEquals("999", KxFormat.compactCount(999))
         assertEquals("1,2K", KxFormat.compactCount(1_234))

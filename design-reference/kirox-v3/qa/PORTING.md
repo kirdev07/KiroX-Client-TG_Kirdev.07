@@ -1,4 +1,5 @@
 # How to port a board (for porter agents)
+> **BUILD RULE (23:40 local): the PC ran out of memory with many parallel Gradle builds. From now on build ONLY via `python design-reference/kirox-v3/qa/kxbuild.py compile` (or `test "<pattern>"`, `install`). It queues builds one at a time. Never call ./gradlew directly. Compile less often: after every 3–4 boards.**
 
 Read `qa/README.md` first (ownership, build, devices). Then:
 

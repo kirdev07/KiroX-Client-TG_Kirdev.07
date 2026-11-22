@@ -5,7 +5,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -18,6 +18,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
@@ -25,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.components.cssAngleEnd
 import com.kirox.app.ui.v3.components.cssAngleStart
 import com.kirox.app.ui.v3.components.kxClick
@@ -115,3 +118,117 @@ fun pingPong(tMs: Long, periodMs: Int, delayMs: Int, a: Float, b: Float, easing:
 
 /** Formats seconds as m:ss. */
 fun fmtSec(s: Int): String = "${s / 60}:${(s % 60).toString().padStart(2, '0')}"
+
+/** Dim backdrop + bottom sheet (radius 30 top, solid gradient, kxSheet .38s slide-up), closes on back/tap outside. */
+@Composable
+fun MSheet(visible: Boolean, onClose: () -> Unit, modifier: Modifier = Modifier, dim: Float = .55f,
+           top: Color = Color(0xFF222C27), bottom: Color = Color(0xFF101412),
+           padding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 22.dp),
+           handle: Boolean = true, border: Color = Kx.w(.16f), highlight: Color? = Kx.w(.2f), handleColor: Color = Kx.w(.25f), handleWidth: Dp = 40.dp,
+           content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    androidx.activity.compose.BackHandler(visible, onClose)
+    Box(Modifier.fillMaxSize()) {
+        androidx.compose.animation.AnimatedVisibility(visible, enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200)),
+            exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200))) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = dim)).kxClick("Закрыть", onClick = onClose))
+        }
+        androidx.compose.animation.AnimatedVisibility(visible, Modifier.align(Alignment.BottomCenter),
+            enter = androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(380, easing = CubicBezierEasing(.2f, .9f, .25f, 1f))) { it },
+            exit = androidx.compose.animation.slideOutVertically(androidx.compose.animation.core.tween(250)) { it }) {
+            val shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
+            androidx.compose.foundation.layout.Column(
+                modifier.fillMaxWidth().clip(shape).background(Brush.verticalGradient(listOf(top, bottom)))
+                    .border(1.dp, border, shape).then(if (highlight != null) Modifier.topHighlight(highlight) else Modifier)
+                    .kxClick { }.navigationBarsPadding().padding(padding)
+            ) {
+                if (handle) Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 14.dp).size(handleWidth, 4.dp).clip(CircleShape).background(handleColor))
+                content()
+            }
+        }
+    }
+}
+
+/** Confirm dialog of the boards: 28 radius, title 18/800, text 14/20 #C9D2CC, Отмена + red action. */
+@Composable
+fun MConfirm(title: String?, text: String, yes: String, onNo: () -> Unit, onYes: () -> Unit, danger: Boolean = true) {
+    androidx.activity.compose.BackHandler(title != null, onNo)
+    androidx.compose.animation.AnimatedVisibility(title != null, enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(200)),
+        exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(150))) {
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .6f)).kxClick("Отмена", onClick = onNo), contentAlignment = Alignment.Center) {
+            val shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
+            androidx.compose.foundation.layout.Column(Modifier.padding(horizontal = 24.dp).fillMaxWidth().clip(shape)
+                .background(Brush.verticalGradient(listOf(Color(0xFF232A26), Color(0xFF161B18)))).border(1.dp, Kx.w(.14f), shape).kxClick { }.padding(20.dp)) {
+                T(title ?: "", 18.sp, FontWeight.ExtraBold)
+                Text(text, style = ts(14.sp, color = Kx.text2).copy(lineHeight = 20.sp), modifier = Modifier.padding(top = 8.dp))
+                androidx.compose.foundation.layout.Row(Modifier.padding(top = 16.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.weight(1f).height(48.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick(onClick = onNo), contentAlignment = Alignment.Center) { T("Отмена", 15.sp, FontWeight.Bold) }
+                    Box(Modifier.weight(1f).height(48.dp).clip(CircleShape).background(if (danger) Color(0xFFE5534B) else Kx.accent).kxClick(onClick = onYes), contentAlignment = Alignment.Center) {
+                        T(yes, 15.sp, FontWeight.ExtraBold, if (danger) Color.White else Kx.onAccent)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** State holder for a pending confirm: title/text/yes + action. */
+class MConfirmState {
+    var title by mutableStateOf<String?>(null); var text by mutableStateOf(""); var yes by mutableStateOf("")
+    private var action: (() -> Unit)? = null
+    fun ask(t: String, x: String, y: String, fn: () -> Unit) { title = t; text = x; yes = y; action = fn }
+    fun no() { title = null; action = null }
+    fun yes() { val fn = action; no(); fn?.invoke() }
+}
+
+@Composable
+fun MConfirmHost(s: MConfirmState, danger: Boolean = true) = MConfirm(s.title, s.text, s.yes, { s.no() }, { s.yes() }, danger)
+
+
+/** Board-local toast (kxToast 2.2s: rise in, hold, fade out). Call [show]; draw [MToastHost] last in the screen Box. */
+class MToastState {
+    var text by mutableStateOf(""); var stamp by mutableLongStateOf(0L)
+    fun show(t: String) { text = t; stamp = System.nanoTime() }
+}
+
+@Composable
+fun BoxScope.MToastHost(s: MToastState, bottom: Dp = 96.dp, top: Dp? = null, icon: ImageVector = androidx.compose.material.icons.Icons.Rounded.CheckCircle) {
+    if (s.stamp == 0L) return
+    val p = remember(s.stamp) { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(s.stamp) { p.animateTo(1f, androidx.compose.animation.core.tween(2200, easing = androidx.compose.animation.core.LinearEasing)); s.stamp = 0L }
+    val v = p.value
+    val a = when { v < .12f -> v / .12f; v < .85f -> 1f; else -> 1f - (v - .85f) / .15f }
+    val ty = if (v < .12f) 16f * (1f - v / .12f) else 0f
+    Row((if (top != null) Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(start = 24.dp, end = 24.dp, top = top)
+        else Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 24.dp, end = 24.dp, bottom = bottom)).fillMaxWidth().height(46.dp)
+        .graphicsLayerCompat(a, ty).clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).background(Color(0xFF1E2622))
+        .border(1.dp, Kx.accent.copy(alpha = .25f), androidx.compose.foundation.shape.RoundedCornerShape(16.dp)),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, Modifier.size(20.dp), tint = Kx.accent)
+        T(s.text, 14.sp)
+    }
+}
+
+private fun Modifier.graphicsLayerCompat(a: Float, ty: Float) = this.then(Modifier.graphicsLayer { alpha = a; translationY = ty * density })
+
+/** Centered pill toast with an icon (kxToast 2.4s), used by VideoTrim / StoryViews / StoryArchive. */
+class MPillToastState {
+    var text by mutableStateOf(""); var icon by mutableStateOf<ImageVector?>(null); var stamp by mutableLongStateOf(0L)
+    fun show(t: String, i: ImageVector) { text = t; icon = i; stamp = System.nanoTime() }
+}
+
+@Composable
+fun BoxScope.MPillToastHost(s: MPillToastState, bottom: Dp = 34.dp) {
+    if (s.stamp == 0L) return
+    val a = remember(s.stamp) { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(s.stamp) { a.animateTo(1f, androidx.compose.animation.core.tween(2400, easing = androidx.compose.animation.core.LinearEasing)); s.stamp = 0L }
+    val v = a.value
+    val al = when { v < .12f -> v / .12f; v < .85f -> 1f; else -> 1f - (v - .85f) / .15f }
+    Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = bottom)
+        .graphicsLayer { alpha = al; translationY = if (v < .12f) 10.dp.toPx() * (1 - v / .12f) else 0f }
+        .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).background(Kx.surface3)
+        .border(1.dp, Kx.w(.16f), androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        s.icon?.let { Icon(it, null, Modifier.size(20.dp), tint = Kx.accent) }
+        T(s.text, 14.sp, FontWeight.SemiBold, maxLines = 1)
+    }
+}

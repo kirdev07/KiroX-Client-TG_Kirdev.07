@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.rounded.CallMissed
 import androidx.compose.material.icons.automirrored.rounded.CallReceived
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -23,6 +24,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -41,16 +44,12 @@ fun CallsScreen(store: KxStore, onCall: (KxCall, Boolean) -> Unit, onOpen: (Stri
     var missed by rememberSaveable { mutableStateOf(false) }
     val calls = if (missed) store.calls.filter { it.dir == KxCallDir.Missed } else store.calls
     Box(Modifier.fillMaxSize()) {
-        Canvas(Modifier.align(Alignment.TopEnd).offset(90.dp, (-110).dp).size(380.dp)) {
-            drawCircle(Brush.radialGradient(listOf(Color(0x2E46A06E), Color.Transparent), radius = size.minDimension * .33f), radius = size.minDimension / 2)
-        }
+        KxGlow(diameter = 380.dp, x = (-90).dp, y = (-110).dp, alpha = .18f, alignEnd = true)
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Звонки", style = KxType.style(30.sp, FontWeight.ExtraBold).copy(letterSpacing = (-.4).sp), modifier = Modifier.weight(1f))
-                Box(Modifier.size(42.dp).clip(CircleShape).background(Kx.fill).border(1.dp, Kx.w(.09f), CircleShape).kxClick("Поиск") { onOpen("Search") }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Search, null, Modifier.size(22.dp), tint = Kx.text2)
-                }
-                Box(Modifier.size(42.dp).clip(CircleShape).background(Kx.accentGradient).kxClick("Новый звонок") { onOpen("NewCall") }, contentAlignment = Alignment.Center) {
+                KxIconButton(androidx.compose.material.icons.Icons.Outlined.Search, "Поиск", size = 42.dp, glass = true) { onOpen("Search") }
+                Box(Modifier.size(42.dp).shadow(18.dp, CircleShape, spotColor = Color(0x593F9A6C)).clip(CircleShape).background(Kx.accentGradient).kxClick("Новый звонок") { onOpen("NewCall") }, contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.AddIcCall, null, Modifier.size(22.dp), tint = Kx.onAccent)
                 }
             }
@@ -63,7 +62,7 @@ fun CallsScreen(store: KxStore, onCall: (KxCall, Boolean) -> Unit, onOpen: (Stri
                     Text("Ссылка на звонок", style = KxType.style(15.sp, FontWeight.Bold))
                     Text("Позовите друзей в групповой звонок", style = KxType.style(12.sp, color = Kx.text3))
                 }
-                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Kx.accent)
+                Icon(Icons.Rounded.ChevronRight, null, tint = Kx.accent)
             }
             LazyColumn(Modifier.fillMaxSize().padding(top = 10.dp), contentPadding = PaddingValues(bottom = bottomPadding)) {
                 item { Text("Сегодня", style = KxType.style(13.sp, FontWeight.Bold, Kx.text4), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)) }
@@ -76,14 +75,14 @@ fun CallsScreen(store: KxStore, onCall: (KxCall, Boolean) -> Unit, onOpen: (Stri
 
 @Composable
 private fun Segmented(missed: Boolean, missedCount: Int, onPick: (Boolean) -> Unit) {
-    val x by animateFloatAsState(if (missed) 1f else 0f, tween(300, easing = KxMotion.rise), label = "seg")
+    val x by animateFloatAsState(if (missed) 1f else 0f, tween(450, easing = CubicBezierEasing(.34f, 1.4f, .5f, 1f)), label = "seg")
     BoxWithConstraints(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp).fillMaxWidth().height(40.dp).clip(RoundedCornerShape(20.dp))
         .background(Kx.w(.05f)).border(1.dp, Kx.line, RoundedCornerShape(20.dp)).padding(3.dp)) {
         val half = maxWidth / 2
-        Box(Modifier.graphicsLayer { translationX = x * half.toPx() }.size(half, 32.dp).clip(RoundedCornerShape(16.dp)).background(Kx.accent.copy(alpha = .18f)))
+        Box(Modifier.graphicsLayer { translationX = x * half.toPx() }.size(half, 32.dp).clip(RoundedCornerShape(16.dp)).background(Kx.accent.copy(alpha = .18f)).topHighlight(Kx.w(.14f)))
         Row(Modifier.fillMaxSize()) {
             listOf(false, true).forEach { m ->
-                val c by animateColorAsState(if (m == missed) Kx.text else Kx.text3, label = "segc")
+                val c by animateColorAsState(if (m == missed) Kx.text else Kx.text4, label = "segc")
                 Box(Modifier.weight(1f).fillMaxHeight().kxClick(role = androidx.compose.ui.semantics.Role.Tab) { onPick(m) }, contentAlignment = Alignment.Center) {
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(if (m) "Пропущенные" else "Все", style = KxType.style(14.sp, FontWeight.SemiBold, c))
@@ -96,6 +95,7 @@ private fun Segmented(missed: Boolean, missedCount: Int, onPick: (Boolean) -> Un
 }
 
 fun callInfo(c: KxCall): String {
+    if (c.group) return listOf("Видеочат", c.time, c.duration).filter { it.isNotEmpty() }.joinToString(" · ")
     val kind = when (c.dir) {
         KxCallDir.Incoming -> if (c.video) "Входящий видеозвонок" else "Входящий"
         KxCallDir.Outgoing -> if (c.video) "Исходящий видеозвонок" else "Исходящий"
@@ -109,7 +109,7 @@ fun callInfo(c: KxCall): String {
 private fun CallRow(c: KxCall, modifier: Modifier, onCall: () -> Unit) {
     val missed = c.dir == KxCallDir.Missed
     Row(modifier.fillMaxWidth().height(68.dp).padding(start = 16.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-        KxAvatar(c.name, c.peerId, size = 50.dp)
+        KxAvatar(c.name, c.peerId, size = 50.dp, colorIndex = c.colorIndex)
         Column(Modifier.weight(1f)) {
             KxLine(c.name, KxType.style(16.sp, FontWeight.SemiBold, if (missed) Kx.danger else Kx.text))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -125,35 +125,49 @@ private fun CallRow(c: KxCall, modifier: Modifier, onCall: () -> Unit) {
 
 /** Outgoing call screen (inline in the Calls board): pulsing rings, status dots, glass control bar. */
 @Composable
-fun CallingScreen(name: String, peerId: Long, status: String, onEnd: () -> Unit) {
+fun CallingScreen(name: String, peerId: Long, video: Boolean = false, colorIndex: Int = -1, onEnd: () -> Unit) {
     var muted by remember { mutableStateOf(false) }
-    var speaker by remember { mutableStateOf(false) }
+    var connected by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(2200); connected = true }
     val t = rememberInfiniteTransition(label = "ring")
     val reduced = LocalKxReducedMotion.current
-    val p1 by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing)), label = "r1")
-    val p2 by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, delayMillis = 900, easing = FastOutSlowInEasing)), label = "r2")
-    Column(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFF17402C), Kx.bg), radius = 900f)).statusBarsPadding().navigationBarsPadding().padding(top = 90.dp),
-        horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(140.dp), contentAlignment = Alignment.Center) {
-            if (!reduced) listOf(p1 to .35f, p2 to .25f).forEach { (p, a) ->
-                Box(Modifier.matchParentSize().graphicsLayer { scaleX = 1f + p * .6f; scaleY = scaleX; alpha = 1f - p }.clip(CircleShape).background(Kx.accent.copy(alpha = a)))
+    val p1 by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, easing = LinearOutSlowInEasing)), label = "r1")
+    val p2 by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, delayMillis = 900, easing = LinearOutSlowInEasing)), label = "r2")
+    val up = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { up.animateTo(1f, tween(450, easing = KxMotion.rise)) }
+    val upBar = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(100); upBar.animateTo(1f, tween(500, easing = KxMotion.rise)) }
+    Box(Modifier.fillMaxSize().drawBehind {
+        // radial-gradient(90% 60% at 50% 30%, #17402C 0%, #0A0C0B 70%)
+        drawRect(Kx.bg)
+        val c = androidx.compose.ui.geometry.Offset(size.width * .5f, size.height * .3f); val rx = size.width * .9f; val ry = size.height * .6f
+        scale(1f, ry / rx, c) {
+            drawCircle(Brush.radialGradient(0f to Color(0xFF17402C), .7f to Kx.bg, center = c, radius = rx), radius = rx, center = c)
+        }
+    }) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(top = 96.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.size(140.dp).graphicsLayer { translationY = (1 - up.value) * 40.dp.toPx(); val s = .96f + .04f * up.value; scaleX = s; scaleY = s; alpha = up.value }, contentAlignment = Alignment.Center) {
+                if (!reduced) listOf(p1 to .35f, p2 to .25f).forEach { (p, a) ->
+                    Box(Modifier.matchParentSize().graphicsLayer { scaleX = 1f + p * .9f; scaleY = scaleX; alpha = .5f * (1f - p) }.clip(CircleShape).background(Kx.accent.copy(alpha = a)))
+                }
+                KxAvatar(name, peerId, Modifier.shadow(50.dp, CircleShape, spotColor = Color.Black.copy(alpha = .5f)), size = 140.dp, colorIndex = colorIndex, letterWeight = FontWeight.ExtraBold, letterSize = 54.sp)
             }
-            KxAvatar(name, peerId, size = 140.dp)
-        }
-        Text(name, style = KxType.style(28.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 28.dp))
-        Row(Modifier.padding(top = 6.dp)) { KxTypingDots(Kx.accent, status) }
-        Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Rounded.Lock, null, Modifier.size(14.dp), tint = Kx.text4)
-            Text("Защищено сквозным шифрованием", style = KxType.caption)
-        }
-        Spacer(Modifier.weight(1f))
-        Row(Modifier.padding(bottom = 26.dp).clip(RoundedCornerShape(36.dp)).background(Brush.verticalGradient(listOf(Kx.w(.12f), Kx.w(.04f))))
-            .border(1.dp, Kx.stroke, RoundedCornerShape(36.dp)).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            CallBtn(if (speaker) Icons.Rounded.VolumeUp else Icons.Rounded.VolumeDown, "Динамик", speaker) { speaker = !speaker }
-            CallBtn(Icons.Rounded.VideocamOff, "Камера", false) {}
-            CallBtn(if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic, "Микрофон", muted) { muted = !muted }
-            Box(Modifier.size(56.dp).shadow(20.dp, CircleShape, spotColor = Color(0x66E5484D)).clip(CircleShape).background(Color(0xFFE5484D)).kxClick("Завершить", onClick = onEnd),
-                contentAlignment = Alignment.Center) { Icon(Icons.Rounded.CallEnd, null, tint = Color.White) }
+            Text(name, style = KxType.style(28.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 28.dp))
+            Row(Modifier.padding(top = 6.dp)) { KxTypingDots(Kx.accent, if (connected) "Идёт звонок" else if (video) "Видеовызов" else "Вызов", 15.sp) }
+            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Rounded.Lock, null, Modifier.size(14.dp), tint = Kx.text4)
+                Text("Защищено сквозным шифрованием", style = KxType.caption)
+            }
+            Spacer(Modifier.weight(1f))
+            Row(Modifier.padding(bottom = 26.dp).graphicsLayer { translationY = (1 - upBar.value) * 40.dp.toPx(); val s = .96f + .04f * upBar.value; scaleX = s; scaleY = s; alpha = upBar.value }
+                .clip(RoundedCornerShape(36.dp)).background(Brush.verticalGradient(listOf(Kx.w(.12f), Kx.w(.04f))))
+                .border(1.dp, Kx.stroke, RoundedCornerShape(36.dp)).topHighlight(Kx.w(.3f)).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                CallBtn(androidx.compose.material.icons.Icons.Outlined.VolumeUp, "Динамик", false) {}
+                CallBtn(androidx.compose.material.icons.Icons.Outlined.VideocamOff, "Камера", false) {}
+                CallBtn(if (muted) androidx.compose.material.icons.Icons.Outlined.MicOff else androidx.compose.material.icons.Icons.Outlined.Mic, "Микрофон", muted) { muted = !muted }
+                Box(Modifier.size(56.dp).shadow(20.dp, CircleShape, spotColor = Color(0x66E5484D)).clip(CircleShape).background(Color(0xFFE5484D)).kxClick("Завершить", onClick = onEnd),
+                    contentAlignment = Alignment.Center) { Icon(Icons.Rounded.CallEnd, null, tint = Color.White) }
+            }
         }
     }
 }

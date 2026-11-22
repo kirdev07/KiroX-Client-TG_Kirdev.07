@@ -108,7 +108,7 @@ fun KxBadge(text: String, modifier: Modifier = Modifier, muted: Boolean = false,
 fun KxAvatar(name: String, id: Long, modifier: Modifier = Modifier, size: Dp = 54.dp, icon: ImageVector? = null,
              online: Boolean = false, story: Boolean = false, square: Boolean = false, colorIndex: Int = -1,
              swatch: KxAvatarPalette.Swatch = if (colorIndex >= 0) KxAvatarPalette.all[colorIndex % KxAvatarPalette.all.size] else KxAvatarPalette.of(id),
-             ringColor: Color = Kx.bg) {
+             ringColor: Color = Kx.bg, letterWeight: FontWeight = FontWeight.Bold, letterSize: androidx.compose.ui.unit.TextUnit = (size.value * 0.37f).sp) {
     val shape = if (square) RoundedCornerShape(size * 0.3f) else CircleShape
     Box(modifier.size(size)) {
         val inner = if (story) Modifier.padding(2.dp) else Modifier
@@ -123,7 +123,7 @@ fun KxAvatar(name: String, id: Long, modifier: Modifier = Modifier, size: Dp = 5
         ) {
             if (icon != null) Icon(icon, null, Modifier.size(size * 0.44f), tint = swatch.ink)
             else Text(name.trim().take(1).uppercase().ifEmpty { "?" },
-                style = KxType.style((size.value * 0.37f).sp, FontWeight.Bold, swatch.ink))
+                style = KxType.style(letterSize, letterWeight, swatch.ink))
         }
         // Mockup: 14px dot + 3px background border on a 54px avatar = 20 outer / 14 inner.
         if (online) Box(
@@ -183,16 +183,16 @@ fun Modifier.kxRise(delayMs: Int = 0, durationMs: Int = 600): Modifier {
 
 /** Three blinking dots ("печатает…"). */
 @Composable
-fun KxTypingDots(color: Color = Kx.accent, text: String = "печатает") {
+fun KxTypingDots(color: Color = Kx.accent, text: String = "печатает", size: androidx.compose.ui.unit.TextUnit = 14.sp) {
     val t = rememberInfiniteTransition(label = "dots")
     val phase by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1200, easing = LinearEasing)), label = "phase")
     val reduced = LocalKxReducedMotion.current
     Row {
-        Text(text, style = KxType.bodySmall.copy(color = color))
+        Text(text, style = KxType.bodySmall.copy(color = color, fontSize = size))
         repeat(3) { i ->
             val local = ((phase - i * 0.1667f) % 1f + 1f) % 1f
-            val a = if (reduced) 1f else if (local < 0.3f) 0.35f + local / 0.3f * 0.65f else if (local < 0.6f) 1f - (local - 0.3f) / 0.3f * 0.65f else 0.35f
-            Text(".", style = KxType.bodySmall.copy(color = color), modifier = Modifier.alpha(a))
+            val a = if (reduced) 1f else if (local < 0.3f) 0.3f + local / 0.3f * 0.7f else if (local < 0.6f) 1f - (local - 0.3f) / 0.3f * 0.7f else 0.3f
+            Text(".", style = KxType.bodySmall.copy(color = color, fontSize = size), modifier = Modifier.alpha(a))
         }
     }
 }

@@ -27,3 +27,5 @@ Nobody commits: the main session commits each verified stage.
 - Never sign in to any real account, never send messages, never print secrets (kirox.properties, google-services.json, keystore).
 - Texts in Russian as in the mockups; brand is written «kiroX»; no real personal names (demo names only).
 - Tests: no connectedAndroidTest. Robolectric unit/screenshot tests (`./gradlew :app:testDebugUnitTest --tests ...`) are fine.
+
+> **BUILD RULE (23:40 local): the PC ran out of memory with many parallel Gradle builds. From now on build ONLY via `python design-reference/kirox-v3/qa/kxbuild.py compile` (or `test "<pattern>"`, `install`). It queues builds one at a time. Never call ./gradlew directly. Compile less often: after every 3–4 boards.**

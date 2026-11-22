@@ -14,3 +14,36 @@
 - 19:14 tg-tester: round 4 — all round 2–3 binder fixes verified in code; v3data 28 tests (KxFormat 13, ChatItemV3Mapping 9, ServiceText 6): 25 pass, 3 fail = new round-4 items (own service lines «Вы закрепил(а)», declined incoming call, compactCount 1000K). Open: chat-list paging (designer loadMoreChats), delete-dialog cases (designer).
 - 19:20 ui-tester: round 5b — device check on Xiaomi (v3 built 00:17): chat behaviours work; 6 new items (delete animation overlap + bottom gap, hint style, sent voice bubble, attach grid, menu blur, stories count).
 - 19:20 binder: designer contract round done — loadMoreChats (main/folders/archive), recordStart/recordStop with the old VoiceRecorder (OGG/Opus + waveform, «записывает голосовое», mic refused → error «Нужен доступ к микрофону» + KxTelegramHost asks for RECORD_AUDIO), sendVoice/sendVideoNote with path (new sendVoiceIn/sendVideoNoteIn), stories: time («15 мин назад», TelegramStoryChat.newestDate) + slides from GetStory (photo/cover auto-download, video downloaded on viewStory for current+next), viewStory/reactStory (toggle)/replyStory. NOTE: recordStart(video=true) does nothing on the real store — the v3 chat has no camera preview yet. KiroXApp → KxTelegramHost(Modifier.fillMaxSize(), telegramViewModel) matches the signature. tg-tester round 4 done (4 items). Compile GREEN; v3data tests 28/28 pass.
+- 19:22 ui-tester: round 6 — Stories/StoryViewer/Profile rendered; 5 items. Added V3RegistryScreenshotTest: renders every KxRegistry board to build/screenshots-v3/<Board>.png automatically (porters' boards).
+- 19:24 porter-chat: Search, NewMsg, Saved done (my files compile; build blocked by groups/GroupKit.kt:45, media/FilesScreen.kt:138)
+- 19:26 porter-media: Music done
+- 19:26 porter-media: Files done
+- 19:26 porter-media: Editor done (media files compile clean; module build currently blocked by groups/GroupKit.kt + settings/FeaturesScreen.kt)
+- 19:26 binder: round 3 — ui/v3/data/TelegramKxAuth.kt (KxAuth on TelegramViewModel.auth + PhoneEntryState: country name/dial code, number check before sending, masked phone «+7 700 *** ** 00», code length/in-app from WaitCode, resend timeout, password hint, QR link, human errors; back = abandon login) + KxTelegramAuthHost (KxTheme). KiroXApp: with «Новый дизайн» on, Screen.Phone/AuthStep show the v3 boards for phone and numeric code (incl. e-mail code); password/registration/QR/e-mail address/word codes keep the old screens (TelegramKxAuth.supports); switch off = old screens unchanged; country picker = old Screen.Countries. Needs for Password/QrLogin/ProfileSetup/Email boards in tg-tasks.md. No sign-in tried (review + compile only).
+- 19:45 porter-settings: Custom, Privacy, Notify, Features, Storage, Premium, Folders, Devices, Language, Lock, ChatStyle, Password done (screens/settings/*, shared helpers in SetCommon.kt); my files compile clean (build blocked by other sections' errors)
+- 19:46 porter-media: StoryPost done
+- 19:46 porter-media: VideoCall done
+- 19:46 porter-media: GroupCall done
+- 19:46 porter-media: Browser done
+- 19:46 porter-media: Viewer done
+- 19:46 porter-media: Incoming done
+- 19:46 porter-media: CallEnd done
+- 19:46 porter-media: Voice done
+- 19:46 porter-media: Downloads done
+- 19:48 porter-chat: Stickers, Poll, Location, Secret, Bot, Forward, ChatSearch, Schedule done (chat/ compiles clean; build red only in CallsScreen/SettingsScreen/extra/groups); Translate, StickerPack, QuickReplies, Topics, SharedMedia, Comments written, compile pending
+- 20:23 porter-groups: Group done
+- 20:23 porter-groups: Channel done
+- 20:23 porter-groups: NewGroup done
+- 20:23 porter-groups: Invite done
+- 20:23 porter-groups: AdminRights done
+- 20:23 porter-groups: Restrict done
+- 20:23 porter-groups: ChannelSettings done
+- 20:23 porter-groups: ChannelStats done
+- 20:23 porter-groups: Members done
+- 20:23 porter-groups: AdminLog done
+- 20:23 porter-groups: SlowMode done
+- 20:23 porter-groups: JoinRequest done
+- 20:23 porter-groups: PostStats done
+- 20:23 porter-groups: AllowedReacts done
+- 20:23 tg-tester: round 5 — reviewed loadMoreChats/recording/stories/TelegramKxAuth (7 items: block/shared/peer not wired, CloseStory on exit, story retry storm, recorder restart, maskPhone fallback, back()=LogOut, designer FE0F default); TDLib facts for porter-settings requests added. New tests AuthMappingTest + storyAgo written; v3data run blocked: module does not compile (CommentsScreen/AvatarsScreen/SlowModeScreen/StoryViewsScreen, not binder files).
+- 20:25 porter-settings: TwoStep, Accounts, Blocked, Power done; kxbuild compile GREEN (whole module)

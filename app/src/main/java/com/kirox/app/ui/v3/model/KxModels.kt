@@ -176,7 +176,9 @@ enum class KxCallDir { Incoming, Outgoing, Missed, Declined }
 
 @Immutable
 data class KxCall(val id: Long, val peerId: Long, val name: String, val time: String, val dir: KxCallDir, val video: Boolean = false,
-                  val duration: String = "", val count: Int = 1, val avatar: String? = null, val colorIndex: Int = -1)
+                  val duration: String = "", val count: Int = 1, val avatar: String? = null, val colorIndex: Int = -1,
+                  /** Group voice/video chat («Видеочат»). */
+                  val group: Boolean = false)
 
 @Immutable
 data class KxContact(val id: Long, val name: String, val status: String, val online: Boolean = false, val hasStory: Boolean = false,

@@ -20,20 +20,6 @@ import com.kirox.app.ui.v3.model.KxTab
 import com.kirox.app.ui.v3.theme.Kx
 import com.kirox.app.ui.v3.theme.KxType
 
-/** Archive (board "Архив"): tap opens, long press selects (selection added with the full board). */
-@Composable
-fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        KxTopBar("Архив", Modifier.statusBarsPadding(), subtitle = "Чаты без звука остаются тут, даже когда приходят новые сообщения", onBack = onBack)
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-            itemsIndexed(store.archivedChats, key = { _, c -> c.id }) { i, c ->
-                if (i >= store.archivedChats.size - 10) LaunchedEffect(store.archivedChats.size) { store.loadMoreChats(-1) }
-                ChatRow(c, onClick = { onOpenChat(c.id) }, onLongClick = {})
-            }
-        }
-    }
-}
-
 /** Tab not ported yet: says so honestly instead of showing a fake screen. */
 @Composable
 fun KxTabPlaceholder(tab: KxTab) = KxEmpty("${tab.label}: экран переносится")
