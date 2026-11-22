@@ -347,3 +347,9 @@ So the contract fields match what TDLib can really give (binder implements, desi
 - [ ] **designer** SmartText: needs entity detection on message text (getTextEntities + date/sum/track detectors); calendar/map intents already real.
 - [ ] **designer** CallCaptions: needs on-device call speech-to-text + translation. Simulated captions only on KxDemoStore.
 - [ ] **designer** Nearby: needs a kiroX server (board marks it as an idea); found people simulated only on KxDemoStore.
+- [ ] **designer** LoginAlert: needs unconfirmed session (device, place, time, IP) + confirmSession / terminateSession; protect steps open TwoStep/Devices.
+- [ ] **designer** LoginEmail: needs login e-mail flow (setLoginEmailAddress / checkLoginEmailAddressCode / resend); demo accepts 482915.
+- [ ] **designer** TermsUpdate: needs termsOfService text from updateTermsOfService + acceptTermsOfService(id); decline → logOut.
+- [ ] **designer** LowSpace: needs device free space + storage stats by type (getStorageStatisticsFast / optimizeStorage).
+- [ ] **designer** Update: needs updater (release info, APK download progress, install intent, auto-download on Wi-Fi pref).
+- [ ] **designer** NetCheck: needs connectivity / DNS / per-DC ping (pingProxy / testProxy) / download speed / current DC; blocked verdict opens Proxy.

@@ -218,7 +218,13 @@ internal fun BoxScope.MoToast(state: MoToastState, bottom: Dp = 30.dp, durMs: In
     key(state.n) {
         var alive by remember { mutableStateOf(true) }
         LaunchedEffect(Unit) { delay(durMs.toLong()); alive = false }
-        if (!alive) return@key
+        if (alive) MoToastBody(state, bottom, durMs)
+    }
+}
+
+@Composable
+private fun BoxScope.MoToastBody(state: MoToastState, bottom: Dp, durMs: Int) {
+    run {
         val t = moEnter(durMs, easing = LinearEasing)
         Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = bottom, start = 16.dp, end = 16.dp).graphicsLayer {
             alpha = when { t < .12f -> t / .12f; t < .85f -> 1f; else -> 1f - (t - .85f) / .15f }

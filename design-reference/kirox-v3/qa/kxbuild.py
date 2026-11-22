@@ -39,17 +39,20 @@ def main():
     elif cmd == 'test': args = [':app:testDebugUnitTest'] + (['--tests', rest[0]] if rest else [])
     elif cmd == 'install': args = [':app:installV3preview']; env['ANDROID_SERIAL'] = '79ed61c9'
     elif cmd == 'raw': args = rest
+    elif cmd == 'rawfull':
+        if any('install' in a.lower() for a in rest): print('rawfull never installs; use install'); return 2
+        args = rest
     else: print(__doc__); return 2
     gradlew = os.path.join(ROOT, 'gradlew.bat' if os.name == 'nt' else 'gradlew')
     acquire()
     try:
-        p = subprocess.run([gradlew] + args + ['--offline', '-q'], cwd=ROOT, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+        p = subprocess.run([gradlew] + args + (['--offline'] if cmd == 'rawfull' else ['--offline', '-q']), cwd=ROOT, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
         out = (p.stdout or '') + (p.stderr or '')
         ol = out.splitlines(); lines = []
         for i, l in enumerate(ol):
             if l.startswith('e: ') or 'file:///' in l or 'FAILED' in l or 'tests completed' in l: lines.append(l)
             if 'What went wrong' in l: lines.extend(ol[i:i + 6])
-        print('\n'.join(lines[:60]) if lines else out[-3000:])
+        print(out[-60000:] if cmd == 'rawfull' else ('\n'.join(lines[:60]) if lines else out[-3000:]))
         print(f'[kxbuild] exit {p.returncode}')
         return p.returncode
     finally:

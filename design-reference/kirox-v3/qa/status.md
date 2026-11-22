@@ -154,3 +154,7 @@
 - 21:03 porter-tools: LoginEmail done
 - 21:03 porter-tools: TermsUpdate done (compile: no tools errors; module blocked by extra/UsernameScreen.kt)
 - 02:05 wiring: extra done (ProfileSetup, AddContact, Username, Status (remove only), DeleteAccount (TTL + password + confirm → deleteAccount), Logout (clearCache + logout) → ctx.store; Avatars stays demo — v3 cannot draw photo files yet; Splash/Welcome/QrLogin/CountryPicker/States/Push/Help/WhatsNew/InviteFriends/NameColor/Away/Hours: binder not yet / nothing to bind); kxbuild compile GREEN
+- 21:06 porter-tools: LowSpace done
+- 21:06 porter-tools: Update done
+- 21:06 porter-tools: NetCheck done — all 30 tools boards ported; kxbuild compile GREEN (whole module, exit 0)
+- 21:11 tg-tester: final check — no binder changes since 20:38; wiring of DeleteAccount/Logout has confirm dialogs (OK). Open in tg-tasks.md: 13 binder (none high; top: future dates «до 14:00», loadOnce offline retry, peer(), CloseStory, maskPhone), designer items incl. delete-dialog cases and confirm steps. v3data 39 tests, 38 pass. Handing off.

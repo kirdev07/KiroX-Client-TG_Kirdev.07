@@ -289,7 +289,13 @@ internal fun BoxScope.ExToast(state: ExToastState, bottom: Dp = 34.dp, durMs: In
     key(state.n) {
         var alive by remember { mutableStateOf(true) }
         LaunchedEffect(Unit) { delay(durMs.toLong()); alive = false }
-        if (!alive) return@key
+        if (alive) ExToastBody(state, bottom, durMs)
+    }
+}
+
+@Composable
+private fun BoxScope.ExToastBody(state: ExToastState, bottom: Dp, durMs: Int) {
+    run {
         val t = enter(durMs, easing = LinearEasing)
         Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = bottom, start = 16.dp, end = 16.dp).graphicsLayer {
             alpha = when { t < .12f -> t / .12f; t < .85f -> 1f; else -> 1f - (t - .85f) / .15f }; translationY = if (t < .12f) (1f - t / .12f) * 10.dp.toPx() else 0f
