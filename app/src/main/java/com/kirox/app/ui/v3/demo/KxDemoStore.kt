@@ -37,9 +37,14 @@ class KxDemoStore : KxStore {
     override val chats: List<KxChat> get() = list
     override val archivedChats: List<KxChat> get() = archive
 
-    override val stories = listOf(KxStoryPeer(1, "Вы", unseen = false, mine = true, colorIndex = 7), KxStoryPeer(11, "Анна", colorIndex = 0),
-        KxStoryPeer(20, "Максим", colorIndex = 1), KxStoryPeer(21, "Лиза", unseen = false, colorIndex = 4))
-
+    override val stories = listOf(
+        KxStoryPeer(1, "Вы", unseen = false, mine = true, colorIndex = 7),
+        KxStoryPeer(11, "Анна", colorIndex = 0, time = "15 мин назад", slides = listOf(KxStorySlide(1, "Идём в кино 🎬", look = 0), KxStorySlide(2, "Сначала кофе ☕", look = 1), KxStorySlide(3, "Вечер удался", look = 2))),
+        KxStoryPeer(20, "Максим", colorIndex = 1, time = "1 ч назад", slides = listOf(KxStorySlide(1, "Горы 🏔", look = 3), KxStorySlide(2, "Тропа к озеру", look = 4))),
+        KxStoryPeer(12, "Команда kiroX", colorIndex = 2, time = "3 ч назад", slides = listOf(KxStorySlide(1, "Новая сборка уже здесь 🚀", look = 5))),
+        KxStoryPeer(16, "Света", unseen = false, colorIndex = 6, time = "вчера", slides = listOf(KxStorySlide(1, "Море 🌊", look = 6))),
+        KxStoryPeer(15, "Илья", unseen = false, colorIndex = 5, time = "вчера", slides = listOf(KxStorySlide(1, "Новый рекорд 🎮", look = 7))),
+    )
     override val calls = listOf(
         KxCall(1, 11, "Анна", "21:40", KxCallDir.Incoming, duration = "12 мин", colorIndex = 0),
         KxCall(2, 20, "Максим", "20:15", KxCallDir.Missed, colorIndex = 1),
@@ -130,11 +135,16 @@ class KxDemoStore : KxStore {
         append(chatId, KxMessage(nextId++, true, text, now(), status = KxOutState.Sent, reply = reply), text)
     }
     private fun dur(s: Int) = "${s / 60}:${(s % 60).toString().padStart(2, '0')}"
-    override fun sendVoice(chatId: Long, seconds: Int) =
+    override fun sendVoice(chatId: Long, seconds: Int, path: String?, waveform: ByteArray?) =
         append(chatId, KxMessage(nextId++, true, "", now(), KxMsgKind.Voice, KxOutState.Sent, meta = dur(seconds),
             waveform = listOf(.5f, .85f, .4f, .7f, .55f, .9f, .35f, .6f, .8f, .45f, .65f, .3f, .75f, .5f)), "🎤 Голосовое сообщение · ${dur(seconds)}")
-    override fun sendVideoNote(chatId: Long, seconds: Int) =
+    override fun sendVideoNote(chatId: Long, seconds: Int, path: String?, length: Int) =
         append(chatId, KxMessage(nextId++, true, "", now(), KxMsgKind.VideoNote, KxOutState.Sent, meta = dur(seconds)), "Видеосообщение")
+    private var recVideo = false
+    override fun recordStart(chatId: Long, video: Boolean) { recVideo = video }
+    override fun recordStop(chatId: Long, send: Boolean, seconds: Int) {
+        if (send) { if (recVideo) sendVideoNote(chatId, seconds) else sendVoice(chatId, seconds) }
+    }
     override fun edit(chatId: Long, messageId: Long, text: String) {
         history[chatId] = messages(chatId).map { if (it.id == messageId) it.copy(text = text, edited = true) else it }
     }

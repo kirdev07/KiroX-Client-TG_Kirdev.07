@@ -20,6 +20,21 @@ enum class ChatActivity(val text: String) {
     Other("что-то делает")
 }
 
+/** Verb for several people at once, for the v3 typing line. */
+internal val ChatActivity.plural: String get() = when (this) {
+    ChatActivity.Typing -> "печатают"
+    ChatActivity.RecordingVoice -> "записывают голосовое"
+    ChatActivity.RecordingVideoNote -> "записывают видеосообщение"
+    ChatActivity.RecordingVideo -> "записывают видео"
+    ChatActivity.SendingPhoto -> "отправляют фото"
+    ChatActivity.SendingVideo -> "отправляют видео"
+    ChatActivity.SendingVoice -> "отправляют голосовое"
+    ChatActivity.SendingVideoNote -> "отправляют видеосообщение"
+    ChatActivity.SendingFile -> "отправляют файл"
+    ChatActivity.ChoosingSticker -> "выбирают стикер"
+    ChatActivity.Other -> "что-то делают"
+}
+
 internal fun TdApi.ChatAction.toActivity(): ChatActivity? = when (this) {
     is TdApi.ChatActionCancel -> null
     is TdApi.ChatActionTyping -> ChatActivity.Typing
@@ -47,6 +62,20 @@ internal fun chatActivityLine(names: List<String>, activity: ChatActivity, isGro
 }
 
 /**
+ * Telegram's own wording for the v3 UI: «Анна и Максим печатают…» for two, «Анна и ещё 2 человека
+ * печатают…» for three and more; «печатает…» alone in private chats.
+ */
+internal fun chatActivityLineV3(names: List<String>, activity: ChatActivity, isGroup: Boolean): String {
+    if (!isGroup || names.isEmpty()) return "${activity.text}…"
+    if (names.size == 1) return "${names[0]} ${activity.text}…"
+    val verb = activity.plural
+    if (names.size == 2) return "${names[0]} и ${names[1]} $verb…"
+    val more = names.size - 1
+    val people = if (more % 10 in 2..4 && more % 100 !in 12..14) "человека" else "человек"
+    return "${names[0]} и ещё $more $people $verb…"
+}
+
+/**
  * Members' activity per chat from UpdateChatAction, and our own activity sent with SendChatAction.
  * TDLib ends an activity with ChatActionCancel; entries also expire after [EXPIRE_MS] in case that is missed.
  */
@@ -60,6 +89,9 @@ class TelegramChatActionRepository(private val client: TelegramClient, private v
     private val _lines = MutableStateFlow<Map<Long, String>>(emptyMap())
     /** chatId → text to show instead of the status while someone there is doing something. */
     val lines: StateFlow<Map<Long, String>> = _lines.asStateFlow()
+    private val _linesV3 = MutableStateFlow<Map<Long, String>>(emptyMap())
+    /** Same as [lines] with Telegram's wording for two and more people (chatActivityLineV3); read by the v3 UI. */
+    val linesV3: StateFlow<Map<Long, String>> = _linesV3.asStateFlow()
 
     init {
         client.addUpdateHandler { update ->
@@ -89,7 +121,7 @@ class TelegramChatActionRepository(private val client: TelegramClient, private v
                     }
                 }
                 is TdApi.UpdateAuthorizationState -> if (update.authorizationState is TdApi.AuthorizationStateClosed) {
-                    active.clear(); lastSent.clear(); _lines.value = emptyMap()
+                    active.clear(); lastSent.clear(); _lines.value = emptyMap(); _linesV3.value = emptyMap()
                 }
             }
         }
@@ -142,12 +174,15 @@ class TelegramChatActionRepository(private val client: TelegramClient, private v
     }
 
     private fun publish() {
-        _lines.value = active.filterValues { it.isNotEmpty() }.mapValues { (chatId, entries) ->
+        val shown = active.filterValues { it.isNotEmpty() }
+        fun build(line: (List<String>, ChatActivity, Boolean) -> String) = shown.mapValues { (chatId, entries) ->
             val list = entries.values.toList()
             val type = chats.chat(chatId)?.type
             val isGroup = type is TdApi.ChatTypeBasicGroup || type is TdApi.ChatTypeSupergroup
-            chatActivityLine(list.map { name(it.sender) }, list.first().activity, isGroup)
+            line(list.map { name(it.sender) }, list.first().activity, isGroup)
         }
+        _lines.value = build(::chatActivityLine)
+        _linesV3.value = build(::chatActivityLineV3)
     }
 
     private fun name(sender: Long): String =

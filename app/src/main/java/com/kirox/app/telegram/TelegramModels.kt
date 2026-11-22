@@ -40,7 +40,40 @@ data class TelegramChatItem(
     val archived: Boolean,
     /** The user's own chat (Saved Messages). */
     val isSaved: Boolean = false,
-    val kind: TelegramChatKind = TelegramChatKind.Private
+    val kind: TelegramChatKind = TelegramChatKind.Private,
+    // Extra list facts for the v3 UI (ui/v3/data); the old list does not read them.
+    /** Who wrote the last message: "Вы" for own ones, the member's first name in groups; null in private chats and channels. */
+    val lastSender: String? = null,
+    /** Delivery of the last own message, including sending and failed. */
+    val lastDelivery: TelegramDelivery = TelegramDelivery.None,
+    /** What the last message is, to draw "🎤 Голосовое сообщение · 0:24"-style previews. */
+    val lastKind: TelegramMessageKind = TelegramMessageKind.Text,
+    /** Seconds of the last message when it is a voice or video message; 0 otherwise. */
+    val lastDuration: Int = 0,
+    /** The other person of a private or secret chat; 0 for groups and channels. */
+    val peerUserId: Long = 0,
+    val isBot: Boolean = false,
+    val isSecret: Boolean = false,
+    val isVerified: Boolean = false,
+    /** The other person of a private chat is online right now. */
+    val isOnline: Boolean = false,
+    val unreadReactionCount: Int = 0,
+    /** Muted, with "use default" resolved from the scope settings (the old [isMuted] treats it as unmuted). */
+    val isMutedResolved: Boolean = false,
+    /** Telegram accent color id (0..6 are the classic initials colours). */
+    val accentColorId: Int = -1,
+    val isPremium: Boolean = false,
+    val isScam: Boolean = false,
+    val isFake: Boolean = false,
+    val hasScheduled: Boolean = false,
+    /** Forum supergroup (topics). */
+    val isForum: Boolean = false,
+    /** Group/channel the user may delete for everyone (creator). */
+    val canDeleteForAll: Boolean = false,
+    /** Last message is a service one: its line («Анна вступил(а) в группу»); then [lastSender] is null. */
+    val lastServiceText: String? = null,
+    /** Question of a poll that is the last message. */
+    val lastPollQuestion: String? = null
 )
 
 sealed interface TelegramChatListKey {
@@ -159,7 +192,9 @@ data class TelegramMessage(
     /** «Запрет копирования» in the chat: no forwarding, saving or copying. */
     val isProtected: Boolean = false,
     /** Who sent it: a user id, or a chat id (negative) for channels and anonymous admins. */
-    val senderId: Long = 0
+    val senderId: Long = 0,
+    /** Service message ("Анна добавила Олега", "Группа создана"): its line; null for ordinary messages. Read by the v3 UI. */
+    val serviceText: String? = null
 )
 
 /** A poll or quiz in a message. */
@@ -289,6 +324,15 @@ data class TelegramStory(
 
 /** Someone who viewed an own story, with the reaction they left. */
 data class TelegramStoryViewer(val name: String, val photo: TelegramFileRef?, val date: Int, val reaction: String?)
+
+/** What the bottom of a chat shows (v3 UI): composer, «Вступить», channel reader, restricted, blocked user, bot not started. */
+enum class TelegramWriteAccess { Write, Join, ReadOnly, Restricted, Blocked, StartBot }
+
+/** What may be done with one message (TDLib GetMessageProperties), for the v3 message menu. */
+data class TelegramMessageRights(
+    val canEdit: Boolean, val canDeleteForAll: Boolean, val canDeleteForMe: Boolean,
+    val canForward: Boolean, val canCopy: Boolean, val canPin: Boolean
+)
 
 data class TelegramUserProfile(
     val id: Long,

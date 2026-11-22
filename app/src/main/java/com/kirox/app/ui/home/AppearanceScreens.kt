@@ -113,6 +113,14 @@ internal fun CustomizationScreen(
         item { Spacer(Modifier.height(8.dp)) }
         item {
             SettingsCard {
+                run {
+                    val ctx = androidx.compose.ui.platform.LocalContext.current
+                    val newDesign by com.kirox.app.ui.v3.KxNewDesign.enabled(ctx).collectAsState()
+                    // Preview of the kiroX v3 design on the real account; the old UI stays the default.
+                    IconRow(KiroXIcon.Star, Color(0xFF3F9A6C), "Новый дизайн", if (newDesign == true) "Включён · вернуть можно в его настройках" else "Превью kiroX v3: чёрный и мягкий зелёный",
+                        trailing = if (newDesign == true) "Вкл" else "Выкл") { com.kirox.app.ui.v3.KxNewDesign.set(ctx, newDesign != true) }
+                }
+                CardDivider()
                 IconRow(KiroXIcon.Palette, Fusion.colors.accent, "Темы", "Готовые темы, свои цвета, загрузить тему", trailing = themeName, onClick = onOpenThemes)
                 CardDivider()
                 IconRow(KiroXIcon.Chat, Color(0xFF34B7A6), "Чаты", "Пузыри, обои, размер текста", trailing = bubbleShape.title, onClick = onOpenChats)

@@ -28,6 +28,7 @@ sealed interface KxRoute {
     data object Archive : KxRoute
     data class Screen(val name: String) : KxRoute
     data class Call(val peerId: Long, val name: String) : KxRoute
+    data class Story(val index: Int) : KxRoute
 }
 
 /** Tiny back stack for the v3 UI. */
@@ -46,6 +47,7 @@ class KxNav(start: KxRoute = KxRoute.Home) {
 @Composable
 fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean = false) = KxTheme(reducedMotion) {
     val nav = remember { KxNav() }
+    val context = androidx.compose.ui.platform.LocalContext.current
     var tab by rememberSaveable { mutableStateOf(KxTab.Chats) }
     BackHandler(enabled = nav.stack.size > 1 || tab != KxTab.Chats) { if (!nav.pop()) tab = KxTab.Chats }
     KxScreen(modifier) { KxToastHost {
@@ -66,12 +68,13 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                                 store,
                                 onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) },
                                 onOpenArchive = { nav.push(KxRoute.Archive) },
-                                onOpenStories = { tab = KxTab.Stories },
+                                onOpenStories = { nav.push(KxRoute.Story(0)) },
                                 onSearch = { nav.push(KxRoute.Screen("Search")) },
                                 onNewMessage = { nav.push(KxRoute.Screen("NewMsg")) },
                             )
                             KxTab.Calls -> CallsScreen(store, onCall = { c, v -> store.call(c.peerId, v); nav.push(KxRoute.Call(c.peerId, c.name)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
-                            KxTab.Settings -> SettingsScreen(store, onOpen = { nav.push(KxRoute.Screen(it)) })
+                            KxTab.Stories -> StoriesScreen(store, onOpenViewer = { nav.push(KxRoute.Story(it)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
+                            KxTab.Settings -> SettingsScreen(store, onOpen = { if (it == "Старый дизайн") KxNewDesign.set(context, false) else nav.push(KxRoute.Screen(it)) })
                             else -> KxTabPlaceholder(t)
                         }
                     }
@@ -82,6 +85,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                 is KxRoute.Chat -> ChatScreen(store, route.chatId, onBack = { store.closeChat(route.chatId); nav.pop() })
                 KxRoute.Archive -> ArchiveScreen(store, onBack = { nav.pop() }, onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) })
                 is KxRoute.Screen -> KxComingSoon(route.name) { nav.pop() }
+                is KxRoute.Story -> StoryViewer(store, route.index, onClose = { nav.pop() })
                 is KxRoute.Call -> CallingScreen(route.name, route.peerId, "Соединение", onEnd = { nav.pop() })
             }
         }

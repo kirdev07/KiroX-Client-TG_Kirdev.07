@@ -18,6 +18,22 @@ class TelegramChatRepository(private val client: TelegramClient) {
     private val failures = HashMap<TelegramChatListKey, Int>()
     private var publishScheduled = false
     private var myId = 0L
+    /** Users seen in updates, for list facts of private chats (online, bot, verified) and group senders' names. */
+    private val peerUsers = HashMap<Long, TdApi.User>()
+    private val verifiedSupergroups = HashSet<Long>()
+    /** Scam / fake marks of supergroups and channels, from their verification status. */
+    private val scamSupergroups = HashSet<Long>()
+    private val fakeSupergroups = HashSet<Long>()
+    /** Mute-for seconds of the private / group / channel scope defaults, for chats on "use default". */
+    private val scopeMuteFor = IntArray(3)
+
+    private val _onlineMembers = MutableStateFlow<Map<Long, Int>>(emptyMap())
+    /** Members online right now, per chat (UpdateChatOnlineMemberCount comes only for opened chats). */
+    val onlineMembers: StateFlow<Map<Long, Int>> = _onlineMembers.asStateFlow()
+
+    private val _unreadUnmutedChats = MutableStateFlow(0)
+    /** Chats-tab badge as Telegram counts it: unread unmuted chats of the main list (UpdateUnreadChatCount). */
+    val unreadUnmutedChats: StateFlow<Int> = _unreadUnmutedChats.asStateFlow()
 
     private val _lists = MutableStateFlow(TelegramChatLists())
     val lists: StateFlow<TelegramChatLists> = _lists.asStateFlow()
@@ -170,20 +186,71 @@ class TelegramChatRepository(private val client: TelegramClient) {
         }
     }
 
+    /**
+     * What the bottom of a chat may show (v3 UI), as Telegram decides it: the member status plus the
+     * chat's default permissions (an admins-only group), media-only restrictions still allow text.
+     */
+    suspend fun writeAccess(chatId: Long): TelegramWriteAccess = runCatching {
+        val chat = client.query(TdApi.GetChat(chatId))
+        val defaults = chat.permissions?.canSendBasicMessages != false
+        when (val type = chat.type) {
+            is TdApi.ChatTypePrivate -> {
+                val user = runCatching { client.query(TdApi.GetUser(type.userId)) }.getOrNull()
+                when {
+                    chat.blockList != null -> TelegramWriteAccess.Blocked
+                    user?.type is TdApi.UserTypeBot && chat.lastMessage == null -> TelegramWriteAccess.StartBot
+                    else -> TelegramWriteAccess.Write
+                }
+            }
+            is TdApi.ChatTypeBasicGroup -> when (val s = client.query(TdApi.GetBasicGroup(type.basicGroupId)).status) {
+                is TdApi.ChatMemberStatusCreator, is TdApi.ChatMemberStatusAdministrator -> TelegramWriteAccess.Write
+                is TdApi.ChatMemberStatusRestricted -> if (s.permissions.canSendBasicMessages) TelegramWriteAccess.Write else TelegramWriteAccess.Restricted
+                is TdApi.ChatMemberStatusLeft, is TdApi.ChatMemberStatusBanned -> TelegramWriteAccess.Restricted
+                else -> if (defaults) TelegramWriteAccess.Write else TelegramWriteAccess.Restricted
+            }
+            is TdApi.ChatTypeSupergroup -> when (val s = client.query(TdApi.GetSupergroup(type.supergroupId)).status) {
+                is TdApi.ChatMemberStatusCreator -> if (s.isMember) TelegramWriteAccess.Write else TelegramWriteAccess.Join
+                is TdApi.ChatMemberStatusAdministrator -> if (!type.isChannel || s.rights.canPostMessages) TelegramWriteAccess.Write else TelegramWriteAccess.ReadOnly
+                is TdApi.ChatMemberStatusRestricted -> when {
+                    !s.isMember -> TelegramWriteAccess.Join
+                    type.isChannel -> TelegramWriteAccess.ReadOnly
+                    s.permissions.canSendBasicMessages -> TelegramWriteAccess.Write
+                    else -> TelegramWriteAccess.Restricted
+                }
+                is TdApi.ChatMemberStatusLeft -> TelegramWriteAccess.Join
+                is TdApi.ChatMemberStatusBanned -> TelegramWriteAccess.Restricted
+                else -> if (type.isChannel) TelegramWriteAccess.ReadOnly else if (defaults) TelegramWriteAccess.Write else TelegramWriteAccess.Restricted
+            }
+            else -> TelegramWriteAccess.Write
+        }
+    }.getOrDefault(TelegramWriteAccess.Write)
+
     /** Subscribes to a channel or joins a public group. */
     suspend fun join(chatId: Long) { client.query(TdApi.JoinChat(chatId)) }
 
     /** New messages disappear [seconds] after they are read (secret chats) or sent; 0 turns it off. */
     suspend fun setAutoDelete(chatId: Long, seconds: Int) { client.query(TdApi.SetChatMessageAutoDeleteTime(chatId, seconds)) }
 
-    /** Deletes the chat history for this account only; the chat stays in the list. */
-    suspend fun clearHistory(chatId: Long) { client.query(TdApi.DeleteChatHistory(chatId, false, false)) }
+    /** Deletes the chat history for this account only ([forEveryone]: for both sides, where Telegram allows); the chat stays in the list. */
+    suspend fun clearHistory(chatId: Long, forEveryone: Boolean = false) { client.query(TdApi.DeleteChatHistory(chatId, false, forEveryone)) }
 
     /** Private chats: delete for this account and remove from the list. Groups and channels: leave. */
-    suspend fun deleteChat(chatId: Long) {
-        when (client.query(TdApi.GetChat(chatId)).type) {
-            is TdApi.ChatTypePrivate, is TdApi.ChatTypeSecret -> client.query(TdApi.DeleteChatHistory(chatId, true, false))
-            else -> client.query(TdApi.LeaveChat(chatId))
+    suspend fun deleteChat(chatId: Long, forEveryone: Boolean = false) {
+        val chat = client.query(TdApi.GetChat(chatId))
+        when (val type = chat.type) {
+            // forEveryone: «Также удалить для собеседника».
+            is TdApi.ChatTypePrivate -> client.query(TdApi.DeleteChatHistory(chatId, true, forEveryone))
+            // A secret chat is closed first, otherwise it stays open on the other device.
+            is TdApi.ChatTypeSecret -> {
+                runCatching { client.query(TdApi.CloseSecretChat(type.secretChatId)) }
+                client.query(TdApi.DeleteChatHistory(chatId, true, false))
+            }
+            // A creator may delete the whole group/channel for all members.
+            else -> if (forEveryone && chat.canBeDeletedForAllUsers) client.query(TdApi.DeleteChat(chatId)) else {
+                client.query(TdApi.LeaveChat(chatId))
+                // A basic group stays in the list after leaving until its history is removed.
+                if (type is TdApi.ChatTypeBasicGroup) runCatching { client.query(TdApi.DeleteChatHistory(chatId, true, false)) }
+            }
         }
     }
 
@@ -194,6 +261,27 @@ class TelegramChatRepository(private val client: TelegramClient) {
     }
 
     fun clearError() { _error.value = null }
+
+    /** «Прочитать» from the list as Telegram does it: the messages, and also the unread mentions and reactions. */
+    fun markReadAll(chatId: Long) = client.post {
+        markRead(chatId)
+        val chat = chatsById[chatId] ?: return@post
+        if (chat.unreadMentionCount > 0) act(TdApi.ReadAllChatMentions(chatId))
+        if (chat.unreadReactionCount > 0) act(TdApi.ReadAllChatReactions(chatId))
+    }
+
+    /**
+     * Members of a group or subscribers of a channel; 0 for private chats or when Telegram hides it.
+     * Supergroup.memberCount is 0 until known, then the full info has it.
+     */
+    suspend fun memberCount(chatId: Long): Int = runCatching {
+        when (val type = client.query(TdApi.GetChat(chatId)).type) {
+            is TdApi.ChatTypeBasicGroup -> client.query(TdApi.GetBasicGroup(type.basicGroupId)).memberCount
+            is TdApi.ChatTypeSupergroup -> client.query(TdApi.GetSupergroup(type.supergroupId)).memberCount.takeIf { it > 0 }
+                ?: client.query(TdApi.GetSupergroupFullInfo(type.supergroupId)).memberCount
+            else -> 0
+        }
+    }.getOrDefault(0)
 
     /** Supergroup ids that are forums (topics). Dispatcher-confined. */
     private val forumSupergroups = HashSet<Long>()
@@ -306,7 +394,7 @@ class TelegramChatRepository(private val client: TelegramClient) {
         ids.mapNotNull { id ->
             chatsById[id]?.let { chat ->
                 val position = chat.positions.firstOrNull { it.list is TdApi.ChatListMain } ?: chat.positions.firstOrNull() ?: TdApi.ChatPosition(TdApi.ChatListMain(), 0, false, null)
-                toChatItem(chat, position, archived = position.list is TdApi.ChatListArchive)
+                toChatItem(chat, position, archived = position.list is TdApi.ChatListArchive, myId = myId, peer = peerUsers::get, verifiedSupergroup = { it in verifiedSupergroups }, scopeMuteFor = scopeMuteFor, supergroupFlags = { id -> Triple(id in forumSupergroups, id in scamSupergroups, id in fakeSupergroups) }, chatTitle = { chatsById[it]?.title })
             }
         }
     }
@@ -333,13 +421,32 @@ class TelegramChatRepository(private val client: TelegramClient) {
                 is TdApi.AuthorizationStateClosed -> {
                     // A background pause keeps the list on screen; it is refreshed on Ready.
                     // Logout and account switch start from nothing.
-                    if (!client.paused) { chatsById.clear(); folders = emptyList(); forumSupergroups.clear() }
+                    if (!client.paused) { chatsById.clear(); folders = emptyList(); forumSupergroups.clear(); peerUsers.clear(); verifiedSupergroups.clear(); scamSupergroups.clear(); fakeSupergroups.clear() }
                     loading.clear(); complete.clear(); wanted.clear(); failures.clear()
                     schedulePublish()
                 }
             }
             is TdApi.UpdateNewChat -> { chatsById[update.chat.id] = update.chat; schedulePublish() }
-            is TdApi.UpdateSupergroup -> if (update.supergroup.isForum) forumSupergroups += update.supergroup.id else forumSupergroups -= update.supergroup.id
+            is TdApi.UpdateSupergroup -> {
+                if (update.supergroup.isForum) forumSupergroups += update.supergroup.id else forumSupergroups -= update.supergroup.id
+                val status = update.supergroup.verificationStatus
+                if (status?.isVerified == true) verifiedSupergroups += update.supergroup.id else verifiedSupergroups -= update.supergroup.id
+                if (status?.isScam == true) scamSupergroups += update.supergroup.id else scamSupergroups -= update.supergroup.id
+                if (status?.isFake == true) fakeSupergroups += update.supergroup.id else fakeSupergroups -= update.supergroup.id
+            }
+            // A private chat's id equals its user's id, so only users with a chat here republish the list.
+            is TdApi.UpdateUser -> { peerUsers[update.user.id] = update.user; if (update.user.id in chatsById) schedulePublish() }
+            is TdApi.UpdateUserStatus -> peerUsers[update.userId]?.let { it.status = update.status; if (update.userId in chatsById) schedulePublish() }
+            is TdApi.UpdateChatOnlineMemberCount -> _onlineMembers.value = _onlineMembers.value + (update.chatId to update.onlineMemberCount)
+            // "Unread" already includes chats marked as unread (TDLib docs), so the marked count is not added.
+            is TdApi.UpdateUnreadChatCount -> if (update.chatList is TdApi.ChatListMain) _unreadUnmutedChats.value = update.unreadUnmutedCount
+            is TdApi.UpdateScopeNotificationSettings -> {
+                val index = when (update.scope) { is TdApi.NotificationSettingsScopePrivateChats -> 0; is TdApi.NotificationSettingsScopeGroupChats -> 1; else -> 2 }
+                scopeMuteFor[index] = update.notificationSettings.muteFor
+                schedulePublish()
+            }
+            is TdApi.UpdateChatUnreadReactionCount -> mutate(update.chatId) { it.unreadReactionCount = update.unreadReactionCount }
+            is TdApi.UpdateMessageUnreadReactions -> mutate(update.chatId) { it.unreadReactionCount = update.unreadReactionCount }
             is TdApi.UpdateOption -> if (update.name == "my_id") { myId = (update.value as? TdApi.OptionValueInteger)?.value ?: 0L; schedulePublish() }
             is TdApi.UpdateChatFolders -> {
                 folders = update.chatFolders.map { TelegramFolder(it.id, it.name?.text?.text.orEmpty()) }
@@ -360,6 +467,8 @@ class TelegramChatRepository(private val client: TelegramClient) {
             is TdApi.UpdateChatReadOutbox -> mutate(update.chatId) { it.lastReadOutboxMessageId = update.lastReadOutboxMessageId }
             is TdApi.UpdateChatUnreadMentionCount -> mutate(update.chatId) { it.unreadMentionCount = update.unreadMentionCount }
             is TdApi.UpdateMessageMentionRead -> mutate(update.chatId) { it.unreadMentionCount = update.unreadMentionCount }
+            is TdApi.UpdateChatHasScheduledMessages -> mutate(update.chatId) { it.hasScheduledMessages = update.hasScheduledMessages }
+            is TdApi.UpdateChatAccentColors -> mutate(update.chatId) { it.accentColorId = update.accentColorId }
             is TdApi.UpdateChatIsMarkedAsUnread -> mutate(update.chatId) { it.isMarkedAsUnread = update.isMarkedAsUnread }
             is TdApi.UpdateChatNotificationSettings -> mutate(update.chatId) { it.notificationSettings = update.notificationSettings }
         }
@@ -425,7 +534,7 @@ class TelegramChatRepository(private val client: TelegramClient) {
         val list = key.toTd()
         val chats = chatsById.values.mapNotNull { chat ->
             val position = chat.positions.firstOrNull { sameChatList(it.list, list) }?.takeIf { it.order != 0L } ?: return@mapNotNull null
-            toChatItem(chat, position, archived = key == TelegramChatListKey.Archive, myId = myId) to position.order
+            toChatItem(chat, position, archived = key == TelegramChatListKey.Archive, myId = myId, peer = peerUsers::get, verifiedSupergroup = { it in verifiedSupergroups }, scopeMuteFor = scopeMuteFor, supergroupFlags = { id -> Triple(id in forumSupergroups, id in scamSupergroups, id in fakeSupergroups) }, chatTitle = { chatsById[it]?.title }) to position.order
         }.sortedWith(compareByDescending<Pair<TelegramChatItem, Long>> { it.second }.thenByDescending { it.first.id }).map { it.first }
         return TelegramChatListState(chats, loading = key in loading, complete = key in complete)
     }
@@ -444,9 +553,29 @@ internal fun TelegramChatListKey.toTd(): TdApi.ChatList = when (this) {
     is TelegramChatListKey.Folder -> TdApi.ChatListFolder(id)
 }
 
-internal fun toChatItem(chat: TdApi.Chat, position: TdApi.ChatPosition, archived: Boolean, myId: Long = 0L): TelegramChatItem {
+internal fun toChatItem(
+    chat: TdApi.Chat, position: TdApi.ChatPosition, archived: Boolean, myId: Long = 0L,
+    peer: (Long) -> TdApi.User? = { null }, verifiedSupergroup: (Long) -> Boolean = { false }, scopeMuteFor: IntArray? = null,
+    /** Supergroup id -> (forum, scam, fake). */
+    supergroupFlags: (Long) -> Triple<Boolean, Boolean, Boolean> = { Triple(false, false, false) },
+    chatTitle: (Long) -> String? = { null }
+): TelegramChatItem {
     val saved = myId != 0L && (chat.type as? TdApi.ChatTypePrivate)?.userId == myId
     val last = chat.lastMessage
+    val type = chat.type
+    val peerUserId = (type as? TdApi.ChatTypePrivate)?.userId ?: (type as? TdApi.ChatTypeSecret)?.userId ?: 0L
+    val peerUser = if (peerUserId != 0L) peer(peerUserId) else null
+    val isChannel = (type as? TdApi.ChatTypeSupergroup)?.isChannel == true
+    val isGroup = type is TdApi.ChatTypeBasicGroup || (type is TdApi.ChatTypeSupergroup && !type.isChannel)
+    val groupFlags = (type as? TdApi.ChatTypeSupergroup)?.let { supergroupFlags(it.supergroupId) } ?: Triple(false, false, false)
+    val serviceLine = last?.let { message ->
+        val who = when (val sender = message.senderId) {
+            is TdApi.MessageSenderUser -> if (sender.userId == myId) "Вы" else peer(sender.userId)?.displayName() ?: "Пользователь"
+            is TdApi.MessageSenderChat -> chatTitle(sender.chatId) ?: chat.title.orEmpty()
+            else -> ""
+        }
+        serviceText(message, who, isChannel) { id -> if (id == myId) "Вы" else peer(id)?.displayName() ?: "Пользователь" }
+    }
     val draft = (chat.draftMessage?.content as? TdApi.DraftMessageContentText)?.text?.text?.takeIf { it.isNotBlank() }
     val notifications = chat.notificationSettings
     return TelegramChatItem(
@@ -469,11 +598,54 @@ internal fun toChatItem(chat: TdApi.Chat, position: TdApi.ChatPosition, archived
         photo = if (saved) null else chat.photo?.small?.toRef(),
         archived = archived,
         isSaved = saved,
-        kind = when (val type = chat.type) {
+        kind = when (type) {
             is TdApi.ChatTypeSupergroup -> if (type.isChannel) TelegramChatKind.Channel else TelegramChatKind.Group
             is TdApi.ChatTypeBasicGroup -> TelegramChatKind.Group
             else -> TelegramChatKind.Private
-        }
+        },
+        lastSender = when {
+            last == null || saved || isChannel || serviceLine != null -> null
+            last.isOutgoing -> "Вы"
+            !isGroup -> null
+            else -> when (val sender = last.senderId) {
+                is TdApi.MessageSenderUser -> peer(sender.userId)?.let { it.firstName.ifBlank { it.lastName } }?.takeIf { it.isNotBlank() }
+                // A linked channel posting in the group shows its title; an anonymous admin (the group itself) nothing.
+                is TdApi.MessageSenderChat -> if (sender.chatId == chat.id) null else chatTitle(sender.chatId)
+                else -> null
+            }
+        },
+        lastServiceText = serviceLine,
+        lastPollQuestion = (last?.content as? TdApi.MessagePoll)?.poll?.question?.text,
+        lastDelivery = when {
+            saved || last == null || !last.isOutgoing -> TelegramDelivery.None
+            last.sendingState is TdApi.MessageSendingStatePending -> TelegramDelivery.Sending
+            last.sendingState is TdApi.MessageSendingStateFailed -> TelegramDelivery.Failed
+            last.id <= chat.lastReadOutboxMessageId -> TelegramDelivery.Read
+            else -> TelegramDelivery.Sent
+        },
+        lastKind = kindOf(last?.content),
+        lastDuration = when (val content = last?.content) {
+            is TdApi.MessageVoiceNote -> content.voiceNote.duration
+            is TdApi.MessageVideoNote -> content.videoNote.duration
+            else -> 0
+        },
+        peerUserId = peerUserId,
+        isBot = peerUser?.type is TdApi.UserTypeBot,
+        isSecret = type is TdApi.ChatTypeSecret,
+        isVerified = peerUser?.verificationStatus?.isVerified == true || ((type as? TdApi.ChatTypeSupergroup)?.supergroupId?.let(verifiedSupergroup) == true),
+        // TDLib may not send the offline status when "online" expires: check the expiry too.
+        isOnline = !saved && (peerUser?.status as? TdApi.UserStatusOnline)?.let { it.expires > System.currentTimeMillis() / 1000 } == true,
+        unreadReactionCount = chat.unreadReactionCount,
+        // "Use default" follows the scope of this kind of chat (channels are often muted that way).
+        isMutedResolved = notifications != null && if (!notifications.useDefaultMuteFor) notifications.muteFor > 0
+            else (scopeMuteFor?.get(if (peerUserId != 0L) 0 else if (isChannel) 2 else 1) ?: 0) > 0,
+        accentColorId = chat.accentColorId,
+        isPremium = peerUser?.isPremium == true,
+        isScam = peerUser?.verificationStatus?.isScam == true || groupFlags.second,
+        isFake = peerUser?.verificationStatus?.isFake == true || groupFlags.third,
+        hasScheduled = chat.hasScheduledMessages,
+        isForum = groupFlags.first,
+        canDeleteForAll = chat.canBeDeletedForAllUsers && peerUserId == 0L
     )
 }
 

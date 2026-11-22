@@ -10,6 +10,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,7 +70,8 @@ fun ChatsScreen(
         store.connection?.let { Text(it, style = KxType.caption.copy(color = Kx.accent), modifier = Modifier.padding(start = 20.dp, top = 8.dp)) }
         LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp).kxRise(200), contentPadding = PaddingValues(bottom = bottomPadding)) {
             if (folder == 0 && store.archivedChats.isNotEmpty()) item("archive") { ArchiveRow(store.archivedChats, onOpenArchive) }
-            items(chats, key = { it.id }) { chat ->
+            itemsIndexed(chats, key = { _, c -> c.id }) { i, chat ->
+                if (i >= chats.size - 10) LaunchedEffect(chats.size, folder) { store.loadMoreChats(folder) }
                 SwipeToRead(enabled = chat.unread > 0, onRead = { store.markRead(chat.id) }) {
                     ChatRow(chat, onClick = { onOpenChat(chat.id) }, onLongClick = { onLongPressChat(chat) })
                 }

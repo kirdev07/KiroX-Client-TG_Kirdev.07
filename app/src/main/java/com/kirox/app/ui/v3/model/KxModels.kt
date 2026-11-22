@@ -61,7 +61,13 @@ data class KxChat(
 data class KxFolder(val id: Int, val title: String, val unread: Int = 0)
 
 @Immutable
-data class KxStoryPeer(val id: Long, val name: String, val unseen: Boolean = true, val mine: Boolean = false, val avatar: String? = null, val colorIndex: Int = -1)
+data class KxStoryPeer(val id: Long, val name: String, val unseen: Boolean = true, val mine: Boolean = false, val avatar: String? = null, val colorIndex: Int = -1,
+                       /** «15 мин назад» of the newest story. */
+                       val time: String = "", val slides: List<KxStorySlide> = emptyList())
+
+/** One story. [media] is a local photo/video path; [look] picks a demo background when there is no media. */
+@Immutable
+data class KxStorySlide(val id: Int, val caption: String = "", val media: String? = null, val video: Boolean = false, val look: Int = 0)
 
 enum class KxMsgKind { Text, Photo, Video, Gif, Voice, VideoNote, Sticker, File, Music, Location, Poll, Contact, Dice, Service, Unsupported }
 

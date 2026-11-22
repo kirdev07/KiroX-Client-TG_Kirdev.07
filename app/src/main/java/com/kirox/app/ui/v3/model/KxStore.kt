@@ -31,6 +31,8 @@ interface KxStore {
     fun clearError() {}
 
     fun chatsIn(folderId: Int): List<KxChat>
+    /** Called when the list is scrolled near its end. */
+    fun loadMoreChats(folderId: Int) {}
     fun header(chatId: Long): KxChatHeader
     /** Oldest first. */
     fun messages(chatId: Long): List<KxMessage>
@@ -53,8 +55,13 @@ interface KxStore {
 
     // Messages
     fun send(chatId: Long, text: String, replyTo: Long? = null)
-    fun sendVoice(chatId: Long, seconds: Int) {}
-    fun sendVideoNote(chatId: Long, seconds: Int) {}
+    /** Hold-to-record started (voice, or circle when [video]). The TDLib store starts the real recorder. */
+    fun recordStart(chatId: Long, video: Boolean) {}
+    /** Released ([send]) or cancelled. The store sends what was recorded. */
+    fun recordStop(chatId: Long, send: Boolean, seconds: Int) {}
+    /** [path] is the recorded file (null in the demo, which only simulates recording). */
+    fun sendVoice(chatId: Long, seconds: Int, path: String? = null, waveform: ByteArray? = null) {}
+    fun sendVideoNote(chatId: Long, seconds: Int, path: String? = null, length: Int = 0) {}
     fun edit(chatId: Long, messageId: Long, text: String)
     fun delete(chatId: Long, messageIds: List<Long>, forEveryone: Boolean)
     /** Toggles: tapping your own reaction again removes it. */
@@ -70,6 +77,11 @@ interface KxStore {
     fun setDraft(chatId: Long, text: String) {}
     /** Starts downloading a file (avatar/media); the path appears in the models when ready. */
     fun download(fileId: Int) {}
+
+    // Stories
+    fun viewStory(peerId: Long, storyId: Int) {}
+    fun reactStory(peerId: Long, storyId: Int, emoji: String) {}
+    fun replyStory(peerId: Long, storyId: Int, text: String) {}
 
     // Calls
     fun call(peerId: Long, video: Boolean) {}

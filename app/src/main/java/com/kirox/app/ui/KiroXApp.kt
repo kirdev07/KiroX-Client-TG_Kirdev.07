@@ -199,6 +199,7 @@ fun KiroXApp() {
         }
     }
     val chatError by telegramViewModel.chats.error.collectAsStateWithLifecycle()
+    val newDesign by com.kirox.app.ui.v3.KxNewDesign.enabled(context).collectAsStateWithLifecycle()
     val settings = remember { (context.applicationContext as com.kirox.app.KiroXApplication).settings }
     val palette by settings.palette.collectAsStateWithLifecycle()
     val seasonal by settings.seasonalEffects.collectAsStateWithLifecycle()
@@ -326,7 +327,8 @@ fun KiroXApp() {
                         )
                         Screen.Countries -> CountryPickerScreen(state, onBack = { stack.pop() })
                         Screen.AuthStep -> TelegramAuthStepScreen(telegramAuth, telegramViewModel.auth, telegramBusy, telegramError, recoveryCodeSent)
-                        Screen.Chats -> CompositionLocalProvider(
+                        // «Новый дизайн» on: the kiroX v3 UI on the real account (ui/v3/data); calls and banners below still work.
+                        Screen.Chats -> if (newDesign == true) com.kirox.app.ui.v3.data.KxTelegramHost(Modifier.fillMaxSize(), telegramViewModel) else CompositionLocalProvider(
                             LocalTelegramFiles provides telegramViewModel.files,
                             com.kirox.app.ui.chat.LocalLinkOpener provides linkOpener,
                             com.kirox.app.ui.home.LocalChatActivityLines provides telegramViewModel.activity.lines.collectAsStateWithLifecycle().value

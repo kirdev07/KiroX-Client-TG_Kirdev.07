@@ -144,10 +144,10 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
                 attachOpen = attach, onAttach = { attach = !attach },
                 circleMode = circleMode, onToggleMode = { circleMode = !circleMode; toast(if (circleMode) "Удерживайте, чтобы записать кружок" else "Удерживайте, чтобы записать голосовое") },
                 recording = recording, recSecs = recSecs,
-                onRecStart = { recording = circleMode },
+                onRecStart = { recording = circleMode; store.recordStart(chatId, circleMode) },
                 onRecEnd = { send ->
                     val r = recording; recording = null
-                    if (send && r != null) { val s = recSecs.coerceAtLeast(1); if (r) store.sendVideoNote(chatId, s) else store.sendVoice(chatId, s) }
+                    if (r != null) store.recordStop(chatId, send, recSecs.coerceAtLeast(1))
                 },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )

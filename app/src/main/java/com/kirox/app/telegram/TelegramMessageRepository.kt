@@ -438,6 +438,57 @@ class TelegramMessageRepository(
 
     fun delete(messageIds: List<Long>, forEveryone: Boolean) = act { id -> ownDeletes += messageIds; TdApi.DeleteMessages(id, messageIds.toLongArray(), forEveryone) }
 
+    // Variants that name the chat (v3 UI): the open chat keeps its thread/topic and loaded state,
+    // any other chat is addressed directly, so an action never lands in the wrong chat.
+
+    fun sendTextIn(chatId: Long, text: String, replyToMessageId: Long?) = client.post {
+        val inTopic = if (chatId == this.chatId) topic else null
+        val reply = replyToMessageId?.let { TdApi.InputMessageReplyToMessage(it, null, 0, null) }
+        client.send(TdApi.SendMessage(chatId, inTopic, reply, null, null, inputText(text))) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
+    }
+
+    fun editIn(chatId: Long, messageId: Long, text: String) = client.post {
+        val loaded = if (chatId == this.chatId) messages[messageId] else null
+        val request = if (loaded != null && loaded.content !is TdApi.MessageText) TdApi.EditMessageCaption(chatId, messageId, null, formatted(text), false)
+            else TdApi.EditMessageText(chatId, messageId, null, inputText(text))
+        client.send(request) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
+    }
+
+    fun deleteIn(chatId: Long, messageIds: List<Long>, forEveryone: Boolean) = client.post {
+        if (chatId == this.chatId) ownDeletes += messageIds
+        client.send(TdApi.DeleteMessages(chatId, messageIds.toLongArray(), forEveryone)) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
+    }
+
+    /** «Повторить» for messages that failed to send. */
+    fun resend(chatId: Long, messageIds: List<Long>) = client.post {
+        client.send(TdApi.ResendMessages(chatId, messageIds.toLongArray(), null, 0)) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
+    }
+
+    /** What may be done with a message (edit, delete for all, forward...); null when TDLib does not know it. */
+    suspend fun rights(chatId: Long, messageId: Long): TelegramMessageRights? = runCatching {
+        val p = client.query(TdApi.GetMessageProperties(chatId, messageId))
+                // canBeDeletedOnlyForSelf is false in supergroups/channels: there every delete is for everyone.
+        TelegramMessageRights(p.canBeEdited, p.canBeDeletedForAllUsers, p.canBeDeletedOnlyForSelf, p.canBeForwarded, p.canBeCopied, p.canBePinned)
+    }.getOrNull()
+
+    /** Emoji reactions allowed on a message of any chat (see [availableReactions]); null on failure. */
+    suspend fun availableReactionsIn(chatId: Long, messageId: Long): List<String>? = runCatching {
+        val available = client.query(TdApi.GetMessageAvailableReactions(chatId, messageId, 8))
+        (available.topReactions + available.recentReactions + available.popularReactions)
+            .filter { !it.needsPremium }.mapNotNull { reactionKey(it.type) }.distinct().take(8)
+    }.getOrNull()
+
+    /** Toggles like [toggleReaction]; outside the open chat the current choice is read from TDLib first. */
+    fun toggleReactionIn(chatId: Long, messageId: Long, emoji: String) = client.post {
+        fun apply(message: TdApi.Message?) {
+            val chosen = message?.interactionInfo?.reactions?.reactions?.any { reactionKey(it.type) == emoji && it.isChosen } == true
+            val request = if (chosen) TdApi.RemoveMessageReaction(chatId, messageId, reactionType(emoji)) else TdApi.AddMessageReaction(chatId, messageId, reactionType(emoji), false, true)
+            client.send(request) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
+        }
+        if (chatId == this.chatId && messageId in messages) apply(messages[messageId])
+        else client.send(TdApi.GetMessage(chatId, messageId)) { result -> apply(result as? TdApi.Message) }
+    }
+
     /** [asCopy]: sent as your own messages, without «Переслано от»; [removeCaption] also drops media captions. */
     fun forward(toChatId: Long, messageIds: List<Long>, asCopy: Boolean = false, removeCaption: Boolean = false) =
         act { id -> TdApi.ForwardMessages(toChatId, null, id, messageIds.toLongArray(), null, asCopy, asCopy && removeCaption) }
@@ -804,8 +855,17 @@ class TelegramMessageRepository(
             photoAspect = photo?.let { if (it.height > 0) it.width.toFloat() / it.height else 0f } ?: 0f,
             fileName = (content as? TdApi.MessageDocument)?.document?.fileName ?: (content as? TdApi.MessageAudio)?.audio?.fileName,
             // Rough client-side hint; TDLib enforces the real rules and reports errors.
-            canEdit = isOutgoing && sendingState == null && (content is TdApi.MessageText || content is TdApi.MessagePhoto || content is TdApi.MessageDocument || content is TdApi.MessageVideo || content is TdApi.MessageAnimation || content is TdApi.MessageAudio)
+            canEdit = isOutgoing && sendingState == null && (content is TdApi.MessageText || content is TdApi.MessagePhoto || content is TdApi.MessageDocument || content is TdApi.MessageVideo || content is TdApi.MessageAnimation || content is TdApi.MessageAudio),
+            serviceText = serviceTextOf(this)
         )
+    }
+
+    /** Line of a service message for the v3 UI; null for ordinary messages (see [serviceText]). */
+    private fun serviceTextOf(message: TdApi.Message): String? {
+        val type = chats.chat(message.chatId)?.type
+        return serviceText(message, senderName(message.senderId), isChannel = (type as? TdApi.ChatTypeSupergroup)?.isChannel == true) { id ->
+            if (id == users.myId()) "Вы" else users.user(id)?.displayName() ?: "Пользователь"
+        }
     }
 
     private fun senderName(sender: TdApi.MessageSender?): String = when (sender) {
@@ -845,3 +905,56 @@ internal fun draftText(draft: TdApi.DraftMessage?): String =
 /** Largest photo size not wider than ~1280 px, falling back to the smallest available. */
 internal fun bestPhoto(photo: TdApi.Photo): TdApi.PhotoSize? =
     photo.sizes.filter { it.width <= 1280 }.maxByOrNull { it.width } ?: photo.sizes.minByOrNull { it.width }
+
+/**
+ * Russian line of a service message ("Анна вступил(а) в группу", "Канал переименован в «…»"), or
+ * null for ordinary messages. Pure: [who] is the sender's name, [user] names other users. Used by the
+ * v3 chat list (TelegramChatItem.lastServiceText) and history (TelegramMessage.serviceText).
+ */
+internal fun serviceText(message: TdApi.Message, who: String, isChannel: Boolean, user: (Long) -> String): String? {
+    val senderId = (message.senderId as? TdApi.MessageSenderUser)?.userId
+    val channel = isChannel || message.isChannelPost
+    return when (val c = message.content) {
+        is TdApi.MessageBasicGroupChatCreate -> "$who создал(а) группу «${c.title}»"
+        is TdApi.MessageSupergroupChatCreate -> if (channel) "Канал создан" else "$who создал(а) группу «${c.title}»"
+        is TdApi.MessageChatChangeTitle -> if (channel) "Канал переименован в «${c.title}»" else "$who изменил(а) название на «${c.title}»"
+        is TdApi.MessageChatChangePhoto -> if (channel) "Фото канала изменено" else "$who изменил(а) фото группы"
+        is TdApi.MessageChatDeletePhoto -> if (channel) "Фото канала удалено" else "$who удалил(а) фото группы"
+        is TdApi.MessageChatAddMembers -> {
+            val ids = c.memberUserIds.toList()
+            when {
+                ids == listOf(senderId) -> if (channel) "$who присоединился(-ась) к каналу" else "$who вступил(а) в группу"
+                else -> "$who добавил(а) ${ids.joinToString(", ") { user(it) }}"
+            }
+        }
+        is TdApi.MessageChatJoinByLink -> if (channel) "$who присоединился(-ась) к каналу" else "$who вступил(а) в группу по ссылке"
+        is TdApi.MessageChatJoinByRequest -> if (channel) "$who присоединился(-ась) к каналу" else "$who вступил(а) в группу"
+        is TdApi.MessageChatDeleteMember -> if (c.userId == senderId) (if (channel) "$who покинул(а) канал" else "$who покинул(а) группу") else "$who удалил(а) ${user(c.userId)}"
+        is TdApi.MessagePinMessage -> if (channel) "Сообщение закреплено" else "$who закрепил(а) сообщение"
+        is TdApi.MessageScreenshotTaken -> "$who сделал(а) снимок экрана"
+        is TdApi.MessageContactRegistered -> "$who теперь в Telegram"
+        is TdApi.MessageChatSetMessageAutoDeleteTime -> if (c.messageAutoDeleteTime == 0) "Автоудаление выключено" else "Включено автоудаление сообщений"
+        is TdApi.MessageChatUpgradeTo, is TdApi.MessageChatUpgradeFrom -> "Группа стала супергруппой"
+        is TdApi.MessageChatSetTheme -> "$who изменил(а) тему чата"
+        is TdApi.MessageChatSetBackground -> "$who изменил(а) обои чата"
+        is TdApi.MessageForumTopicCreated -> "Создана тема «${c.name}»"
+        is TdApi.MessageVideoChatStarted -> if (channel) "Трансляция начата" else "$who начал(а) видеочат"
+        is TdApi.MessageVideoChatEnded -> if (channel) "Трансляция завершена" else "Видеочат завершён"
+        // A call is a message in TDLib; Telegram draws it as a line: «Исходящий звонок · 3 мин».
+        is TdApi.MessageCall -> {
+            val missed = c.discardReason is TdApi.CallDiscardReasonMissed || c.discardReason is TdApi.CallDiscardReasonDeclined
+            val what = if (c.isVideo) "видеозвонок" else "звонок"
+            val title = when {
+                message.isOutgoing && missed -> "Отменённый $what"
+                message.isOutgoing -> "Исходящий $what"
+                missed -> "Пропущенный $what"
+                else -> "Входящий $what"
+            }
+            val minutes = (c.duration + 30) / 60
+            if (c.duration > 0) "$title · " + (if (c.duration < 60) "${c.duration} сек" else "$minutes мин") else title
+        }
+        is TdApi.MessageGameScore, is TdApi.MessagePaymentSuccessful, is TdApi.MessageGiftedPremium, is TdApi.MessageGift,
+        is TdApi.MessageCustomServiceAction, is TdApi.MessageExpiredPhoto, is TdApi.MessageExpiredVideo -> messagePreview(message).takeIf { it != "Сообщение" } ?: "Служебное сообщение"
+        else -> null
+    }
+}
