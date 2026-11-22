@@ -128,6 +128,7 @@ class TelegramKxStore(
     /** The old UI's OGG/Opus recorder (ui/chat/VoiceNotes.kt), reused for hold-to-record. */
     private val recorder = com.kirox.app.ui.chat.VoiceRecorder(app)
     private var levelJob: Job? = null
+    private var recordingChat: Long? = null
 
     /** Story contents by (chat, story id), fetched once per story (GetStory). */
     private val storyCache = MutableStateFlow<Map<Pair<Long, Int>, com.kirox.app.telegram.TelegramStory>>(emptyMap())
@@ -299,6 +300,8 @@ class TelegramKxStore(
 
     override fun openChat(chatId: Long) {
         vm.messages.open(chatId)
+        // Shared media and the profile are read again for this chat (new messages since).
+        reloadNext("shared:$chatId:"); reloadNext("peer:$chatId")
         fillAskedAt = -1
         // Always asked (0 for private chats): a group opened from search or a link is not in the loaded lists.
         scope.launch { vm.chats.memberCount(chatId).takeIf { it > 0 }?.let { memberCounts[chatId] = it } }
@@ -358,14 +361,20 @@ class TelegramKxStore(
         val granted = androidx.core.content.ContextCompat.checkSelfPermission(app, android.Manifest.permission.RECORD_AUDIO) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
         if (!granted) { error = "Нужен доступ к микрофону"; requestMicrophone(); return }
+        // A recording still running (another chat, a missed release) is thrown away, never sent.
+        if (recorder.isRecording) { levelJob?.cancel(); recordingChat?.let { vm.activity.send(it, null) }; recorder.stop(discard = true) }
         if (!recorder.start()) { error = "Не удалось начать запись"; return }
+        recordingChat = chatId
         vm.activity.send(chatId, ChatActivity.RecordingVoice)
         // The waveform is built from levels sampled ~10 times a second.
         levelJob?.cancel()
         levelJob = scope.launch {
+            var tick = 0
             while (recorder.isRecording) {
                 recorder.sampleLevel()
-                vm.activity.send(chatId, ChatActivity.RecordingVoice) // repeated; the repository throttles it
+                // Telegram shows a chat action for about 5 s: repeat it every 4 s.
+                if (tick % 40 == 0) vm.activity.send(chatId, ChatActivity.RecordingVoice)
+                tick++
                 delay(100)
             }
         }
@@ -373,6 +382,7 @@ class TelegramKxStore(
 
     override fun recordStop(chatId: Long, send: Boolean, seconds: Int) {
         levelJob?.cancel(); levelJob = null
+        recordingChat = null
         vm.activity.send(chatId, null)
         if (!recorder.isRecording) return
         // Too short (< MIN_DURATION) or cancelled: the recorder deletes the file and returns null.
@@ -801,12 +811,23 @@ class TelegramKxStore(
             } ?: KxStorySlide(id) })
     }
 
+    private val storyFailures = HashMap<Pair<Long, Int>, Int>()
     private fun fetchStory(chatId: Long, storyId: Int) {
-        if (!storyAsked.add(chatId to storyId)) return
+        val key = chatId to storyId
+        if (!storyAsked.add(key)) return
         scope.launch {
-            vm.stories.story(chatId, storyId)?.let { st -> storyCache.update { it + ((chatId to storyId) to st) } }
-                ?: storyAsked.remove(chatId to storyId) // failed (network): asked again on the next list update
+            val story = vm.stories.story(chatId, storyId)
+            if (story != null) { storyFailures.remove(key); storyCache.update { it + (key to story) }; return@launch }
+            // Gone (expired / deleted) or offline: two more tries, 10 s and 60 s later, then the slide stays empty.
+            val failures = (storyFailures[key] ?: 0) + 1
+            storyFailures[key] = failures
+            if (failures <= 2) { delay(if (failures == 1) 10_000L else 60_000L); storyAsked.remove(key); fetchStory(chatId, storyId) }
         }
+    }
+
+    override fun closeStory() {
+        openStory?.let { (c, id) -> vm.stories.close(c, id) }
+        openStory = null
     }
 
     private fun TelegramUserProfile.toKx() = KxProfile(
@@ -831,9 +852,25 @@ class TelegramKxStore(
     /** Runs a TDLib-backed action in the store scope; a failure goes to [error]. */
     private fun act(block: suspend () -> Unit) { scope.launch { attempt(block)?.let { error = it } } }
 
-    /** Loads [key] once, the first time a getter needs it (getters run during composition). */
+    /**
+     * Loads [key] once, the first time a getter needs it (getters run during composition). A failed
+     * load is retried no sooner than 5 s, then 30 s later — not on every recomposition while offline.
+     */
     private val loaded = HashSet<String>()
-    private fun loadOnce(key: String, block: suspend () -> Unit) { if (loaded.add(key)) scope.launch { if (attempt(block) != null) loaded.remove(key) } }
+    private val retryAt = HashMap<String, Pair<Long, Int>>() // key → (earliest retry ms, failures)
+    private fun loadOnce(key: String, block: suspend () -> Unit) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (key in loaded || (retryAt[key]?.first ?: 0L) > now) return
+        loaded += key
+        scope.launch {
+            if (attempt(block) == null) { retryAt.remove(key); return@launch }
+            val failures = (retryAt[key]?.second ?: 0) + 1
+            retryAt[key] = (android.os.SystemClock.elapsedRealtime() + if (failures == 1) 5_000L else 30_000L) to failures
+            loaded.remove(key)
+        }
+    }
+    /** Forgets a loaded key so the next read loads it again (no back-off). */
+    private fun reloadNext(prefix: String) { loaded.removeAll { it.startsWith(prefix) }; retryAt.keys.removeAll { it.startsWith(prefix) } }
 
     // Devices
     private var sessionList by mutableStateOf(emptyList<KxSession>())
@@ -929,7 +966,7 @@ class TelegramKxStore(
             full.chats.sortedByDescending { it.bytes }.map { it.title.ifBlank { "Без чата" } to it.bytes },
         )
     }
-    override fun refreshStorage() { loaded.remove("storage"); loadOnce("storage") { reloadStorage() } }
+    override fun refreshStorage() { reloadNext("storage"); loadOnce("storage") { reloadStorage() } }
     override fun clearCache(types: Set<String>) = act {
         if (types.isEmpty()) services.settings.clearCache()
         else services.settings.clearStorage(types.mapNotNull { KxExtrasMapping.storageCategory(it) }.toSet())
@@ -963,7 +1000,8 @@ class TelegramKxStore(
         val active = services.client.activeSession
         val ordered = accountSlots.sortedByDescending { it.session == active }
         if (ordered.isEmpty()) return listOf(me)
-        return ordered.map { a -> if (a.session == active) me else KxProfile(a.session.hashCode().toLong(), a.title.ifBlank { a.phone }, phone = a.phone, status = "") }
+        // Other slots: a stable id from the stored phone (digits), else from the slot position.
+        return ordered.mapIndexed { i, a -> if (a.session == active) me else KxProfile(a.phone.filter(Char::isDigit).toLongOrNull()?.let { -it } ?: -(i + 1L), a.title.ifBlank { a.phone }, phone = a.phone, status = "") }
     }
     override fun switchAccount(index: Int) {
         val active = services.client.activeSession
@@ -985,7 +1023,7 @@ class TelegramKxStore(
         attempt { vm.users.sendGift(giftId, userId, text, private); stars = vm.users.stars() }
 
     // Folders (icon on create: TelegramChatRepository.createFolder takes no icon yet, Telegram picks one)
-    override fun createFolder(title: String, icon: String, chatIds: List<Long>) = act { vm.chats.createFolder(title.trim(), chatIds) }
+    override fun createFolder(title: String, icon: String, chatIds: List<Long>) = act { vm.chats.createFolder(title.trim(), chatIds, icon) }
     override fun deleteFolder(id: Int) = act { vm.chats.deleteFolder(id) }
     override fun reorderFolders(ids: List<Int>) = act { vm.chats.reorderFolders(ids.filter { it > 0 }) }
 
@@ -1040,13 +1078,19 @@ class TelegramKxStore(
     override suspend fun scheduled(chatId: Long): List<KxScheduled> {
         if (history.chatId != chatId) return emptyList()
         return orNull { vm.messages.scheduledMessages() }.orEmpty().map {
-            KxScheduled(it.id, it.text, if (it.sendAt == 0) "когда будет в сети" else KxFormat.chatTime(it.sendAt) + " " + KxFormat.messageTime(it.sendAt))
+            KxScheduled(it.id, it.text, if (it.sendAt == 0) "когда будет в сети" else KxFormat.futureTime(it.sendAt))
         }
     }
     override fun sendScheduledNow(chatId: Long, messageId: Long) = inOpen(chatId) { act { vm.messages.sendScheduledNow(messageId) } }
     override fun deleteScheduled(chatId: Long, messageId: Long) = inOpen(chatId) { act { vm.messages.deleteScheduled(messageId) } }
     override fun sendPoll(chatId: Long, question: String, options: List<String>, anonymous: Boolean, multiple: Boolean, quizCorrect: Int?) =
-        inOpen(chatId) { vm.messages.sendPoll(question.trim(), options.map { it.trim() }.filter { it.isNotEmpty() }, anonymous, multiple, quizCorrect) }
+        inOpen(chatId) {
+            // Blank options are dropped: the quiz answer index must point into the kept list.
+            val kept = options.mapIndexed { i, o -> i to o.trim() }.filter { it.second.isNotEmpty() }
+            val correct = quizCorrect?.let { q -> kept.indexOfFirst { it.first == q }.takeIf { it >= 0 } }
+            if (quizCorrect != null && correct == null) { error = "Отметьте правильный ответ"; return@inOpen }
+            vm.messages.sendPoll(question.trim(), kept.map { it.second }, anonymous, multiple, correct)
+        }
     override fun votePoll(chatId: Long, messageId: Long, options: List<Int>) = inOpen(chatId) { vm.messages.vote(messageId, options) }
     override fun sendLocation(chatId: Long, latitude: Double, longitude: Double) = inOpen(chatId) { vm.messages.sendLocation(latitude, longitude) }
     override fun sendPhoto(chatId: Long, path: String, caption: String, spoiler: Boolean) = inOpen(chatId) { vm.messages.sendPhoto(path, caption, spoiler) }
@@ -1103,15 +1147,16 @@ class TelegramKxStore(
     private val sharedItems = mutableStateMapOf<Pair<Long, KxSharedTab>, List<KxSharedItem>>()
     override fun shared(chatId: Long, tab: KxSharedTab): List<KxSharedItem> {
         val key = chatId to tab
-        val kind = KxExtrasMapping.shared(tab) ?: return emptyList()
+        val kind = KxExtrasMapping.shared(tab)
         loadOnce("shared:$chatId:$tab") {
             val known = paths.value
             val months = java.text.SimpleDateFormat("LLLL yyyy", java.util.Locale.forLanguageTag("ru"))
-            sharedItems[key] = vm.chats.sharedMedia(chatId, kind).map { item ->
+            val found = if (kind == null) vm.chats.sharedGifs(chatId) else vm.chats.sharedMedia(chatId, kind)
+            sharedItems[key] = found.map { item ->
                 KxSharedItem(
                     id = item.messageId, title = item.title, sub = item.subtitle,
                     media = autoPath(item.thumb, known), video = if (item.isVideo) "video" else null,
-                    fileExt = item.title.substringAfterLast('.', "").take(4).uppercase(),
+                    fileExt = if (tab == KxSharedTab.Files || tab == KxSharedTab.Music) item.title.substringAfterLast('.', "").take(4).uppercase() else "",
                     messageId = item.messageId,
                     month = months.format(java.util.Date(item.date * 1000L)).replaceFirstChar { it.uppercase() },
                     fileId = (item.file ?: item.full)?.id ?: 0,
@@ -1171,7 +1216,7 @@ class TelegramKxStore(
     override fun ban(chatId: Long, userId: Long, banned: Boolean) = act { if (banned) services.admin.ban(chatId, userId) else services.admin.unban(chatId, userId) }
     override fun removeMember(chatId: Long, userId: Long) = act { services.admin.remove(chatId, userId) }
     private fun com.kirox.app.telegram.InviteLink.toKx() = KxInviteLink(link, name, isPrimary, memberCount,
-        if (expires > 0) "до " + KxFormat.chatTime(expires) else "", memberLimit)
+        if (expires > 0) "до " + KxFormat.futureTime(expires) else "", memberLimit)
     override suspend fun inviteLinks(chatId: Long): List<KxInviteLink> = ask { services.admin.inviteLinks(chatId) }.orEmpty().map { it.toKx() }
     override suspend fun createInviteLink(chatId: Long, name: String, days: Int, limit: Int, byRequest: Boolean): KxInviteLink? =
         ask { services.admin.createInviteLink(chatId, name.trim(), days, limit, byRequest) }?.toKx()
@@ -1182,7 +1227,7 @@ class TelegramKxStore(
     }
     override fun processJoinRequest(chatId: Long, userId: Long, approve: Boolean) = act { services.admin.processJoinRequest(chatId, userId, approve) }
     override suspend fun adminLog(chatId: Long, query: String): List<KxLogEntry> =
-        orNull { services.adminExtras.eventLog(chatId, query) }.orEmpty().map { KxLogEntry(it.id, KxFormat.chatTime(it.date) + " " + KxFormat.messageTime(it.date), it.who, it.text) }
+        orNull { services.adminExtras.eventLog(chatId, query) }.orEmpty().map { KxLogEntry(it.id, KxFormat.dateTime(it.date), it.who, it.text) }
     override suspend fun boostStatus(chatId: Long): KxBoostStatus? = orNull { services.adminExtras.boosts(chatId) }?.let {
         KxBoostStatus(it.level, it.boosts, it.levelStart, it.nextLevel, it.url, it.premiumMembers)
     }
@@ -1226,6 +1271,29 @@ class TelegramKxStore(
     override suspend fun profilePhotos(userId: Long): List<KxSharedItem> {
         val known = paths.value
         return orNull { services.account.profilePhotos(userId) }.orEmpty().mapIndexed { i, ref -> KxSharedItem(i.toLong(), media = autoPath(ref, known), fileId = ref.id) }
+    }
+
+    /** Profile extras per chat (username, phone, bio, birthday, common groups), loaded on first read. */
+    private val peerExtras = mutableStateMapOf<Long, KxPeer>()
+    override fun peer(chatId: Long): KxPeer {
+        val h = header(chatId)
+        val item = items[chatId]
+        val userId = item?.peerUserId?.takeIf { it != 0L } ?: if (h.kind == KxChatKind.Private || h.kind == KxChatKind.Bot) chatId else 0L
+        val base = KxPeer(userId.takeIf { it != 0L } ?: chatId, chatId, h.title, h.status, h.online, premium = item?.isPremium == true,
+            muted = h.muted, avatar = h.avatar, colorIndex = h.colorIndex,
+            isContact = userId != 0L && vm.users.contacts.value.any { it.id == userId })
+        loadOnce("peer:$chatId") {
+            val info = vm.chats.profileInfo(chatId)
+            val extras = if (userId != 0L) orNull { services.account.extras(userId) } else null
+            val common = if (userId != 0L) orNull { services.admin.commonGroups(userId).size } ?: 0 else 0
+            peerExtras[chatId] = base.copy(
+                username = info.username, phone = if (info.phone.isBlank()) "" else runCatching { com.kirox.app.phone.PhoneNumberEngine().formatInternational(info.phone) }.getOrDefault("+" + info.phone),
+                bio = info.about, birthday = extras?.birthday?.text.orEmpty(), commonGroups = common,
+            )
+        }
+        val extra = peerExtras[chatId] ?: return base
+        // Live values (status, online, avatar) from the header; the loaded facts from the extras.
+        return base.copy(username = extra.username, phone = extra.phone, bio = extra.bio, birthday = extra.birthday, commonGroups = extra.commonGroups)
     }
 
     private fun initRound5() {

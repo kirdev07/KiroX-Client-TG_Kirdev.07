@@ -68,7 +68,7 @@ interface KxStore {
     fun delete(chatId: Long, messageIds: List<Long>, forEveryone: Boolean)
     /** Toggles: tapping your own reaction again removes it. */
     fun react(chatId: Long, messageId: Long, emoji: String)
-    fun availableReactions(chatId: Long, messageId: Long): List<String> = listOf("❤️", "🔥", "👍", "😂", "😮", "😢", "🎉")
+    fun availableReactions(chatId: Long, messageId: Long): List<String> = listOf("❤", "🔥", "👍", "😂", "😮", "😢", "🎉")
     fun pin(chatId: Long, messageId: Long, pinned: Boolean) {}
     fun forward(fromChatId: Long, messageIds: List<Long>, toChatId: Long) {}
     fun saveToFavorites(chatId: Long, messageIds: List<Long>) {}
@@ -90,6 +90,8 @@ interface KxStore {
     fun viewStory(peerId: Long, storyId: Int) {}
     fun reactStory(peerId: Long, storyId: Int, emoji: String) {}
     fun replyStory(peerId: Long, storyId: Int, text: String) {}
+    /** The story viewer closed: Telegram stops counting it as open. */
+    fun closeStory() {}
 
     // Calls
     fun call(peerId: Long, video: Boolean) {}

@@ -109,7 +109,7 @@ fun callInfo(c: KxCall): String {
 private fun CallRow(c: KxCall, modifier: Modifier, onCall: () -> Unit) {
     val missed = c.dir == KxCallDir.Missed
     Row(modifier.fillMaxWidth().height(68.dp).padding(start = 16.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-        KxAvatar(c.name, c.peerId, size = 50.dp, colorIndex = c.colorIndex)
+        KxAvatar(c.name, c.peerId, size = 50.dp, colorIndex = c.colorIndex, photo = c.avatar)
         Column(Modifier.weight(1f)) {
             KxLine(c.name, KxType.style(16.sp, FontWeight.SemiBold, if (missed) Kx.danger else Kx.text))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

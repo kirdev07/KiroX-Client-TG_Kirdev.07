@@ -108,7 +108,9 @@ fun KxBadge(text: String, modifier: Modifier = Modifier, muted: Boolean = false,
 fun KxAvatar(name: String, id: Long, modifier: Modifier = Modifier, size: Dp = 54.dp, icon: ImageVector? = null,
              online: Boolean = false, story: Boolean = false, square: Boolean = false, colorIndex: Int = -1,
              swatch: KxAvatarPalette.Swatch = if (colorIndex >= 0) KxAvatarPalette.all[colorIndex % KxAvatarPalette.all.size] else KxAvatarPalette.of(id),
-             ringColor: Color = Kx.bg, letterWeight: FontWeight = FontWeight.Bold, letterSize: androidx.compose.ui.unit.TextUnit = (size.value * 0.37f).sp) {
+             ringColor: Color = Kx.bg, letterWeight: FontWeight = FontWeight.Bold, letterSize: androidx.compose.ui.unit.TextUnit = (size.value * 0.37f).sp,
+             /** Local photo path (TDLib download); the letter shows until it is decoded. */
+             photo: String? = null) {
     val shape = if (square) RoundedCornerShape(size * 0.3f) else CircleShape
     Box(modifier.size(size)) {
         val inner = if (story) Modifier.padding(2.dp) else Modifier
@@ -124,6 +126,7 @@ fun KxAvatar(name: String, id: Long, modifier: Modifier = Modifier, size: Dp = 5
             if (icon != null) Icon(icon, null, Modifier.size(size * 0.44f), tint = swatch.ink)
             else Text(name.trim().take(1).uppercase().ifEmpty { "?" },
                 style = KxType.style(letterSize, letterWeight, swatch.ink))
+            if (photo != null) KxImage(photo, Modifier.matchParentSize(), maxPx = (size.value * 3).toInt())
         }
         // Mockup: 14px dot + 3px background border on a 54px avatar = 20 outer / 14 inner.
         if (online) Box(

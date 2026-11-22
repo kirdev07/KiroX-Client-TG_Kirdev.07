@@ -62,7 +62,7 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
                     Box(Modifier.matchParentSize().graphicsLayer { scaleX = 148f / 112f; scaleY = scaleX }.drawBehind {
                         drawCircle(Brush.radialGradient(listOf(Color(0x598F78E6), Color.Transparent), radius = size.minDimension / 2 * 1.41f * .65f))
                     })
-                    KxAvatar(p.name, p.id, Modifier.shadow(40.dp, CircleShape, spotColor = Color.Black.copy(alpha = .5f)), size = 112.dp, swatch = sw, letterWeight = FontWeight.ExtraBold, letterSize = 44.sp)
+                    KxAvatar(p.name, p.id, Modifier.shadow(40.dp, CircleShape, spotColor = Color.Black.copy(alpha = .5f)), size = 112.dp, swatch = sw, letterWeight = FontWeight.ExtraBold, letterSize = 44.sp, photo = p.avatar)
                     if (p.online) Box(Modifier.align(Alignment.BottomEnd).offset((-4).dp, (-4).dp).size(30.dp).clip(CircleShape).background(Color(0xFF141019)).padding(4.dp).clip(CircleShape).background(Kx.accent))
                 }
                 Row(Modifier.padding(top = 12.dp).kxRise(80, 500), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

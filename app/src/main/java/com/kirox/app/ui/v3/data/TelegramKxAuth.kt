@@ -37,10 +37,17 @@ class TelegramKxAuth(
     private val cancellable: () -> Boolean = { false },
     private val onCancel: () -> Unit = {},
 ) : KxAuth {
+    /**
+     * «Изменить номер» from the code / password / registration step: the phone board shows again while
+     * TDLib keeps its state; the next number is sent straight away (TDLib accepts a new
+     * SetAuthenticationPhoneNumber in those states), so nothing is logged out.
+     */
+    private var editingPhone by mutableStateOf(false)
+
     /** Number check message from PhoneEntryState («Проверьте номер…»), shown before anything is sent. */
     private var localError by mutableStateOf<String?>(null)
 
-    override val step: KxAuthStep get() = stepOf(authState())
+    override val step: KxAuthStep get() = authState().let { s -> if (editingPhone && canResetPhone(s)) KxAuthStep.Phone else stepOf(s) }
     override val busy: Boolean get() = isBusy()
     override val error: String?
         get() = localError ?: blocked() ?: (authState() as? TelegramAuthState.Blocked)?.message ?: authError()
@@ -101,6 +108,10 @@ class TelegramKxAuth(
 
     override fun cancel() { if (canCancel) onCancel() }
 
+    /** States where TDLib takes a new phone number without logging out (no query may be pending). */
+    private fun canResetPhone(s: TelegramAuthState) = !busy && (s is TelegramAuthState.WaitCode || s is TelegramAuthState.WaitPassword ||
+        s is TelegramAuthState.WaitRegistration || s is TelegramAuthState.WaitEmailCode || s is TelegramAuthState.WaitEmailAddress)
+
     /**
      * [digits]: the national number typed after the dial code. Checked with the phone engine first;
      * only a valid number goes to Telegram. [syncContacts]: kiroX has no contact upload at sign-in,
@@ -111,6 +122,7 @@ class TelegramKxAuth(
         phone.updateNumber(digits)
         if (!phone.validate()) { localError = (phone.status as? PhoneStatus.Error)?.message; return }
         localError = null
+        editingPhone = false
         vm.auth.clearError()
         vm.auth.phone(phone.internationalNumber)
     }
@@ -142,9 +154,13 @@ class TelegramKxAuth(
     override fun back() {
         localError = null
         vm.auth.clearError()
+        val state = authState()
         when {
             // Inside password recovery, back only leaves the recovery (as the old screen does).
             step == KxAuthStep.Password && recoverySent() -> vm.auth.cancelPasswordRecovery()
+            editingPhone -> Unit
+            canResetPhone(state) -> editingPhone = true
+            // QR login (and anything else) can only be left by abandoning it.
             step != KxAuthStep.Phone && step != KxAuthStep.Ready -> vm.auth.logOut()
         }
     }
@@ -186,7 +202,11 @@ class TelegramKxAuth(
             if (digits.isEmpty()) return ""
             val formatted = runCatching { com.kirox.app.phone.PhoneNumberEngine().formatInternational(digits) }.getOrDefault("+$digits")
             val groups = formatted.removePrefix("+").split(' ').filter { it.isNotEmpty() }
-            if (groups.size < 3) return formatted
+            // Not groupable (unknown country code): keep the first digits and the last two, hide the rest.
+            if (groups.size < 3) {
+                val keep = minOf(3, maxOf(1, digits.length - 4))
+                return "+" + digits.mapIndexed { i, c -> if (i < keep || i >= digits.length - 2) c else '*' }.joinToString("")
+            }
             val total = groups.sumOf { it.length }
             var seen = 0
             return "+" + groups.mapIndexed { i, g ->

@@ -144,7 +144,7 @@ private fun ChatsHeader(store: KxStore, onOpenStories: () -> Unit, onSearch: () 
         ) {
             Box {
                 unseen.take(3).forEachIndexed { i, p ->
-                    KxAvatar(p.name, p.id, Modifier.offset(x = (i * 20).dp), size = 30.dp, story = true, colorIndex = p.colorIndex)
+                    KxAvatar(p.name, p.id, Modifier.offset(x = (i * 20).dp), size = 30.dp, story = true, colorIndex = p.colorIndex, photo = p.avatar)
                 }
                 Spacer(Modifier.width((30 + (unseen.take(3).size - 1) * 20).dp))
             }
@@ -193,7 +193,7 @@ fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected
             swatch = KxAvatarPalette.Swatch(Color(0xFF2F6E4D), Color(0xFF173A28), Color(0xFFC8F0D8)))
         else Box {
             val sc by androidx.compose.animation.core.animateFloatAsState(if (selected) .9f else 1f, label = "sel")
-            KxAvatar(chat.title, chat.id, Modifier.graphicsLayer { scaleX = sc; scaleY = sc }, size = 54.dp, icon = icon, online = chat.online && !selected, colorIndex = chat.colorIndex)
+            KxAvatar(chat.title, chat.id, Modifier.graphicsLayer { scaleX = sc; scaleY = sc }, size = 54.dp, icon = icon, online = chat.online && !selected, colorIndex = chat.colorIndex, photo = chat.avatar)
             if (selected) Box(Modifier.align(Alignment.BottomEnd).offset(3.dp, 3.dp).size(22.dp).clip(CircleShape).background(Kx.accent).border(2.dp, Kx.bg, CircleShape), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.Check, null, Modifier.size(14.dp), tint = Kx.onAccent)
             }

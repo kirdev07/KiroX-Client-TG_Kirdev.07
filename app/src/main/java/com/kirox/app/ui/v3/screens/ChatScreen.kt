@@ -69,12 +69,16 @@ private fun Modifier.outBubble() = this.drawBehind {
 }
 private fun Modifier.bubble(out: Boolean) = if (out) outBubble() else background(InBubble)
 
+/** Lets bubbles ask the store to download their media (set by ChatScreen). */
+private var LocalStoreDownload: ((Int) -> Unit)? = null
+
 private data class PendingDelete(val message: KxMessage, val forAll: Boolean, val id: Long = System.nanoTime())
 
 /** Conversation (board «Чат»): flat header + pinned bar, bubbles, glass composer, round mic/send button. */
 @Composable
 fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit = {}, onMenu: () -> Unit = {}, onProfile: () -> Unit = {}) {
     val header = store.header(chatId)
+    LocalStoreDownload = store::download
     val toast = LocalKxToast.current
     var text by rememberSaveable(chatId) { mutableStateOf("") }
     var replyTo by remember(chatId) { mutableStateOf<KxMessage?>(null) }
@@ -197,7 +201,7 @@ private fun ChatHeader(h: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) ->
             KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", size = 48.dp, filled = false, tint = Kx.text, onClick = onBack)
             Row(Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).kxClick("Профиль: ${h.title}", onClick = onProfile).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box {
-                    KxAvatar(h.title, h.chatId, size = 42.dp, icon = if (h.kind == KxChatKind.Saved) Icons.Rounded.Bookmark else null, colorIndex = h.colorIndex)
+                    KxAvatar(h.title, h.chatId, size = 42.dp, icon = if (h.kind == KxChatKind.Saved) Icons.Rounded.Bookmark else null, colorIndex = h.colorIndex, photo = h.avatar)
                     if (h.online) Box(Modifier.align(Alignment.BottomEnd).offset(1.dp, 1.dp).size(16.dp).clip(CircleShape).background(Color(0xFF1B221E)).padding(2.dp).clip(CircleShape).background(Kx.accent))
                 }
                 Column(Modifier.weight(1f)) {
@@ -278,10 +282,13 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
                 Row { Text(m.meta, style = KxType.style(11.sp, color = OutMeta), modifier = Modifier.weight(1f)); MetaText(m, OutMeta) }
             }
             KxMsgKind.Photo, KxMsgKind.Video, KxMsgKind.Gif -> Column(press.width(230.dp).clip(if (m.out) OutShape else RoundedCornerShape(22.dp, 22.dp, 22.dp, 6.dp)).bubble(m.out).padding(4.dp)) {
-                Box(Modifier.fillMaxWidth().height(118.dp).clip(RoundedCornerShape(18.dp))
+                if (m.media == null && m.fileId != 0) LaunchedEffect(m.fileId) { LocalStoreDownload?.invoke(m.fileId) }
+                Box(Modifier.fillMaxWidth().height(if (m.aspect > 0f) (222f / m.aspect).coerceIn(118f, 300f).dp else 118.dp).clip(RoundedCornerShape(18.dp))
                     .drawBehind { drawRect(Brush.linearGradient(0f to Color(0xFF355E49), .55f to Color(0xFF1A2C22), 1f to Color(0xFF0F1712), start = cssAngleStart(150f, size), end = cssAngleEnd(150f, size))) },
                     contentAlignment = Alignment.Center) {
-                    Icon(if (m.kind == KxMsgKind.Photo) Icons.Rounded.Image else Icons.Rounded.PlayCircle, null, Modifier.size(36.dp), tint = Kx.accentLight.copy(alpha = .7f))
+                    val pic = m.media?.takeIf { m.kind == KxMsgKind.Photo } ?: m.thumb
+                    if (pic != null) KxImage(pic, Modifier.matchParentSize())
+                    if (pic == null || m.kind != KxMsgKind.Photo) Icon(if (m.kind == KxMsgKind.Photo) Icons.Rounded.Image else Icons.Rounded.PlayCircle, null, Modifier.size(36.dp), tint = Kx.accentLight.copy(alpha = .7f))
                 }
                 if (m.text.isNotEmpty()) TextWithMeta(m, Modifier.padding(start = 9.dp, end = 9.dp, top = 7.dp, bottom = 4.dp))
             }

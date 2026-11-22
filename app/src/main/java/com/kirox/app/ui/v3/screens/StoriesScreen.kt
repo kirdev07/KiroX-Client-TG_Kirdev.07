@@ -89,14 +89,15 @@ private fun StoryCard(p: KxStoryPeer, modifier: Modifier, onClick: () -> Unit) {
     val spin = remember { Animatable(0f) }
     val reduced = LocalKxReducedMotion.current
     LaunchedEffect(p.unseen, reduced) { if (p.unseen && !reduced) spin.animateTo(720f, tween(12000, easing = LinearEasing)) }
-    Box(modifier.height(214.dp).clip(RoundedCornerShape(24.dp)).look(first.look)
+    Box(modifier.height(214.dp).clip(RoundedCornerShape(24.dp)).look(first.look).then(Modifier)
         .then(if (p.unseen) Modifier.border(1.dp, Kx.accent.copy(alpha = .35f), RoundedCornerShape(24.dp)) else Modifier)
         .kxClick("История: ${p.name}", onClick = onClick)) {
+        if (first.media != null) KxImage(first.media, Modifier.matchParentSize(), maxPx = 600)
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(.45f to Color.Transparent, 1f to Color.Black.copy(alpha = .65f))))
         Icon(Looks[first.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.16f)).size(44.dp), tint = Color.White.copy(alpha = .28f))
         Box(Modifier.padding(10.dp).size(40.dp), contentAlignment = Alignment.Center) {
             Box(Modifier.matchParentSize().graphicsLayer { rotationZ = -90f + spin.value }.clip(CircleShape).background(if (p.unseen) Kx.storyRing else Brush.linearGradient(listOf(Kx.w(.3f), Kx.w(.3f)))))
-            KxAvatar(p.name, p.id, Modifier.border(2.dp, Kx.bg, CircleShape), size = 34.dp, colorIndex = p.colorIndex)
+            KxAvatar(p.name, p.id, Modifier.border(2.dp, Kx.bg, CircleShape), size = 34.dp, colorIndex = p.colorIndex, photo = p.avatar)
         }
         if (p.slides.size > 1) Text(p.slides.size.toString(), style = KxType.style(11.sp, FontWeight.Bold), modifier = Modifier.align(Alignment.TopEnd).padding(top = 14.dp, end = 10.dp)
             .clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(alpha = .4f)).padding(horizontal = 8.dp, vertical = 2.dp))
@@ -141,7 +142,7 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
 
     Box(Modifier.fillMaxSize().background(Color.Black).graphicsLayer { scaleX = zoom.value; scaleY = zoom.value; alpha = ((zoom.value - .88f) / .12f).coerceIn(0f, 1f) }) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))) {
-            Box(Modifier.fillMaxSize().graphicsLayer { scaleX = ken.value; scaleY = ken.value }.look(s.look))
+            Box(Modifier.fillMaxSize().graphicsLayer { scaleX = ken.value; scaleY = ken.value }.look(s.look)) { if (s.media != null) KxImage(s.media, Modifier.matchParentSize()) }
             Icon(Looks[s.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.1f)).size(90.dp), tint = Color.White.copy(alpha = .22f))
             Box(Modifier.fillMaxWidth().height(140.dp).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = .55f), Color.Transparent))))
             Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(200.dp).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .6f)))))
@@ -154,7 +155,7 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
                     }
                 }
                 Row(Modifier.padding(top = 11.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    KxAvatar(peer.name, peer.id, size = 38.dp, colorIndex = peer.colorIndex)
+                    KxAvatar(peer.name, peer.id, size = 38.dp, colorIndex = peer.colorIndex, photo = peer.avatar)
                     Column(Modifier.weight(1f)) {
                         Text(peer.name, style = KxType.style(15.sp, FontWeight.Bold))
                         Text(peer.time, style = KxType.style(12.sp, color = Color.White.copy(alpha = .75f)))

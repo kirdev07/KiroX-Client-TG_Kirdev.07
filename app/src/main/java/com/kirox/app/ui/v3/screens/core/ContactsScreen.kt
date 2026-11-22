@@ -94,7 +94,7 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                 Row(Modifier.padding(top = 12.dp).horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     online.forEach { c ->
                         Column(Modifier.width(58.dp).clip(RoundedCornerShape(14.dp)).kxClick(c.name) { sheet = c }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            KxAvatar(c.name, c.id, size = 54.dp, online = true, colorIndex = c.colorIndex)
+                            KxAvatar(c.name, c.id, size = 54.dp, online = true, colorIndex = c.colorIndex, photo = c.avatar)
                             Text(c.name.substringBefore(' '), style = KxType.style(11.sp), maxLines = 1)
                         }
                     }
@@ -108,7 +108,7 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                 items(items, key = { it.id }) { c ->
                     Row(Modifier.fillMaxWidth().height(62.dp).kxRise(0, 400).kxClick(c.name) { sheet = c }.padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-                        KxAvatar(c.name, c.id, size = 46.dp, online = c.online, colorIndex = c.colorIndex)
+                        KxAvatar(c.name, c.id, size = 46.dp, online = c.online, colorIndex = c.colorIndex, photo = c.avatar)
                         Column(Modifier.weight(1f)) {
                             KxLine(c.name, KxType.style(16.sp, FontWeight.SemiBold))
                             Text(c.status, style = KxType.style(13.sp, color = if (c.online) Kx.accent else Kx.text4))
@@ -138,7 +138,7 @@ private fun ContactSheet(c: KxContact, ctx: KxScreenCtx, onClose: () -> Unit) {
             .drawBehind { drawLine(Kx.w(.14f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp)) {
             Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 14.dp).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                KxAvatar(c.name, c.id, size = 84.dp, colorIndex = c.colorIndex)
+                KxAvatar(c.name, c.id, size = 84.dp, colorIndex = c.colorIndex, photo = c.avatar)
                 Text(c.name, style = KxType.style(22.sp, FontWeight.ExtraBold))
                 Text(c.status, style = KxType.style(13.sp, color = if (c.online) Kx.accent else Kx.text4))
             }

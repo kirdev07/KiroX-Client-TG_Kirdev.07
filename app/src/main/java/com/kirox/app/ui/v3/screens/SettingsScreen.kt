@@ -120,7 +120,7 @@ private fun ProfileCard(store: KxStore, onOpen: (String) -> Unit) {
         .border(1.dp, Kx.accent.copy(alpha = .18f), shape).topHighlight(Kx.w(.12f)).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Box {
-                KxAvatar(me.name, me.id, size = 70.dp, swatch = KxAvatarPalette.Swatch(Color(0xFF3E7A5A), Color(0xFF173A28), Color(0xFFDDF5E5)), letterWeight = FontWeight.ExtraBold, letterSize = 26.sp)
+                KxAvatar(me.name, me.id, size = 70.dp, swatch = KxAvatarPalette.Swatch(Color(0xFF3E7A5A), Color(0xFF173A28), Color(0xFFDDF5E5)), letterWeight = FontWeight.ExtraBold, letterSize = 26.sp, photo = me.avatar)
                 Box(Modifier.align(Alignment.BottomEnd).offset(5.dp, 5.dp).size(32.dp).clip(CircleShape).background(Color(0xFF14201A)).padding(3.dp).clip(CircleShape).background(Kx.accent)
                     .kxClick("Сменить фото") { onOpen("Avatars") }, contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(14.dp), tint = Kx.onAccent)

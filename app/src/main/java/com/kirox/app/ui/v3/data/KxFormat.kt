@@ -41,6 +41,34 @@ internal object KxFormat {
         }
     }
 
+    /** A moment ahead (link expiry, scheduled send): «сегодня в 14:00», «завтра в 14:00», «25 нояб. в 14:00», «25.11.27 в 14:00». */
+    fun futureTime(unix: Int, now: Long = System.currentTimeMillis(), zone: TimeZone = TimeZone.getDefault()): String {
+        if (unix <= 0) return ""
+        val at = cal(unix * 1000L, zone)
+        val ahead = -daysBetween(unix * 1000L, now, zone)
+        return when {
+            ahead < 0 -> dateTime(unix, now, zone)
+            ahead == 0 -> "сегодня в ${hhmm(at)}"
+            ahead == 1 -> "завтра в ${hhmm(at)}"
+            at.get(Calendar.YEAR) == cal(now, zone).get(Calendar.YEAR) -> "${at.get(Calendar.DAY_OF_MONTH)} ${shortMonths[at.get(Calendar.MONTH)]} в ${hhmm(at)}"
+            else -> "%02d.%02d.%02d в %s".format(Locale.ROOT, at.get(Calendar.DAY_OF_MONTH), at.get(Calendar.MONTH) + 1, at.get(Calendar.YEAR) % 100, hhmm(at))
+        }
+    }
+
+    /** A moment in the past with its time (admin log): «14:00» today, «вчера в 14:00», «12 нояб. в 14:00», «12.11.25 в 14:00». */
+    fun dateTime(unix: Int, now: Long = System.currentTimeMillis(), zone: TimeZone = TimeZone.getDefault()): String {
+        if (unix <= 0) return ""
+        val at = cal(unix * 1000L, zone)
+        val days = daysBetween(unix * 1000L, now, zone)
+        return when {
+            days < 0 -> futureTime(unix, now, zone)
+            days == 0 -> hhmm(at)
+            days == 1 -> "вчера в ${hhmm(at)}"
+            at.get(Calendar.YEAR) == cal(now, zone).get(Calendar.YEAR) -> "${at.get(Calendar.DAY_OF_MONTH)} ${shortMonths[at.get(Calendar.MONTH)]} в ${hhmm(at)}"
+            else -> "%02d.%02d.%02d в %s".format(Locale.ROOT, at.get(Calendar.DAY_OF_MONTH), at.get(Calendar.MONTH) + 1, at.get(Calendar.YEAR) % 100, hhmm(at))
+        }
+    }
+
     /** Bubble time «09:05». */
     fun messageTime(unix: Int, zone: TimeZone = TimeZone.getDefault()): String = if (unix <= 0) "" else hhmm(cal(unix * 1000L, zone))
 
