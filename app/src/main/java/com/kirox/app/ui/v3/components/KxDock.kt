@@ -40,7 +40,7 @@ import com.kirox.app.ui.v3.theme.KxType
  * tab, labels always visible (11sp), badges on Chats (green) and Calls (red).
  */
 @Composable
-fun KxDock(current: KxTab, onPick: (KxTab) -> Unit, modifier: Modifier = Modifier, chatsBadge: Int = 0, callsBadge: Int = 0) {
+fun KxDock(current: KxTab, onPick: (KxTab) -> Unit, modifier: Modifier = Modifier, chatsBadge: Int = 0, callsBadge: Int = 0, names: Map<Int, String> = emptyMap()) {
     val tabs = KxTab.entries
     val lensX by animateDpAsState((current.ordinal * 78).dp, tween(450, easing = KxMotion.lens), label = "lens")
     val shape = RoundedCornerShape(32.dp)
@@ -58,10 +58,11 @@ fun KxDock(current: KxTab, onPick: (KxTab) -> Unit, modifier: Modifier = Modifie
                 val on = tab == current
                 val color by animateColorAsState(if (on) Color(0xFFE6F6EC) else Color(0xFFB4BEB8), tween(300), label = "tab")
                 val badge = when (tab) { KxTab.Chats -> chatsBadge; KxTab.Calls -> callsBadge; else -> 0 }
-                Box(Modifier.size(78.dp, 52.dp).clip(RoundedCornerShape(26.dp)).kxClick(tab.label, Role.Tab) { onPick(tab) }) {
+                val label = names[when (tab) { KxTab.Calls -> 1; KxTab.Chats -> 2; KxTab.Stories -> 3; KxTab.Settings -> 4 }]?.takeIf { it.isNotBlank() } ?: tab.label
+                Box(Modifier.size(78.dp, 52.dp).clip(RoundedCornerShape(26.dp)).kxClick(label, Role.Tab) { onPick(tab) }) {
                     Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Icon(icon(tab, on), null, Modifier.size(23.dp), tint = color)
-                        Text(tab.label, style = KxType.style(11.sp, if (on) FontWeight.ExtraBold else FontWeight.SemiBold, color, 13.sp))
+                        Text(label, maxLines = 1, style = KxType.style(11.sp, if (on) FontWeight.ExtraBold else FontWeight.SemiBold, color, 13.sp))
                     }
                     if (badge > 0) Box(
                         Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 3.dp).heightIn(min = 18.dp).widthIn(min = 18.dp)

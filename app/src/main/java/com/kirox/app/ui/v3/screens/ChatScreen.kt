@@ -60,8 +60,20 @@ import kotlinx.coroutines.launch
 private val OutText = Color(0xFFE6F6EC)
 private val OutMeta = Color(0xFFA6E3C1)
 private val InBubble = Color(0xFF161B18)
-private val OutShape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)
-private val InShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp)
+/** The saved chat look (Вид чатов): bubble corners, text size, spacing, wallpaper. */
+private data class ChatLook(val big: androidx.compose.ui.unit.Dp, val small: androidx.compose.ui.unit.Dp, val textSp: Float, val gap: androidx.compose.ui.unit.Dp, val wallpaper: Int) {
+    val out get() = RoundedCornerShape(big, big, small, big)
+    val inn get() = RoundedCornerShape(big, big, big, small)
+}
+private val LocalChatLook = androidx.compose.runtime.staticCompositionLocalOf { ChatLook(20.dp, 6.dp, 15f, 4.dp, 0) }
+private fun chatLook(store: KxStore): ChatLook {
+    val (big, small) = when (store.pref(KxPrefs.BUBBLES)) { 0 -> 10.dp to 4.dp; 2 -> 26.dp to 12.dp; else -> 20.dp to 6.dp }
+    val text = listOf(13f, 15f, 17f, 19f)[store.pref(KxPrefs.TEXT_SIZE).coerceIn(0, 3)]
+    val gap = when (store.pref(KxPrefs.DENSITY)) { 0 -> 2.dp; 2 -> 8.dp; else -> 4.dp }
+    return ChatLook(big, small, text, gap, store.pref(KxPrefs.CHAT_WALLPAPER))
+}
+private val OutShape @Composable get() = LocalChatLook.current.out
+private val InShape @Composable get() = LocalChatLook.current.inn
 
 /** Outgoing bubble: CSS linear-gradient(160deg, #2E6B4B, #1F4D36). */
 private fun Modifier.outBubble() = this.drawBehind {
@@ -79,6 +91,13 @@ private data class PendingDelete(val message: KxMessage, val forAll: Boolean, va
 fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit = {}, onMenu: () -> Unit = {}, onProfile: () -> Unit = {}) {
     val header = store.header(chatId)
     LocalStoreDownload = store::download
+    val look = chatLook(store)
+    androidx.compose.runtime.CompositionLocalProvider(LocalChatLook provides look) { ChatScreenBody(store, chatId, header, onBack, onCall, onMenu, onProfile) }
+}
+
+@Composable
+private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) -> Unit, onMenu: () -> Unit, onProfile: () -> Unit) {
+    val look = LocalChatLook.current
     val toast = LocalKxToast.current
     var text by rememberSaveable(chatId) { mutableStateOf("") }
     var replyTo by remember(chatId) { mutableStateOf<KxMessage?>(null) }
@@ -102,7 +121,12 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         // Two soft glows: radial-gradient(70% 40% at 100% 20%, .16) + (60% 35% at 0% 75%, .10).
-        Canvas(Modifier.fillMaxSize()) {
+        if (look.wallpaper == 2) Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0F2A1D), Kx.bg, Color(0xFF0B1A13)))))
+        if (look.wallpaper == 1) Canvas(Modifier.fillMaxSize()) {
+            val step = 22.dp.toPx(); var y = 0f
+            while (y < size.height) { var x = if ((y / step).toInt() % 2 == 0) 0f else step / 2; while (x < size.width) { drawCircle(Kx.accent.copy(alpha = .06f), 1.6.dp.toPx(), Offset(x, y)); x += step }; y += step }
+        }
+        if (look.wallpaper == 0) Canvas(Modifier.fillMaxSize()) {
             fun glow(cx: Float, cy: Float, rx: Float, ry: Float, a: Float) {
                 scale(1f, ry / rx, Offset(cx, cy)) {
                     drawCircle(Brush.radialGradient(listOf(Color(0xFF3F9A6C).copy(alpha = a), Color.Transparent), Offset(cx, cy), rx), rx, Offset(cx, cy))
@@ -115,7 +139,7 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
         LazyColumn(
             Modifier.fillMaxSize().then(if (menuFor != null) Modifier.blur(10.dp) else Modifier), state = listState, reverseLayout = true,
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = top, bottom = 104.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)
+            verticalArrangement = Arrangement.spacedBy(look.gap, Alignment.Bottom)
         ) {
             items(messages.asReversed(), key = { it.id }) { m ->
                 Column(Modifier.fillMaxWidth().animateItem(fadeInSpec = tween(250), fadeOutSpec = tween(350), placementSpec = tween(350, easing = KxMotion.rise))) {
@@ -328,7 +352,8 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
 private fun TextWithMeta(m: KxMessage, modifier: Modifier) {
     Row(modifier, verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Column(Modifier.weight(1f, fill = false)) {
-            Text(m.translation ?: m.text, style = KxType.style(15.sp, color = if (m.out) OutText else Kx.text, lineHeight = 21.sp))
+            val lk = LocalChatLook.current
+            Text(m.translation ?: m.text, style = KxType.style(lk.textSp.sp, color = if (m.out) OutText else Kx.text, lineHeight = (lk.textSp + 6f).sp))
             if (m.translation != null) Text("Перевод · оригинал в меню", style = KxType.style(11.sp, color = if (m.out) OutMeta else Kx.text4))
         }
         MetaText(m, if (m.out) OutMeta else Kx.text4)

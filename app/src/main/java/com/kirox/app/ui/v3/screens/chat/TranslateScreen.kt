@@ -70,42 +70,44 @@ fun TranslateScreen(ctx: KxScreenCtx) {
         if (!wasOpen) store.openChat(chatId!!)
         onDispose { if (!wasOpen) store.closeChat(chatId!!) }
     }
-    val tr = remember { mutableStateListOf<Int>() }
-    val loading = remember { mutableStateListOf<Int>() }
+    // Translated / loading messages by message id (the list shifts as new messages arrive).
+    val tr = remember { mutableStateListOf<Long>() }
+    val loading = remember { mutableStateListOf<Long>() }
     var bar by remember { mutableStateOf(true) }
     var langDemo by remember { mutableStateOf("ru") }
     val lang = if (live) Langs.getOrNull(store.pref(KxPrefs.TRANSLATE_TO))?.first ?: "ru" else langDemo
     val header = if (live) store.header(chatId!!) else null
-    val msgs = if (!live) TMsgs else store.messages(chatId!!).filter { it.text.isNotBlank() && it.kind != KxMsgKind.Service }.takeLast(30).map { m ->
+    val msgs = if (!live) TMsgs.mapIndexed { i, m -> TMsg(m.mine, m.time, m.src, m.t, i + 1L) } else store.messages(chatId!!).filter { it.text.isNotBlank() && it.kind != KxMsgKind.Service }.takeLast(30).map { m ->
         // TDLib refuses translation in secret chats: nothing is offered there.
         TMsg(m.out, m.time, if (!m.out && header?.kind != KxChatKind.Secret && foreignTo(m.text, lang)) "" else null, mapOf("orig" to m.text), m.id)
     }
     /** Real translations by "index:lang". */
     val got = remember { mutableStateMapOf<String, String>() }
-    fun textIn(i: Int, m: TMsg, l: String): String? = m.t[l] ?: got["${m.id}:$l"]
+    fun textIn(m: TMsg, l: String): String? = m.t[l] ?: got["${m.id}:$l"]
+    fun byId(id: Long) = msgs.firstOrNull { it.id == id }
     var sheet by remember { mutableStateOf(false) }
     var out by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val foreign = msgs.indices.filter { msgs[it].src != null }
+    val foreign = msgs.filter { it.src != null }.map { it.id }
     val allOn = foreign.all { it in tr }
-    fun translate(ids: List<Int>) {
+    fun translate(ids: List<Long>) {
         loading += ids
         if (!live) { ids.forEachIndexed { k, id -> scope.launch { delay(600L + k * 250); loading.remove(id); tr.remove(id); tr += id } }; return }
         val l = lang
         // One request after another (a whole chat at once would hit Telegram's flood limits).
         scope.launch {
             var failed = false
-            ids.forEach { i ->
-                val m = msgs.getOrNull(i) ?: return@forEach
-                val t = if (failed) null else textIn(i, m, l) ?: store.translateMessage(chatId!!, m.id, l)
-                loading.remove(i)
-                if (t != null) { got["${m.id}:$l"] = t; tr.remove(i); tr += i } else failed = true
+            ids.forEach { id ->
+                val m = byId(id) ?: run { loading.remove(id); return@forEach }
+                val t = if (failed) null else textIn(m, l) ?: store.translateMessage(chatId!!, m.id, l)
+                loading.remove(id)
+                if (t != null) { got["${m.id}:$l"] = t; tr.remove(id); tr += id } else failed = true
             }
             if (failed) ctx.toast("Перевод не получился")
         }
     }
     // A new target language: translate again what is shown translated.
-    if (live) LaunchedEffect(lang) { val again = tr.filter { textIn(it, msgs.getOrNull(it) ?: return@filter false, lang) == null }; if (again.isNotEmpty()) { tr.removeAll(again); translate(again) } }
+    if (live) LaunchedEffect(lang) { val again = tr.filter { textIn(byId(it) ?: return@filter false, lang) == null }; if (again.isNotEmpty()) { tr.removeAll(again); translate(again) } }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -136,15 +138,15 @@ fun TranslateScreen(ctx: KxScreenCtx) {
             LazyColumn(Modifier.weight(1f).fillMaxWidth().ellipseGlow(1f, 0f, .72f, .36f, Kx.accentDeep.copy(alpha = .12f)),
                 contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Bottom)) {
                 itemsIndexed(msgs) { i, m ->
-                    val isTr = i in tr && textIn(i, m, lang) != null
-                    val isLoading = i in loading
+                    val isTr = m.id in tr && textIn(m, lang) != null
+                    val isLoading = m.id in loading
                     Box(Modifier.fillMaxWidth(), contentAlignment = if (m.mine) Alignment.CenterEnd else Alignment.CenterStart) {
                         Column(Modifier.fillMaxWidth(.82f).wrapContentWidth(if (m.mine) Alignment.End else Alignment.Start), horizontalAlignment = if (m.mine) Alignment.End else Alignment.Start) {
                             Column(Modifier.clip(if (m.mine) RoundedCornerShape(18.dp, 18.dp, 5.dp, 18.dp) else RoundedCornerShape(18.dp, 18.dp, 18.dp, 5.dp))
                                 .then(if (m.mine) Modifier.cssGradient(160f, Kx.accentDark, Color(0xFF1F4D36)) else Modifier.background(Color(0xFF161B18)))
                                 .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 6.dp)) {
                                 if (isLoading) { Shimmer(200); Spacer(Modifier.height(6.dp)); Shimmer(130) }
-                                else key(isTr, lang) { Text(if (isTr) textIn(i, m, lang)!! else m.t.getValue("orig"), style = ts(15, color = if (m.mine) Color(0xFFE6F6EC) else Kx.text, lh = 20.7.sp),
+                                else key(isTr, lang) { Text(if (isTr) textIn(m, lang)!! else m.t.getValue("orig"), style = ts(15, color = if (m.mine) Color(0xFFE6F6EC) else Kx.text, lh = 20.7.sp),
                                     modifier = if (isTr) Modifier.blurIn() else Modifier) }
                                 Row(Modifier.align(Alignment.End).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     val meta = if (m.mine) Color(0xFFA9D9BF) else Kx.text4
@@ -155,7 +157,7 @@ fun TranslateScreen(ctx: KxScreenCtx) {
                                 }
                             }
                             if (m.src != null && !isLoading) Box(Modifier.padding(top = 3.dp).height(26.dp).clip(RoundedCornerShape(13.dp))
-                                .kxClick { if (isTr) tr.remove(i) else translate(listOf(i)) }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                                .kxClick { if (isTr) tr.remove(m.id) else translate(listOf(m.id)) }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
                                 Text(if (isTr) "Показать оригинал" else "Перевести", style = ts(12, W700, Kx.accent))
                             }
                         }
