@@ -131,15 +131,15 @@ fun EditProfileScreen(ctx: KxScreenCtx) {
                     val g = remember { Animatable(0f) }
                     LaunchedEffect(reduced) { if (!reduced) repeat(2) { g.animateTo(1f, tween(2000, easing = CssEaseInOut)); g.animateTo(0f, tween(2000, easing = CssEaseInOut)) } }
                     val glow by animateColorAsState(s.glow, tween(400), label = "g")
-                    Canvas(Modifier.offset(y = (-14).dp).size(220.dp).graphicsLayer { alpha = .7f + .3f * g.value; val k = 1f + .1f * g.value; scaleX = k; scaleY = k }) {
+                    Box(Modifier.matchParentSize().wrapContentSize(Alignment.TopCenter, unbounded = true)) { Canvas(Modifier.offset(y = (-14).dp).size(220.dp).graphicsLayer { alpha = .7f + .3f * g.value; val k = 1f + .1f * g.value; scaleX = k; scaleY = k }) {
                         drawCircle(Brush.radialGradient(listOf(glow, glow.copy(alpha = 0f)), center, size.minDimension / 2 * 1.41421f * .65f), size.minDimension / 2)
-                    }
+                    } }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         val a1 by animateColorAsState(s.a1, tween(400), label = "a1"); val a2 by animateColorAsState(s.a2, tween(400), label = "a2")
                         Box(Modifier.size(116.dp).kxClick("Изменить фото") { photo = true }) {
                             Box(Modifier.matchParentSize().shadow(24.dp, CircleShape, ambientColor = Color.Black, spotColor = Color.Black).clip(CircleShape).cssGradient(140f, 0f to a1, 1f to a2),
                                 contentAlignment = Alignment.Center) { Text(initials, style = KxType.style(44.sp, FontWeight.Bold, s.ink)) }
-                            Box(Modifier.align(Alignment.BottomEnd).size(44.dp).offset(3.dp, 3.dp).clip(CircleShape).background(Kx.bg).padding(3.dp).clip(CircleShape).background(Kx.accent),
+                            Box(Modifier.align(Alignment.BottomEnd).size(38.dp).clip(CircleShape).background(Kx.bg).padding(3.dp).clip(CircleShape).background(Kx.accent),
                                 contentAlignment = Alignment.Center) { Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(20.dp), tint = Kx.onAccent) }
                         }
                         Text("$first $last".trim().ifEmpty { "Без имени" }, style = KxType.style(20.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 12.dp))

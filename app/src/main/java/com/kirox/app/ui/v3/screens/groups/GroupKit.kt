@@ -165,12 +165,13 @@ fun BoxScope.GxConfirm(visible: Boolean, title: String, text: String, confirm: S
 
 @Composable
 fun GxPillButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp, bg: Color = Kx.w(.08f), brush: Brush? = null, ink: Color = Kx.text,
-                 size: Int = 15, weight: FontWeight = FontWeight.Bold, icon: ImageVector? = null, enabled: Boolean = true, onClick: () -> Unit) {
+                 size: Int = 15, weight: FontWeight = FontWeight.Bold, icon: ImageVector? = null, enabled: Boolean = true,
+                 iconSize: Dp = 22.dp, gap: Dp = 8.dp, hPad: Dp = 12.dp, onClick: () -> Unit) {
     val shape = RoundedCornerShape(height / 2)
     Row(modifier.height(height).clip(shape).then(if (brush != null) Modifier.background(brush) else Modifier.background(bg))
-        .kxClick(enabled = enabled, onClick = onClick).padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
-        if (icon != null) Icon(icon, null, Modifier.size(22.dp), tint = ink)
+        .kxClick(enabled = enabled, onClick = onClick).padding(horizontal = hPad),
+        horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+        if (icon != null) Icon(icon, null, Modifier.size(iconSize), tint = ink)
         Text(text, style = KxType.style(size.sp, weight, ink), maxLines = 1)
     }
 }

@@ -102,7 +102,7 @@ fun InviteScreen(ctx: KxScreenCtx) {
                         style = KxType.style(12.sp, color = Kx.text3))
                 }
             }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 40.dp)) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 40.dp)) {
                 MainCard(main, onCopy = { copy(primary?.link ?: "https://t.me/+$main"); tip.say("Ссылка скопирована", Icons.Rounded.ContentCopy) }, onShare = { tip.say("Открыли «Поделиться»", Icons.Rounded.Share) },
                     onQr = { qr = true }, onReset = { confirmReset = true })
                 Row(Modifier.padding(top = 14.dp).fillMaxWidth().height(56.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f))
@@ -222,9 +222,9 @@ private fun MainCard(main: String, onCopy: () -> Unit, onShare: () -> Unit, onQr
             }
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GxPillButton("Поделиться", Modifier.weight(1f), height = 46.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent,
-                    size = 14, weight = FontWeight.ExtraBold, icon = Icons.Rounded.Share, onClick = onShare)
-                GxPillButton("QR-код", Modifier.weight(1f), height = 46.dp, size = 14, icon = Icons.Outlined.QrCode2, onClick = onQr)
-                GxPillButton("Сменить", Modifier.weight(1f), height = 46.dp, size = 14, icon = Icons.Outlined.Autorenew, onClick = onReset)
+                    size = 14, weight = FontWeight.ExtraBold, icon = Icons.Rounded.Share, iconSize = 20.dp, gap = 6.dp, hPad = 0.dp, onClick = onShare)
+                GxPillButton("QR-код", Modifier.weight(1f), height = 46.dp, size = 14, icon = Icons.Outlined.QrCode2, iconSize = 20.dp, gap = 6.dp, hPad = 0.dp, onClick = onQr)
+                GxPillButton("Сменить", Modifier.weight(1f), height = 46.dp, size = 14, icon = Icons.Outlined.Autorenew, iconSize = 20.dp, gap = 6.dp, hPad = 0.dp, onClick = onReset)
             }
             Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row {

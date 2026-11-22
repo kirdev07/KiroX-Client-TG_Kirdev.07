@@ -105,7 +105,7 @@ fun GroupScreen(ctx: KxScreenCtx) {
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Box(Modifier.fillMaxWidth().height(280.dp).background(Brush.verticalGradient(listOf(Color(0x802E6B66), Color(0x000A0C0B)))))
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).statusBarsPadding().padding(bottom = 24.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).statusBarsPadding().navigationBarsPadding().padding(bottom = 24.dp)) {
             Column(Modifier.fillMaxWidth().padding(top = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.gxPopIn(500).size(100.dp).shadow(28.dp, RoundedCornerShape(34.dp), ambientColor = Color.Black, spotColor = Color.Black)
                     .clip(RoundedCornerShape(34.dp)).cssLinear(140f, Color(0xFF2E8A80), Color(0xFF133A36)), contentAlignment = Alignment.Center) {
@@ -191,7 +191,7 @@ private fun GAction(icon: ImageVector, label: String, modifier: Modifier, onClic
 @Composable
 private fun GManage(ctx: KxScreenCtx, chatId: Long?, boost: com.kirox.app.ui.v3.model.KxBoostStatus?, tools: List<GTool>, slow: Int, onSlow: (Int) -> Unit, req: Boolean, onReq: () -> Unit, onBack: () -> Unit) {
     GxSubScreen("Управление", onBack) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp),
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).cssLinear(150f, Color(0x4D6E58C9), Kx.w(.03f))
                 .border(1.dp, Color(0x38C9A6FF), RoundedCornerShape(22.dp)).kxClick("Бусты") { ctx.open(if (chatId != null) "Boosts:$chatId" else "Boosts") }.padding(14.dp)) {

@@ -106,7 +106,7 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
                 }
             }
         }
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 30.dp)) {
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 30.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())) {
             itemsIndexed(shown, key = { _, (f, i) -> "$tab/$i/${f.done}" }) { k, (f, i) -> DlRow(f, Modifier.kxRise(k * 40, 250),
                 onToggle = { list[i] = list[i].copy(paused = !list[i].paused) }, onCancel = { list[i] = list[i].copy(gone = true) }) }
             if (shown.isEmpty()) item {

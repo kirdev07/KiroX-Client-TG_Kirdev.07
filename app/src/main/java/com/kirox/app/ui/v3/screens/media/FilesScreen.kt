@@ -104,7 +104,7 @@ fun FilesScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
-            LazyColumn(Modifier.fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 10.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
+            LazyColumn(Modifier.fillMaxSize().padding(start = 12.dp, end = 12.dp, top = 10.dp), contentPadding = PaddingValues(bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())) {
                 itemsIndexed(list, key = { _, f -> "$cat/$big/$q/${f.name}" }) { i, f ->
                     Row(Modifier.fillMaxWidth().height(62.dp).kxRise(i * 30, 350).clip(RoundedCornerShape(16.dp)).kxClick { sheet = f }.padding(horizontal = 6.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

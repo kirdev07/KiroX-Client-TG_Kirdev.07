@@ -129,7 +129,7 @@ fun PinnedMsgsScreen(ctx: KxScreenCtx) {
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(buildAnnotatedString {
                                 append(m.text); append("  ")
-                                withStyle(SpanStyle(fontSize = 11.sp, color = ink.copy(alpha = .6f))) { append(m.t) }
+                                withStyle(SpanStyle(fontSize = 11.sp, color = ink.copy(alpha = .6f))) { append(m.t.replace(" ", "\u00A0")) }
                             }, style = KxType.style(15.sp, color = ink, lineHeight = 21.sp), modifier = Modifier.weight(1f, false))
                             if (pinned) Icon(Icons.Rounded.PushPin, "Закреплено", Modifier.padding(start = 4.dp, bottom = 3.dp).size(13.dp), tint = if (m.me) Kx.onAccent else Kx.accent)
                         }

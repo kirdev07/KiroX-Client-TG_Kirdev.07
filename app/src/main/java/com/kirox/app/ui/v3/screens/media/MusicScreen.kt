@@ -94,7 +94,7 @@ fun MusicScreen(ctx: KxScreenCtx) {
                         .cssGrad(150f, 0f to Color(0xFF3E7A5A), .75f to Color(0xFF10241A))
                         .kxClick { cur = (L.indices).random(); pos = 0; playing = true; shuffle = true }.padding(14.dp)) {
                         Icon(Icons.Rounded.GraphicEq, null, Modifier.align(Alignment.TopEnd).offset(2.dp, (-2).dp).size(40.dp), tint = Color(200, 240, 216).copy(alpha = .35f))
-                        Column(Modifier.align(Alignment.BottomStart)) {
+                        Column(Modifier.align(Alignment.BottomStart).padding(end = 44.dp)) {
                             T("Вся музыка", 17.sp, FontWeight.ExtraBold)
                             T("48 треков · Перемешать", 12.sp, color = Color(0xFFBFDCCB))
                         }

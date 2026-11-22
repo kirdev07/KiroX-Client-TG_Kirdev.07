@@ -263,7 +263,7 @@ private fun GcBtn(icon: androidx.compose.ui.graphics.vector.ImageVector, label: 
     val b by animateColorAsState(bg, tween(200), label = "b"); val i by animateColorAsState(ink, tween(200), label = "i")
     Column(Modifier.width(60.dp).kxClick(label, onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.size(50.dp).clip(CircleShape).background(b), contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(24.dp), tint = i) }
-        Text(label, style = ts(11.sp, color = Kx.text2), maxLines = 1, softWrap = false)
+        Text(label, style = ts(11.sp, color = Kx.text2), maxLines = 1, softWrap = false, modifier = Modifier.wrapContentWidth(unbounded = true))
     }
 }
 

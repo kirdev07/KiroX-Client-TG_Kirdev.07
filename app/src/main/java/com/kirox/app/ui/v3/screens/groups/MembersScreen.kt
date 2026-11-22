@@ -117,7 +117,7 @@ fun MembersScreen(ctx: KxScreenCtx) {
                         contentAlignment = Alignment.Center) { Text(t, style = KxType.style(13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text2), maxLines = 1) }
                 }
             }
-            LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 16.dp)) {
+            LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 16.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())) {
                 items(list, key = { "${it.id}-$k" }) { x ->
                     val r = role(x); val tg = tag(r, x)
                     val sub = if (r == "restricted" && !x.role.startsWith("restr")) "без медиа на 1 день" else x.seen

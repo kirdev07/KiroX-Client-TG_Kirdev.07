@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -186,7 +187,7 @@ private fun SessionRow(d: DSession, leaving: Boolean, onAsk: () -> Unit) {
         Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(d.bg), contentAlignment = Alignment.Center) { Icon(d.icon, null, Modifier.size(21.dp), tint = d.ink) }
         Column(Modifier.weight(1f)) {
             Text(d.name, style = KxType.style(14.sp, FontWeight.SemiBold), maxLines = 1)
-            Text(d.where, style = KxType.style(12.sp, color = Kx.text4), maxLines = 1)
+            Text(d.where, style = KxType.style(12.sp, color = Kx.text4), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(Modifier.size(38.dp).clip(CircleShape).background(Color(229, 72, 77).copy(alpha = .10f)).kxClick("Завершить сеанс", onClick = onAsk), contentAlignment = Alignment.Center) {
             Icon(Icons.AutoMirrored.Outlined.Logout, null, Modifier.size(20.dp), tint = Kx.danger)

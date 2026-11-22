@@ -101,7 +101,7 @@ fun VideoCallScreen(ctx: KxScreenCtx) {
         if (live) Box(Modifier.fillMaxSize().padding(top = 70.dp, bottom = 210.dp).kxClick("Показать или скрыть кнопки") { ui = !ui; key = false })
 
         if (phase != "ended") {
-            val top by animateDpAsState(if (pipLow) 470.dp else if (live && ui) 74.dp else 24.dp, tween(450, easing = CubicBezierEasing(.34f, 1.45f, .5f, 1f)), label = "pip")
+            val top by animateDpAsState(if (pipLow) 470.dp else if (ui) 74.dp else 24.dp, tween(450, easing = CubicBezierEasing(.34f, 1.45f, .5f, 1f)), label = "pip")
             val mirror by animateFloatAsState(if (front) 1f else -1f, tween(300), label = "mirror")
             Box(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = top, end = 16.dp).size(104.dp, 150.dp)
                 .shadow(36.dp, RoundedCornerShape(22.dp), ambientColor = Color.Black.copy(alpha = .55f), spotColor = Color.Black.copy(alpha = .55f))

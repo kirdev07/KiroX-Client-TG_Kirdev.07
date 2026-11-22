@@ -109,8 +109,9 @@ fun SwipeScreen(ctx: KxScreenCtx) {
                     val x by animateDpAsState(if (sw > 0) 96.dp else if (sw < 0) (-96).dp else 0.dp, tween(350, easing = CubicBezierEasing(.2f, .9f, .3f, 1f)), label = "x")
                     // first-visit hint: row 0 peeks right, row 1 peeks left
                     val hint = remember { Animatable(0f) }
+                    val reducedHint = com.kirox.app.ui.v3.theme.LocalKxReducedMotion.current
                     LaunchedEffect(Unit) {
-                        if (i <= 1) { delay(if (i == 0) 400 else 1100); hint.animateTo(1f, tween(1600, easing = TEase)) }
+                        if (i <= 1 && !reducedHint) { delay(if (i == 0) 400 else 1100); hint.animateTo(1f, tween(1600, easing = TEase)) }
                     }
                     val hx = if (!hinted && i <= 1) kf(hint.value, fa(0f, .4f, .6f, 1f), fa(0f, 70f, 70f, 0f)) * (if (i == 0) 1f else -1f) else 0f
                     Box(Modifier.padding(bottom = 4.dp).fillMaxWidth().height(72.dp).clip(RoundedCornerShape(18.dp))) {
