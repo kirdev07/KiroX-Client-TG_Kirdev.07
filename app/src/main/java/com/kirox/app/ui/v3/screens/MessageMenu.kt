@@ -106,7 +106,7 @@ fun MessageMenuSheet(
                 if (m.canDeleteForMe || m.canDeleteForAll) MenuItem(Icons.Outlined.Delete, "Удалить…", danger = true) { deleting = true }
             }
         }
-        if (deleting) DeleteSheet(m, peerName, canDeleteForAll, onCancel = onDismiss, onDelete = onDelete, modifier = Modifier.align(Alignment.BottomCenter))
+        if (deleting) DeleteSheet(m, peerName, canDeleteForAll, onCancel = onDismiss, onDelete = onDelete, modifier = Modifier.align(Alignment.BottomCenter), canDeleteForMe = m.canDeleteForMe)
     }
 }
 
@@ -121,7 +121,9 @@ private fun MenuItem(icon: ImageVector, label: String, danger: Boolean = false, 
 
 /** Bottom sheet «Удалить сообщение?» (radius 30 on top, solid — no glass). */
 @Composable
-fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCancel: () -> Unit, onDelete: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCancel: () -> Unit, onDelete: (Boolean) -> Unit, modifier: Modifier = Modifier, canDeleteForMe: Boolean = true) {
+    // Telegram's three cases: both (checkbox), for everyone only (supergroups/channels), only for me.
+    val forAllOnly = canDeleteForAll && !canDeleteForMe
     var both by remember { mutableStateOf(true) }
     val y = remember { Animatable(1f) }
     LaunchedEffect(Unit) { y.animateTo(0f, tween(300, easing = KxMotion.rise)) }
@@ -135,7 +137,8 @@ fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCanc
         Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 14.dp).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))
         Text("Удалить сообщение?", style = KxType.style(18.sp, FontWeight.ExtraBold))
         KxLine(m.text.ifEmpty { "Медиа" }, KxType.style(14.sp, color = Kx.text2), Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.w(.05f)).padding(horizontal = 12.dp, vertical = 10.dp))
-        if (canDeleteForAll) Row(Modifier.padding(top = 10.dp).fillMaxWidth().heightIn(min = 52.dp).kxClick(role = androidx.compose.ui.semantics.Role.Checkbox) { both = !both },
+        if (forAllOnly) Text("Сообщение удалится у всех участников чата.", style = KxType.caption, modifier = Modifier.padding(top = 6.dp))
+        else if (canDeleteForAll) Row(Modifier.padding(top = 10.dp).fillMaxWidth().heightIn(min = 52.dp).kxClick(role = androidx.compose.ui.semantics.Role.Checkbox) { both = !both },
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.size(24.dp).clip(RoundedCornerShape(7.dp)).background(if (both) Kx.accent else Color.Transparent)
                 .border(2.dp, if (both) Kx.accent else Kx.w(.3f), RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) {
@@ -145,7 +148,7 @@ fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCanc
         } else Text("Чужое сообщение удалится только у вас.", style = KxType.caption, modifier = Modifier.padding(top = 6.dp))
         Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             KxButton("Отмена", Modifier.weight(1f), KxButtonKind.Quiet, height = 50.dp, onClick = onCancel)
-            KxButton("Удалить", Modifier.weight(1f), KxButtonKind.Danger, height = 50.dp) { onDelete(canDeleteForAll && both) }
+            KxButton("Удалить", Modifier.weight(1f), KxButtonKind.Danger, height = 50.dp) { onDelete(forAllOnly || (canDeleteForAll && both)) }
         }
     }
 }
