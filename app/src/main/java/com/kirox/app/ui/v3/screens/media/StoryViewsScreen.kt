@@ -82,9 +82,13 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
             Viewer(v.name, v.name.take(1).uppercase(), VColors[(v.userId and 0x7fffffff).toInt() % VColors.size], v.time, v.reaction, false, v.userId, v.avatar)
         }
     }
+    // Real totals come from the story itself (the viewer list is one page of at most 100).
+    var stats by remember { mutableStateOf<KxPostStats?>(null) }
+    if (live) LaunchedEffect(storyId) { stats = store.storyStats(storyId!!) }
     val reacted = viewers.filter { it.react.isNotEmpty() }
     val list = when (tab) { 0 -> viewers; 1 -> reacted; else -> viewers.filter { it.close } }
-    val total = if (live) viewers.size else 1248
+    val total = if (live) maxOf(stats?.views ?: 0, viewers.size) else 1248
+    val reactions = if (live) maxOf(stats?.reactions ?: 0, reacted.size) else reacted.size + 92
     fun count(n: Int) = n.toString().reversed().chunked(3).joinToString(" ").reversed()
     val sheetY = remember { Animatable(1f) }
     LaunchedEffect(Unit) { sheetY.animateTo(0f, tween(400, easing = KxMotion.rise)) }
@@ -121,7 +125,7 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Outlined.Visibility, null, tint = Kx.accent); T(count(total), 18.sp, FontWeight.ExtraBold)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Rounded.Favorite, null, Modifier.size(20.dp), tint = Kx.danger); T(if (live) "${reacted.count { it.react == "❤️" || it.react == "❤" }}" else "${reacted.count { it.react == "❤️" } + 86}", 15.sp, FontWeight.Bold, Kx.danger)
+                    Icon(Icons.Rounded.Favorite, null, Modifier.size(20.dp), tint = Kx.danger); T(if (live) "$reactions" else "${reacted.count { it.react == "❤️" } + 86}", 15.sp, FontWeight.Bold, Kx.danger)
                 }
                 Spacer(Modifier.weight(1f))
                 MRoundBtn(Icons.Outlined.IosShare, "Поделиться историей", size = 40.dp, iconSize = 20.dp, bg = Kx.w(.07f), border = null) { toast.show(if (live) "Ссылка на историю пока недоступна" else "Ссылка на историю скопирована", Icons.Rounded.Link) }
@@ -133,7 +137,7 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("Все · ${count(total)}", "С реакцией · ${if (live) reacted.size else reacted.size + 92}", "Близкие друзья").forEachIndexed { i, label ->
+                listOf("Все · ${count(total)}", "С реакцией · $reactions", "Близкие друзья").forEachIndexed { i, label ->
                     val on = tab == i
                     val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f), tween(200), label = "t")
                     Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(bg).kxClick { tab = i }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {

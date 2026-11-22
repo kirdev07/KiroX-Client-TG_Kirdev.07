@@ -320,7 +320,7 @@ interface KxStore {
     /** Joins by invite link: null = joined, "request" = join request sent (admins decide), else the error text. */
     suspend fun joinByInviteLink(link: String): String? = null
 
-    // Message requests: chats a stranger started (loaded chats only, newest first)
+    // Message requests: chats a stranger started (main list + archive, newest first)
     suspend fun messageRequests(): List<KxRequest> = emptyList()
     /** Keeps the chat and drops the stranger bar. Delete = [deleteChat], block = [block] + [deleteChat]. */
     fun acceptRequest(chatId: Long) {}
@@ -331,6 +331,8 @@ interface KxStore {
     // Own stories
     /** Who viewed own story [storyId] (newest first, up to 100) with their reactions. */
     suspend fun storyViewers(storyId: Int): List<KxStoryViewer> = emptyList()
+    /** Own story totals from Telegram: KxPostStats.views and .reactions (forwards/comments 0); null when unknown. */
+    suspend fun storyStats(storyId: Int): KxPostStats? = null
     /** Deletes an own story — only after the user confirmed. */
     suspend fun deleteStory(storyId: Int): String? = null
 }

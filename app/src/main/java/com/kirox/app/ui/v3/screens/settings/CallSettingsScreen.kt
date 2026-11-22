@@ -63,6 +63,8 @@ fun CallSettingsScreen(ctx: KxScreenCtx) {
     val prefKeys = mapOf("ring" to KxPrefs.RINGTONE, "data" to KxPrefs.CALL_DATA)
     val privacy = store.privacy
     fun value(k: String): Int = privacyKeys[k]?.let { key -> privacy.firstOrNull { it.key == key }?.level ?: 0 } ?: store.pref(prefKeys.getValue(k))
+    // Privacy rows stay inert until Telegram's rules arrive, so a tap can never write a guessed level.
+    fun ready(k: String) = privacyKeys[k]?.let { key -> privacy.any { it.key == key } } ?: true
     fun choose(k: String, v: Int) { privacyKeys[k]?.let { store.setPrivacy(it, v) } ?: store.putPref(prefKeys.getValue(k), v) }
     var sheet by remember { mutableStateOf("") }
 
@@ -102,11 +104,11 @@ fun CallSettingsScreen(ctx: KxScreenCtx) {
                 }
                 Caption16("Приватность")
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg)) {
-                    SetLine(Icons.Outlined.Call, "Кто может звонить", "Остальные не дозвонятся", false, role = Role.Button, onClick = { sheet = "calls" }) {
-                        ValueChevron(CSheets.getValue("calls").opts[value("calls")].first)
+                    SetLine(Icons.Outlined.Call, "Кто может звонить", "Остальные не дозвонятся", false, role = Role.Button, onClick = { if (ready("calls")) sheet = "calls" }) {
+                        ValueChevron(if (ready("calls")) CSheets.getValue("calls").opts[value("calls")].first else "…")
                     }
-                    SetLine(Icons.Outlined.Lan, "Прямое соединение", "Peer-to-peer для звонков", true, role = Role.Button, onClick = { sheet = "p2p" }) {
-                        ValueChevron(CSheets.getValue("p2p").opts[value("p2p")].first)
+                    SetLine(Icons.Outlined.Lan, "Прямое соединение", "Peer-to-peer для звонков", true, role = Role.Button, onClick = { if (ready("p2p")) sheet = "p2p" }) {
+                        ValueChevron(if (ready("p2p")) CSheets.getValue("p2p").opts[value("p2p")].first else "…")
                     }
                 }
                 Text("Прямое соединение быстрее, но собеседник может узнать ваш IP-адрес. Через серверы Telegram адрес скрыт.", style = KxType.style(12.sp, color = Kx.text4, lineHeight = 17.sp),

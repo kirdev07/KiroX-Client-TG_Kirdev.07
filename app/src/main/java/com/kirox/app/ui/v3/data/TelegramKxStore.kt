@@ -1284,11 +1284,17 @@ class TelegramKxStore(
         KxInviteInfo(i.chatId, i.title, i.channel, i.public, i.members, i.knownNames, i.description, i.byRequest, autoPath(i.photo, paths.value), i.member)
     }
     override suspend fun messageRequests(): List<KxRequest> {
+        // Chats from strangers are often auto-archived («Архивировать новые чаты»): load the archive's first
+        // page too when nothing of it is known yet, and wait a moment for it.
+        if (items.values.none { it.archived }) {
+            loadMoreChats(-1)
+            repeat(15) { if (items.values.any { it.archived }) return@repeat; delay(200) }
+        }
         val contactIds = vm.users.contacts.value.map { it.id }.toSet()
         val candidates = items.values.filter {
             it.kind == com.kirox.app.telegram.TelegramChatKind.Private && it.peerUserId != 0L && !it.isBot && !it.isSaved && !it.isSecret &&
                 it.peerUserId !in contactIds && it.peerUserId != me.id
-        }.sortedByDescending { it.timestamp }.take(40)
+        }.sortedByDescending { it.timestamp }.take(60)
         val known = paths.value
         return candidates.mapNotNull { c ->
             if (!vm.chats.fromStranger(c.id)) return@mapNotNull null
@@ -1303,6 +1309,8 @@ class TelegramKxStore(
         val known = paths.value
         return orNull { vm.stories.viewers(storyId) }.orEmpty().map { KxStoryViewer(it.userId, it.name, KxFormat.ago(it.date), it.reaction.orEmpty(), autoPath(it.photo, known)) }
     }
+    override suspend fun storyStats(storyId: Int): KxPostStats? =
+        vm.stories.story(me.id, storyId)?.let { KxPostStats(it.viewCount, 0, it.reactionCount, 0) }
     override suspend fun deleteStory(storyId: Int): String? = attempt { vm.stories.delete(me.id, storyId) }
     override suspend fun translateMessage(chatId: Long, messageId: Long, toLang: String): String? {
         // The board says why it failed; no store.error banner on top of that.

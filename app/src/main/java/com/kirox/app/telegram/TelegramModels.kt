@@ -321,6 +321,8 @@ data class TelegramStory(
     /** Own story: views (and who viewed) can be shown. */
     val canSeeViews: Boolean = false,
     val viewCount: Int = 0,
+    /** Own story: reactions left by viewers. */
+    val reactionCount: Int = 0,
     /** Emoji reaction this account set, or null. */
     val chosenReaction: String? = null
 )

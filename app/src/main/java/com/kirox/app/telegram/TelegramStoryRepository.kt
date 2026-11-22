@@ -145,6 +145,7 @@ internal fun toStory(story: TdApi.Story): TelegramStory {
         canDelete = story.canBeDeleted,
         canSeeViews = story.canGetInteractions,
         viewCount = story.interactionInfo?.viewCount ?: 0,
+        reactionCount = story.interactionInfo?.reactionCount ?: 0,
         chosenReaction = (story.chosenReactionType as? TdApi.ReactionTypeEmoji)?.emoji
     )
 }
