@@ -185,10 +185,11 @@ internal fun MoInput(value: String, onValue: (String) -> Unit, placeholder: Stri
 @Composable
 internal fun BoxScope.MoSheet(onClose: () -> Unit, pad: PaddingValues = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp),
                               grabGap: Dp = 14.dp, scrim: Float = .55f, durMs: Int = 300,
-                              colors: List<Color> = listOf(Color(0xF828302C), Color(0xFC121614)), line: Color = Kx.w(.16f), content: @Composable ColumnScope.() -> Unit) {
+                              colors: List<Color> = listOf(Color(0xF828302C), Color(0xFC121614)), line: Color = Kx.w(.16f), between: @Composable () -> Unit = {}, content: @Composable ColumnScope.() -> Unit) {
     val p = moEnter(durMs, easing = KxMotion.rise)
     val f = moEnter(200)
     Box(Modifier.matchParentSize().graphicsLayer { alpha = f }.background(Color.Black.copy(alpha = scrim)).kxClick("Закрыть", onClick = onClose))
+    between() // above the dim, below the sheet (z-index 3 vs 4 on the boards)
     Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = (1f - p) * size.height }
         .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Kx.bg)
         .background(Brush.verticalGradient(colors))

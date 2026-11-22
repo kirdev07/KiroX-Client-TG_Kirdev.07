@@ -118,7 +118,7 @@ private fun Banner(m: BnMsg, replying: Boolean, chars: Int, hearted: Boolean, bk
             translationY = if (p < .7f) (-1.2f * h) * (1f - p / .7f) + 6.dp.toPx() * (p / .7f) else 6.dp.toPx() * (1f - (p - .7f) / .3f)
         }
         .shadow(40.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = .55f), spotColor = Color.Black.copy(alpha = .55f))
-        .clip(RoundedCornerShape(24.dp)).background(Brush.verticalGradient(listOf(Color(0xF738423D), Color(0xF71E2421))))
+        .clip(RoundedCornerShape(24.dp)).background(Brush.verticalGradient(listOf(Color(0xFF38423D), Color(0xFF1E2421))))
         .border(1.dp, Kx.w(.16f), RoundedCornerShape(24.dp))) {
         Row(Modifier.fillMaxWidth().kxClick("Открыть чат", onClick = onOpen).padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

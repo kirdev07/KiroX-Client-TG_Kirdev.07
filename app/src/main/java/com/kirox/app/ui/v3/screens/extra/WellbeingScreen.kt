@@ -36,7 +36,7 @@ private val WbDays = listOf(Triple("Пн", 82, "понедельник"), Triple
 private class WbSplit(val name: String, val l: String, val c: Color, val f: Float)
 private val WbSplits = listOf(WbSplit("Kotlin-клуб", "K", Kx.accentDeep, .34f), WbSplit("Мама", "М", Color(0xFFB07A2E), .22f), WbSplit("Каналы", "К", Color(0xFF2F6E9E), .26f), WbSplit("Анна", "А", Color(0xFFC0443C), .18f))
 private val WbLimits = listOf("Нет" to 0, "45 мин" to 45, "1 час" to 60, "1,5 ч" to 90)
-private fun hm(m: Int) = if (m >= 60) "${m / 60} ч ${m % 60} мин" else "$m мин"
+private fun hm(m: Int) = if (m >= 60) (if (m % 60 == 0) "${m / 60} ч" else "${m / 60} ч ${m % 60} мин") else "$m мин" // «1 ч», not «1 ч 0 мин»
 
 /** Board «Время в kiroX»: today card (leaf), 7 day bars growing in with the dashed limit line, time per chat, daily limit chips, two switches. */
 @Composable

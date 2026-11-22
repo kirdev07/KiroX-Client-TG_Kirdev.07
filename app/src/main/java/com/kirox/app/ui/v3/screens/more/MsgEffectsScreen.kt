@@ -85,9 +85,10 @@ fun MsgEffectsScreen(ctx: KxScreenCtx) {
         }
 
         if (menu) MoPopup({ menu = false }, width = 250.dp, bottom = 80.dp, end = true, pad = 12.dp, scrim = .45f, dy = 16.dp) {
-            Row(Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Title and the Premium note on two lines: side by side they wrapped into a 3-line column at 250dp.
+            Column(Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp)) {
                 Text("Отправить с эффектом", style = mts(13, W8, Kx.text2))
-                Text("часть эффектов — с Premium", style = mts(11, W6, MoMuted), modifier = Modifier.weight(1f, fill = false))
+                Text("часть эффектов — с Premium", style = mts(11, W6, MoMuted))
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 FX.indices.chunked(4).forEach { row ->

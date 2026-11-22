@@ -135,7 +135,6 @@ fun CallWaitingScreen(ctx: KxScreenCtx) {
             Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 CwBtn(Modifier.weight(1f), Icons.Rounded.CallEnd, "Отклонить", Kx.dangerSolid.copy(alpha = .2f), Kx.danger) { incoming = false; flash("Отклонён звонок · Мама") }
                 CwBtn(Modifier.weight(1f), Icons.Rounded.PhoneForwarded, "Завершить и ответить", Kx.w(.1f), Kx.text) { incoming = false; active = "m"; hold = ""; flash("Звонок завершён · Анна") }
-                Spacer(Modifier.weight(1f))
             }
             Row(Modifier.padding(top = 8.dp).fillMaxWidth().height(36.dp).clip(RoundedCornerShape(18.dp)).kxClick("Отклонить и написать") { incoming = false; flash("Отправлено · Мама: «Перезвоню через 5 минут»") },
                 horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {

@@ -133,7 +133,7 @@ fun QrLoginScreen(ctx: KxScreenCtx) {
                 Text(if (found) "Проверьте, что это ваше устройство" else "Откройте Telegram на компьютере или telegram.org в браузере, там будет код для входа",
                     style = ts(13.sp, color = Kx.text2, lh = 19.sp), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
             }
-            Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 120.dp), horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+            Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 120.dp), horizontalArrangement = Arrangement.spacedBy(12.dp) /* 28 minus the 8+8 label padding that keeps the rounded clip off the text */) {
                 val tb by animateColorAsState(if (torch) Kx.text else Kx.w(.1f), tween(200), label = "tb")
                 val ti by animateColorAsState(if (torch) Kx.bg else Kx.text, tween(200), label = "ti")
                 QrCtl("Фонарик", if (torch) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff, tb, ti) { torch = !torch }
@@ -179,7 +179,7 @@ fun QrLoginScreen(ctx: KxScreenCtx) {
 
 @Composable
 private fun QrCtl(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, bg: Color, ink: Color, onClick: () -> Unit) {
-    Column(Modifier.clip(RoundedCornerShape(16.dp)).kxClick(label, onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.clip(RoundedCornerShape(16.dp)).kxClick(label, onClick = onClick).padding(horizontal = 8.dp, vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.size(58.dp).clip(CircleShape).background(bg).border(1.dp, Kx.w(.16f), CircleShape), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(24.dp), tint = ink)
         }

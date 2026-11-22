@@ -206,17 +206,17 @@ private fun RmCard(r: RmItem, k: Int, pop: Int, onToggle: () -> Unit, onSnooze: 
         Column(Modifier.weight(1f)) {
             Text(r.title, style = ts(15.sp, FontWeight.Bold).copy(textDecoration = if (r.done) TextDecoration.LineThrough else null))
             RmQuote(r.from, r.c, r.quote, Modifier.padding(top = 6.dp))
-            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 val hot = r.day == 0 && !r.done
-                Row(Modifier.height(26.dp).clip(RoundedCornerShape(13.dp)).background(if (hot) Kx.accent.copy(alpha = .14f) else Kx.w(.05f)).padding(horizontal = 10.dp),
+                Row(Modifier.height(26.dp).clip(RoundedCornerShape(13.dp)).background(if (hot) Kx.accent.copy(alpha = .14f) else Kx.w(.05f)).padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     val ink = if (hot) Kx.accent else Kx.text3
                     Icon(if (r.day == 0) Icons.Outlined.Alarm else Icons.Outlined.Event, null, Modifier.size(15.dp), tint = ink)
-                    Text("${rmDay(r.day)}, ${r.time}", style = ts(12.sp, FontWeight.Bold, ink))
+                    Text("${rmDay(r.day)}, ${r.time}", style = ts(12.sp, FontWeight.Bold, ink), maxLines = 1, softWrap = false)
                 }
-                if (r.rep.isNotEmpty()) Row(Modifier.height(26.dp).clip(RoundedCornerShape(13.dp)).background(Kx.w(.05f)).padding(horizontal = 10.dp),
+                if (r.rep.isNotEmpty()) Row(Modifier.height(26.dp).clip(RoundedCornerShape(13.dp)).background(Kx.w(.05f)).padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Outlined.Repeat, null, Modifier.size(15.dp), tint = Kx.text3); Text(r.rep, style = ts(12.sp, color = Kx.text3))
+                    Icon(Icons.Outlined.Repeat, null, Modifier.size(15.dp), tint = Kx.text3); Text(r.rep, style = ts(12.sp, color = Kx.text3), maxLines = 1, softWrap = false)
                 }
             }
         }

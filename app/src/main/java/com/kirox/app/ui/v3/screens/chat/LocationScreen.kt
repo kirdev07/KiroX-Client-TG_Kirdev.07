@@ -136,7 +136,7 @@ fun LocationScreen(ctx: KxScreenCtx) {
                         Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text3); Text("Поиск места", style = ts(14, color = Kx.text3))
                     }
                 }
-                Column(Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 36.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChRound(Icons.Outlined.Layers, "Слой карты", bg = Kx.w(.1f), border = Kx.w(.14f)) { zoom = !zoom }
                     ChRound(Icons.Rounded.MyLocation, "Моё местоположение", bg = Kx.w(.1f), border = Kx.w(.14f), tint = Kx.accent) { place = -1 }
                 }

@@ -140,8 +140,10 @@ fun StatusScreen(ctx: KxScreenCtx) {
                 }
             }
         }
+        // The emoji grid scrolls under the buttons: fade it out so «Убрать» and the Premium note stay readable.
+        com.kirox.app.ui.v3.components.KxBottomFade(Modifier.align(Alignment.BottomCenter))
         Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 26.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (emoji.isNotEmpty()) Box(Modifier.weight(1f).height(54.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.08f)).kxClick("Убрать") { emoji = "" }, contentAlignment = Alignment.Center) {
+            if (emoji.isNotEmpty()) Box(Modifier.weight(1f).height(54.dp).clip(RoundedCornerShape(18.dp)).background(Kx.bg).background(Kx.w(.08f)).kxClick("Убрать") { emoji = "" }, contentAlignment = Alignment.Center) {
                 Text("Убрать", style = ts(15.sp, FontWeight.Bold))
             }
             ExCta("Сохранить статус", Modifier.weight(2f), height = 54.dp, size = 15.sp) {

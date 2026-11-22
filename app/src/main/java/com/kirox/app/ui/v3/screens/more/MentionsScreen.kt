@@ -93,7 +93,7 @@ fun MentionsScreen(ctx: KxScreenCtx) {
                         onClick = { down = true; flash = -1 }) { Icon(Icons.Outlined.KeyboardArrowDown, null, Modifier.size(24.dp), tint = Kx.text) }
                 }
                 if (leftAt.size == MN_AT.size && !seenReact) Box(Modifier.align(Alignment.BottomStart).padding(start = 14.dp, bottom = 18.dp).widthIn(max = 220.dp).moIn(300, dy = 10.dp)
-                    .clip(RoundedCornerShape(16.dp)).background(Kx.accent.copy(alpha = .12f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp)).background(Color(0xFF1A241F)) /* solid: accent .12 over bg, so messages behind do not show through */.border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(16.dp))
                     .padding(horizontal = 12.dp, vertical = 10.dp)) {
                     Text("Вас упомянули 3 раза. Нажмите @ — kiroX пролистает к каждому упоминанию по очереди", style = mts(12, color = Color(0xFFC9E8D5)))
                 }

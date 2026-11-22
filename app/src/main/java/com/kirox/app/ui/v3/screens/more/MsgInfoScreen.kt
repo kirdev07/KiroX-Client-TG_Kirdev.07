@@ -74,8 +74,11 @@ fun MsgInfoScreen(ctx: KxScreenCtx) {
         }
 
         if (sheet) {
+            // The bubble stays above the dim (z-index 3) and lifts a little (kxLift .25s), but under the sheet (z-index 4).
+            val lift = moEnter(250)
             MoSheet({ sheet = false }, pad = PaddingValues(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 24.dp), durMs = 350,
-                colors = listOf(Color(0xFC28302C), Color(0xFF121614))) {
+                colors = listOf(Color(0xFC28302C), Color(0xFF121614)),
+                between = { MoLifted(bubL, rootL, Modifier.graphicsLayer { val s = 1f + .03f * lift; scaleX = s; scaleY = s }) { InfoBubble { sheet = true } } }) {
                 Text("Сведения о сообщении", style = mts(18, W8))
                 val steps = listOf(
                     InfoStep(Icons.AutoMirrored.Rounded.Send, "Отправлено", "19:36", null, true),
@@ -129,9 +132,6 @@ fun MsgInfoScreen(ctx: KxScreenCtx) {
                 MoPill(if (theirs) "Макет: Анна скрывает время" else "Макет: Анна показывает время", Modifier.padding(top = 2.dp), height = 34.dp,
                     ink = MoSub, size = 12) { theirs = !theirs }
             }
-            // The bubble stays above the dim (z-index 3) and lifts a little (kxLift .25s).
-            val lift = moEnter(250)
-            MoLifted(bubL, rootL, Modifier.graphicsLayer { val s = 1f + .03f * lift; scaleX = s; scaleY = s }) { InfoBubble { sheet = true } }
         }
     }
 }
