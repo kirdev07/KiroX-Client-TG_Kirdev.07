@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.AlternateEmail
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -38,8 +39,10 @@ import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// demo: needs store (checkUsername(name) → free/taken, setUsername(name))
+/** Suggestions skip these (board demo names). */
 private val UnTaken = listOf("kirill", "admin", "telegram", "kirox", "android", "anna", "test")
+
+// Availability: store.checkUsername (Free / Taken / Invalid / Purchasable / TooMany); «Сохранить» / «Убрать» = store.setUsername (empty removes).
 
 private fun unValidate(n: String): String = when {
     n.isEmpty() -> "empty"
@@ -54,7 +57,8 @@ private fun unValidate(n: String): String = when {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun UsernameScreen(ctx: KxScreenCtx) {
-    val current = ctx.store.me.username.ifBlank { "kirill_dev" }
+    val store = ctx.store
+    val current = if (store is com.kirox.app.ui.v3.demo.KxDemoStore) store.me.username.ifBlank { "kirill_dev" } else store.me.username
     var name by remember { mutableStateOf(current) }
     var saved by remember { mutableStateOf(current) }
     var check by remember { mutableStateOf("ok") }
@@ -70,7 +74,17 @@ fun UsernameScreen(ctx: KxScreenCtx) {
         if (err.isNotEmpty() || n == saved) { check = if (err.isNotEmpty()) "bad" else "ok"; return }
         check = "checking"; req++
     }
-    LaunchedEffect(req) { if (req > 0 && check == "checking") { delay(700); check = if (name.lowercase() in UnTaken) "taken" else "free" } }
+    LaunchedEffect(req) {
+        if (req > 0 && check == "checking") {
+            delay(500)
+            check = when (store.checkUsername(name)) {
+                com.kirox.app.ui.v3.model.KxUsernameState.Free -> "free"
+                com.kirox.app.ui.v3.model.KxUsernameState.Invalid -> "bad"
+                com.kirox.app.ui.v3.model.KxUsernameState.TooMany -> { toast.show("Слишком много публичных ссылок у аккаунта", Icons.Rounded.Info); "taken" }
+                else -> "taken"
+            }
+        }
+    }
     val err = unValidate(name)
     val errText = mapOf("empty" to "Без имени вас найдут только по номеру", "chars" to "Только латиница, цифры и _", "start" to "Должно начинаться с буквы",
         "short" to "Минимум 5 символов", "under" to "Не может кончаться на _ и содержать __")[err]
@@ -158,7 +172,12 @@ fun UsernameScreen(ctx: KxScreenCtx) {
         ExBottom {
             ExPillCta(when { clearing -> "Убрать имя"; can -> "Сохранить @$name"; same -> "Без изменений"; else -> "Сохранить" }, can, Icons.Rounded.AlternateEmail) {
                 if (!can) { scope.launch { shake.snapTo(0f); shake.animateTo(0f, keyframes { durationMillis = 300; -5f at 75; 5f at 225; 0f at 300 }) }; return@ExPillCta }
-                saved = name; check = "ok"; toast.show(if (name.isNotEmpty()) "Теперь вы @$name" else "Имя пользователя убрано", Icons.Rounded.AlternateEmail)
+                val target = name
+                scope.launch {
+                    val e = store.setUsername(target)
+                    if (e == null) { saved = target; check = "ok"; toast.show(if (target.isNotEmpty()) "Теперь вы @$target" else "Имя пользователя убрано", Icons.Rounded.AlternateEmail) }
+                    else toast.show(e, Icons.Rounded.Info)
+                }
             }
         }
         ExToast(toast, bottom = 96.dp)

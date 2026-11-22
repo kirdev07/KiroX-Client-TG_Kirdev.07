@@ -45,7 +45,9 @@ internal fun graphemes(s: String): List<String> {
 /** Board «Статус»: emoji status (Premium) with preview, pop + sparks, duration chips, emoji grid, save / remove. */
 @Composable
 fun StatusScreen(ctx: KxScreenCtx) {
-    // demo: needs store (emoji status + its expiry; Premium)
+    // Removing the status = store.setEmojiStatus(0). demo: needs store (Telegram's custom-emoji status list and expiry are not in the store yet:
+    // the board's emoji grid stays a preview, a real account only gets «Убрать»)
+    val realStore = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
     var emoji by remember { mutableStateOf("🎧") }
     var dur by remember { mutableIntStateOf(2) }
     var pop by remember { mutableIntStateOf(0) }
@@ -143,7 +145,9 @@ fun StatusScreen(ctx: KxScreenCtx) {
                 Text("Убрать", style = ts(15.sp, FontWeight.Bold))
             }
             ExCta("Сохранить статус", Modifier.weight(2f), height = 54.dp, size = 15.sp) {
-                toast.show(if (emoji.isNotEmpty()) "Статус $emoji сохранён" else "Статус убран", Icons.Rounded.CheckCircle)
+                if (emoji.isEmpty()) { ctx.store.setEmojiStatus(0); toast.show("Статус убран", Icons.Rounded.CheckCircle) }
+                else if (realStore) toast.show("Эмодзи-статусы Telegram пока не переносятся", Icons.Rounded.CheckCircle)
+                else toast.show("Статус $emoji сохранён", Icons.Rounded.CheckCircle)
             }
         }
         Text("Эмодзи-статус работает с Telegram Premium", style = ts(11.sp, color = Kx.text4), modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 6.dp))

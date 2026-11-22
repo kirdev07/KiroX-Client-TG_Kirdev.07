@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
@@ -56,9 +57,18 @@ fun AddContactScreen(ctx: KxScreenCtx) {
     var note by remember { mutableStateOf("") }
     var check by remember { mutableStateOf("idle") }
     val toast = rememberExToast()
-    // demo: needs store (look the number up in Telegram / import the contact); numbers ending in 0 are «not in Telegram».
-    LaunchedEffect(digits) {
-        if (digits.length == 10) { check = "checking"; delay(1100); check = if (digits.endsWith("0")) "none" else "found" } else check = "idle"
+    // Lookup: store.findByPhone (null = not on Telegram); «Сохранить» = store.importContact → «Добавить и написать» opens the chat.
+    // demo: needs store (QR scanner for contacts, «show my number» and the note are not sent yet)
+    val store = ctx.store
+    val scope = rememberCoroutineScope()
+    var foundStatus by remember { mutableStateOf("") }
+    LaunchedEffect(digits, cc) {
+        if (digits.length == 10) {
+            check = "checking"; delay(500)
+            val hit = store.findByPhone(AcCountries[cc].third + digits)
+            foundStatus = hit?.status.orEmpty()
+            check = if (hit == null) "none" else "found"
+        } else check = "idle"
     }
     val name = "$first $last".trim()
     val ini = ((first.take(1)) + (last.take(1))).uppercase().ifEmpty { "?" }
@@ -117,7 +127,7 @@ fun AddContactScreen(ctx: KxScreenCtx) {
                             Icon(when { found -> Icons.Outlined.Verified; none -> Icons.Outlined.PersonOff; check == "checking" -> Icons.Outlined.TravelExplore; else -> Icons.Outlined.Dialpad },
                                 null, Modifier.size(18.dp), tint = ink)
                             Text(when {
-                                found -> "Есть в Telegram · в сети недавно"; none -> "Этого номера пока нет в Telegram"; check == "checking" -> "Ищем в Telegram…"
+                                found -> "Есть в Telegram" + (if (foundStatus.isNotEmpty()) " · $foundStatus" else ""); none -> "Этого номера пока нет в Telegram"; check == "checking" -> "Ищем в Telegram…"
                                 else -> "Ещё $left " + if (left == 1) "цифра" else if (left < 5) "цифры" else "цифр"
                             }, style = ts(13.sp, color = ink))
                         }
@@ -154,7 +164,11 @@ fun AddContactScreen(ctx: KxScreenCtx) {
             val bgA by animateFloatAsState(if (can) 1f else 0f, tween(250), label = "save")
             Row(Modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(27.dp)).background(Kx.w(.07f)).graphicsLayerAlphaBg(bgA)
                 .kxClick(if (found) "Добавить и написать" else "Сохранить контакт") {
-                    if (can) toast.show("$name в контактах", Icons.Rounded.PersonAdd) else toast.show(if (first.isNotBlank()) "Введите номер целиком" else "Введите имя", Icons.Rounded.Info)
+                    if (can) scope.launch {
+                        val uid = store.importContact(first.trim(), last.trim(), c.third + digits)
+                        if (uid != null) { toast.show("$name в контактах", Icons.Rounded.PersonAdd); if (found) ctx.openChat(uid) }
+                        else toast.show(store.error?.also { store.clearError() } ?: "Этого номера нет в Telegram", Icons.Rounded.Info)
+                    } else toast.show(if (first.isNotBlank()) "Введите номер целиком" else "Введите имя", Icons.Rounded.Info)
                 }, horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                 val ink = if (can) Kx.onAccent else Color(0xFF5C6661)
                 Icon(Icons.Rounded.PersonAdd, null, Modifier.size(24.dp), tint = ink)

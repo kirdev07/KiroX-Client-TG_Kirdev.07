@@ -44,6 +44,7 @@ private val YrSlides = listOf(
 /** Board «Итоги года»: story slides with timed progress bars (5 s, auto-advance), tap zones, floating icon, blobs, top lists with growing bars, share on the last slide. */
 @Composable
 fun YearRecapScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { com.kirox.app.ui.v3.screens.KxNotYet(ctx, "Итоги года", "Итоги года kiroX посчитает по вашей переписке на этом телефоне. Эта функция ещё не подключена — выдуманных цифр не показываем."); return }
     var i by remember { mutableIntStateOf(0) }
     var k by remember { mutableIntStateOf(0) }
     val context = LocalContext.current

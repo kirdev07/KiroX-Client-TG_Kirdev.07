@@ -35,7 +35,8 @@ import com.kirox.app.ui.v3.theme.*
 
 private data class PsStep(val key: String, val icon: ImageVector, val t: String, val sub: String, val done: String)
 
-// demo: needs store (profile completeness: photo / username / bio / birthday and the screens to fill them)
+// Real account: the checklist reads store.me (avatar, username, bio, birthday) and each step opens the screen that fills it
+// (Avatars / Username / EditProfile). The demo app keeps the board's tap-to-tick demo.
 private val PsSteps = listOf(
     PsStep("photo", Icons.Rounded.AddAPhoto, "Добавить фото", "Так вас проще узнать", "Фото добавлено"),
     PsStep("user", Icons.Rounded.AlternateEmail, "Придумать имя пользователя", "Чтобы находили без номера", "@alex_codes"),
@@ -49,6 +50,13 @@ private val PsConf = listOf(Kx.accent, Kx.warning, Color(0xFF7FB8E0), Kx.premium
 fun ProfileSetupScreen(ctx: KxScreenCtx) {
     ctx.auth?.let { PsRegister(it); return }
     val ok = remember { mutableStateMapOf<String, Boolean>() }
+    val me = ctx.store.me
+    val real = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    LaunchedEffect(real, me) {
+        if (real) { ok["photo"] = me.avatar != null; ok["user"] = me.username.isNotBlank(); ok["bio"] = me.bio.isNotBlank(); ok["bday"] = me.birthday.isNotBlank() }
+    }
+    fun doneText(s: PsStep) = if (!real) s.done else when (s.key) { "user" -> "@" + me.username; "bday" -> me.birthday; else -> s.done }
+    val stepBoard = mapOf("photo" to "Avatars", "user" to "Username", "bio" to "EditProfile", "bday" to "EditProfile")
     var bump by remember { mutableIntStateOf(0) }
     var last by remember { mutableStateOf("") }
     var hide by remember { mutableStateOf(false) }
@@ -68,9 +76,9 @@ fun ProfileSetupScreen(ctx: KxScreenCtx) {
                     Text(if (photo) "🧑‍💻" else ctx.store.me.name.take(1).uppercase().ifEmpty { "А" }, style = ts(if (photo) 40.sp else 34.sp, FontWeight.ExtraBold, if (photo) Color.White else Kx.text4))
                 }
                 Text(ctx.store.me.name.ifBlank { "Алекс" }, style = ts(22.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 10.dp))
-                Text(if (ok["user"] == true) "@alex_codes" else "имя пользователя не задано", style = ts(13.sp, color = if (ok["user"] == true) Kx.accent else Kx.text4),
+                Text(if (ok["user"] == true) (if (real) "@" + me.username else "@alex_codes") else "имя пользователя не задано", style = ts(13.sp, color = if (ok["user"] == true) Kx.accent else Kx.text4),
                     modifier = Modifier.padding(top = 2.dp).psPop(last == "user", bump))
-                if (ok["bio"] == true) Text("Пишу приложения на Kotlin, люблю горы и кофе ☕", style = ts(13.sp, color = Kx.text2, lh = 18.sp), textAlign = TextAlign.Center,
+                if (ok["bio"] == true) Text(if (real) me.bio else "Пишу приложения на Kotlin, люблю горы и кофе ☕", style = ts(13.sp, color = Kx.text2, lh = 18.sp), textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 6.dp).widthIn(max = 280.dp).psPop(last == "bio", bump))
             }
             if (!hide) {
@@ -100,14 +108,14 @@ fun ProfileSetupScreen(ctx: KxScreenCtx) {
                                 val ic = if (d) Kx.accent else Kx.text2
                                 Row(Modifier.exIn(250, i * 50, 8.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp))
                                     .background(if (d) Kx.accent.copy(alpha = .06f) else Color.Black.copy(alpha = .18f))
-                                    .kxClick(s.t) { if (!d) { ok[s.key] = true; last = s.key; bump++ } }.padding(horizontal = 12.dp, vertical = 10.dp),
+                                    .kxClick(s.t) { if (real) ctx.open(stepBoard.getValue(s.key)) else if (!d) { ok[s.key] = true; last = s.key; bump++ } }.padding(horizontal = 12.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     Box(Modifier.size(34.dp).clip(RoundedCornerShape(12.dp)).background(if (d) Kx.accent.copy(alpha = .16f) else Kx.w(.06f)), contentAlignment = Alignment.Center) {
                                         Icon(if (d) Icons.Rounded.CheckCircle else s.icon, null, Modifier.size(19.dp), tint = ic)
                                     }
                                     Column(Modifier.weight(1f)) {
                                         Text(s.t, style = ts(14.sp, FontWeight.Bold, if (d) Kx.text3 else Kx.text).copy(textDecoration = if (d) TextDecoration.LineThrough else null))
-                                        Text(if (d) s.done else s.sub, style = ts(12.sp, color = Kx.text3))
+                                        Text(if (d) doneText(s) else s.sub, style = ts(12.sp, color = Kx.text3))
                                     }
                                     Icon(if (d) Icons.Outlined.Done else Icons.Outlined.ChevronRight, null, Modifier.size(20.dp), tint = ic)
                                 }

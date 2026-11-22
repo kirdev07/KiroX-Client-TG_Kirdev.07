@@ -147,3 +147,10 @@
 - 21:00 porter-tools: AppIcon done
 - 21:00 porter-tools: SettingsSearch done (results open the real boards via ctx.open)
 - 21:00 porter-tools: SecurityCheck done (step buttons open TwoStep/Lock/Devices)
+- 02:01 wiring: media — nothing to wire (every media board is «binder: not yet»), boards stay demo
+- 02:01 wiring: chat done (Search, NewMsg, Saved tags, Stickers, Poll, Location, Secret, Forward, ChatSearch, Schedule, Topics, SharedMedia, Comments, Quote → ctx.store; Bot/SendMedia stay demo — no real source on the board; Translate/StickerPack/QuickReplies/JumpDate: binder not yet); kxbuild compile GREEN
+- 21:02 porter-extra: SmartText, CallCaptions, Nearby done — all 27 second-batch extra boards ported (Seen…Nearby, shared bits in extra/ExtraKit2.kt); store needs in tg-tasks.md «porter-extra (second batch)»; kxbuild compile GREEN (exit 0)
+- 21:03 porter-tools: LoginAlert done
+- 21:03 porter-tools: LoginEmail done
+- 21:03 porter-tools: TermsUpdate done (compile: no tools errors; module blocked by extra/UsernameScreen.kt)
+- 02:05 wiring: extra done (ProfileSetup, AddContact, Username, Status (remove only), DeleteAccount (TTL + password + confirm → deleteAccount), Logout (clearCache + logout) → ctx.store; Avatars stays demo — v3 cannot draw photo files yet; Splash/Welcome/QrLogin/CountryPicker/States/Push/Help/WhatsNew/InviteFriends/NameColor/Away/Hours: binder not yet / nothing to bind); kxbuild compile GREEN

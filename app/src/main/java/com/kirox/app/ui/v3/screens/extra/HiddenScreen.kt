@@ -140,7 +140,7 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                                 val label = when (k) { "fp" -> if (finger) "Открыть по отпечатку" else "Пусто"; "del" -> "Стереть"; else -> k }
                                 Column(Modifier.weight(1f).height(70.dp).clip(RoundedCornerShape(35.dp)).background(if (ico) Color.Transparent else Kx.w(.06f))
                                     .border(1.dp, if (ico) Color.Transparent else Kx.w(.08f), RoundedCornerShape(35.dp))
-                                    .kxClick(label, enabled = k != "fp" || finger) { press(k) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                    .kxClick(label, enabled = k != "fp" || (finger && ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore)) { press(k) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                                     when (k) {
                                         "fp" -> if (finger) Icon(Icons.Outlined.Fingerprint, null, Modifier.size(34.dp), tint = Kx.accent)
                                         "del" -> Icon(Icons.AutoMirrored.Outlined.Backspace, null, Modifier.size(26.dp), tint = Kx.text)

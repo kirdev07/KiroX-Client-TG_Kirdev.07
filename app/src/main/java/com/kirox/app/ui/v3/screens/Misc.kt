@@ -1,6 +1,7 @@
 package com.kirox.app.ui.v3.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -37,5 +38,14 @@ fun KxEmpty(text: String) {
     Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Rounded.Construction, null, Modifier.size(40.dp), tint = Kx.accent)
         Text(text, style = KxType.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 12.dp))
+    }
+}
+
+/** Honest stand-in on a real account for a board whose data kiroX can't collect yet (no invented numbers). */
+@Composable
+fun KxNotYet(ctx: com.kirox.app.ui.v3.KxScreenCtx, title: String, text: String) {
+    Column(Modifier.fillMaxSize().background(com.kirox.app.ui.v3.theme.Kx.bg)) {
+        KxTopBar(title, Modifier.statusBarsPadding(), onBack = ctx.back)
+        KxEmpty(text)
     }
 }

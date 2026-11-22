@@ -293,3 +293,57 @@ So the contract fields match what TDLib can really give (binder implements, desi
 - [ ] **designer** RateApp: needs in-app feedback send (rating, tags, note); real store toasts.
 - [ ] **designer** ContactSync: needs contact sync state (enabled, phone/Telegram counts, last check), recently joined contacts, `deleteSyncedContacts()`, joined/frequent settings; real store toasts on every action (delete keeps its confirm dialog).
 - [ ] **designer** BugReport: needs bug report send (kind, text, redacted screenshot, tech log) → report id; real store toasts.
+
+### porter-tools (screens/tools/*) — store needs; boards use demo constants marked `// demo: needs store`
+- [ ] **designer** NightMode: needs night-mode prefs (mode always/schedule/sunset/system, from/to hours, night theme) + sunset/sunrise times.
+- [ ] **designer** AutoDelete: needs chat auto-delete timer get/set (setChatMessageAutoDeleteTime) + default timer for new chats (setDefaultMessageAutoDeleteTime). Board reads chat title via ctx.arg chat id.
+- [ ] **designer** Traffic: needs network statistics per network type and category (getNetworkStatistics) + resetNetworkStatistics.
+- [ ] **designer** Sounds: needs notification sound per scope (private/groups/channels), saved custom sounds (getSavedNotificationSounds / addSavedNotificationSound from file), sound playback.
+- [ ] **designer** ChatNotify: needs per-chat mute-for duration (mute_for seconds, store only has setMuted bool), mentions-only, show preview, vibration, pinned-message notifications, sound. Board calls store.setMuted(chatId) when ctx.arg is a chat id.
+- [ ] **designer** Dnd: needs do-not-disturb state (on/until), exception people, calls/repeat-call flags, nightly schedule.
+- [ ] **designer** WordFilter: needs word filter prefs (on, words, presets, action hide/blur/flag, scopes) and applying it to incoming messages.
+- [ ] **designer** ChangeNumber: needs changePhoneNumber flow (sendPhoneNumberCode for change → checkPhoneNumberCode → resend). Board shows store.me.phone masked; demo code 24680.
+- [ ] **designer** Access: needs accessibility prefs (text scale, bold, high contrast, outlines, big buttons, motion, voice captions, colour palette) read by KxTheme.
+- [ ] **designer** Offline: explainer chat only; real queue would come from message sending states (pending/failed + retry).
+- [ ] **designer** KeyCheck: needs active call info (peer, duration, emoji fingerprint `emojis` of callStateReady) + discardCall.
+- [ ] **designer** Cleanup: needs per-chat last-opened date + unread, leaveChat for many, archive many, undo.
+- [ ] **designer** Backup: needs kiroX settings backup to Saved Messages (create/restore/list, weekly auto).
+- [ ] **designer** Import: needs message import (checkChatsImport / importMessages) from a shared file + target chat pick + progress.
+- [ ] **designer** Export: needs chat export to Downloads/kiroX Export (HTML/JSON, kinds, size limit, period) with progress; open folder / share intent.
+- [ ] **designer** Widgets: needs an AppWidgetProvider + requestPinAppWidget; widget style pref. Preview already uses store.chats.
+- [ ] **designer** Shortcuts: needs ShortcutManager dynamic shortcuts (frequent chats + actions), requestPinShortcut, launcher badge pref.
+- [ ] **designer** Bubbles: needs Android bubbles (BubbleMetadata) + bubble activity.
+- [ ] **designer** ChatGestures / Swipe: needs gesture prefs (chat: swipe L/R, double tap, long press; chat list: swipe L/R actions) read by chat and chat list.
+- [ ] **designer** Wallpaper: needs chat wallpaper prefs (preset/gallery picker, blur, motion, dim; all chats or one chat via ctx.arg).
+- [ ] **designer** AppIcon: needs activity-alias icons + setComponentEnabledSetting; current icon pref.
+- [ ] **designer** SettingsSearch: recent searches persistence (results already open real boards).
+- [ ] **designer** SecurityCheck: needs hasPassword, recovery e-mail pattern, passcode on, stale sessions count, phone privacy → ok states (buttons open TwoStep/Lock/Devices).
+
+### porter-extra (second batch: Seen … Nearby)
+- [ ] **designer** Seen: needs message read list (member, read time; getMessageViewers) + reactions per member (getMessageAddedReactions).
+- [ ] **designer** Explore: needs recommended / searched public chats (getRecommendedChats, searchPublicChats, getChatSimilarChats) + join/leave.
+- [ ] **designer** Remind: needs message reminders store (list, create from message, done, snooze +1h, repeat).
+- [ ] **designer** PlanCall: needs scheduled group call (createVideoChat start_date / is_rtmp_stream, toggleVideoChatEnabledStartNotification, invite link, start now).
+- [ ] **designer** LinkPreview: needs getLinkPreview for the draft + send with LinkPreviewOptions (is_disabled, force_small/large_media, show_above_text).
+- [ ] **designer** QuickReact: needs default reaction (setDefaultReactionType / getDefaultReaction); animation / haptic / big chips as local prefs.
+- [ ] **designer** Hidden: needs hidden-chats list + local passcode / biometric unlock (fingerprint key currently unlocks directly — wire BiometricPrompt).
+- [ ] **designer** StickerMaker: needs photo pick + on-device subject cut-out, createNewStickerSet/addStickerToSet («Мои стикеры»), send as sticker.
+- [ ] **designer** ViewOnce: needs view-once photo message (open → self-destruct timer from TDLib, viewed state); FLAG_SECURE already set while open.
+- [ ] **designer** Dictate: needs on-device speech recognition (words + level) → send as text. Simulated words play only on KxDemoStore.
+- [ ] **designer** CallWaiting: needs call state with active + held calls, incoming-while-in-call, merge to group call, decline with message. Incoming card only on KxDemoStore.
+- [ ] **designer** Watch: needs Wear OS companion state (connected, battery), mirroring prefs, quick replies. Notification simulation only on KxDemoStore.
+- [ ] **designer** Drive: needs driving-mode auto-reply «Я за рулём» + speed source; real account already uses unread unmuted chats, TTS read-aloud, reply → openChat, call → store.call.
+- [ ] **designer** Digest: needs «replies to you» per chat (KxChat has unreadMention only) + morning digest schedule; real account uses mentions + unread private chats, markRead.
+- [ ] **designer** Checklist: needs checklist messages (inputMessageChecklist, markChecklistTasksAsDone, addChecklistTasks; who checked).
+- [ ] **designer** ShareContact: needs send contact (inputMessageContact with chosen fields, own phone), contacts list for picking, import incoming contact / open its chat.
+- [ ] **designer** MeetTime: needs multi-answer poll rendered as a day×time grid (votes per option, voters, my votes) + «назначить» → event.
+- [ ] **designer** ContactNote: needs addContact with own first/last name + private user note (setUserNote / userFullInfo.note); emoji + tags local.
+- [ ] **designer** ListenTogether: needs a kiroX sync server (board marks it as an idea); others' reactions simulated only on KxDemoStore.
+- [ ] **designer** Memories: needs messages/media from this day in past years (searchChatMessages by date) + open chat at that date + forward.
+- [ ] **designer** PhotoSearch: needs on-device OCR index of chat photos + open message in chat.
+- [ ] **designer** YearRecap: needs year stats (messages sent, top chats, top emoji, peak hour, voice/call hours) — numbers are board demo values on every store.
+- [ ] **designer** Wellbeing: needs local usage tracking per day/chat + limit / break reminder / quiet-after-23 prefs.
+- [ ] **designer** ReadAloud: needs the post from the real chat (speaks via TextToSpeech already).
+- [ ] **designer** SmartText: needs entity detection on message text (getTextEntities + date/sum/track detectors); calendar/map intents already real.
+- [ ] **designer** CallCaptions: needs on-device call speech-to-text + translation. Simulated captions only on KxDemoStore.
+- [ ] **designer** Nearby: needs a kiroX server (board marks it as an idea); found people simulated only on KxDemoStore.

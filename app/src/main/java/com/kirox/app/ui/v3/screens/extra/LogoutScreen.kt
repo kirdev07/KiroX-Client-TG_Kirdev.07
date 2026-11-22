@@ -43,7 +43,10 @@ private val LoAlts = listOf(
 /** Board «Выйти из аккаунта»: alternatives first, «Всё равно выйти» → confirm (cloud / secret chats / code, clear cache) → «До встречи!». */
 @Composable
 fun LogoutScreen(ctx: KxScreenCtx) {
-    // demo: needs store (logout(clearCache), cache size)
+    // «Выйти» (after the confirm dialog) = store.clearCache() when the switch is on, then store.logout(); the cache size is store.storage.
+    val store = ctx.store
+    val cacheBytes = store.storage?.totalBytes
+    val cacheText = cacheBytes?.let { b -> if (b >= 1L shl 30) "%.1f ГБ".format(java.util.Locale.ROOT, b / (1L shl 30).toDouble()).replace('.', ',') else "${b shr 20} МБ" }
     var dialog by remember { mutableStateOf(false) }
     var out by remember { mutableStateOf(false) }
     var cache by remember { mutableStateOf(false) }
@@ -110,7 +113,7 @@ fun LogoutScreen(ctx: KxScreenCtx) {
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
                         Text("Очистить кэш на телефоне", style = ts(14.sp, FontWeight.Bold))
-                        Text("Освободит 1,8 ГБ", style = ts(12.sp, color = Kx.text3))
+                        Text(if (cacheText != null) "Освободит $cacheText" else "Освободит место на телефоне", style = ts(12.sp, color = Kx.text3))
                     }
                     KxSwitch(cache, width = 46.dp, height = 28.dp, knob = 22.dp, trackOn = Kx.accentDeep, trackOff = Kx.w(.14f), knobOn = Kx.text, knobOff = Kx.text3)
                 }
@@ -118,7 +121,7 @@ fun LogoutScreen(ctx: KxScreenCtx) {
                     Box(Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Kx.w(.08f)).kxClick("Остаться") { dialog = false }, contentAlignment = Alignment.Center) {
                         Text("Остаться", style = ts(15.sp, FontWeight.Bold))
                     }
-                    Box(Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Kx.dangerSolid).kxClick("Выйти") { dialog = false; out = true }, contentAlignment = Alignment.Center) {
+                    Box(Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Kx.dangerSolid).kxClick("Выйти") { dialog = false; out = true; if (cache) store.clearCache(); store.logout() }, contentAlignment = Alignment.Center) {
                         Text("Выйти", style = ts(15.sp, FontWeight.ExtraBold, Color.White))
                     }
                 }

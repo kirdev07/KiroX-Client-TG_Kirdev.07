@@ -47,4 +47,7 @@ val ExtraScreens: Map<String, KxScreenFn> = mapOf(
     "YearRecap" to { ctx -> YearRecapScreen(ctx) },
     "Wellbeing" to { ctx -> WellbeingScreen(ctx) },
     "ReadAloud" to { ctx -> ReadAloudScreen(ctx) },
+    "SmartText" to { ctx -> SmartTextScreen(ctx) },
+    "CallCaptions" to { ctx -> CallCaptionsScreen(ctx) },
+    "Nearby" to { ctx -> NearbyScreen(ctx) },
 )

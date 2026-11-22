@@ -41,6 +41,7 @@ private fun hm(m: Int) = if (m >= 60) "${m / 60} ч ${m % 60} мин" else "$m �
 /** Board «Время в kiroX»: today card (leaf), 7 day bars growing in with the dashed limit line, time per chat, daily limit chips, two switches. */
 @Composable
 fun WellbeingScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { com.kirox.app.ui.v3.screens.KxNotYet(ctx, "Цифровой баланс", "kiroX начнёт считать время в приложении на этом телефоне, когда функция будет подключена. Пока данных нет."); return }
     // demo: needs store (local usage tracking per day/chat; limit + break reminder + quiet after 23:00 prefs)
     var day by remember { mutableIntStateOf(6) }
     var limit by remember { mutableIntStateOf(60) }

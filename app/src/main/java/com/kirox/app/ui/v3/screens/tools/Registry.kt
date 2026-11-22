@@ -28,4 +28,10 @@ val ToolScreens: Map<String, KxScreenFn> = mapOf(
     "AppIcon" to { ctx -> AppIconScreen(ctx) },
     "SettingsSearch" to { ctx -> SettingsSearchScreen(ctx) },
     "SecurityCheck" to { ctx -> SecurityCheckScreen(ctx) },
+    "LoginAlert" to { ctx -> LoginAlertScreen(ctx) },
+    "LoginEmail" to { ctx -> LoginEmailScreen(ctx) },
+    "TermsUpdate" to { ctx -> TermsUpdateScreen(ctx) },
+    "LowSpace" to { ctx -> LowSpaceScreen(ctx) },
+    "Update" to { ctx -> UpdateScreen(ctx) },
+    "NetCheck" to { ctx -> NetCheckScreen(ctx) },
 )

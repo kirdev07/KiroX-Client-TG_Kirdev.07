@@ -30,19 +30,38 @@ import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.launch
 
 private val DaTtl = listOf("1 месяц" to 1, "6 месяцев" to 6, "1 год" to 12, "2 года" to 24)
+private val DaDays = mapOf(1 to 30, 6 to 182, 12 to 365, 24 to 730)
 private val DaChecks = listOf("Я понимаю, что чаты не восстановить", "Я сохранил(а) нужные файлы", "Группы, где я единственный админ, останутся без админа")
 
 /** Board «Удаление аккаунта»: self-destruct period, danger zone → what you lose (export first) → checklist + final button. Nothing is deleted. */
 @Composable
 fun DeleteAccountScreen(ctx: KxScreenCtx) {
-    // demo: needs store (account TTL read/set; deleteAccount(reason, password); counts of chats / contacts / admin groups / storage)
+    // Self-destruct period = store.accountTtlDays / setAccountTtl. Real account: the armed final button asks the cloud password (if set),
+    // then a confirm dialog, then store.deleteAccount(reason, password). The demo app deletes nothing.
+    val store = ctx.store
+    val real = store !is com.kirox.app.ui.v3.demo.KxDemoStore
     var step by remember { mutableIntStateOf(0) }
-    var ttl by remember { mutableIntStateOf(6) }
+    val ttl = DaDays.minByOrNull { kotlin.math.abs(it.value - store.accountTtlDays) }?.key ?: 6
+    var pw by remember { mutableStateOf("") }
+    var confirm by remember { mutableStateOf<KxConfirm?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val needPw = real && store.cloudPassword?.has == true
     val ch = remember { mutableStateMapOf<Int, Boolean>() }
     var armed by remember { mutableStateOf(false) }
     val shake = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
+    fun askDelete() {
+        confirm = KxConfirm("Удалить аккаунт навсегда?", "Все чаты, контакты и сообщения пропадут. Отменить это будет нельзя.", "Удалить навсегда") {
+            busy = true
+            scope.launch {
+                val e = store.deleteAccount("", pw)
+                busy = false
+                if (e != null) ctx.toast(e)
+            }
+        }
+    }
     val all = DaChecks.indices.all { ch[it] == true }
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding().navigationBarsPadding()) {
         ExBar("Аккаунт", { if (step > 0) { step--; armed = false } else ctx.back() })
         key(step) {
@@ -58,7 +77,7 @@ fun DeleteAccountScreen(ctx: KxScreenCtx) {
                                 val on = ttl == v
                                 val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .16f) else Kx.w(.05f), tween(200), label = "tb")
                                 val bd by animateColorAsState(if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), tween(200), label = "td")
-                                Box(Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(14.dp)).background(bg).border(1.dp, bd, RoundedCornerShape(14.dp)).kxClick(label) { ttl = v },
+                                Box(Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(14.dp)).background(bg).border(1.dp, bd, RoundedCornerShape(14.dp)).kxClick(label) { DaDays[v]?.let { store.setAccountTtl(it) } },
                                     contentAlignment = Alignment.Center) { Text(label, style = ts(13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text2), maxLines = 1) }
                             }
                         }
@@ -84,8 +103,13 @@ fun DeleteAccountScreen(ctx: KxScreenCtx) {
                         Text("Что пропадёт навсегда", style = ts(20.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 12.dp))
                     }
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp))) {
-                        listOf(Triple(Icons.Outlined.Chat, "Все личные чаты", "214"), Triple(Icons.Outlined.Contacts, "Контакты в Telegram", "186"),
-                            Triple(Icons.Outlined.Group, "Группы, где вы админ", "3"), Triple(Icons.Outlined.BookmarkBorder, "Избранное и черновики", "1,2 ГБ")).forEach { (ic, t, n) ->
+                        val counts = if (!real) listOf("214", "186", "3", "1,2 ГБ") else listOf(
+                            store.chats.count { it.kind == com.kirox.app.ui.v3.model.KxChatKind.Private || it.kind == com.kirox.app.ui.v3.model.KxChatKind.Secret }.toString(),
+                            store.contacts.size.toString(),
+                            store.chats.count { it.canDeleteForAll && (it.kind == com.kirox.app.ui.v3.model.KxChatKind.Group || it.kind == com.kirox.app.ui.v3.model.KxChatKind.Channel) }.toString(),
+                            store.storage?.totalBytes?.let { b -> if (b >= 1L shl 30) "%.1f ГБ".format(java.util.Locale.ROOT, b / (1L shl 30).toDouble()).replace('.', ',') else "${b shr 20} МБ" } ?: "—")
+                        listOf(Triple(Icons.Outlined.Chat, "Все личные чаты", counts[0]), Triple(Icons.Outlined.Contacts, "Контакты в Telegram", counts[1]),
+                            Triple(Icons.Outlined.Group, "Группы, где вы админ", counts[2]), Triple(Icons.Outlined.BookmarkBorder, "Избранное и черновики", counts[3])).forEach { (ic, t, n) ->
                             Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon(ic, null, Modifier.size(24.dp), tint = Kx.danger)
                                 Text(t, style = ts(14.sp), modifier = Modifier.weight(1f))
@@ -131,18 +155,29 @@ fun DeleteAccountScreen(ctx: KxScreenCtx) {
                     }
                     Spacer(Modifier.weight(1f))
                     Column(Modifier.padding(bottom = 24.dp)) {
+                        if (real && armed && needPw) Box(Modifier.padding(bottom = 10.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f))
+                            .border(1.dp, Kx.dangerSolid.copy(alpha = .35f), RoundedCornerShape(18.dp)).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
+                            if (pw.isEmpty()) Text("Облачный пароль", style = ts(15.sp, color = Kx.text4))
+                            androidx.compose.foundation.text.BasicTextField(pw, { pw = it }, singleLine = true, textStyle = ts(15.sp),
+                                cursorBrush = androidx.compose.ui.graphics.SolidColor(Kx.accent),
+                                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+                        }
                         val hold = if (armed) key(armed) { enter(1200, easing = LinearEasing) } else 0f
                         Box(Modifier.fillMaxWidth().height(56.dp).graphicsLayer { translationX = shake.value * 1.dp.toPx() }.clip(RoundedCornerShape(28.dp))
                             .background(if (all) Kx.dangerSolid else Kx.w(.07f)).kxClick("Удалить аккаунт") {
-                                if (!all) scope.launch { shake.snapTo(0f); shake.animateTo(0f, keyframes { durationMillis = 300; -5f at 75; 5f at 225; 0f at 300 }) } else armed = true
+                                if (!all) scope.launch { shake.snapTo(0f); shake.animateTo(0f, keyframes { durationMillis = 300; -5f at 75; 5f at 225; 0f at 300 }) }
+                                else if (!armed) armed = true
+                                else if (real && !busy) { if (needPw && pw.isEmpty()) ctx.toast("Введите облачный пароль") else askDelete() }
                             }, contentAlignment = Alignment.Center) {
                             Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().fillMaxWidth(hold).background(Kx.w(.18f)))
-                            Text(if (!all) "Отметьте все пункты" else if (armed) "Введите облачный пароль" else "Удалить аккаунт", style = ts(15.sp, FontWeight.ExtraBold, if (all) Color.White else Kx.text4))
+                            Text(if (!all) "Отметьте все пункты" else if (armed && real) (if (needPw && pw.isEmpty()) "Введите облачный пароль" else "Удалить навсегда") else if (armed) "Введите облачный пароль" else "Удалить аккаунт", style = ts(15.sp, FontWeight.ExtraBold, if (all) Color.White else Kx.text4))
                         }
-                        Text("В макете ничего не удаляется", style = ts(11.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                        if (!real) Text("В макете ничего не удаляется", style = ts(11.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                     }
                 }
             }
         }
+    }
+    confirm?.let { c -> KxConfirmDialog(c) { confirm = null } }
     }
 }
