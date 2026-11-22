@@ -201,7 +201,8 @@ class TelegramKxStore(
                 day.update { it + 1 }
             }
         }
-        initRound5()
+        // initRound5() runs from the last init block: its collectors start at once on the main thread
+        // (Main.immediate) and write state declared further down, which must be initialised first.
         // The call log is a search over call messages: start it (the old UI does this on its Calls tab).
         vm.calls.loadMore()
     }
@@ -1269,9 +1270,50 @@ class TelegramKxStore(
         attempt { services.account.setBirthday(if (day == 0) null else com.kirox.app.telegram.Birthday(day, month, year)) }
     override fun setEmojiStatus(customEmojiId: Long) = act { vm.users.setEmojiStatus(customEmojiId) }
     override suspend fun profilePhotos(userId: Long): List<KxSharedItem> {
+        val photos = orNull { services.account.profilePhotoHistory(userId) }.orEmpty()
+        photos.forEach { autoPath(it.file, paths.value) } // starts the downloads
+        // Profile photos are small: wait a moment so the board opens with pictures, not placeholders.
+        kotlinx.coroutines.withTimeoutOrNull(4000) {
+            paths.first { known -> photos.all { val f = it.file; f == null || f.localPath != null || known.containsKey(f.id) } }
+        }
         val known = paths.value
-        return orNull { services.account.profilePhotos(userId) }.orEmpty().mapIndexed { i, ref -> KxSharedItem(i.toLong(), media = autoPath(ref, known), fileId = ref.id) }
+        return photos.map { KxSharedItem(it.id, sub = KxFormat.dayHeader(it.addedDate), media = autoPath(it.file, known), fileId = it.file?.id ?: 0, look = if (it.animated) 1 else 0) }
     }
+    override fun joinChat(chatId: Long) = act { vm.chats.join(chatId) }
+    override suspend fun inviteLinkInfo(link: String): KxInviteInfo? = orNull { vm.chats.inviteLinkInfo(link) }?.let { i ->
+        KxInviteInfo(i.chatId, i.title, i.channel, i.public, i.members, i.knownNames, i.description, i.byRequest, autoPath(i.photo, paths.value), i.member)
+    }
+    override suspend fun messageRequests(): List<KxRequest> {
+        val contactIds = vm.users.contacts.value.map { it.id }.toSet()
+        val candidates = items.values.filter {
+            it.kind == com.kirox.app.telegram.TelegramChatKind.Private && it.peerUserId != 0L && !it.isBot && !it.isSaved && !it.isSecret &&
+                it.peerUserId !in contactIds && it.peerUserId != me.id
+        }.sortedByDescending { it.timestamp }.take(40)
+        val known = paths.value
+        return candidates.mapNotNull { c ->
+            if (!vm.chats.fromStranger(c.id)) return@mapNotNull null
+            val username = orNull { vm.chats.profileInfo(c.id) }?.username.orEmpty()
+            val common = orNull { services.admin.commonGroups(c.peerUserId).size } ?: 0
+            KxRequest(c.id, c.peerUserId, c.title, KxRequestMapping.meta(username, c.photo != null, common), c.preview, common, risky = c.isScam || c.isFake,
+                media = KxRequestMapping.hiddenMedia(c.lastKind), avatar = autoPath(c.photo, known), colorIndex = c.accentColorId)
+        }
+    }
+    override fun acceptRequest(chatId: Long) = act { vm.chats.removeActionBar(chatId) }
+    override suspend fun storyViewers(storyId: Int): List<KxStoryViewer> {
+        val known = paths.value
+        return orNull { vm.stories.viewers(storyId) }.orEmpty().map { KxStoryViewer(it.userId, it.name, KxFormat.ago(it.date), it.reaction.orEmpty(), autoPath(it.photo, known)) }
+    }
+    override suspend fun deleteStory(storyId: Int): String? = attempt { vm.stories.delete(me.id, storyId) }
+    override suspend fun translateMessage(chatId: Long, messageId: Long, toLang: String): String? {
+        // The board says why it failed; no store.error banner on top of that.
+        return orNull { vm.messages.translateIn(chatId, messageId, toLang) }
+    }
+    override suspend fun joinByInviteLink(link: String): String? {
+        var request = false
+        return attempt { request = vm.chats.joinByInviteLink(link) } ?: if (request) "request" else null
+    }
+    override suspend fun setMainPhoto(photoId: Long): String? = attempt { services.account.setMainProfilePhoto(photoId) }
+    override suspend fun deletePhoto(photoId: Long): String? = attempt { services.account.deleteProfilePhoto(photoId) }
 
     /** Profile extras per chat (username, phone, bio, birthday, common groups), loaded on first read. */
     private val peerExtras = mutableStateMapOf<Long, KxPeer>()
@@ -1299,6 +1341,24 @@ class TelegramKxStore(
     private fun initRound5() {
         scope.launch { services.client.accounts.accounts.collect { accountSlots = it } }
         scope.launch { com.kirox.app.settings.KiroxTweaks.state.collect { tweakState = KxExtrasMapping.tweaks(it) } }
+    }
+
+    // ---- Round 6: kiroX-local settings (TelegramKxLocal.kt) ----
+    private val local by lazy { KxLocalSettings(app, scope).also { it.start() } }
+    override val prefs: Map<String, Int> get() = local.values
+    override fun putPref(key: String, value: Int) = local.put(key, value)
+    override val tabNames: Map<Int, String> get() = local.tabNames
+    override fun renameTab(index: Int, name: String) = local.renameTab(index, name)
+    override val passcodeSet: Boolean get() = local.passcodeSet
+    override val passcodeBiometric: Boolean get() = local.passcodeBiometric
+    override suspend fun checkPasscode(code: String): Boolean = local.checkPasscode(code)
+    override fun passcodeBiometricOk() = local.biometricOk()
+    override fun passcodeWait(): Int = local.passcodeWait()
+
+    init {
+        initRound5() // last: see the note in the first init block
+        // Warm the preferences behind [local] off the main thread (first reads load from disk).
+        scope.launch(Dispatchers.IO) { app.getSharedPreferences("kirox_v3_prefs", android.content.Context.MODE_PRIVATE); com.kirox.app.settings.ChatWallpapers.count(app) }
     }
 
     private companion object {

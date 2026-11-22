@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
@@ -83,11 +84,16 @@ internal fun plural(n: Int, one: String, few: String, many: String): String {
 /** Board «Энергосбережение»: animated battery hero, demo charge slider, threshold slider, what-to-turn-off switches. */
 @Composable
 fun PowerScreen(ctx: KxScreenCtx) {
-    // demo: needs store (power saving threshold, disabled features list; battery level comes from the system — the board's slider is a demo)
-    var batt by rememberSaveable { mutableIntStateOf(62) }
-    var thr by rememberSaveable { mutableIntStateOf(15) }
-    var off by remember { mutableStateOf(listOf(true, true, true, false, true, false)) }
-    val saving = thr >= 100 || (thr > 0 && batt <= thr)
+    // Battery from the system (the demo store keeps the board's «Макет» slider), threshold and features: KxPrefs.
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val batt = store.pref(KxPrefs.BATTERY).coerceIn(1, 100)
+    val thr = store.pref(KxPrefs.POWER_THRESHOLD).coerceIn(0, 100)
+    val offMask = store.pref(KxPrefs.POWER_OFF)
+    // Real store: PowerSaver turns off animations, GIF autoplay and glass all together — the list shows
+    // exactly that, read-only, until each feature reads its own switch. The demo keeps the board's toggles.
+    val off = if (demo) List(6) { offMask and (1 shl it) != 0 } else listOf(true, false, true, true, false, false)
+    val saving = if (demo) thr >= 100 || (thr > 0 && batt <= thr) else store.prefOn(KxPrefs.POWER_ACTIVE)
     val low = batt <= 20
     val battColor by animateColorAsState(if (saving) Kx.warning else if (low) Kx.danger else Kx.accent, tween(400), label = "bc")
     val glow = if (saving) Color(232, 176, 74).copy(alpha = .45f) else if (low) Kx.danger.copy(alpha = .45f) else Kx.accent.copy(alpha = .4f)
@@ -115,9 +121,9 @@ fun PowerScreen(ctx: KxScreenCtx) {
                             style = KxType.style(12.sp, color = Kx.text3, lineHeight = 17.sp), modifier = Modifier.padding(top = 4.dp))
                     }
                 }
-                Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp)) {
+                if (demo) Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp)) {
                     Row { Text("Макет: заряд телефона", style = KxType.style(12.sp, color = Kx.text4), modifier = Modifier.weight(1f)); Text("$batt%", style = KxType.style(12.sp, color = Kx.text4)) }
-                    SSlider(batt, 1, 100, battColor, label = "Заряд телефона") { batt = it }
+                    SSlider(batt, 1, 100, battColor, label = "Заряд телефона") { store.putPref(KxPrefs.BATTERY, it) }
                 }
                 Text("Включать при заряде ниже", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 6.dp))
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg).padding(horizontal = 16.dp, vertical = 14.dp)) {
@@ -126,7 +132,7 @@ fun PowerScreen(ctx: KxScreenCtx) {
                         Text(if (thr == 0) "Выкл." else if (thr >= 100) "Всегда" else "$thr%", style = KxType.style(22.sp, FontWeight.ExtraBold, Kx.accent))
                     }
                     Spacer(Modifier.height(8.dp))
-                    SSlider(thr, 0, 100, Kx.accent, 5, "Порог энергосбережения") { thr = it }
+                    SSlider(thr, 0, 100, Kx.accent, 5, "Порог энергосбережения") { store.putPref(KxPrefs.POWER_THRESHOLD, it) }
                     Row { Text("Выкл.", style = KxType.style(11.sp, color = Kx.text4), modifier = Modifier.weight(1f)); Text("Всегда", style = KxType.style(11.sp, color = Kx.text4)) }
                 }
                 Row(Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 6.dp), verticalAlignment = Alignment.Bottom) {
@@ -146,7 +152,7 @@ fun PowerScreen(ctx: KxScreenCtx) {
                         val iconBg by animateColorAsState(if (active) Color(232, 176, 74).copy(alpha = .14f) else Kx.accent.copy(alpha = .1f), tween(250), label = "ib")
                         val iconInk by animateColorAsState(if (active) Kx.warning else Kx.accent, tween(250), label = "ii")
                         Row(Modifier.fillMaxWidth().drawBehind { if (i > 0) drawLine(Kx.w(.06f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }
-                            .kxClick(role = Role.Switch) { off = off.toMutableList().also { it[i] = !on } }.padding(horizontal = 16.dp, vertical = 12.dp),
+                            .kxClick(role = Role.Switch, enabled = demo) { store.putPref(KxPrefs.POWER_OFF, offMask xor (1 shl i)) }.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(iconBg), contentAlignment = Alignment.Center) { Icon(ic, null, Modifier.size(20.dp), tint = iconInk) }
                             Column(Modifier.weight(1f)) {

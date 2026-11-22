@@ -280,6 +280,57 @@ interface KxStore {
     suspend fun setBirthday(day: Int, month: Int, year: Int): String? = null
     /** Premium emoji status by custom emoji id; 0 removes it. */
     fun setEmojiStatus(customEmojiId: Long) {}
-    /** Profile photo history: KxSharedItem.media is the path (null until downloaded), fileId to download. */
+    /** Profile photo history, newest (current) first: id = photo id, sub = date («12 августа 2026»),
+     *  media = path (null until downloaded), fileId to download, look = 1 for a video avatar. */
     suspend fun profilePhotos(userId: Long): List<KxSharedItem> = emptyList()
+
+    // ---- Round 6 (binder 2, additive) ----
+
+    // kiroX-local settings: see KxPrefs for the keys and value meanings.
+    val prefs: Map<String, Int> get() = KxPrefs.defaults
+    fun putPref(key: String, value: Int) {}
+    /** Own names of the dock tabs by index (0 Контакты, 1 Звонки, 2 Чаты, 3 Истории, 4 Настройки). */
+    val tabNames: Map<Int, String> get() = emptyMap()
+    /** Blank brings the normal name back. */
+    fun renameTab(index: Int, name: String) {}
+
+    // Local passcode (kiroX lock screen)
+    /** A code is set; false = nothing to unlock (the keypad stays off). */
+    val passcodeSet: Boolean get() = false
+    /** «Разблокировка отпечатком» is allowed. */
+    val passcodeBiometric: Boolean get() = true
+    /** True when [code] is right (unlocks the app). After 5 wrong codes the lock waits 30 s. */
+    suspend fun checkPasscode(code: String): Boolean = false
+    /** The system accepted the fingerprint. */
+    fun passcodeBiometricOk() {}
+    /** Seconds left of the pause after too many wrong codes (0 = codes accepted). */
+    fun passcodeWait(): Int = 0
+
+    // Own profile photos (ids from [profilePhotos])
+    /** Makes an older photo the main one again. */
+    suspend fun setMainPhoto(photoId: Long): String? = null
+    /** Deletes a profile photo for good — only after the user confirmed. */
+    suspend fun deletePhoto(photoId: Long): String? = null
+
+    // Channels & groups
+    /** Subscribes to a public channel / joins a public group (KxComposer.Join). Leaving is [deleteChat]. */
+    fun joinChat(chatId: Long) {}
+    /** Invite link preview (CheckChatInviteLink); null when the link is invalid or expired. */
+    suspend fun inviteLinkInfo(link: String): KxInviteInfo? = null
+    /** Joins by invite link: null = joined, "request" = join request sent (admins decide), else the error text. */
+    suspend fun joinByInviteLink(link: String): String? = null
+
+    // Message requests: chats a stranger started (loaded chats only, newest first)
+    suspend fun messageRequests(): List<KxRequest> = emptyList()
+    /** Keeps the chat and drops the stranger bar. Delete = [deleteChat], block = [block] + [deleteChat]. */
+    fun acceptRequest(chatId: Long) {}
+
+    /** Message text translated by Telegram into [toLang] (ISO code); null when it failed (not in secret chats). */
+    suspend fun translateMessage(chatId: Long, messageId: Long, toLang: String): String? = null
+
+    // Own stories
+    /** Who viewed own story [storyId] (newest first, up to 100) with their reactions. */
+    suspend fun storyViewers(storyId: Int): List<KxStoryViewer> = emptyList()
+    /** Deletes an own story — only after the user confirmed. */
+    suspend fun deleteStory(storyId: Int): String? = null
 }

@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
@@ -48,11 +49,21 @@ private val CSheets = mapOf(
 /** Board «Звонки» (call settings): mic test with level bars, audio switches, ringtone, data usage cards, call privacy pickers. */
 @Composable
 fun CallSettingsScreen(ctx: KxScreenCtx) {
-    // demo: needs store (noise suppression, echo cancel, ringtone, call data saving, calls privacy + p2p rules; real mic level for the test)
+    // Switches, ringtone, data saving: KxPrefs; who can call / peer-to-peer: Telegram privacy rules.
+    // The mic test still animates board bars (no microphone level source yet).
+    val store = ctx.store
     var test by remember { mutableStateOf(false) }
-    var noise by rememberSaveable { mutableStateOf(true) }
-    var echo by rememberSaveable { mutableStateOf(true) }
-    val vals = remember { mutableStateMapOf("ring" to 0, "data" to 1, "p2p" to 1, "calls" to 1) }
+    // Real account: the call engine always runs WebRTC noise suppression and echo cancelling and plays the
+    // system ringtone; nothing reads own values yet, so these rows show that state read-only.
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val noise = if (demo) store.prefOn(KxPrefs.NOISE) else true
+    val echo = if (demo) store.prefOn(KxPrefs.ECHO) else true
+    val fixed = { ctx.toast("Звонки kiroX пока всегда используют это и системную мелодию") }
+    val privacyKeys = mapOf("calls" to "Calls", "p2p" to "PeerToPeer")
+    val prefKeys = mapOf("ring" to KxPrefs.RINGTONE, "data" to KxPrefs.CALL_DATA)
+    val privacy = store.privacy
+    fun value(k: String): Int = privacyKeys[k]?.let { key -> privacy.firstOrNull { it.key == key }?.level ?: 0 } ?: store.pref(prefKeys.getValue(k))
+    fun choose(k: String, v: Int) { privacyKeys[k]?.let { store.setPrivacy(it, v) } ?: store.putPref(prefKeys.getValue(k), v) }
     var sheet by remember { mutableStateOf("") }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -66,22 +77,22 @@ fun CallSettingsScreen(ctx: KxScreenCtx) {
                 MicTest(test, noise) { test = !test }
                 Caption16("Звук")
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg)) {
-                    SetLine(Icons.Outlined.NoiseControlOff, "Шумоподавление", "Убирает фоновый шум улицы и клавиатуры", false, onClick = { noise = !noise }) { DarkKnobSwitch(noise) }
-                    SetLine(Icons.Outlined.SpatialAudioOff, "Подавление эха", "Когда говорите по громкой связи", true, onClick = { echo = !echo }) { DarkKnobSwitch(echo) }
-                    SetLine(Icons.Outlined.MusicNote, "Мелодия звонка", "Для входящих в kiroX", true, role = Role.Button, onClick = { sheet = "ring" }) {
-                        ValueChevron(CSheets.getValue("ring").opts[vals["ring"] ?: 0].first.substringBefore(','))
+                    SetLine(Icons.Outlined.NoiseControlOff, "Шумоподавление", "Убирает фоновый шум улицы и клавиатуры", false, onClick = { if (demo) store.togglePref(KxPrefs.NOISE) else fixed() }) { DarkKnobSwitch(noise) }
+                    SetLine(Icons.Outlined.SpatialAudioOff, "Подавление эха", "Когда говорите по громкой связи", true, onClick = { if (demo) store.togglePref(KxPrefs.ECHO) else fixed() }) { DarkKnobSwitch(echo) }
+                    SetLine(Icons.Outlined.MusicNote, "Мелодия звонка", "Для входящих в kiroX", true, role = Role.Button, onClick = { if (demo) sheet = "ring" else fixed() }) {
+                        ValueChevron(if (demo) CSheets.getValue("ring").opts[value("ring")].first.substringBefore(',') else "Системная")
                     }
                 }
                 Caption16("Расход трафика")
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(Triple(Icons.Outlined.SignalCellularAlt, "Высокое", "~1 МБ/мин"), Triple(Icons.Outlined.SignalCellularAlt2Bar, "Сбалансир.", "~500 КБ/мин"),
                         Triple(Icons.Outlined.SignalCellularAlt1Bar, "Экономно", "~200 КБ/мин")).forEachIndexed { i, (ic, label, sub) ->
-                        val on = vals["data"] == i
+                        val on = value("data") == i
                         val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .12f) else TileBg, tween(200), label = "db")
                         val bd by animateColorAsState(if (on) Kx.accent.copy(alpha = .45f) else Color.Transparent, tween(200), label = "dd")
                         val ink = if (on) Kx.accent else Kx.text
                         val s = RoundedCornerShape(18.dp)
-                        Column(Modifier.weight(1f).clip(s).background(bg).border(1.dp, bd, s).kxClick(role = Role.RadioButton) { vals["data"] = i }.padding(horizontal = 8.dp, vertical = 12.dp),
+                        Column(Modifier.weight(1f).clip(s).background(bg).border(1.dp, bd, s).kxClick(role = Role.RadioButton) { choose("data", i) }.padding(horizontal = 8.dp, vertical = 12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(ic, null, tint = ink)
                             Text(label, style = KxType.style(13.sp, FontWeight.Bold, ink), maxLines = 1)
@@ -92,10 +103,10 @@ fun CallSettingsScreen(ctx: KxScreenCtx) {
                 Caption16("Приватность")
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg)) {
                     SetLine(Icons.Outlined.Call, "Кто может звонить", "Остальные не дозвонятся", false, role = Role.Button, onClick = { sheet = "calls" }) {
-                        ValueChevron(CSheets.getValue("calls").opts[vals["calls"] ?: 0].first)
+                        ValueChevron(CSheets.getValue("calls").opts[value("calls")].first)
                     }
                     SetLine(Icons.Outlined.Lan, "Прямое соединение", "Peer-to-peer для звонков", true, role = Role.Button, onClick = { sheet = "p2p" }) {
-                        ValueChevron(CSheets.getValue("p2p").opts[vals["p2p"] ?: 0].first)
+                        ValueChevron(CSheets.getValue("p2p").opts[value("p2p")].first)
                     }
                 }
                 Text("Прямое соединение быстрее, но собеседник может узнать ваш IP-адрес. Через серверы Telegram адрес скрыт.", style = KxType.style(12.sp, color = Kx.text4, lineHeight = 17.sp),
@@ -105,11 +116,11 @@ fun CallSettingsScreen(ctx: KxScreenCtx) {
         val def = CSheets[sheet]
         if (def != null) AccSheet({ sheet = "" }) {
             Text(def.title, style = KxType.style(18.sp, FontWeight.ExtraBold), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp))
-            val cur = vals[sheet] ?: 0
+            val cur = value(sheet)
             def.opts.forEachIndexed { i, (label, sub) ->
                 val on = i == cur
                 Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(16.dp)).background(if (on) Kx.accent.copy(alpha = .08f) else Color.Transparent)
-                    .kxClick(role = Role.RadioButton) { vals[sheet] = i; sheet = "" }.padding(horizontal = 12.dp, vertical = 8.dp),
+                    .kxClick(role = Role.RadioButton) { choose(sheet, i); sheet = "" }.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(Modifier.size(22.dp).border(2.dp, if (on) Kx.accent else Kx.dashed, CircleShape), contentAlignment = Alignment.Center) {
                         Box(Modifier.size(10.dp).clip(CircleShape).background(if (on) Kx.accent else Color.Transparent))

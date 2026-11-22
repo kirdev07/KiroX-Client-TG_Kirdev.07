@@ -212,6 +212,7 @@ class KxDemoStore : KxStore {
         KxPrivacyRule("Birthdate", "Дата рождения", 1),
         KxPrivacyRule("ForwardLink", "Ссылка при пересылке", 1),
         KxPrivacyRule("Calls", "Звонки", 1, exceptions = 1),
+        KxPrivacyRule("PeerToPeer", "Peer-to-peer в звонках", 1),
         KxPrivacyRule("VoiceNotes", "Голосовые и видеосообщения", 0),
         KxPrivacyRule("ChatInvites", "Приглашения в группы", 1),
     )
@@ -295,6 +296,17 @@ class KxDemoStore : KxStore {
     override suspend fun boostStatus(chatId: Long): KxBoostStatus? = KxBoostStatus(2, 14, 10, 20, "https://t.me/boost/kirox_team", 9)
     override val proxies: List<KxProxy> get() = listOf(KxProxy(1, "proxy.example.org", 443, "MTProto", enabled = false))
     override val accountTtlDays: Int get() = 365
+
+    // Round 6: kiroX-local settings (board defaults), tab names, passcode «1234» as on the Lock board.
+    private val prefMap = mutableStateMapOf<String, Int>().apply { putAll(KxPrefs.defaults) }
+    override val prefs: Map<String, Int> get() = prefMap
+    private val readOnlyPrefs = setOf(KxPrefs.OWN_THEMES, KxPrefs.CHAT_LOOKS, KxPrefs.FILTER_WORDS)
+    override fun putPref(key: String, value: Int) { if (key !in readOnlyPrefs) prefMap[key] = value }
+    private val tabNameMap = mutableStateMapOf<Int, String>()
+    override val tabNames: Map<Int, String> get() = tabNameMap
+    override fun renameTab(index: Int, name: String) { if (name.isBlank()) tabNameMap.remove(index) else tabNameMap[index] = name }
+    override val passcodeSet: Boolean get() = true
+    override suspend fun checkPasscode(code: String): Boolean = code == "1234"
 }
 
 /** A store for screens shown before sign-in (they only use ctx.auth). */

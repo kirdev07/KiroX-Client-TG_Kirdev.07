@@ -32,13 +32,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
 /** One colour theme of the Custom board: name, accent, bubble from/to, glow. */
 internal data class KxThemeLook(val name: String, val accent: Color, val b1: Color, val b2: Color, val glow: Color)
 
-// demo: needs store (current theme index, own themes count, per-chat looks count, dock tabs)
 internal val CustomThemes = listOf(
     KxThemeLook("Тёмно-зелёная", Color(0xFF8FD3AC), Color(0xFF2E6B4B), Color(0xFF1F4D36), Color(70, 160, 110).copy(alpha = .22f)),
     KxThemeLook("Мята", Color(0xFF7FE0C4), Color(0xFF1F6B5C), Color(0xFF134A40), Color(70, 190, 160).copy(alpha = .22f)),
@@ -57,9 +57,12 @@ internal val CustomThemes = listOf(
 /** Board «Кастомизация»: live preview card, 12 colour swatches, look rows, dock tab switches. */
 @Composable
 fun CustomScreen(ctx: KxScreenCtx) {
-    var theme by rememberSaveable { mutableIntStateOf(0) }
-    var calls by rememberSaveable { mutableStateOf(true) }
-    var stories by rememberSaveable { mutableStateOf(true) }
+    val store = ctx.store
+    // Colour look and counts: KxPrefs; dock tabs: the kiroX tweaks the app's dock reads.
+    val theme = store.pref(KxPrefs.THEME).coerceIn(0, CustomThemes.lastIndex)
+    val calls = store.tweaks["hideCallsTab"] != true
+    val stories = store.tweaks["hideStoriesTab"] != true
+    val looks = store.pref(KxPrefs.CHAT_LOOKS)
     val t = CustomThemes[theme]
     val accent by animateColorAsState(t.accent, tween(400), label = "accent")
     val glow by animateColorAsState(t.glow, tween(600), label = "glow")
@@ -78,14 +81,14 @@ fun CustomScreen(ctx: KxScreenCtx) {
                 Column(Modifier.kxRise(60)) {
                     Row(Modifier.padding(start = 2.dp, end = 2.dp, bottom = 10.dp), verticalAlignment = Alignment.Bottom) {
                         Text("Цвет · ${t.name}", style = KxType.style(14.sp, FontWeight.Bold, Kx.text2), modifier = Modifier.weight(1f))
-                        Text("Своих: 1", style = KxType.style(12.sp, color = Kx.text4))
+                        Text("Своих: ${store.pref(KxPrefs.OWN_THEMES)}", style = KxType.style(12.sp, color = Kx.text4))
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         CustomThemes.chunked(6).forEachIndexed { r, row ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEachIndexed { c, look ->
                                     val i = r * 6 + c
-                                    Swatch(look, i == theme, i == 11, Modifier.weight(1f)) { theme = i }
+                                    Swatch(look, i == theme, i == 11, Modifier.weight(1f)) { store.putPref(KxPrefs.THEME, i) }
                                 }
                             }
                         }
@@ -95,14 +98,14 @@ fun CustomScreen(ctx: KxScreenCtx) {
                 Column(Modifier.kxRise(120), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     SNavRow(Icons.Rounded.Forum, "Чаты", "Пузыри, обои, размер текста", groupShape(0, 4), accent) { ctx.open("ChatStyle") }
                     SNavRow(Icons.Rounded.AutoAwesome, "Анимации", "Сцена и скорость", groupShape(1, 4), accent) { ctx.open("Anim") }
-                    SNavRow(Icons.Rounded.Wallpaper, "Оформление отдельных чатов", "Своё у 2 чатов", groupShape(2, 4), accent) { ctx.open("ChatTheme") }
+                    SNavRow(Icons.Rounded.Wallpaper, "Оформление отдельных чатов", if (looks == 0) "Пока ни у одного" else "Своё у $looks ${if (looks % 10 == 1 && looks % 100 != 11) "чата" else "чатов"}", groupShape(2, 4), accent) { ctx.open("ChatTheme") }
                     SNavRow(Icons.Rounded.Apps, "Иконка приложения", "Как kiroX выглядит на экране", groupShape(3, 4), accent) { ctx.open("AppIcon") }
                 }
 
                 Column(Modifier.kxRise(180), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     SCaption("Нижняя панель")
-                    SSwitchRow(Icons.Outlined.Call, "Вкладка «Звонки»", calls, groupShape(0, 2), trackOn = accent) { calls = !calls }
-                    SSwitchRow(Icons.Outlined.MotionPhotosOn, "Вкладка «Истории»", stories, groupShape(1, 2), trackOn = accent) { stories = !stories }
+                    SSwitchRow(Icons.Outlined.Call, "Вкладка «Звонки»", calls, groupShape(0, 2), trackOn = accent) { store.setTweak("hideCallsTab", calls) }
+                    SSwitchRow(Icons.Outlined.MotionPhotosOn, "Вкладка «Истории»", stories, groupShape(1, 2), trackOn = accent) { store.setTweak("hideStoriesTab", stories) }
                 }
             }
         }

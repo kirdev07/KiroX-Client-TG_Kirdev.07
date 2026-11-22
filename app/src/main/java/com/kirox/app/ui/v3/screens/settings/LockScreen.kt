@@ -39,10 +39,16 @@ import kotlinx.coroutines.launch
 /** Board «Код-пароль» (lock screen): glow, lock tile, 4 dots with shake, keypad with fingerprint, unlock fade. */
 @Composable
 fun LockScreen(ctx: KxScreenCtx) {
-    // demo: needs store (passcode check / biometric unlock); demo code 1234 as on the board
+    // Code check and fingerprint: store (the demo accepts 1234, as on the board; the real store asks PasscodeLock).
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val context = androidx.compose.ui.platform.LocalContext.current
     var code by remember { mutableStateOf("") }
     var state by remember { mutableStateOf("locked") }
     var tries by remember { mutableIntStateOf(0) }
+    // Pause after too many wrong codes (real store: PasscodeLock blocks 30 s after 5 tries).
+    var waitLeft by remember { mutableIntStateOf(0) }
+    LaunchedEffect(waitLeft) { if (waitLeft > 0) { delay(1000); waitLeft = store.passcodeWait() } }
     var wrong by remember { mutableLongStateOf(0L) }
     val scope = rememberCoroutineScope()
     val reduced = LocalKxReducedMotion.current
@@ -56,9 +62,16 @@ fun LockScreen(ctx: KxScreenCtx) {
     }
     fun open() { state = "opening"; scope.launch { delay(650); state = "open"; code = "" } }
     fun enter(d: String) {
-        if (state != "locked" || code.length >= 4) return
+        if (state != "locked" || code.length >= 4 || !store.passcodeSet) return
         code += d
-        if (code.length == 4) scope.launch { delay(180); if (code == "1234") open() else { code = ""; wrong = System.nanoTime(); tries++ } }
+        if (code.length == 4) scope.launch {
+            delay(180)
+            when {
+                store.passcodeWait() > 0 -> { code = ""; wrong = System.nanoTime(); waitLeft = store.passcodeWait() }
+                store.checkPasscode(code) -> open()
+                else -> { code = ""; wrong = System.nanoTime(); tries++; waitLeft = store.passcodeWait() }
+            }
+        }
     }
     val opening = state == "opening"
 
@@ -92,7 +105,7 @@ fun LockScreen(ctx: KxScreenCtx) {
                     }
                     Text("Введите код-пароль", style = KxType.style(20.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 22.dp))
                     Box(Modifier.padding(top = 6.dp).height(18.dp)) {
-                        Text(if (tries > 0) "Неверный код · попыток: $tries" else "Макет: код 1234", style = KxType.style(13.sp, color = if (tries > 0) Kx.danger else Kx.text4))
+                        Text(if (waitLeft > 0) "Слишком много попыток. Повторите через $waitLeft с" else if (tries > 0) "Неверный код · попыток: $tries" else if (demo) "Макет: код 1234" else if (!store.passcodeSet) "Код-пароль не задан" else "", style = KxType.style(13.sp, color = if (tries > 0 || waitLeft > 0) Kx.danger else Kx.text4))
                     }
                     Row(Modifier.padding(top = 24.dp).graphicsLayer { translationX = shake.value.dp.toPx() }, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         repeat(4) { i -> Dot(i < code.length, opening, i == code.length - 1, reduced) }
@@ -106,7 +119,14 @@ fun LockScreen(ctx: KxScreenCtx) {
                             row.forEach { n ->
                                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                                     when (n) {
-                                        "fp" -> FpKey(reduced) { code = "1234"; open() }
+                                        "fp" -> FpKey(reduced) {
+                                            when {
+                                                demo -> { code = "1234"; open() }
+                                                store.passcodeSet && store.passcodeBiometric && com.kirox.app.ui.auth.biometricAvailable(context) ->
+                                                    com.kirox.app.ui.auth.askBiometric(context) { store.passcodeBiometricOk(); code = "0000"; open() }
+                                                else -> ctx.toast("Отпечаток не настроен")
+                                            }
+                                        }
                                         "del" -> Box(Modifier.size(72.dp).clip(CircleShape).kxClick("Стереть") { code = code.dropLast(1) }, contentAlignment = Alignment.Center) {
                                             Icon(Icons.AutoMirrored.Outlined.Backspace, null, Modifier.size(28.dp), tint = Kx.text2)
                                         }

@@ -31,11 +31,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
+import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store (chat invite link info: title, photo, private, members, known members, description, join-by-request; joinChatByInviteLink)
+// Real account with ctx.arg = invite link: store.inviteLinkInfo / joinByInviteLink; approval is noticed by re-checking the
+// link (60 s and slower, stops after a failure). The board's sample group and «Макет: админ одобрил» stay for the demo store (and a missing link).
 private val JConf = listOf(Kx.accent, Kx.warning, Color(0xFFC0443C), Color(0xFF7FB8E0), Color(0xFF6A4C9C))
 private val SheetInk = Color(0xFF1A1F1C)
 
@@ -44,6 +47,38 @@ private val SheetInk = Color(0xFF1A1F1C)
 fun JoinRequestScreen(ctx: KxScreenCtx) {
     var st by rememberSaveable { mutableIntStateOf(0) }
     val reduced = LocalKxReducedMotion.current
+    val store = ctx.store
+    val link = ctx.arg?.takeIf { it.isNotBlank() }
+    val live = store !is com.kirox.app.ui.v3.demo.KxDemoStore && link != null
+    var info by remember { mutableStateOf<KxInviteInfo?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val tip = rememberGxTip()
+    if (live) LaunchedEffect(link) { info = store.inviteLinkInfo(link!!); failed = info == null; if (info?.member == true) st = 2 }
+    // Waiting for the admins: the link says «member» once the request is approved.
+    if (live && st == 1) LaunchedEffect(Unit) {
+        // CheckChatInviteLink is flood-limited: every 60 s, slower each time, stop after a failure.
+        var wait = 60_000L
+        while (true) {
+            delay(wait); wait = (wait * 3 / 2).coerceAtMost(300_000L)
+            val i = store.inviteLinkInfo(link!!) ?: break
+            if (i.member) { info = i; st = 2; break }
+        }
+    }
+    val inf0 = info
+    val title = if (live) inf0?.title ?: if (failed) "Не удалось открыть ссылку" else "Загрузка…" else "Настолки по пятницам"
+    val names = if (live) inf0?.knownNames.orEmpty() else listOf("Анна", "Дана", "Ерлан")
+    val byRequest = if (live) inf0?.byRequest == true else true
+    fun join() {
+        if (!live) { st = 1; return }
+        scope.launch {
+            when (val r = store.joinByInviteLink(link!!)) {
+                null -> { info = store.inviteLinkInfo(link) ?: info; st = 2 }
+                "request" -> st = 1
+                else -> tip.say(r)
+            }
+        }
+    }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Row(Modifier.fillMaxWidth().hairline().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -74,35 +109,42 @@ fun JoinRequestScreen(ctx: KxScreenCtx) {
             Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.padding(bottom = 16.dp).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))
                 Box(Modifier.size(84.dp)) {
-                    Box(Modifier.fillMaxSize().clip(CircleShape).cssLinear(135f, Color(0xFFB07A2E), Color(0xFF6A4C9C)), contentAlignment = Alignment.Center) { Text("🎲", style = KxType.style(40.sp)) }
+                    Box(Modifier.fillMaxSize().clip(CircleShape).cssLinear(135f, Color(0xFFB07A2E), Color(0xFF6A4C9C)), contentAlignment = Alignment.Center) {
+                        if (live) Text(title.take(1).uppercase(), style = KxType.style(36.sp, FontWeight.ExtraBold)) else Text("🎲", style = KxType.style(40.sp))
+                        KxImage(inf0?.photo, Modifier.matchParentSize(), maxPx = 240)
+                    }
                     val (bg, ink, icon) = when (st) { 2 -> Triple(Kx.accentDeep, Kx.onAccent, Icons.Rounded.Check); 1 -> Triple(Kx.warning, Kx.bg, Icons.Rounded.Schedule); else -> Triple(Color(0xFF5C6661), Kx.bg, Icons.Rounded.Lock) }
                     Box(Modifier.align(Alignment.BottomEnd).offset(2.dp, 2.dp).size(28.dp).clip(CircleShape).background(SheetInk).padding(3.dp).clip(CircleShape).background(bg),
                         contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(16.dp), tint = ink) }
                 }
-                Text("Настолки по пятницам", style = KxType.style(20.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 10.dp))
-                Text("Частная группа · 214 участников", style = KxType.style(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
-                Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(title, style = KxType.style(20.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 10.dp))
+                if (!live || inf0 != null) Text(if (!live) "Частная группа · 214 участников" else inf0!!.let { i ->
+                    (if (i.public) "Публичный" else "Частный").let { if (i.channel) "$it канал" else (if (i.public) "Публичная" else "Частная") + " группа" } +
+                        " · ${i.members} ${gxPlural(i.members, if (i.channel) "подписчик" else "участник", if (i.channel) "подписчика" else "участника", if (i.channel) "подписчиков" else "участников")}"
+                }, style = KxType.style(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
+                if (names.isNotEmpty()) Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row {
-                        listOf("А" to Color(0xFFC0443C), "Д" to Color(0xFF2F6E9E), "Е" to Kx.accentDeep).forEachIndexed { i, (l, c) ->
+                        names.zip(listOf(Color(0xFFC0443C), Color(0xFF2F6E9E), Kx.accentDeep)) { n, c -> n.take(1).uppercase() to c }.forEachIndexed { i, (l, c) ->
                             Box(Modifier.offset(x = (-8 * i).dp).size(26.dp).clip(CircleShape).background(SheetInk).padding(2.dp).clip(CircleShape).background(c), contentAlignment = Alignment.Center) {
                                 Text(l, style = KxType.style(11.sp, FontWeight.ExtraBold))
                             }
                         }
                     }
-                    Text("Анна, Дана и Ерлан уже здесь", style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.offset(x = (-16).dp))
+                    Text(when (names.size) { 1 -> "${names[0]} уже здесь"; 2 -> "${names[0]} и ${names[1]} уже здесь"; else -> "${names[0]}, ${names[1]} и ${names[2]} уже здесь" }, style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.offset(x = (-16).dp))
                 }
                 when (st) {
                     0 -> {
-                        Text("Собираемся по пятницам в 19:00. Играем в «Каркассон», «Кодовые имена» и всё новое. Новичкам объясняем правила 🙂",
+                        val about = if (live) inf0?.description.orEmpty() else "Собираемся по пятницам в 19:00. Играем в «Каркассон», «Кодовые имена» и всё новое. Новичкам объясняем правила 🙂"
+                        if (about.isNotEmpty()) Text(about,
                             style = KxType.style(13.sp, color = Kx.text2, lineHeight = 18.9.sp), modifier = Modifier.padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp))
                                 .background(Kx.w(.05f)).padding(horizontal = 14.dp, vertical = 12.dp))
-                        Row(Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0x14E8B04A)).border(1.dp, Color(0x38E8B04A), RoundedCornerShape(14.dp))
+                        if (byRequest) Row(Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0x14E8B04A)).border(1.dp, Color(0x38E8B04A), RoundedCornerShape(14.dp))
                             .padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Rounded.HowToReg, null, Modifier.size(18.dp), tint = Kx.warning)
                             Text("Вступление по заявке — админы увидят ваш профиль и решат.", style = KxType.style(12.sp, color = Color(0xFFE8D2A0), lineHeight = 16.8.sp))
                         }
-                        GxPillButton("Подать заявку", Modifier.padding(top = 12.dp).fillMaxWidth(), height = 54.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)),
-                            ink = Kx.onAccent, size = 16, weight = FontWeight.ExtraBold) { st = 1 }
+                        if (!live || inf0 != null) GxPillButton(if (byRequest) "Подать заявку" else if (inf0?.channel == true) "Подписаться" else "Вступить", Modifier.padding(top = 12.dp).fillMaxWidth(), height = 54.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)),
+                            ink = Kx.onAccent, size = 16, weight = FontWeight.ExtraBold) { join() }
                     }
                     1 -> Column(Modifier.padding(top = 18.dp).gxRise(0, 300, 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         val inf = rememberInfiniteTransition(label = "wait")
@@ -127,7 +169,7 @@ fun JoinRequestScreen(ctx: KxScreenCtx) {
                             textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
                         Row(Modifier.padding(top = 14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             GxPillButton("Закрыть", Modifier.weight(1f), height = 50.dp, size = 14, onClick = ctx.back)
-                            Box(Modifier.weight(1f).drawBehind {
+                            if (!live) Box(Modifier.weight(1f).drawBehind {
                                 val o = 3.dp.toPx()
                                 drawRoundRect(Color(0x808FD3AC), topLeft = androidx.compose.ui.geometry.Offset(-o, -o), size = androidx.compose.ui.geometry.Size(size.width + 2 * o, size.height + 2 * o),
                                     cornerRadius = CornerRadius(25.dp.toPx() + o), style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))))
@@ -140,14 +182,15 @@ fun JoinRequestScreen(ctx: KxScreenCtx) {
                         Box(Modifier.gxPopIn(500, .5f).size(64.dp).clip(CircleShape).cssLinear(135f, Kx.accentMid, Kx.accentDeep), contentAlignment = Alignment.Center) {
                             Icon(Icons.Rounded.Celebration, null, Modifier.size(34.dp), tint = Kx.onAccent)
                         }
-                        Text("Вас приняли!", style = KxType.style(17.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 10.dp))
-                        Text("Добро пожаловать в «Настолки по пятницам»", style = KxType.style(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 4.dp))
+                        Text(if (live && !byRequest) "Вы в чате!" else "Вас приняли!", style = KxType.style(17.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 10.dp))
+                        Text("Добро пожаловать в «$title»", style = KxType.style(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 4.dp))
                         GxPillButton("Открыть чат", Modifier.padding(top = 14.dp).fillMaxWidth(), height = 54.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)),
-                            ink = Kx.onAccent, size = 16, weight = FontWeight.ExtraBold, onClick = ctx.back)
+                            ink = Kx.onAccent, size = 16, weight = FontWeight.ExtraBold) { val id = info?.chatId ?: 0L; if (live && id != 0L) ctx.openChat(id) else ctx.back() }
                     }
                 }
             }
         }
+        GxTip(tip)
     }
 }
 

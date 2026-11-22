@@ -37,16 +37,25 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.delay
+import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
 /** Board «Язык»: RU/EN cards, translate switch, own names for the dock tabs with live preview. */
 @Composable
 fun LanguageScreen(ctx: KxScreenCtx) {
-    // demo: needs store (app language, translate-messages flag, custom dock tab names)
-    var lang by rememberSaveable { mutableStateOf("ru") }
-    var tr by rememberSaveable { mutableStateOf(true) }
-    var names by remember { mutableStateOf(mapOf<Int, String>()) }
+    val store = ctx.store
+    val lang = if (store.pref(KxPrefs.LANGUAGE) == 1) "en" else "ru"
+    val tr = store.prefOn(KxPrefs.TRANSLATE)
+    // Typed text stays local while editing (a blank field must not snap back to the saved name).
+    var names by remember { mutableStateOf(store.tabNames) }
+    // Saved half a second after typing stops (each save rewrites the own-names pack).
+    LaunchedEffect(names) {
+        delay(500)
+        (0..4).forEach { i -> val v = names[i].orEmpty(); if (v != store.tabNames[i].orEmpty()) store.renameTab(i, v) }
+    }
+    fun saveNames(next: Map<Int, String>) { names = next }
     var changed by remember { mutableStateOf<Pair<Int, Long>?>(null) }
     val en = lang == "en"
     val outlined = listOf(Icons.Outlined.Group, Icons.Outlined.Call, Icons.Outlined.Chat, Icons.Outlined.MotionPhotosOn, Icons.Outlined.Settings)
@@ -66,10 +75,14 @@ fun LanguageScreen(ctx: KxScreenCtx) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(Triple("ru", "RU", "Русский"), Triple("en", "EN", "English")).forEach { (k, code, name) ->
-                        LangCard(code, name, lang == k, Modifier.weight(1f)) { lang = k }
+                        LangCard(code, name, lang == k, Modifier.weight(1f)) {
+                            store.putPref(KxPrefs.LANGUAGE, if (k == "en") 1 else 0)
+                            // The new design's own texts are Russian for now; the language applies to kiroX's other screens.
+                            if (store !is com.kirox.app.ui.v3.demo.KxDemoStore && k == "en") ctx.toast("Английский — в остальных экранах kiroX; новый дизайн пока на русском")
+                        }
                     }
                 }
-                Row(Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(20.dp)).background(TileBg).kxClick(role = Role.Switch) { tr = !tr }.padding(horizontal = 14.dp),
+                Row(Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(20.dp)).background(TileBg).kxClick(role = Role.Switch) { store.togglePref(KxPrefs.TRANSLATE) }.padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Outlined.Translate, null, Modifier.size(22.dp), tint = Kx.accent)
                     Column(Modifier.weight(1f)) {
@@ -123,10 +136,10 @@ fun LanguageScreen(ctx: KxScreenCtx) {
                     }
                     Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.07f))
-                            .kxClick { names = fun_.withIndex().associate { it.index to it.value }; changed = 2 to System.nanoTime() }, contentAlignment = Alignment.Center) {
+                            .kxClick { saveNames(fun_.withIndex().associate { it.index to it.value }); changed = 2 to System.nanoTime() }, contentAlignment = Alignment.Center) {
                             Text(if (en) "Fun set" else "Весёлый набор", style = KxType.style(12.sp, FontWeight.Bold))
                         }
-                        Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.07f)).kxClick { names = emptyMap(); changed = null },
+                        Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.07f)).kxClick { saveNames(emptyMap()); changed = null },
                             contentAlignment = Alignment.Center) {
                             Text(if (en) "As in kiroX" else "Как задумано", style = KxType.style(12.sp, FontWeight.Bold))
                         }

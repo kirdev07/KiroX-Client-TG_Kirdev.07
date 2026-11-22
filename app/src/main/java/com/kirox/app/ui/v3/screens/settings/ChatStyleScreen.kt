@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
@@ -55,11 +56,11 @@ internal fun DrawScope.drawWall(i: Int, dot: Dp = 2.dp, step: Dp = 22.dp, at: Dp
 /** Board «Вид чатов»: live preview, bubble shapes, wallpapers, text size, density. */
 @Composable
 fun ChatStyleScreen(ctx: KxScreenCtx) {
-    // demo: needs store (chat look: bubble radius, wallpaper, text size, density)
-    var shape by rememberSaveable { mutableIntStateOf(1) }
-    var wall by rememberSaveable { mutableIntStateOf(0) }
-    var textSize by rememberSaveable { mutableIntStateOf(1) }
-    var dens by rememberSaveable { mutableIntStateOf(1) }
+    val store = ctx.store
+    val shape = store.pref(KxPrefs.BUBBLES).coerceIn(0, 2)
+    val wall = store.pref(KxPrefs.CHAT_WALLPAPER).coerceIn(0, 4)
+    val textSize = store.pref(KxPrefs.TEXT_SIZE).coerceIn(0, 3)
+    val dens = store.pref(KxPrefs.DENSITY).coerceIn(0, 2)
     val radii = listOf(8, 18, 26)
     val fsList = listOf(13, 15, 17, 19)
     val r by animateDpAsState(radii[shape].dp, tween(300, easing = CssEase), label = "r")
@@ -107,7 +108,7 @@ fun ChatStyleScreen(ctx: KxScreenCtx) {
                             val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .12f) else TileBg, tween(200), label = "sb")
                             val bd by animateColorAsState(if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.06f), tween(200), label = "sd")
                             val s = RoundedCornerShape(18.dp)
-                            Column(Modifier.weight(1f).height(74.dp).clip(s).background(bg).border(1.dp, bd, s).kxClick { shape = i },
+                            Column(Modifier.weight(1f).height(74.dp).clip(s).background(bg).border(1.dp, bd, s).kxClick { store.putPref(KxPrefs.BUBBLES, i) },
                                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
                                 Box(Modifier.size(54.dp, 22.dp).clip(RoundedCornerShape(radii[i].dp)).cssGradient(160f, 0f to Kx.accentDark, 1f to Color(0xFF1F4D36)))
                                 Text(label, style = KxType.style(12.sp, FontWeight.Bold))
@@ -120,7 +121,7 @@ fun ChatStyleScreen(ctx: KxScreenCtx) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("Тема", "Узор", "Градиент", "Ночь", "Нет").forEachIndexed { i, label ->
                             val on = i == wall
-                            Column(Modifier.weight(1f).kxClick(label) { wall = i }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Column(Modifier.weight(1f).kxClick(label) { store.putPref(KxPrefs.CHAT_WALLPAPER, i) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                 val ws = RoundedCornerShape(14.dp)
                                 Box(Modifier.fillMaxWidth().height(62.dp).drawBehind {
                                     if (on) {
@@ -145,7 +146,7 @@ fun ChatStyleScreen(ctx: KxScreenCtx) {
                         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             zLabels.forEachIndexed { i, l ->
                                 val bg by animateColorAsState(if (i <= textSize) Kx.accent else Kx.w(.1f), tween(200), label = "z")
-                                Box(Modifier.weight(1f).height(44.dp).kxClick(l) { textSize = i }, contentAlignment = Alignment.Center) {
+                                Box(Modifier.weight(1f).height(44.dp).kxClick(l) { store.putPref(KxPrefs.TEXT_SIZE, i) }, contentAlignment = Alignment.Center) {
                                     Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(bg))
                                 }
                             }
@@ -155,7 +156,7 @@ fun ChatStyleScreen(ctx: KxScreenCtx) {
                 }
                 Column {
                     Label8("Плотность")
-                    SPills(listOf("Компактно", "Обычно", "Свободно"), dens, height = 38, radius = 14, font = 13) { dens = it }
+                    SPills(listOf("Компактно", "Обычно", "Свободно"), dens, height = 38, radius = 14, font = 13) { store.putPref(KxPrefs.DENSITY, it) }
                 }
             }
         }

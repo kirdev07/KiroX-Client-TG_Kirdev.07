@@ -32,12 +32,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
+import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-private class Viewer(val name: String, val l: String, val c: Color, val time: String, val react: String, val close: Boolean)
+private class Viewer(val name: String, val l: String, val c: Color, val time: String, val react: String, val close: Boolean, val userId: Long = 0, val avatar: String? = null)
+private val VColors = listOf(Color(0xFFC0443C), Color(0xFFB07A2E), Color(0xFF2F6E9E), Color(0xFF6A4C9C), Color(0xFF5C6661), Color(0xFF3F9A6C))
 
-// demo: needs store (my story's viewers with reactions, view count, expiry)
+// Board viewers for the demo store. A real own story (ctx.arg = story id) lists store.storyViewers and deletes with
+// store.deleteStory; close-friends marks, story media/caption, expiry time and the share link are not in the store yet.
 private val StoryViewers = listOf(
     Viewer("Анна", "А", Color(0xFFC0443C), "2 мин назад", "❤️", true), Viewer("Мама", "М", Color(0xFFB07A2E), "10 мин назад", "😍", true),
     Viewer("Дмитрий", "Д", Color(0xFF2F6E9E), "25 мин назад", "🔥", false), Viewer("Мария", "М", Color(0xFF6A4C9C), "40 мин назад", "", false),
@@ -68,8 +72,20 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
     var tab by remember { mutableIntStateOf(0) }
     val toast = remember { MPillToastState() }
     val confirm = remember { MConfirmState() }
-    val reacted = StoryViewers.filter { it.react.isNotEmpty() }
-    val list = when (tab) { 0 -> StoryViewers; 1 -> reacted; else -> StoryViewers.filter { it.close } }
+    val store = ctx.store
+    val storyId = ctx.arg?.toIntOrNull()
+    val live = store !is com.kirox.app.ui.v3.demo.KxDemoStore && storyId != null
+    val scope = rememberCoroutineScope()
+    var viewers by remember { mutableStateOf(if (live) emptyList() else StoryViewers) }
+    if (live) LaunchedEffect(storyId) {
+        viewers = store.storyViewers(storyId!!).map { v ->
+            Viewer(v.name, v.name.take(1).uppercase(), VColors[(v.userId and 0x7fffffff).toInt() % VColors.size], v.time, v.reaction, false, v.userId, v.avatar)
+        }
+    }
+    val reacted = viewers.filter { it.react.isNotEmpty() }
+    val list = when (tab) { 0 -> viewers; 1 -> reacted; else -> viewers.filter { it.close } }
+    val total = if (live) viewers.size else 1248
+    fun count(n: Int) = n.toString().reversed().chunked(3).joinToString(" ").reversed()
     val sheetY = remember { Animatable(1f) }
     LaunchedEffect(Unit) { sheetY.animateTo(0f, tween(400, easing = KxMotion.rise)) }
 
@@ -81,7 +97,7 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
             Box(Modifier.padding(start = 10.dp, end = 10.dp, top = 8.dp).fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.4f))) {
                 Box(Modifier.fillMaxWidth(.6f).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(Color.White))
             }
-            Text("Закат над Медеу 🌄", style = ts(13.sp, FontWeight.Bold, Color.White).copy(shadow = Shadow(Color.Black.copy(alpha = .5f), Offset(0f, 2f), 12f)),
+            if (!live) Text("Закат над Медеу 🌄", style = ts(13.sp, FontWeight.Bold, Color.White).copy(shadow = Shadow(Color.Black.copy(alpha = .5f), Offset(0f, 2f), 12f)),
                 modifier = Modifier.align(Alignment.BottomStart).padding(12.dp))
             // kxFloat 2.4s ease-out ×2 with .8s steps.
             val clock by rememberPlayClock(true, 1600L + 4800L)
@@ -102,19 +118,22 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
             Box(Modifier.align(Alignment.CenterHorizontally).padding(vertical = 10.dp).size(40.dp, 4.dp).clip(CircleShape).background(Kx.w(.25f)))
             Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Outlined.Visibility, null, tint = Kx.accent); T("1 248", 18.sp, FontWeight.ExtraBold)
+                    Icon(Icons.Outlined.Visibility, null, tint = Kx.accent); T(count(total), 18.sp, FontWeight.ExtraBold)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Rounded.Favorite, null, Modifier.size(20.dp), tint = Kx.danger); T("${reacted.count { it.react == "❤️" } + 86}", 15.sp, FontWeight.Bold, Kx.danger)
+                    Icon(Icons.Rounded.Favorite, null, Modifier.size(20.dp), tint = Kx.danger); T(if (live) "${reacted.count { it.react == "❤️" || it.react == "❤" }}" else "${reacted.count { it.react == "❤️" } + 86}", 15.sp, FontWeight.Bold, Kx.danger)
                 }
                 Spacer(Modifier.weight(1f))
-                MRoundBtn(Icons.Outlined.IosShare, "Поделиться историей", size = 40.dp, iconSize = 20.dp, bg = Kx.w(.07f), border = null) { toast.show("Ссылка на историю скопирована", Icons.Rounded.Link) }
+                MRoundBtn(Icons.Outlined.IosShare, "Поделиться историей", size = 40.dp, iconSize = 20.dp, bg = Kx.w(.07f), border = null) { toast.show(if (live) "Ссылка на историю пока недоступна" else "Ссылка на историю скопирована", Icons.Rounded.Link) }
                 MRoundBtn(Icons.Outlined.Delete, "Удалить историю", size = 40.dp, iconSize = 20.dp, bg = Color(0xFFE5534B).copy(alpha = .12f), border = null, tint = Kx.danger) {
-                    confirm.ask("Удалить историю?", "История исчезнет у всех, кто ещё не успел её посмотреть.", "Удалить") { ctx.back() }
+                    confirm.ask("Удалить историю?", "История исчезнет у всех, кто ещё не успел её посмотреть.", "Удалить") {
+                        if (!live) ctx.back()
+                        else scope.launch { val err = store.deleteStory(storyId!!); if (err == null) ctx.back() else toast.show(err, Icons.Rounded.Delete) }
+                    }
                 }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("Все · 1 248", "С реакцией · ${reacted.size + 92}", "Близкие друзья").forEachIndexed { i, label ->
+                listOf("Все · ${count(total)}", "С реакцией · ${if (live) reacted.size else reacted.size + 92}", "Близкие друзья").forEachIndexed { i, label ->
                     val on = tab == i
                     val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f), tween(200), label = "t")
                     Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(bg).kxClick { tab = i }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
@@ -126,14 +145,17 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
                 itemsIndexed(list, key = { _, v -> "$tab/${v.name}/${v.time}" }) { k, v ->
                     Row(Modifier.fillMaxWidth().kxRise(k * 40, 250).padding(horizontal = 6.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(Modifier.size(44.dp)) {
-                            Box(Modifier.matchParentSize().clip(CircleShape).background(v.c), contentAlignment = Alignment.Center) { T(v.l, 16.sp, FontWeight.ExtraBold) }
+                            Box(Modifier.matchParentSize().clip(CircleShape).background(v.c), contentAlignment = Alignment.Center) {
+                                T(v.l, 16.sp, FontWeight.ExtraBold)
+                                KxImage(v.avatar, Modifier.matchParentSize(), maxPx = 160)
+                            }
                             if (v.close) Box(Modifier.align(Alignment.BottomEnd).offset(3.dp, 3.dp).size(18.dp).clip(CircleShape).background(Color(0xFF121614)).padding(2.dp).clip(CircleShape).background(Kx.accent),
                                 contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Star, null, Modifier.size(11.dp), tint = Kx.onAccent) }
                         }
                         Column(Modifier.weight(1f)) { T(v.name, 15.sp, FontWeight.Bold); T(v.time, 12.sp, color = Kx.text4) }
                         if (v.react.isNotEmpty()) Text(v.react, style = ts(24.sp))
                         MRoundBtn(Icons.AutoMirrored.Outlined.Chat, "Ответить: ${v.name}", size = 36.dp, iconSize = 18.dp, bg = Kx.w(.06f), border = null, tint = Kx.text2) {
-                            toast.show("Откроется чат «${v.name}»", Icons.Rounded.Chat)
+                            if (live && v.userId != 0L) ctx.openChat(v.userId) else toast.show("Откроется чат «${v.name}»", Icons.Rounded.Chat)
                         }
                     }
                 }
@@ -141,7 +163,7 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
                     Row(Modifier.padding(start = 6.dp, end = 6.dp, top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.w(.04f)).padding(horizontal = 12.dp, vertical = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Outlined.Schedule, null, Modifier.size(18.dp), tint = Kx.text4)
-                        T("История исчезнет через 19 ч. Список просмотров хранится ещё сутки после этого.", 12.sp, color = Kx.text4)
+                        T(if (live) "Список просмотров хранится ещё сутки после того, как история исчезнет." else "История исчезнет через 19 ч. Список просмотров хранится ещё сутки после этого.", 12.sp, color = Kx.text4)
                     }
                 }
             }

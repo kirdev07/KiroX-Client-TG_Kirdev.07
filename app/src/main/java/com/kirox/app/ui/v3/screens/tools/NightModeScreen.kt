@@ -31,18 +31,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
 /** Board «Ночной режим»: animated sky preview, demo hour slider, when-to-switch radio, schedule steppers, night theme pick. */
 @Composable
 fun NightModeScreen(ctx: KxScreenCtx) {
-    // demo: needs store (night mode: mode, from/to hours, night theme; sunset/sunrise times)
-    var mode by rememberSaveable { mutableIntStateOf(1) }
-    var from by rememberSaveable { mutableIntStateOf(22) }
-    var to by rememberSaveable { mutableIntStateOf(7) }
-    var hour by rememberSaveable { mutableIntStateOf(23) }
-    var theme by rememberSaveable { mutableIntStateOf(0) }
+    // Mode / schedule / night theme: KxPrefs («По расписанию» is the app's auto theme). The hour slider only
+    // previews the sky (real store starts at the current hour). Sunset times: fixed 8–17 as on the board.
+    val store = ctx.store
+    val mode = store.pref(KxPrefs.NIGHT_MODE).coerceIn(0, 3)
+    val from = store.pref(KxPrefs.NIGHT_FROM).mod(24)
+    val to = store.pref(KxPrefs.NIGHT_TO).mod(24)
+    var hour by rememberSaveable { mutableIntStateOf(if (store is com.kirox.app.ui.v3.demo.KxDemoStore) 23 else java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)) }
+    val theme = store.pref(KxPrefs.NIGHT_THEME)
     fun inRange(x: Int, a: Int, b: Int) = if (a <= b) x in a until b else (x >= a || x < b)
     val night = when (mode) { 0 -> true; 1 -> inRange(hour, from, to); 2 -> !inRange(hour, 8, 17); else -> hour >= 20 || hour < 7 }
     val isDay = inRange(hour, 7, 18); val dusk = hour == 17 || hour == 18 || hour == 6
@@ -114,7 +117,7 @@ fun NightModeScreen(ctx: KxScreenCtx) {
                 Triple(Icons.Outlined.WbTwilight, "От заката до рассвета", "Сегодня с 17:12 до 08:04"),
                 Triple(Icons.Outlined.Smartphone, "Как в системе", "Следовать настройке Android"),
             ).forEachIndexed { i, (ic, label, sub) ->
-                TRow(ic, label, sub, Modifier.topLine(i > 0), onClick = { mode = i }) { TRadio(i == mode) }
+                TRow(ic, label, sub, Modifier.topLine(i > 0), onClick = { store.putPref(KxPrefs.NIGHT_MODE, i) }) { TRadio(i == mode) }
             }
         }
 
@@ -127,9 +130,9 @@ fun NightModeScreen(ctx: KxScreenCtx) {
                             Icon(ic, null, Modifier.size(16.dp), tint = Kx.text3); Text(label, style = KxType.style(12.sp, color = Kx.text3))
                         }
                         Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            TRoundBtn(Icons.Rounded.Remove, "Раньше") { if (k == 0) from = (from + 23) % 24 else to = (to + 23) % 24 }
+                            TRoundBtn(Icons.Rounded.Remove, "Раньше") { if (k == 0) store.putPref(KxPrefs.NIGHT_FROM, (from + 23) % 24) else store.putPref(KxPrefs.NIGHT_TO, (to + 23) % 24) }
                             Text(pad(v), style = KxType.style(24.sp, FontWeight.ExtraBold, Kx.accent), textAlign = TextAlign.Center, modifier = Modifier.widthIn(min = 70.dp))
-                            TRoundBtn(Icons.Rounded.Add, "Позже") { if (k == 0) from = (from + 1) % 24 else to = (to + 1) % 24 }
+                            TRoundBtn(Icons.Rounded.Add, "Позже") { if (k == 0) store.putPref(KxPrefs.NIGHT_FROM, (from + 1) % 24) else store.putPref(KxPrefs.NIGHT_TO, (to + 1) % 24) }
                         }
                     }
                 }
@@ -142,7 +145,7 @@ fun NightModeScreen(ctx: KxScreenCtx) {
                 .forEachIndexed { i, (label, bg, a) ->
                     val bd by animateColorAsState(if (i == theme) Kx.accent.copy(alpha = .5f) else Color.Transparent, tween(200), label = "bd")
                     Column(Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(TTile).border(1.dp, bd, RoundedCornerShape(18.dp))
-                        .kxClick(role = Role.RadioButton) { theme = i }.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        .kxClick(role = Role.RadioButton) { store.putPref(KxPrefs.NIGHT_THEME, i) }.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Column(Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(12.dp)).background(bg).padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Box(Modifier.fillMaxWidth(.6f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(a))
                             Box(Modifier.fillMaxWidth(.8f).height(8.dp).align(Alignment.End).clip(RoundedCornerShape(4.dp)).background(Kx.w(.18f)))

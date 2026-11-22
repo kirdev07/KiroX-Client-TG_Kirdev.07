@@ -36,11 +36,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
+import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store (channel posts with reactions/views/comments, sponsored message, admin flag, post stats)
-private data class CPost(val title: String, val text: String, val image: Boolean, val views: String, val time: String, val comments: Int, val reacts: List<Pair<String, Int>>)
+// Board posts for the demo store. A real channel (ctx.arg = chat id) shows store.messages / header / postStats;
+// sponsored messages and the per-hour views chart are not in the store yet, so they show only on the demo.
+private data class CPost(val title: String, val text: String, val image: Boolean, val views: String, val time: String, val comments: Int, val reacts: List<Pair<String, Int>>,
+                         val id: Long = 0, val path: String? = null, val mine: Set<String> = emptySet(), val day: String? = null)
 private val CPosts = listOf(
     CPost("Премьера недели: «Северный ветер»", "Красивая драма о дороге домой. В кино с пятницы, сеансы с 18:00.", true, "2,4 тыс.", "18:20", 34, listOf("🔥" to 214, "❤️" to 96)),
     CPost("Опрос на выходные", "Комедия или триллер? Пишите в комментариях, выберем фильм для субботы.", false, "1,8 тыс.", "20:05", 61, listOf("😂" to 58, "👍" to 41)),
@@ -52,13 +56,33 @@ private val CardBg = Color(0xFF141917)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChannelScreen(ctx: KxScreenCtx) {
-    var sub by rememberSaveable { mutableStateOf(false) }
-    var muted by rememberSaveable { mutableStateOf(false) }
+    val store = ctx.store
+    val chatId = ctx.arg?.toLongOrNull()
+    val live = store !is com.kirox.app.ui.v3.demo.KxDemoStore && chatId != null
+    if (live) DisposableEffect(chatId) {
+        val wasOpen = store.historyChatId == chatId
+        if (!wasOpen) store.openChat(chatId!!)
+        onDispose { if (!wasOpen) store.closeChat(chatId!!) }
+    }
+    val header = if (live) store.header(chatId!!) else null
+    val posts = if (!live) CPosts else store.messages(chatId!!).filter { it.kind != KxMsgKind.Service }.takeLast(30).map { m ->
+        val lines = m.text.split('\n', limit = 2)
+        val titled = lines.size > 1 && lines[0].length <= 80
+        CPost(if (titled) lines[0] else "", if (titled) lines[1] else m.text, m.media != null || m.thumb != null || m.kind == KxMsgKind.Photo || m.kind == KxMsgKind.Video, m.views, m.time, m.comments, m.reactions.map { it.emoji to it.count },
+            id = m.id, path = if (m.kind == KxMsgKind.Photo) m.media ?: m.thumb else m.thumb ?: m.media, mine = m.reactions.filter { it.mine }.map { it.emoji }.toSet(), day = m.dayHeader)
+    }
+    var subDemo by rememberSaveable { mutableStateOf(false) }
+    var mutedDemo by rememberSaveable { mutableStateOf(false) }
+    val sub = header?.let { it.composer != KxComposer.Join } ?: subDemo
+    val muted = header?.muted ?: mutedDemo
+    val scope = rememberCoroutineScope()
+    var postStats by remember { mutableStateOf<KxPostStats?>(null) }
     val mine = remember { mutableStateMapOf<String, Boolean>() }
     var popped by remember { mutableStateOf<String?>(null) }
     var popTick by remember { mutableIntStateOf(0) }
     var stats by remember { mutableStateOf(false) }
-    var admin by rememberSaveable { mutableStateOf(false) }
+    var adminDemo by rememberSaveable { mutableStateOf(false) }
+    val admin = header?.let { it.composer == KxComposer.Write } ?: adminDemo
     var more by remember { mutableStateOf(false) }
     var leave by remember { mutableStateOf(false) }
     var ad by rememberSaveable { mutableStateOf(true) }
@@ -73,31 +97,46 @@ fun ChannelScreen(ctx: KxScreenCtx) {
                 val minH = maxHeight
                 Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState(), reverseScrolling = true)) {
                     Column(Modifier.fillMaxWidth().heightIn(min = minH).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Bottom)) {
-                        Text("Сегодня", style = KxType.style(12.sp, FontWeight.SemiBold, Kx.text3),
+                        if (!live) Text("Сегодня", style = KxType.style(12.sp, FontWeight.SemiBold, Kx.text3),
                             modifier = Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(12.dp)).background(Kx.w(.06f)).padding(horizontal = 12.dp, vertical = 4.dp))
-                        CPosts.forEachIndexed { i, p ->
+                        posts.forEachIndexed { i, p ->
+                            p.day?.let { d ->
+                                Text(d, style = KxType.style(12.sp, FontWeight.SemiBold, Kx.text3),
+                                    modifier = Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(12.dp)).background(Kx.w(.06f)).padding(horizontal = 12.dp, vertical = 4.dp))
+                            }
                             Column(Modifier.fillMaxWidth().gxRise(0, 400).clip(RoundedCornerShape(22.dp)).background(CardBg)) {
                                 if (p.image) Box(Modifier.fillMaxWidth().height(150.dp).cssLinearStops(150f, 0f to Color(0xFFC97A58), .75f to Color(0xFF3A2014)), contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Rounded.Theaters, null, Modifier.size(46.dp), tint = Kx.w(.3f))
+                                    if (p.path == null) Icon(Icons.Rounded.Theaters, null, Modifier.size(46.dp), tint = Kx.w(.3f))
+                                    KxImage(p.path, Modifier.matchParentSize())
                                 }
                                 Column(Modifier.padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 6.dp)) {
-                                    Text(p.title, style = KxType.style(15.sp, FontWeight.Bold))
+                                    if (p.title.isNotEmpty()) Text(p.title, style = KxType.style(15.sp, FontWeight.Bold))
                                     Text(p.text, style = KxType.style(14.sp, color = Kx.text2, lineHeight = 19.sp), modifier = Modifier.padding(top = 3.dp))
                                 }
                                 FlowRow(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     p.reacts.forEach { (e, n) ->
-                                        val key = "$i$e"; val on = mine[key] == true
-                                        CReact(e, n + if (on) 1 else 0, on, if (popped == key) popTick else 0) { mine[key] = !on; popped = key; popTick++ }
+                                        val key = "$i$e"
+                                        if (live) {
+                                            val on = e in p.mine
+                                            CReact(e, n, on, if (popped == key) popTick else 0) { store.react(chatId!!, p.id, e); popped = key; popTick++ }
+                                        } else {
+                                            val on = mine[key] == true
+                                            CReact(e, n + if (on) 1 else 0, on, if (popped == key) popTick else 0) { mine[key] = !on; popped = key; popTick++ }
+                                        }
                                     }
                                     Spacer(Modifier.weight(1f))
-                                    Row(Modifier.height(30.dp).kxClick("Статистика поста") { if (admin) stats = true else tip.say("Статистика видна только админам канала") },
+                                    Row(Modifier.height(30.dp).kxClick("Статистика поста") {
+                                        if (!admin) tip.say("Статистика видна только админам канала")
+                                        else if (!live) stats = true
+                                        else scope.launch { postStats = store.postStats(chatId!!, p.id); if (postStats != null) stats = true else tip.say("Статистика этого поста пока недоступна") }
+                                    },
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                                         Icon(Icons.Outlined.Visibility, null, Modifier.size(15.dp), tint = Kx.text4)
                                         Text("${p.views} · ${p.time}", style = KxType.style(11.sp, color = Kx.text4))
                                     }
                                 }
-                                Row(Modifier.fillMaxWidth().height(42.dp).hairline(top = true).kxClick { ctx.open("Comments") }.padding(horizontal = 14.dp),
+                                if (!live || p.comments > 0) Row(Modifier.fillMaxWidth().height(42.dp).hairline(top = true).kxClick { if (live) ctx.open("Comments:$chatId:${p.id}") else ctx.open("Comments") }.padding(horizontal = 14.dp),
                                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row {
                                         Box(Modifier.size(20.dp).clip(CircleShape).background(CardBg).padding(2.dp).clip(CircleShape).background(Color(0xFF4B3F7A)))
@@ -109,18 +148,21 @@ fun ChannelScreen(ctx: KxScreenCtx) {
                                 }
                             }
                         }
-                        if (ad) CAd(why, onWhy = { why = !why }, onHide = { tip.say("Скрыть рекламу можно с Telegram Premium") })
+                        if (ad && !live) CAd(why, onWhy = { why = !why }, onHide = { tip.say("Скрыть рекламу можно с Telegram Premium") })
                     }
                 }
             }
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 18.dp, bottom = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!sub) {
                     GxPillButton("Подписаться", Modifier.weight(1f).gxRise(0, 300), height = 56.dp, brush = Brush.linearGradient(listOf(Kx.accent, Kx.accentDeep)),
-                        ink = Kx.onAccent, size = 16, weight = FontWeight.ExtraBold, icon = Icons.Rounded.AddCircle) { sub = true; tip.say("Вы подписались на канал") }
+                        ink = Kx.onAccent, size = 16, weight = FontWeight.ExtraBold, icon = Icons.Rounded.AddCircle) { if (live) store.joinChat(chatId!!) else { subDemo = true; tip.say("Вы подписались на канал") } }
                 } else {
                     CBarButton(if (muted) Icons.Rounded.NotificationsOff else Icons.Rounded.Notifications, if (muted) "Включить звук" else "Без звука",
-                        if (muted) Kx.danger else Kx.text, Modifier.weight(1f)) { muted = !muted }
-                    CBarButton(Icons.Outlined.Forum, "Обсуждение", Kx.text, Modifier.weight(1f)) { ctx.open("Comments") }
+                        if (muted) Kx.danger else Kx.text, Modifier.weight(1f)) { if (live) store.setMuted(chatId!!, !muted) else mutedDemo = !muted }
+                    CBarButton(Icons.Outlined.Forum, "Обсуждение", Kx.text, Modifier.weight(1f)) {
+                        if (!live) ctx.open("Comments")
+                        else posts.lastOrNull { it.comments > 0 }?.let { ctx.open("Comments:$chatId:${it.id}") } ?: tip.say("У канала нет обсуждения")
+                    }
                 }
             }
         }
@@ -129,13 +171,17 @@ fun ChannelScreen(ctx: KxScreenCtx) {
             CRoundButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", ctx.back)
             Row(Modifier.weight(1f).height(54.dp).clip(RoundedCornerShape(27.dp)).border(1.dp, Kx.w(.16f), RoundedCornerShape(27.dp)).padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GxLetter("", Color(0xFFD08A3C), Color(0xFF7A4A16), Color(0xFFFFE9C9), size = 42.dp, icon = Icons.Rounded.Movie, iconSize = 22.dp)
+                Box {
+                    GxLetter("", Color(0xFFD08A3C), Color(0xFF7A4A16), Color(0xFFFFE9C9), size = 42.dp, icon = Icons.Rounded.Movie, iconSize = 22.dp)
+                    KxImage(header?.avatar, Modifier.size(42.dp).clip(CircleShape), maxPx = 160)
+                }
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        KxLine("Кино по пятницам", KxType.style(15.sp, FontWeight.Bold), Modifier.weight(1f, false))
-                        Icon(Icons.Rounded.Verified, "Подтверждён", Modifier.size(16.dp), tint = Kx.accent)
+                        KxLine(header?.title ?: "Кино по пятницам", KxType.style(15.sp, FontWeight.Bold), Modifier.weight(1f, false))
+                        if (!live) Icon(Icons.Rounded.Verified, "Подтверждён", Modifier.size(16.dp), tint = Kx.accent)
                     }
-                    Text(if (sub) "24 501 подписчик" else "24 500 подписчиков", style = KxType.style(12.sp, color = Kx.text3), maxLines = 1)
+                    Text(header?.let { h -> if (h.members > 0) "${h.members.toString().reversed().chunked(3).joinToString(" ").reversed()} ${gxPlural(h.members, "подписчик", "подписчика", "подписчиков")}" else h.status }
+                        ?: if (sub) "24 501 подписчик" else "24 500 подписчиков", style = KxType.style(12.sp, color = Kx.text3), maxLines = 1)
                 }
             }
             CRoundButton(Icons.Rounded.MoreVert, "Ещё") { more = true }
@@ -147,30 +193,33 @@ fun ChannelScreen(ctx: KxScreenCtx) {
         AnimatedVisibility(more, Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 64.dp, end = 12.dp), enter = fadeIn(tween(200)), exit = fadeOut(tween(150))) {
             Column(Modifier.width(250.dp).shadow(24.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp)).background(Color(0xFF1E2421))
                 .border(1.dp, Kx.w(.12f), RoundedCornerShape(20.dp)).padding(6.dp)) {
-                CMenuItem(Icons.Outlined.AdminPanelSettings, if (admin) "Смотреть как подписчик" else "Макет: смотреть как админ") { admin = !admin; more = false }
+                if (!live) CMenuItem(Icons.Outlined.AdminPanelSettings, if (admin) "Смотреть как подписчик" else "Макет: смотреть как админ") { adminDemo = !adminDemo; more = false }
                 CMenuItem(Icons.Outlined.Search, "Поиск по каналу") { more = false; ctx.open("ChatSearch") }
                 if (sub) CMenuItem(Icons.AutoMirrored.Outlined.Logout, "Покинуть канал", danger = true) { more = false; leave = true }
             }
         }
         GxTip(tip)
-        GxConfirm(leave, "Покинуть «Кино по пятницам»?", "Канал пропадёт из списка чатов. Вернуться можно в любой момент через поиск.",
+        GxConfirm(leave, "Покинуть «${header?.title ?: "Кино по пятницам"}»?", "Канал пропадёт из списка чатов. Вернуться можно в любой момент через поиск.",
             confirm = "Покинуть", cancel = "Остаться", onCancel = { leave = false }) {
-            leave = false; sub = false; muted = false; tip.say("Вы покинули канал")
+            leave = false
+            if (live) store.deleteChat(chatId!!) else { subDemo = false; mutedDemo = false }
+            tip.say("Вы покинули канал")
         }
         GxSheet(stats, onClose = { stats = false }) {
             Text("Статистика поста", style = KxType.style(19.sp, FontWeight.ExtraBold))
-            val total = 310 + mine.count { it.key.startsWith("0") && it.value }
+            val ps = postStats.takeIf { live }
+            val total = ps?.reactions ?: (310 + mine.count { it.key.startsWith("0") && it.value })
             Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CStat(Icons.Outlined.Visibility, Kx.accent, "2 418", "Просмотры", Modifier.weight(1f))
-                    CStat(Icons.AutoMirrored.Outlined.Forward, Color(0xFFA9CBF5), "86", "Репосты", Modifier.weight(1f))
+                    CStat(Icons.Outlined.Visibility, Kx.accent, ps?.views?.toString() ?: "2 418", "Просмотры", Modifier.weight(1f))
+                    CStat(Icons.AutoMirrored.Outlined.Forward, Color(0xFFA9CBF5), ps?.forwards?.toString() ?: "86", "Репосты", Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CStat(Icons.Rounded.Favorite, Color(0xFFFF9CC8), "$total", "Реакции", Modifier.weight(1f))
-                    CStat(Icons.Outlined.ChatBubbleOutline, Color(0xFFFFD27A), "34", "Комментарии", Modifier.weight(1f))
+                    CStat(Icons.Outlined.ChatBubbleOutline, Color(0xFFFFD27A), ps?.comments?.toString() ?: "34", "Комментарии", Modifier.weight(1f))
                 }
             }
-            Column(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(12.dp)) {
+            if (!live) Column(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(12.dp)) {
                 Text("Просмотры по часам", style = KxType.style(12.sp, color = Kx.text4), modifier = Modifier.padding(bottom = 8.dp))
                 Row(Modifier.fillMaxWidth().height(70.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     CBars.forEachIndexed { i, h ->

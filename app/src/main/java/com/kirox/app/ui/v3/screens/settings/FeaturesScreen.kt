@@ -38,6 +38,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
@@ -68,9 +69,10 @@ fun FeaturesScreen(ctx: KxScreenCtx) {
     val confKeys = confirmSets.last()
     val confOn = confKeys.filter { tw[it] == true }.toSet()
     val confirm = confirmSets.indexOf(confOn).takeIf { it >= 0 } ?: confirmSets.indexOfLast { confOn.containsAll(it) }.coerceAtLeast(0)
-    // demo: needs store (double-tap action and power saving are not booleans: not in the store yet)
-    var tap by rememberSaveable { mutableIntStateOf(0) }
-    var power by rememberSaveable { mutableIntStateOf(0) }
+    // Double tap and power saving: KxPrefs (the same KiroxTweaks values), filter words: MessageFilters.
+    val tap = store.pref(KxPrefs.DOUBLE_TAP).coerceIn(0, 3)
+    val power = store.pref(KxPrefs.POWER_MODE).coerceIn(0, 2)
+    val words = store.pref(KxPrefs.FILTER_WORDS)
     val glow by animateColorAsState(if (ghost) Color(130, 100, 220).copy(alpha = .22f) else glowGreen(.16f), tween(600), label = "glow")
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -102,10 +104,10 @@ fun FeaturesScreen(ctx: KxScreenCtx) {
                 val confOpts = listOf("Ничего", "Стикеры", "Стикеры, GIF", "Всё")
                 data class L(val icon: ImageVector, val label: String, val value: String, val next: () -> Unit)
                 val links = listOf(
-                    L(Icons.Outlined.TouchApp, "Двойной тап по сообщению", tapOpts[tap]) { tap = (tap + 1) % tapOpts.size },
+                    L(Icons.Outlined.TouchApp, "Двойной тап по сообщению", tapOpts[tap]) { store.putPref(KxPrefs.DOUBLE_TAP, (tap + 1) % tapOpts.size) },
                     L(Icons.AutoMirrored.Outlined.Help, "Спрашивать перед отправкой", confOpts[confirm]) { val next = confirmSets[(confirm + 1) % confOpts.size]; confKeys.forEach { store.setTweak(it, it in next) } },
-                    L(Icons.Outlined.BatterySaver, "Энергосбережение", powerOpts[power]) { power = (power + 1) % powerOpts.size },
-                    L(Icons.Outlined.FilterAlt, "Фильтры сообщений", "3 слова") { ctx.open("WordFilter") },
+                    L(Icons.Outlined.BatterySaver, "Энергосбережение", powerOpts[power]) { store.putPref(KxPrefs.POWER_MODE, (power + 1) % powerOpts.size) },
+                    L(Icons.Outlined.FilterAlt, "Фильтры сообщений", if (words == 0) "" else "$words ${if (words % 10 == 1 && words % 100 != 11) "слово" else if (words % 10 in 2..4 && words % 100 !in 12..14) "слова" else "слов"}") { ctx.open("WordFilter") },
                     L(Icons.Outlined.Backup, "Резервная копия настроек", "") { ctx.open("Backup") },
                 )
                 Column(Modifier.sRise(120), verticalArrangement = Arrangement.spacedBy(2.dp)) {

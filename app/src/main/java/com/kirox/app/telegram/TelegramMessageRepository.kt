@@ -161,6 +161,10 @@ class TelegramMessageRepository(
         return deferred.await()
     }
 
+    /** Text of a message in any chat translated to [language] by Telegram (no open chat needed). */
+    suspend fun translateIn(chatId: Long, messageId: Long, language: String): String =
+        client.query(TdApi.TranslateMessageText(chatId, messageId, language, "")).text
+
     /** Message text translated to [language] (ISO code, e.g. "ru") by Telegram. */
     suspend fun translate(messageId: Long, language: String): String? {
         val id = chatId.takeIf { it != 0L } ?: return null

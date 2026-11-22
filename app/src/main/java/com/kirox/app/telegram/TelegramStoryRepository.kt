@@ -110,7 +110,8 @@ class TelegramStoryRepository(
                 listOf(user.firstName, user.lastName).filter { it.isNotBlank() }.joinToString(" "),
                 user.profilePhoto?.small?.toRef(),
                 interaction.interactionDate,
-                ((interaction.type as? TdApi.StoryInteractionTypeView)?.chosenReactionType as? TdApi.ReactionTypeEmoji)?.emoji
+                ((interaction.type as? TdApi.StoryInteractionTypeView)?.chosenReactionType as? TdApi.ReactionTypeEmoji)?.emoji,
+                userId,
             )
         }
     }

@@ -326,7 +326,7 @@ data class TelegramStory(
 )
 
 /** Someone who viewed an own story, with the reaction they left. */
-data class TelegramStoryViewer(val name: String, val photo: TelegramFileRef?, val date: Int, val reaction: String?)
+data class TelegramStoryViewer(val name: String, val photo: TelegramFileRef?, val date: Int, val reaction: String?, val userId: Long = 0)
 
 /** What the bottom of a chat shows (v3 UI): composer, «Вступить», channel reader, restricted, blocked user, bot not started. */
 enum class TelegramWriteAccess { Write, Join, ReadOnly, Restricted, Blocked, StartBot }

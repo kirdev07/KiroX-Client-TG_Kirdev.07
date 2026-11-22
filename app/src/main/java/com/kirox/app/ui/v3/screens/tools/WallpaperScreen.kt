@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.components.KxIconButton
 import com.kirox.app.ui.v3.components.cssAngleEnd
 import com.kirox.app.ui.v3.components.cssAngleStart
@@ -74,12 +75,17 @@ private fun DrawScope.drawWp(w: Wp, pos: Float) {
 /** Board «Обои чата»: live preview (flowing gradient, blur, dim), wallpaper grid + gallery, blur segments, motion/dim switches, scope, apply. */
 @Composable
 fun WallpaperScreen(ctx: KxScreenCtx) {
-    // demo: needs store (chat wallpaper: preset/gallery, blur, motion, dim; for all chats or one chat) + gallery picker
-    val chatName = ctx.arg?.toLongOrNull()?.let { runCatching { ctx.store.header(it).title }.getOrNull() } ?: "Анна"
-    var w by rememberSaveable { mutableIntStateOf(0) }
-    var b by rememberSaveable { mutableIntStateOf(0) }
-    var motion by rememberSaveable { mutableStateOf(true) }
-    var dim by rememberSaveable { mutableStateOf(true) }
+    // Saved look: KxPrefs wall.* (all chats) or wall.*:<chatId> (one chat); «Установить» saves. Gallery picker: not yet.
+    val store = ctx.store
+    val chatId = ctx.arg?.toLongOrNull()
+    val demoStore = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val chatName = chatId?.let { runCatching { store.header(it).title }.getOrNull() } ?: if (demoStore) "Анна" else "этот чат"
+    fun key(base: String, one: Boolean) = if (one && chatId != null) "$base:$chatId" else base
+    val startOne = chatId != null
+    var w by rememberSaveable { mutableIntStateOf(store.pref(key(KxPrefs.WALL, startOne)).coerceIn(0, WPS.lastIndex)) }
+    var b by rememberSaveable { mutableIntStateOf(store.pref(key(KxPrefs.WALL_BLUR, startOne))) }
+    var motion by rememberSaveable { mutableStateOf(store.prefOn(key(KxPrefs.WALL_MOTION, startOne))) }
+    var dim by rememberSaveable { mutableStateOf(store.prefOn(key(KxPrefs.WALL_DIM, startOne))) }
     var scope by rememberSaveable { mutableIntStateOf(if (ctx.arg != null) 1 else 0) }
     var k by remember { mutableIntStateOf(0) }
     val wp = WPS[w]
@@ -169,12 +175,15 @@ fun WallpaperScreen(ctx: KxScreenCtx) {
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf("Все чаты", "Только «$chatName»").forEachIndexed { i, t ->
                         val bg by animateColorAsState(seg(scope == i), tween(200), label = "sb")
-                        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(14.dp)).background(bg).kxClick(role = Role.RadioButton) { scope = i }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(14.dp)).background(bg).kxClick(role = Role.RadioButton) { if (i == 0 || chatId != null || demoStore) scope = i }, contentAlignment = Alignment.Center) {
                             Text(t, style = KxType.style(13.sp, FontWeight.Bold, if (scope == i) Kx.accent else Kx.text3), maxLines = 1)
                         }
                     }
                 }
                 TPill("Установить", Modifier.fillMaxWidth(), h = 54.dp, bg = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), size = 16) {
+                    val one = scope == 1
+                    store.putPref(key(KxPrefs.WALL, one), w); store.putPref(key(KxPrefs.WALL_BLUR, one), b)
+                    store.putPref(key(KxPrefs.WALL_MOTION, one), if (motion) 1 else 0); store.putPref(key(KxPrefs.WALL_DIM, one), if (dim) 1 else 0)
                     say(if (scope == 1) "«${wp.name}» — только для «$chatName»" else "«${wp.name}» — для всех чатов")
                 }
             }

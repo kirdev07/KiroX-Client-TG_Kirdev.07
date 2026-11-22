@@ -238,6 +238,32 @@ class TelegramChatRepository(private val client: TelegramClient) {
     /** Subscribes to a channel or joins a public group. */
     suspend fun join(chatId: Long) { client.query(TdApi.JoinChat(chatId)) }
 
+    /** A stranger wrote first: the chat's action bar offers «Заблокировать / Добавить в контакты» (or «Спам»). */
+    suspend fun fromStranger(chatId: Long): Boolean = runCatching {
+        val bar = client.query(TdApi.GetChat(chatId)).actionBar
+        bar is TdApi.ChatActionBarReportAddBlock || bar is TdApi.ChatActionBarReportSpam
+    }.getOrDefault(false)
+
+    /** «Принять переписку»: hides the stranger bar for good. */
+    suspend fun removeActionBar(chatId: Long) { client.query(TdApi.RemoveChatActionBar(chatId)) }
+
+    /** What an invite link (t.me/+…, t.me/joinchat/…) leads to, before joining. */
+    suspend fun inviteLinkInfo(link: String): InviteLinkInfo {
+        val i = client.query(TdApi.CheckChatInviteLink(link))
+        val names = i.memberUserIds.take(3).mapNotNull { id -> runCatching { client.query(TdApi.GetUser(id)).firstName }.getOrNull()?.takeIf { it.isNotBlank() } }
+        return InviteLinkInfo(i.chatId, i.title, i.type is TdApi.InviteLinkChatTypeChannel, i.isPublic, i.memberCount, names, i.description,
+            i.createsJoinRequest, i.photo?.small?.toRef(),
+            // chatId is also set for public chats one can only read: a member is one that needs no «Вступить».
+            member = i.chatId != 0L && i.accessibleFor == 0 && writeAccess(i.chatId) != TelegramWriteAccess.Join)
+    }
+
+    /** Joins by an invite link; true when only a join request was sent (the admins decide). */
+    suspend fun joinByInviteLink(link: String): Boolean = try {
+        client.query(TdApi.JoinChatByInviteLink(link)); false
+    } catch (e: TdException) {
+        if (e.error.message.contains("INVITE_REQUEST_SENT")) true else throw e
+    }
+
     /** New messages disappear [seconds] after they are read (secret chats) or sent; 0 turns it off. */
     suspend fun setAutoDelete(chatId: Long, seconds: Int) { client.query(TdApi.SetChatMessageAutoDeleteTime(chatId, seconds)) }
 
@@ -667,6 +693,10 @@ internal fun toChatItem(
         canDeleteForAll = chat.canBeDeletedForAllUsers && peerUserId == 0L
     )
 }
+
+/** [member]: the user is already in the chat ([chatId] then opens it). */
+data class InviteLinkInfo(val chatId: Long, val title: String, val channel: Boolean, val public: Boolean, val members: Int, val knownNames: List<String>,
+                          val description: String, val byRequest: Boolean, val photo: TelegramFileRef?, val member: Boolean)
 
 internal fun TdApi.File.toRef() = TelegramFileRef(id, local?.path?.takeIf { local.isDownloadingCompleted && it.isNotBlank() })
 

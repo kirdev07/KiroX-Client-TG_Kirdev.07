@@ -31,12 +31,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlin.math.roundToInt
 
-// demo: needs store (message requests from non-contacts: sender, meta, first message, hidden media, mutual chats; accept / delete / block)
-private data class RReq(val name: String, val l: String, val c: Color, val meta: String, val text: String, val mutual: Int = 0, val risky: Boolean = false, val media: String? = null)
+// Board requests for the demo store; a real account lists store.messageRequests() (chats with Telegram's stranger bar).
+private data class RReq(val name: String, val l: String, val c: Color, val meta: String, val text: String, val mutual: Int = 0, val risky: Boolean = false, val media: String? = null,
+                        val chatId: Long = 0, val userId: Long = 0, val avatar: String? = null)
+private val RColors = listOf(Color(0xFF2F6E9E), Color(0xFFC0443C), Color(0xFF3F9A6C), Color(0xFFB07A2E), Color(0xFF6A4C9C), Color(0xFF2E6B66), Color(0xFF5C6661))
 private val RReqs = listOf(
     RReq("Ерлан Сейтов", "Е", Color(0xFF2F6E9E), "@erlan_s · нет фото · 2 общие группы", "Здравствуйте! Я от Олега, по поводу ремонта на Абая. Удобно созвониться завтра?", mutual = 2),
     RReq("Crypto Bonus", "C", Color(0xFF5C6661), "нет общих чатов · нет фото", "Вы выиграли 500$! Перейдите по ссылке, чтобы забрать приз 🎁", risky = true, media = "Ссылка скрыта"),
@@ -46,11 +49,24 @@ private val RReqs = listOf(
 /** Board «Незнакомцы»: shield banner, request cards (spam flag, mutual chats, hidden media), block / delete / accept with fly-out, empty state. */
 @Composable
 fun RequestsScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    var reqs by remember { mutableStateOf(if (demo) RReqs else emptyList()) }
+    var loading by remember { mutableStateOf(!demo) }
+    // Real account: block / delete ask first (index to direction), as Telegram's own action bar does.
+    var ask by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    if (!demo) LaunchedEffect(Unit) {
+        reqs = store.messageRequests().map { r ->
+            RReq(r.name, r.name.take(1).uppercase(), RColors[((if (r.colorIndex >= 0) r.colorIndex else r.userId.toInt()) and 0x7fffffff) % RColors.size], r.meta, r.text, r.mutual, r.risky, r.media,
+                chatId = r.chatId, userId = r.userId, avatar = r.avatar)
+        }
+        loading = false
+    }
     val gone = remember { mutableStateListOf<Int>() }
     val leaving = remember { mutableStateMapOf<Int, Int>() }
     val tip = rememberGxTip()
     val reduced = LocalKxReducedMotion.current
-    val left = RReqs.indices.filter { it !in gone }
+    val left = reqs.indices.filter { it !in gone }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
@@ -59,7 +75,7 @@ fun RequestsScreen(ctx: KxScreenCtx) {
                 KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Column(Modifier.weight(1f)) {
                     KxLine("Сообщения от незнакомых", KxType.style(20.sp, FontWeight.ExtraBold))
-                    Text(if (left.isNotEmpty()) "${left.size} ждут ответа" else "Всё разобрано", style = KxType.style(12.sp, color = Kx.text3))
+                    Text(if (loading) "Загрузка…" else if (left.isNotEmpty()) "${left.size} ждут ответа" else "Всё разобрано", style = KxType.style(12.sp, color = Kx.text3))
                 }
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 30.dp)) {
@@ -71,7 +87,7 @@ fun RequestsScreen(ctx: KxScreenCtx) {
                     Text("Они не знают, прочитали ли вы сообщение. Фото и ссылки скрыты, пока вы не примете переписку.", style = KxType.style(12.sp, color = Kx.text2, lineHeight = 17.4.sp))
                 }
                 left.forEach { i ->
-                    val r = RReqs[i]
+                    val r = reqs[i]
                     key(i) {
                         val out = remember { Animatable(0f) }
                         val dir = leaving[i]
@@ -79,6 +95,11 @@ fun RequestsScreen(ctx: KxScreenCtx) {
                             if (dir != null) {
                                 out.animateTo(1f, tween(420))
                                 gone.add(i); leaving.remove(i)
+                                if (!demo) when (dir) {
+                                    1 -> store.acceptRequest(r.chatId)
+                                    2 -> store.deleteChat(r.chatId)
+                                    else -> { store.block(r.userId, true); store.deleteChat(r.chatId) }
+                                }
                                 when (dir) {
                                     1 -> tip.say("Переписка принята — чат в списке", Icons.Rounded.CheckCircle)
                                     2 -> tip.say("Сообщение удалено", Icons.Rounded.Delete)
@@ -95,7 +116,10 @@ fun RequestsScreen(ctx: KxScreenCtx) {
                             .padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f))
                             .border(1.dp, if (r.risky) Color(0x4DE5534B) else Kx.w(.08f), RoundedCornerShape(22.dp)).padding(14.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Box(Modifier.size(46.dp).clip(CircleShape).background(r.c), contentAlignment = Alignment.Center) { Text(r.l, style = KxType.style(16.sp, FontWeight.ExtraBold)) }
+                                Box(Modifier.size(46.dp).clip(CircleShape).background(r.c), contentAlignment = Alignment.Center) {
+                                    Text(r.l, style = KxType.style(16.sp, FontWeight.ExtraBold))
+                                    KxImage(r.avatar, Modifier.matchParentSize(), maxPx = 160)
+                                }
                                 Column(Modifier.weight(1f)) {
                                     Text(r.name, style = KxType.style(15.sp, FontWeight.ExtraBold), maxLines = 1)
                                     Text(r.meta, style = KxType.style(12.sp, color = Kx.text4))
@@ -116,14 +140,14 @@ fun RequestsScreen(ctx: KxScreenCtx) {
                                 Text(r.media, style = KxType.style(12.sp, color = Kx.text3))
                             }
                             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                RBtn(Icons.Outlined.Block, "Блок", Modifier.weight(1f), bg = Color(0x1FE5534B), ink = Kx.danger) { if (dir == null) leaving[i] = 3 }
-                                RBtn(Icons.Outlined.Delete, "Удалить", Modifier.weight(1f), bg = Kx.w(.07f), ink = Kx.text, weight = FontWeight.Bold) { if (dir == null) leaving[i] = 2 }
+                                RBtn(Icons.Outlined.Block, "Блок", Modifier.weight(1f), bg = Color(0x1FE5534B), ink = Kx.danger) { if (dir == null) { if (demo) leaving[i] = 3 else ask = i to 3 } }
+                                RBtn(Icons.Outlined.Delete, "Удалить", Modifier.weight(1f), bg = Kx.w(.07f), ink = Kx.text, weight = FontWeight.Bold) { if (dir == null) { if (demo) leaving[i] = 2 else ask = i to 2 } }
                                 RBtn(Icons.Rounded.Check, "Принять", Modifier.weight(1f), brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent) { if (dir == null) leaving[i] = 1 }
                             }
                         }
                     }
                 }
-                if (left.isEmpty()) Column(Modifier.fillMaxWidth().gxRise(0, 300, 10.dp).padding(start = 30.dp, end = 30.dp, top = 60.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (left.isEmpty() && !loading) Column(Modifier.fillMaxWidth().gxRise(0, 300, 10.dp).padding(start = 30.dp, end = 30.dp, top = 60.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Rounded.VerifiedUser, null, Modifier.size(56.dp), tint = Kx.accentDeep)
                     Text("Тут пусто", style = KxType.style(17.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 10.dp))
                     Text("Новых сообщений от незнакомых нет", style = KxType.style(13.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
@@ -131,6 +155,12 @@ fun RequestsScreen(ctx: KxScreenCtx) {
                         contentAlignment = Alignment.Center) { Text("Показать пример снова", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent)) }
                 }
             }
+        }
+        val a = ask
+        GxConfirm(a != null, if (a?.second == 3) "Заблокировать ${a.let { reqs.getOrNull(it.first)?.name.orEmpty() }}?" else "Удалить чат?",
+            if (a?.second == 3) "Пользователь больше не сможет вам писать, а чат удалится." else "Переписка удалится у вас.",
+            confirm = if (a?.second == 3) "Заблокировать" else "Удалить", onCancel = { ask = null }) {
+            ask = null; if (a != null) leaving[a.first] = a.second
         }
         GxTip(tip, bottom = 30.dp, icon = Icons.Rounded.Done, durationMs = 2400, bg = Kx.surface3, border = Kx.w(.16f), textSize = 14, iconSize = 20.dp, padH = 18.dp, padV = 12.dp)
     }

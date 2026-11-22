@@ -31,15 +31,26 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.Kx
 import com.kirox.app.ui.v3.theme.LocalKxReducedMotion
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private class TMsg(val mine: Boolean, val time: String, val src: String?, val t: Map<String, String>)
+private class TMsg(val mine: Boolean, val time: String, val src: String?, val t: Map<String, String>, val id: Long = 0)
 
-// demo: needs store (chat language detection, target language setting, outgoing auto-translate; KxStore.translate covers one message)
+/** Real chat: a message counts as foreign when its letters are in another script than the target language
+ *  (Telegram has no language detection call; translation itself is Telegram's). */
+private fun foreignTo(text: String, lang: String): Boolean {
+    val letters = text.filter { it.isLetter() }
+    if (letters.isEmpty()) return false
+    val cyr = letters.count { it in '\u0400'..'\u04FF' }
+    return if (lang == "en") cyr > 0 else cyr * 2 < letters.length
+}
+
+// Board chat for the demo store. A real chat (ctx.arg = chat id) translates its last messages with store.translateMessage;
+// the target language is KxPrefs.TRANSLATE_TO; translating own outgoing messages is not available yet.
 private val TMsgs = listOf(
     TMsg(false, "14:02", "ES", mapOf("orig" to "¡Hola! ¿Qué tal tu viaje a Barcelona?", "ru" to "Привет! Как твоя поездка в Барселону?", "en" to "Hi! How was your trip to Barcelona?", "kk" to "Сәлем! Барселонаға сапарың қалай?")),
     TMsg(true, "14:05", null, mapOf("orig" to "Отлично! Было очень тепло ☀️")),
@@ -51,33 +62,69 @@ private val Langs = listOf(Triple("ru", "🇷🇺", "Русский"), Triple("e
 /** Board «Перевод»: translate bar for the whole chat, per-message translate with shimmer, target language sheet, outgoing toggle. */
 @Composable
 fun TranslateScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val chatId = ctx.arg?.toLongOrNull()
+    val live = store !is com.kirox.app.ui.v3.demo.KxDemoStore && chatId != null
+    if (live) DisposableEffect(chatId) {
+        val wasOpen = store.historyChatId == chatId
+        if (!wasOpen) store.openChat(chatId!!)
+        onDispose { if (!wasOpen) store.closeChat(chatId!!) }
+    }
     val tr = remember { mutableStateListOf<Int>() }
     val loading = remember { mutableStateListOf<Int>() }
     var bar by remember { mutableStateOf(true) }
-    var lang by remember { mutableStateOf("ru") }
+    var langDemo by remember { mutableStateOf("ru") }
+    val lang = if (live) Langs.getOrNull(store.pref(KxPrefs.TRANSLATE_TO))?.first ?: "ru" else langDemo
+    val header = if (live) store.header(chatId!!) else null
+    val msgs = if (!live) TMsgs else store.messages(chatId!!).filter { it.text.isNotBlank() && it.kind != KxMsgKind.Service }.takeLast(30).map { m ->
+        // TDLib refuses translation in secret chats: nothing is offered there.
+        TMsg(m.out, m.time, if (!m.out && header?.kind != KxChatKind.Secret && foreignTo(m.text, lang)) "" else null, mapOf("orig" to m.text), m.id)
+    }
+    /** Real translations by "index:lang". */
+    val got = remember { mutableStateMapOf<String, String>() }
+    fun textIn(i: Int, m: TMsg, l: String): String? = m.t[l] ?: got["${m.id}:$l"]
     var sheet by remember { mutableStateOf(false) }
     var out by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val foreign = TMsgs.indices.filter { TMsgs[it].src != null }
+    val foreign = msgs.indices.filter { msgs[it].src != null }
     val allOn = foreign.all { it in tr }
     fun translate(ids: List<Int>) {
         loading += ids
-        ids.forEachIndexed { k, id -> scope.launch { delay(600L + k * 250); loading.remove(id); tr.remove(id); tr += id } }
+        if (!live) { ids.forEachIndexed { k, id -> scope.launch { delay(600L + k * 250); loading.remove(id); tr.remove(id); tr += id } }; return }
+        val l = lang
+        // One request after another (a whole chat at once would hit Telegram's flood limits).
+        scope.launch {
+            var failed = false
+            ids.forEach { i ->
+                val m = msgs.getOrNull(i) ?: return@forEach
+                val t = if (failed) null else textIn(i, m, l) ?: store.translateMessage(chatId!!, m.id, l)
+                loading.remove(i)
+                if (t != null) { got["${m.id}:$l"] = t; tr.remove(i); tr += i } else failed = true
+            }
+            if (failed) ctx.toast("Перевод не получился")
+        }
     }
+    // A new target language: translate again what is shown translated.
+    if (live) LaunchedEffect(lang) { val again = tr.filter { textIn(it, msgs.getOrNull(it) ?: return@filter false, lang) == null }; if (again.isNotEmpty()) { tr.removeAll(again); translate(again) } }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp, onClick = ctx.back)
-                Box(Modifier.size(38.dp).clip(CircleShape).cssGradient(140f, Color(0xFFB07A2E), Color(0xFF3A2A14)), contentAlignment = Alignment.Center) { Text("L", style = ts(15, W700, Color(0xFFFFE2B8))) }
-                Column(Modifier.weight(1f)) { Text("Lucía", style = ts(16, W800)); Text("в сети", style = ts(12, color = Kx.accent)) }
+                Box(Modifier.size(38.dp).clip(CircleShape).cssGradient(140f, Color(0xFFB07A2E), Color(0xFF3A2A14)), contentAlignment = Alignment.Center) { Text(header?.title?.take(1)?.uppercase() ?: "L", style = ts(15, W700, Color(0xFFFFE2B8)))
+                    KxImage(header?.avatar, Modifier.matchParentSize(), maxPx = 160)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(header?.title ?: "Lucía", style = ts(16, W800), maxLines = 1)
+                    Text(header?.status ?: "в сети", style = ts(12, color = if (header == null || header.online) Kx.accent else Kx.text3), maxLines = 1)
+                }
             }
-            AnimatedVisibility(bar, enter = fadeIn(tween(350)) + slideInVertically(tween(350)) { -it }, exit = fadeOut(tween(200))) {
+            AnimatedVisibility(bar && (!live || foreign.isNotEmpty()), enter = fadeIn(tween(350)) + slideInVertically(tween(350)) { -it }, exit = fadeOut(tween(200))) {
                 Row(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 4.dp).fillMaxWidth().height(46.dp).clip(RoundedCornerShape(16.dp)).background(Kx.accent.copy(alpha = .08f))
                     .border(1.dp, Kx.accent.copy(alpha = .22f), RoundedCornerShape(16.dp)).padding(start = 14.dp, end = 6.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Outlined.Translate, null, Modifier.size(20.dp), tint = Kx.accent)
-                    Text(if (allOn) "Показать оригинал" else "Перевести чат с испанского", style = ts(13, W700, Color(0xFFDFF5E8)), maxLines = 1,
+                    Text(if (allOn) "Показать оригинал" else if (live) "Перевести чат" else "Перевести чат с испанского", style = ts(13, W700, Color(0xFFDFF5E8)), maxLines = 1,
                         modifier = Modifier.weight(1f).kxClick { if (allOn) tr.clear() else translate(foreign.filter { it !in tr }) })
                     Row(Modifier.height(32.dp).clip(RoundedCornerShape(12.dp)).background(Kx.w(.06f)).kxClick { sheet = true }.padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -88,8 +135,8 @@ fun TranslateScreen(ctx: KxScreenCtx) {
             }
             LazyColumn(Modifier.weight(1f).fillMaxWidth().ellipseGlow(1f, 0f, .72f, .36f, Kx.accentDeep.copy(alpha = .12f)),
                 contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Bottom)) {
-                itemsIndexed(TMsgs) { i, m ->
-                    val isTr = i in tr && m.t[lang] != null
+                itemsIndexed(msgs) { i, m ->
+                    val isTr = i in tr && textIn(i, m, lang) != null
                     val isLoading = i in loading
                     Box(Modifier.fillMaxWidth(), contentAlignment = if (m.mine) Alignment.CenterEnd else Alignment.CenterStart) {
                         Column(Modifier.fillMaxWidth(.82f).wrapContentWidth(if (m.mine) Alignment.End else Alignment.Start), horizontalAlignment = if (m.mine) Alignment.End else Alignment.Start) {
@@ -97,12 +144,12 @@ fun TranslateScreen(ctx: KxScreenCtx) {
                                 .then(if (m.mine) Modifier.cssGradient(160f, Kx.accentDark, Color(0xFF1F4D36)) else Modifier.background(Color(0xFF161B18)))
                                 .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 6.dp)) {
                                 if (isLoading) { Shimmer(200); Spacer(Modifier.height(6.dp)); Shimmer(130) }
-                                else key(isTr, lang) { Text(if (isTr) m.t.getValue(lang) else m.t.getValue("orig"), style = ts(15, color = if (m.mine) Color(0xFFE6F6EC) else Kx.text, lh = 20.7.sp),
+                                else key(isTr, lang) { Text(if (isTr) textIn(i, m, lang)!! else m.t.getValue("orig"), style = ts(15, color = if (m.mine) Color(0xFFE6F6EC) else Kx.text, lh = 20.7.sp),
                                     modifier = if (isTr) Modifier.blurIn() else Modifier) }
                                 Row(Modifier.align(Alignment.End).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     val meta = if (m.mine) Color(0xFFA9D9BF) else Kx.text4
                                     if (isTr) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                                        Icon(Icons.Outlined.Translate, null, Modifier.size(13.dp), tint = meta); Text("${m.src} → ${lang.uppercase()}", style = ts(11, color = meta))
+                                        Icon(Icons.Outlined.Translate, null, Modifier.size(13.dp), tint = meta); Text(if (m.src.isNullOrEmpty()) "→ ${lang.uppercase()}" else "${m.src} → ${lang.uppercase()}", style = ts(11, color = meta))
                                     }
                                     Text(m.time, style = ts(11, color = meta))
                                 }
@@ -119,7 +166,7 @@ fun TranslateScreen(ctx: KxScreenCtx) {
                 Row(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.07f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(23.dp)).padding(start = 14.dp, end = 6.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Text("Сообщение", style = ts(15, color = Kx.text4), modifier = Modifier.weight(1f))
-                    Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (out) Kx.accent.copy(alpha = .16f) else Kx.w(.06f)).kxClick("Переводить мои сообщения") { out = !out }
+                    Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (out) Kx.accent.copy(alpha = .16f) else Kx.w(.06f)).kxClick("Переводить мои сообщения") { if (live) ctx.toast("Перевод своих сообщений пока недоступен") else out = !out }
                         .padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         val ink = if (out) Kx.accent else Kx.text4
                         Icon(Icons.Outlined.Translate, null, Modifier.size(16.dp), tint = ink); Text(if (out) "RU → ES" else "Без перевода", style = ts(12, W800, ink))
@@ -134,7 +181,7 @@ fun TranslateScreen(ctx: KxScreenCtx) {
                 Langs.forEach { (id, flag, name) ->
                     val on = id == lang
                     Row(Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(if (on) Kx.accent.copy(alpha = .08f) else Color.Transparent)
-                        .kxClick(name) { lang = id; sheet = false }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        .kxClick(name) { if (live) store.putPref(KxPrefs.TRANSLATE_TO, Langs.indexOfFirst { it.first == id }) else langDemo = id; sheet = false }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(flag, style = ts(22)); Text(name, style = ts(15, W600), modifier = Modifier.weight(1f))
                         if (on) Icon(Icons.Rounded.CheckCircle, null, tint = Kx.accent)
                     }

@@ -164,6 +164,7 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
             )
             else -> ChannelBar(header.composer, Modifier.align(Alignment.BottomCenter)) {
                 if (header.composer == KxComposer.Mute || header.composer == KxComposer.Unmute) store.setMuted(chatId, header.composer == KxComposer.Mute)
+                else if (header.composer == KxComposer.Join) store.joinChat(chatId)
             }
         }
         pending?.let { p -> UndoBar(p, Modifier.align(Alignment.BottomCenter)) { pending = null } }

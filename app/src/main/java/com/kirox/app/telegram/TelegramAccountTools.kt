@@ -8,6 +8,9 @@ data class Birthday(val day: Int, val month: Int, val year: Int) {
     val text: String get() = "$day ${months.getOrElse(month - 1) { "" }}" + if (year > 0) " $year" else ""
 }
 
+/** One photo of a profile's history: TDLib photo id, when it was set, the largest size, video avatar. */
+data class ProfilePhotoItem(val id: Long, val addedDate: Int, val file: TelegramFileRef?, val animated: Boolean)
+
 /** What a profile shows besides the basics: birthday and the personal channel. */
 data class ProfileExtras(val birthday: Birthday? = null, val personalChatId: Long = 0, val personalChatTitle: String = "")
 
@@ -22,6 +25,18 @@ class TelegramAccountTools(private val client: TelegramClient) {
             photo.sizes.maxByOrNull { it.width }?.photo?.toRef()
         }
     }.getOrDefault(emptyList())
+
+    /** Profile photo history with ids (newest first): for «Сделать главным» and «Удалить». */
+    suspend fun profilePhotoHistory(userId: Long): List<ProfilePhotoItem> =
+        client.query(TdApi.GetUserProfilePhotos(userId, 0, 100)).photos.map { photo ->
+            ProfilePhotoItem(photo.id, photo.addedDate, photo.sizes.maxByOrNull { it.width }?.photo?.toRef(), photo.animation != null)
+        }
+
+    /** Makes an older own photo the current one again. */
+    suspend fun setMainProfilePhoto(photoId: Long) { client.query(TdApi.SetProfilePhoto(TdApi.InputChatPhotoPrevious(photoId), false)) }
+
+    /** Deletes an own profile photo for good. */
+    suspend fun deleteProfilePhoto(photoId: Long) { client.query(TdApi.DeleteProfilePhoto(photoId)) }
 
     suspend fun extras(userId: Long): ProfileExtras = runCatching {
         val info = client.query(TdApi.GetUserFullInfo(userId))
