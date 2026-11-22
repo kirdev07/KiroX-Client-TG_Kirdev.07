@@ -18,4 +18,10 @@ val GroupScreens: Map<String, KxScreenFn> = mapOf(
     "JoinRequest" to { ctx -> JoinRequestScreen(ctx) },
     "PostStats" to { ctx -> PostStatsScreen(ctx) },
     "AllowedReacts" to { ctx -> AllowedReactsScreen(ctx) },
+    "GroupStickers" to { ctx -> GroupStickersScreen(ctx) },
+    "Boosts" to { ctx -> BoostsScreen(ctx) },
+    "JoinQueue" to { ctx -> JoinQueueScreen(ctx) },
+    "GroupStats" to { ctx -> GroupStatsScreen(ctx) },
+    "PinnedMsgs" to { ctx -> PinnedMsgsScreen(ctx) },
+    "Requests" to { ctx -> RequestsScreen(ctx) },
 )

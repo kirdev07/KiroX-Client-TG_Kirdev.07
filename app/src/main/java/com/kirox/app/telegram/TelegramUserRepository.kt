@@ -107,6 +107,11 @@ class TelegramUserRepository(private val client: TelegramClient) {
         client.query(TdApi.SetMessageSenderBlockList(TdApi.MessageSenderUser(userId), if (blocked) TdApi.BlockListMain() else null))
     }
 
+    /** The Telegram user with this phone number (digits, with or without «+»), or null when there is none or it is hidden. */
+    suspend fun findByPhone(phone: String): TelegramContact? = runCatching {
+        client.query(TdApi.SearchUserByPhoneNumber(phone.filter(Char::isDigit), false)).toContact()
+    }.getOrNull()
+
     suspend fun addContact(phone: String, firstName: String, lastName: String): Long? {
         val contact = TdApi.ImportedContact(phone, firstName, lastName, null)
         val result = client.query(TdApi.ImportContacts(arrayOf(contact)))

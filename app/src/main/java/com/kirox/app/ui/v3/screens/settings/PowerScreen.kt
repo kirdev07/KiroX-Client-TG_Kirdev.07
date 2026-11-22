@@ -166,7 +166,7 @@ fun PowerScreen(ctx: KxScreenCtx) {
 
 /** 50x30 switch: track accent / w.12, knob #06150D / #8A958F, travel 20 with cubic-bezier(.34,1.45,.5,1) .25s. */
 @Composable
-private fun DarkKnobSwitch(on: Boolean) {
+internal fun DarkKnobSwitch(on: Boolean) {
     val reduced = LocalKxReducedMotion.current
     val x by animateDpAsState(if (on) 20.dp else 0.dp, if (reduced) tween(0) else tween(250, easing = CubicBezierEasing(.34f, 1.45f, .5f, 1f)), label = "k")
     val track by animateColorAsState(if (on) Kx.accent else Kx.w(.12f), tween(200), label = "t")

@@ -41,8 +41,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.delay
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.KxChatKind
+import com.kirox.app.ui.v3.model.KxSticker
+import com.kirox.app.ui.v3.model.KxStickerSet
 import com.kirox.app.ui.v3.theme.Kx
 import com.kirox.app.ui.v3.theme.LocalKxReducedMotion
 
@@ -56,7 +59,9 @@ internal fun emojiSplit(s: String): List<String> {
 
 private class Cat(val icon: ImageVector?, val emoji: String, val label: String, val chars: String, val keys: String)
 
-// demo: needs store (emoji/sticker sets, GIF search and sendSticker/sendGif are not in KxStore yet)
+// Opened from a chat ("Stickers:<chatId>") with the real store: sticker sets / favourites / saved GIFs / GIF search come from the store
+// (stickers are drawn by their emoji) and a tap sends with store.sendSticker(chatId, sticker.id).
+// demo: needs store (emoji categories / recent emoji come from the board; sticker search by name is not in the store yet)
 private val EmojiCats = listOf(
     Cat(Icons.Rounded.Schedule, "", "Недавние", "", ""),
     Cat(null, "😀", "Смайлы", "😀😃😄😁😆😅😂🤣🥲🥹😊😇🙂😉😌😍🥰😘😋😛😜🤪😎🤩🥳😏😒😔😢😭😤😡🤯😱🤗🤔🫡🤫😴", "улыбка смех"),
@@ -97,6 +102,16 @@ fun StickersScreen(ctx: KxScreenCtx) {
     fun push(m: Sent) { sent += m; while (sent.size > 4) sent.removeAt(0) }
     val qq = q.trim().lowercase()
     val hasDraft = draft.isNotEmpty()
+    val live = store !is com.kirox.app.ui.v3.demo.KxDemoStore && ctx.arg?.toLongOrNull() != null
+    val realSets by produceState(emptyList<KxStickerSet>(), live) { if (live) value = store.stickerSets() }
+    val stickerCats = if (!live) StickerCats else listOf(StickerCats.first()) +
+        realSets.map { s -> Cat(null, s.cover?.emoji?.ifEmpty { null } ?: "🗂", s.title, "", s.title.lowercase()) } + listOf(StickerCats.last())
+    val liveStickers by produceState(emptyList<KxSticker>(), live, mode, cat, realSets.size) {
+        if (live && mode == 1) value = if (cat == 0) store.favoriteStickers().ifEmpty { store.recentStickers() } else realSets.getOrNull(cat - 1)?.let { store.stickers(it.id) }.orEmpty()
+    }
+    val liveGifs by produceState(emptyList<KxSticker>(), live, mode, qq) {
+        if (live && mode == 2) { if (qq.isNotEmpty()) delay(300); value = if (qq.isEmpty()) store.savedGifs() else store.searchGifs(chatId, qq) }
+    }
 
     Column(Modifier.fillMaxSize().background(Kx.bg).ellipseGlow(1f, 0f, 1.2f * .6f, .6f * .6f, Kx.accentDeep.copy(alpha = .22f)).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -153,7 +168,7 @@ fun StickersScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text4)
                     ChInput(q, { q = it }, listOf("Поиск эмодзи", "Поиск стикеров", "Поиск GIF")[mode], Modifier.weight(1f), size = 14)
                 }
-                val cats = when (mode) { 0 -> EmojiCats; 1 -> StickerCats; else -> emptyList() }
+                val cats = when (mode) { 0 -> EmojiCats; 1 -> stickerCats; else -> emptyList() }
                 if (cats.isNotEmpty()) Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     cats.forEachIndexed { i, c ->
                         val on = i == cat
@@ -177,13 +192,14 @@ fun StickersScreen(ctx: KxScreenCtx) {
                         }; stickers = emptyList(); gifs = emptyList()
                     }
                     1 -> {
-                        stickers = if (qq.isNotEmpty()) { title = "Поиск"; StickerCats.filter { it.keys.isNotEmpty() && it.keys.contains(qq) }.flatMap { emojiSplit(it.chars) } }
+                        stickers = if (live) { title = stickerCats.getOrNull(cat)?.label ?: ""; liveStickers.map { it.emoji.ifEmpty { "🙂" } } }
+                            else if (qq.isNotEmpty()) { title = "Поиск"; StickerCats.filter { it.keys.isNotEmpty() && it.keys.contains(qq) }.flatMap { emojiSplit(it.chars) } }
                             else { title = StickerCats[cat].label; emojiSplit(StickerCats[cat].chars) }
                         emojis = emptyList(); gifs = emptyList()
                     }
                     else -> {
-                        title = if (qq.isNotEmpty()) "Поиск" else "Популярные GIF"
-                        gifs = GifNames.indices.filter { qq.isEmpty() || GifNames[it].lowercase().contains(qq) }; emojis = emptyList(); stickers = emptyList()
+                        title = if (qq.isNotEmpty()) "Поиск" else if (live) "Сохранённые GIF" else "Популярные GIF"
+                        gifs = if (live) liveGifs.indices.toList() else GifNames.indices.filter { qq.isEmpty() || GifNames[it].lowercase().contains(qq) }; emojis = emptyList(); stickers = emptyList()
                     }
                 }
                 val empty = (mode == 0 && emojis.isEmpty()) || (mode == 1 && stickers.isEmpty() && qq.isNotEmpty()) || (mode == 2 && gifs.isEmpty())
@@ -198,13 +214,20 @@ fun StickersScreen(ctx: KxScreenCtx) {
                         }, contentAlignment = Alignment.Center) { Text(e, style = ts(27)) }
                     }
                     if (mode == 1) itemsIndexed(stickers, key = { i, e -> "s$cat$i$e" }) { i, e ->
-                        Box(Modifier.height(80.dp).clip(RoundedCornerShape(16.dp)).kxClick("Стикер $e") { push(Sent(System.nanoTime(), 1, e)) }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.height(80.dp).clip(RoundedCornerShape(16.dp)).kxClick("Стикер $e") {
+                            push(Sent(System.nanoTime(), 1, e))
+                            if (live) liveStickers.getOrNull(i)?.let { store.sendSticker(chatId, it.id) }
+                        }, contentAlignment = Alignment.Center) {
                             Text(e, style = ts(54), modifier = if (i % 3 == 0) Modifier.wobble() else Modifier)
                         }
                     }
                     if (mode == 2) itemsIndexed(gifs, key = { _, g -> "g$g" }) { i, g ->
-                        GifTile(g % GifGrads.size, GifNames[g], Modifier.fillMaxWidth().height(if (i % 3 == 0) 130.dp else 100.dp)
-                            .kxClick(GifNames[g]) { push(Sent(System.nanoTime(), 2, grad = g % GifGrads.size)) }, (2 + i % 3) * 1000)
+                        val gName = if (live) "GIF" else GifNames[g]
+                        GifTile(g % GifGrads.size, gName, Modifier.fillMaxWidth().height(if (i % 3 == 0) 130.dp else 100.dp)
+                            .kxClick(gName) {
+                                push(Sent(System.nanoTime(), 2, grad = g % GifGrads.size))
+                                if (live) liveGifs.getOrNull(g)?.let { store.sendSticker(chatId, it.id) }
+                            }, (2 + i % 3) * 1000)
                     }
                     if (empty) item(span = { GridItemSpan(maxLineSpan) }) {
                         Text("Ничего не нашлось", style = ts(14, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 30.dp))

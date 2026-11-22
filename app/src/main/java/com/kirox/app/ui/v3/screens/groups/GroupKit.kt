@@ -247,3 +247,32 @@ fun gxPlural(n: Int, one: String, few: String, many: String): String {
 
 /** 24500 → «24 500» (thin grouping like the mockups). */
 fun gxNum(n: Int): String = n.toString().reversed().chunked(3).joinToString(" ").reversed()
+
+// ---- Store wiring helpers (boards open with "<Board>:<chatId>"; without an id they keep the board's demo data) ----
+
+/** Chat id from open("Board:<chatId>") (also "<chatId>:<more>"); null = the board's own demo. */
+fun gxChatId(arg: String?): Long? = arg?.substringBefore(':')?.toLongOrNull()
+
+/** Second part of "chatId:x" (user id, message id…). */
+fun gxArg2(arg: String?): Long? = arg?.substringAfter(':', "")?.toLongOrNull()
+
+/** Loads once per [keys] (bump a key to reload); null while loading or when [load] returns null. */
+@Composable
+fun <T> gxLoad(vararg keys: Any?, load: suspend () -> T?): T? = produceState<T?>(null, *keys) { value = load() }.value
+
+/** A real person (name + id) in the demo look: same four gradients as the mockups, picked by id. */
+fun gxPerson(name: String, id: Long): GxPerson {
+    val looks = listOf(GxPeople.maxim, GxPeople.anna, GxPeople.ilya, GxPeople.me)
+    val l = looks[((id % looks.size + looks.size) % looks.size).toInt()]
+    return l.copy(name = name, letter = name.trim().take(1).uppercase().ifEmpty { "?" })
+}
+
+/** Stats value as the boards write it: «21 410», «4,5». */
+fun gxStatValue(v: Double): String = if (v == Math.floor(v) && kotlin.math.abs(v) < 1e12) gxNum(v.toLong().toInt()) else String.format(java.util.Locale.US, "%.1f", v).replace('.', ',')
+
+/** «+12%» / «−3%» against the previous period; empty when there is nothing to compare with. */
+fun gxDelta(cur: Double, prev: Double): String {
+    if (prev == 0.0) return ""
+    val p = ((cur - prev) / kotlin.math.abs(prev) * 100).let { kotlin.math.round(it).toInt() }
+    return if (p >= 0) "+$p%" else "−${-p}%"
+}

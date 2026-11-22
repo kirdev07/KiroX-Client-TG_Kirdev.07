@@ -55,13 +55,22 @@ private val FTiles = listOf(
 /** Board «Функции kiroX»: ghost mode card with options, 6 feature tiles, cycling option rows. */
 @Composable
 fun FeaturesScreen(ctx: KxScreenCtx) {
-    // demo: needs store (kiroX feature flags: ghost mode + options, tiles, double tap, confirm, power, filters count)
-    var ghost by rememberSaveable { mutableStateOf(true) }
-    var g by remember { mutableStateOf(mapOf("read" to true, "typing" to true, "offline" to true, "stories" to false)) }
-    var t by remember { mutableStateOf(mapOf("deleted" to true, "edits" to true, "guard" to true, "browser" to true, "ids" to false, "noAuthor" to false)) }
+    val store = ctx.store
+    val tw = store.tweaks
+    // Board keys → KiroxTweaks names (store.tweaks), so the repositories see the same flags.
+    val ghostKeys = mapOf("read" to "ghostNoRead", "typing" to "ghostNoTyping", "offline" to "ghostOffline", "stories" to "ghostStories")
+    val tileKeys = mapOf("deleted" to "keepDeleted", "edits" to "keepEdits", "guard" to "fileGuard", "browser" to "inAppBrowser", "ids" to "showIds", "noAuthor" to "forwardWithoutAuthor")
+    val ghost = tw["ghost"] == true
+    val g = ghostKeys.mapValues { tw[it.value] == true }
+    val t = tileKeys.mapValues { tw[it.value] == true }
+    // «Спрашивать перед отправкой»: Ничего / Стикеры / Стикеры, GIF / Всё (+ голосовые и звонки)
+    val confirmSets = listOf(emptySet(), setOf("confirmSticker"), setOf("confirmSticker", "confirmGif"), setOf("confirmSticker", "confirmGif", "confirmVoice", "confirmCall"))
+    val confKeys = confirmSets.last()
+    val confOn = confKeys.filter { tw[it] == true }.toSet()
+    val confirm = confirmSets.indexOf(confOn).takeIf { it >= 0 } ?: confirmSets.indexOfLast { confOn.containsAll(it) }.coerceAtLeast(0)
+    // demo: needs store (double-tap action and power saving are not booleans: not in the store yet)
     var tap by rememberSaveable { mutableIntStateOf(0) }
     var power by rememberSaveable { mutableIntStateOf(0) }
-    var confirm by rememberSaveable { mutableIntStateOf(1) }
     val glow by animateColorAsState(if (ghost) Color(130, 100, 220).copy(alpha = .22f) else glowGreen(.16f), tween(600), label = "glow")
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -78,12 +87,12 @@ fun FeaturesScreen(ctx: KxScreenCtx) {
             }
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp).navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                GhostCard(ghost, g, { ghost = !ghost }, { k -> g = g + (k to !(g[k] ?: false)) })
+                GhostCard(ghost, g, { store.setTweak("ghost", !ghost) }, { k -> ghostKeys[k]?.let { store.setTweak(it, !(g[k] ?: false)) } })
 
                 Column(Modifier.sRise(60), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FTiles.chunked(2).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            row.forEach { ft -> FeatureTile(ft, t[ft.key] == true, Modifier.weight(1f)) { t = t + (ft.key to !(t[ft.key] ?: false)) } }
+                            row.forEach { ft -> FeatureTile(ft, t[ft.key] == true, Modifier.weight(1f)) { tileKeys[ft.key]?.let { store.setTweak(it, !(t[ft.key] ?: false)) } } }
                         }
                     }
                 }
@@ -94,7 +103,7 @@ fun FeaturesScreen(ctx: KxScreenCtx) {
                 data class L(val icon: ImageVector, val label: String, val value: String, val next: () -> Unit)
                 val links = listOf(
                     L(Icons.Outlined.TouchApp, "Двойной тап по сообщению", tapOpts[tap]) { tap = (tap + 1) % tapOpts.size },
-                    L(Icons.AutoMirrored.Outlined.Help, "Спрашивать перед отправкой", confOpts[confirm]) { confirm = (confirm + 1) % confOpts.size },
+                    L(Icons.AutoMirrored.Outlined.Help, "Спрашивать перед отправкой", confOpts[confirm]) { val next = confirmSets[(confirm + 1) % confOpts.size]; confKeys.forEach { store.setTweak(it, it in next) } },
                     L(Icons.Outlined.BatterySaver, "Энергосбережение", powerOpts[power]) { power = (power + 1) % powerOpts.size },
                     L(Icons.Outlined.FilterAlt, "Фильтры сообщений", "3 слова") { ctx.open("WordFilter") },
                     L(Icons.Outlined.Backup, "Резервная копия настроек", "") { ctx.open("Backup") },
@@ -123,12 +132,13 @@ private fun GhostCard(on: Boolean, g: Map<String, Boolean>, onToggle: () -> Unit
     val bd by animateColorAsState(if (on) Color(201, 166, 255).copy(alpha = .3f) else Color.Transparent, tween(400), label = "bd")
     val reduced = LocalKxReducedMotion.current
     val wob = remember { Animatable(0f) }
+    var wobOn by remember { mutableStateOf(false) }
     LaunchedEffect(on, reduced) {
-        if (on && !reduced) repeat(2) { wob.animateTo(1f, tween(1500, easing = CssEaseInOut)); wob.animateTo(0f, tween(1500, easing = CssEaseInOut)) } else wob.snapTo(0f)
+        if (on && !reduced) { wobOn = true; repeat(2) { wob.animateTo(1f, tween(1500, easing = CssEaseInOut)); wob.animateTo(0f, tween(1500, easing = CssEaseInOut)) }; wobOn = false } else { wob.snapTo(0f); wobOn = false }
     }
     Column(Modifier.sRise(0).fillMaxWidth().clip(shape).cssGradient(150f, 0f to c1, 1f to c2).border(1.dp, bd, shape)) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(52.dp).graphicsLayer { translationY = -6.dp.toPx() * wob.value; rotationZ = -4f + 8f * wob.value }
+            Box(Modifier.size(52.dp).graphicsLayer { translationY = -6.dp.toPx() * wob.value; rotationZ = if (wobOn) -4f + 8f * wob.value else 0f }
                 .clip(RoundedCornerShape(18.dp)).background(Kx.w(.08f)), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.VisibilityOff, null, Modifier.size(28.dp), tint = Color(0xFFE6DEFF))
             }

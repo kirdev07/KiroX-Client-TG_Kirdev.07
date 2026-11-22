@@ -46,16 +46,22 @@ private val KAccs = listOf(
 /** Board «Аккаунты»: current account header, quick rows, switcher sheet (up to 3), logout confirm dialog. */
 @Composable
 fun AccountsScreen(ctx: KxScreenCtx) {
-    // demo: needs store (accounts list with unread badges, switchAccount(id), addAccount, logout)
-    var ids by remember { mutableStateOf(listOf(0, 1, 2)) }
-    var cur by remember { mutableIntStateOf(0) }
+    // store.accounts: the current account first. Unread of the other accounts is not available (only the open one runs).
+    val store = ctx.store
+    val accs = store.accounts.mapIndexed { i, p ->
+        val look = KAccs[i % KAccs.size]
+        val handle = listOf(if (p.username.isNotBlank()) "@" + p.username else "", p.phone).filter { it.isNotBlank() }.joinToString(" · ")
+        look.copy(name = p.name, handle = handle, badge = 0)
+    }.ifEmpty { listOf(KAccs[0].copy(name = store.me.name, handle = store.me.username.let { if (it.isBlank()) "" else "@$it" }, badge = 0)) }
+    val ids = accs.indices.toList()
+    val cur = 0
     var sheet by remember { mutableStateOf(true) }
     var confirm by remember { mutableStateOf(false) }
     val reduced = LocalKxReducedMotion.current
     val swap = remember { Animatable(1f) }
     val scope = rememberCoroutineScope()
     fun swapAnim() { if (!reduced) scope.launch { swap.snapTo(0f); swap.animateTo(1f, tween(550, easing = CssEase)) } }
-    val a = KAccs[cur]
+    val a = accs[cur]
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().graphicsLayer {
@@ -106,11 +112,11 @@ fun AccountsScreen(ctx: KxScreenCtx) {
         if (sheet) AccSheet({ sheet = false }) {
             Text("Аккаунты", style = KxType.style(18.sp, FontWeight.ExtraBold), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp))
             ids.forEachIndexed { k, id ->
-                val acc = KAccs[id]; val active = id == cur
+                val acc = accs[id]; val active = id == cur
                 val short = acc.handle.substringBefore(" · ")
                 Row(Modifier.sRise(k * 50, 300, 10.dp).padding(bottom = 6.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
                     .background(if (active) Kx.accent.copy(alpha = .08f) else Kx.w(.03f)).border(1.dp, if (active) Kx.accent.copy(alpha = .35f) else Color.Transparent, RoundedCornerShape(20.dp))
-                    .kxClick { if (!active) { cur = id; sheet = false; swapAnim() } }.padding(10.dp),
+                    .kxClick { if (!active) { sheet = false; swapAnim(); store.switchAccount(id) } }.padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box {
                         Box(Modifier.size(48.dp).clip(CircleShape).cssGradient(140f, 0f to acc.a1, 1f to acc.a2), contentAlignment = Alignment.Center) {
@@ -128,7 +134,7 @@ fun AccountsScreen(ctx: KxScreenCtx) {
                     if (active) Icon(Icons.Rounded.CheckCircle, null, tint = Kx.accent)
                 }
             }
-            if (ids.size < 3) Row(Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(20.dp)).kxClick { ctx.open("Login") }.padding(horizontal = 10.dp),
+            if (ids.size < 3) Row(Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(20.dp)).kxClick { sheet = false; store.addAccount() }.padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.size(48.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 24.dp, 2.dp), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Add, null, tint = Kx.accent) }
                 Text("Добавить аккаунт", style = KxType.style(15.sp, FontWeight.Bold, Kx.accent))
@@ -168,9 +174,9 @@ fun AccountsScreen(ctx: KxScreenCtx) {
                         Text("Отмена", style = KxType.style(15.sp, FontWeight.Bold))
                     }
                     Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(16.dp)).background(Kx.dangerSolid).kxClick {
-                        val rest = ids.filter { it != cur }
-                        if (rest.isEmpty()) { ids = listOf(0, 1, 2); cur = 0; confirm = false } else { ids = rest; cur = rest[0]; confirm = false; sheet = true }
+                        confirm = false
                         swapAnim()
+                        store.logout()
                     }, contentAlignment = Alignment.Center) { Text("Выйти", style = KxType.style(15.sp, FontWeight.ExtraBold, Color.White)) }
                 }
             }

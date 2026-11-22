@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
+import kotlinx.coroutines.launch
 
 private data class TStep(val icon: ImageVector, val title: String, val sub: String, val ph: String = "", val fieldIcon: ImageVector = Icons.Outlined.Key, val skip: Boolean = false)
 
@@ -52,7 +53,11 @@ private val TSteps = listOf(
 /** Board «Двухэтапная проверка» (set up cloud password): 4-step wizard with progress pills, strength meter, summary. */
 @Composable
 fun TwoStepScreen(ctx: KxScreenCtx) {
-    // demo: needs store (setPassword(pw, hint, email), recovery email confirmation)
+    // Step 3 → 4 calls store.setCloudPassword(old = "", new, hint, email).
+    // demo: needs store (confirming the recovery e-mail code has no field on the board: store.confirmRecoveryEmail is not called yet)
+    val store = ctx.store
+    val scope = rememberCoroutineScope()
+    var saving by remember { mutableStateOf(false) }
     var step by remember { mutableIntStateOf(0) }
     val vals = remember { mutableStateListOf("", "", "", "") }
     var show by remember { mutableStateOf(false) }
@@ -74,10 +79,20 @@ fun TwoStepScreen(ctx: KxScreenCtx) {
     val mismatch = step == 1 && err != 0L
     val shake = remember { Animatable(0f) }
     LaunchedEffect(err) { if (err != 0L && !reduced) shake.animateTo(0f, keyframes { durationMillis = 400; -8f at 100 using CssEase; 8f at 300 using CssEase; 0f at 400 }) }
+    fun save() {
+        if (saving) return
+        saving = true
+        scope.launch {
+            val e = store.setCloudPassword("", vals[0], vals[2].trim(), vals[3].trim().ifEmpty { null })
+            saving = false
+            if (e == null) { step = 4; err = 0L; show = false } else ctx.toast(e)
+        }
+    }
     fun next() {
         if (isDone) { ctx.back(); return }
         if (!ok) return
         if (step == 1 && vals[1] != vals[0]) { err = System.nanoTime(); vals[1] = ""; return }
+        if (step == 3) { save(); return }
         step++; err = 0L; show = false
     }
 
@@ -149,7 +164,7 @@ fun TwoStepScreen(ctx: KxScreenCtx) {
                         }
                     }
                     Spacer(Modifier.weight(1f))
-                    if (st.skip) Box(Modifier.padding(bottom = 6.dp).fillMaxWidth().height(44.dp).kxClick { vals[step] = ""; step++ }, contentAlignment = Alignment.Center) {
+                    if (st.skip) Box(Modifier.padding(bottom = 6.dp).fillMaxWidth().height(44.dp).kxClick { vals[step] = ""; if (step == 3) save() else step++ }, contentAlignment = Alignment.Center) {
                         Text("Пропустить", style = KxType.style(14.sp, FontWeight.SemiBold, Kx.text3))
                     }
                     val on = ok || isDone

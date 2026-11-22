@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.theme.Kx
@@ -60,6 +61,8 @@ fun ForwardScreen(ctx: KxScreenCtx) {
     var noCap by remember { mutableStateOf(false) }
     var fly by remember { mutableIntStateOf(0) }
     var toast by remember { mutableStateOf<Pair<String, Long>?>(null) }
+    val scope = rememberCoroutineScope()
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     val targets = store.chats.filter { it.kind != KxChatKind.Channel || it.canDeleteForAll }
     val shown = targets.filter { q.isBlank() || it.title.lowercase().contains(q.trim().lowercase()) }
     fun close() { sheet = false; sel.clear(); q = ""; note = "" }
@@ -102,7 +105,14 @@ fun ForwardScreen(ctx: KxScreenCtx) {
                         Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text4)
                         ChInput(q, { q = it }, "Кому переслать?", Modifier.weight(1f))
                     }
-                    ChRound(Icons.Outlined.Link, "Скопировать ссылку", 42.dp, border = Color.Transparent) { sheet = false; toast = "Ссылка на пост скопирована" to System.nanoTime() }
+                    ChRound(Icons.Outlined.Link, "Скопировать ссылку", 42.dp, border = Color.Transparent) {
+                        sheet = false
+                        if (fromChat != null && msgId != null) scope.launch {
+                            val link = store.messageLink(fromChat, msgId)
+                            if (link != null) { clipboard.setText(androidx.compose.ui.text.AnnotatedString(link)); toast = "Ссылка на пост скопирована" to System.nanoTime() }
+                            else ctx.toast("У этого сообщения нет публичной ссылки")
+                        } else toast = "Ссылка на пост скопирована" to System.nanoTime()
+                    }
                 }
                 Box(Modifier.weight(1f)) {
                     LazyVerticalGrid(GridCells.Fixed(4), Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 14.dp, bottom = 10.dp),
@@ -125,10 +135,9 @@ fun ForwardScreen(ctx: KxScreenCtx) {
                             Box(Modifier.size(46.dp)) {
                                 Box(Modifier.matchParentSize().clip(CircleShape).cssGradient(140f, Kx.accentMid, Kx.accentDeep).kxClick("Отправить") {
                                     val names = sel.mapNotNull { id -> targets.firstOrNull { it.id == id } }
-                                    // demo: needs store (forward options: hide sender / drop caption are not in KxStore.forward)
                                     names.forEach { t ->
                                         if (note.isNotBlank()) store.send(t.id, note.trim())
-                                        if (fromChat != null && msgId != null) store.forward(fromChat, listOf(msgId), t.id)
+                                        if (fromChat != null && msgId != null) store.forward(fromChat, listOf(msgId), t.id, hideSender = hide, dropCaption = noCap)
                                     }
                                     val text = if (names.size == 1) (if (names[0].kind == KxChatKind.Saved) "Сохранено в «Избранное»" else "Переслано: ${names[0].title}")
                                         else "Переслано в ${names.size} ${plural(names.size, "чат", "чата", "чатов")}: " + names.take(2).joinToString(", ") { it.title } + if (names.size > 2) "…" else ""

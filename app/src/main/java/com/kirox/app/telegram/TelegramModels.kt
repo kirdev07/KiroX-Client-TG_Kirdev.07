@@ -82,7 +82,8 @@ sealed interface TelegramChatListKey {
     data class Folder(val id: Int) : TelegramChatListKey
 }
 
-data class TelegramFolder(val id: Int, val title: String)
+/** [icon]: TDLib ChatFolderIcon name («Work», «Love»…; empty when none) — used by the v3 folders board. */
+data class TelegramFolder(val id: Int, val title: String, val icon: String = "")
 
 data class TelegramChatListState(
     val chats: List<TelegramChatItem> = emptyList(),

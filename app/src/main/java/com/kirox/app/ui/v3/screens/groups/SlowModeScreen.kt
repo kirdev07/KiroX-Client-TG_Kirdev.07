@@ -43,7 +43,9 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store (slow mode delay of the chat + seconds until the member may send again)
+// Board demo (no chat id). With "SlowMode:<chatId>": the interval is KxGroupInfo.slowModeSeconds and the header is the chat's.
+// demo: needs store (seconds left for the current member are not in the store yet; the chat and sending stay the board's local preview —
+// nothing is sent to Telegram from here)
 private data class SMsg(val who: String?, val nc: Color, val text: String, val t: String, val me: Boolean)
 private val SBase = listOf(
     SMsg("Дмитрий", Kx.accent, "Кто разбирался с Compose Multiplatform на iOS?", "17:31", false),
@@ -53,9 +55,21 @@ private val SBase = listOf(
 private val SMine = listOf("Могу скинуть свой шаблон с навигацией 👇", "github.com/… там README с шагами", "Если что — пишите в личку")
 private const val SInt = 60
 
+private fun slowWord(s: Int): String = when {
+    s == 60 -> "минуту"
+    s < 60 -> "$s ${gxPlural(s, "секунду", "секунды", "секунд")}"
+    s < 3600 -> (s / 60).let { "$it ${gxPlural(it, "минуту", "минуты", "минут")}" }
+    else -> (s / 3600).let { if (it == 1) "час" else "$it ${gxPlural(it, "час", "часа", "часов")}" }
+}
+
 /** Board «Медленный режим» (member side): snail banner, chat, locked composer with countdown ring, nudge + tip on early send. */
 @Composable
 fun SlowModeScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val chatId = gxChatId(ctx.arg)
+    val header = chatId?.let { store.header(it) }
+    val info = gxLoad(chatId) { chatId?.let { store.groupInfo(it) } }
+    val interval = info?.slowModeSeconds?.takeIf { it > 0 } ?: SInt
     val mine = remember { mutableStateListOf<SMsg>() }
     var left by remember { mutableIntStateOf(0) }
     var nk by remember { mutableIntStateOf(0) }
@@ -64,7 +78,7 @@ fun SlowModeScreen(ctx: KxScreenCtx) {
     val locked = left > 0
     val nextText = SMine[mine.size % SMine.size]
     fun mmss(n: Int) = "${n / 60}:" + (n % 60).toString().padStart(2, '0')
-    LaunchedEffect(mine.size) { if (mine.isNotEmpty()) { left = SInt; while (left > 0) { delay(1000); left-- } } }
+    LaunchedEffect(mine.size) { if (mine.isNotEmpty()) { left = interval; while (left > 0) { delay(1000); left-- } } }
     LaunchedEffect(tk) { if (tk > 0) { tip = true; delay(2200); tip = false } }
     val reduced = LocalKxReducedMotion.current
 
@@ -72,10 +86,10 @@ fun SlowModeScreen(ctx: KxScreenCtx) {
         Row(Modifier.fillMaxWidth().hairline().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
-            Box(Modifier.size(40.dp).clip(CircleShape).background(Kx.accentDeep), contentAlignment = Alignment.Center) { Text("K", style = KxType.style(16.sp, FontWeight.ExtraBold)) }
+            Box(Modifier.size(40.dp).clip(CircleShape).background(Kx.accentDeep), contentAlignment = Alignment.Center) { Text((header?.title ?: "K").take(1).uppercase(), style = KxType.style(16.sp, FontWeight.ExtraBold)) }
             Column(Modifier.weight(1f)) {
-                Text("Kotlin-клуб", style = KxType.style(16.sp, FontWeight.ExtraBold))
-                Text("1 284 участника, 96 в сети", style = KxType.style(12.sp, color = Kx.text3))
+                Text(header?.title ?: "Kotlin-клуб", style = KxType.style(16.sp, FontWeight.ExtraBold))
+                Text(header?.status ?: "1 284 участника, 96 в сети", style = KxType.style(12.sp, color = Kx.text3))
             }
         }
         Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0x14E8B04A))
@@ -84,7 +98,7 @@ fun SlowModeScreen(ctx: KxScreenCtx) {
             val snail = remember { Animatable(0f) }
             LaunchedEffect(Unit) { if (!reduced) repeat(2) { snail.animateTo(1f, tween(1000, easing = FastOutSlowInEasing)); snail.animateTo(0f, tween(1000, easing = FastOutSlowInEasing)) } }
             Text("🐌", style = KxType.style(20.sp), modifier = Modifier.graphicsLayer { translationX = snail.value * 3.dp.toPx() })
-            Text("Медленный режим: одно сообщение раз в минуту. Так в чате спокойнее.", style = KxType.style(12.sp, color = Color(0xFFE8D2A0), lineHeight = 16.2.sp), modifier = Modifier.weight(1f))
+            Text("Медленный режим: одно сообщение раз в " + slowWord(interval) + ". Так в чате спокойнее.", style = KxType.style(12.sp, color = Color(0xFFE8D2A0), lineHeight = 16.2.sp), modifier = Modifier.weight(1f))
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -122,7 +136,7 @@ fun SlowModeScreen(ctx: KxScreenCtx) {
             }
             val ready = remember { Animatable(1f) }
             LaunchedEffect(locked) { if (!locked && mine.isNotEmpty() && !reduced) { ready.snapTo(0f); ready.animateTo(1f, tween(1000, easing = LinearOutSlowInEasing)) } }
-            val ring by animateFloatAsState(if (locked) left.toFloat() / SInt else 0f, tween(1000, easing = LinearEasing), label = "ring")
+            val ring by animateFloatAsState(if (locked) left.toFloat() / interval else 0f, tween(1000, easing = LinearEasing), label = "ring")
             Box(Modifier.size(52.dp).drawBehind {
                 if (ready.value < 1f) drawCircle(Kx.accent.copy(alpha = .6f * (1f - ready.value)), size.minDimension / 2 + 14.dp.toPx() * ready.value)
             }.clip(CircleShape).then(if (locked) Modifier.background(Kx.w(.06f)) else Modifier.cssLinear(135f, Kx.accentMid, Kx.accentDeep))

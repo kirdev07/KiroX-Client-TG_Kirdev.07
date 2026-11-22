@@ -31,11 +31,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.screens.settings.StoreErrorToasts
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store (user's sticker sets, current group sticker set, setSupergroupStickerSet, search by name/link)
+// Board demo (no chat id). With "GroupStickers:<chatId>": store.stickerSets / stickers(setId) (drawn by their emoji),
+// KxGroupInfo.stickerSetId, store.setGroupStickerSet(chatId, setId) (0 clears).
+// demo: needs store (search of other sets by name / t.me/addstickers link is not in the store yet: the field filters your sets)
 private data class SSet(val name: String, val cover: String, val mine: Boolean, val st: List<String>)
 private val SSets = listOf(
     SSet("Котлин-кот", "🐱", true, listOf("🐱", "😺", "😹", "😻", "🙀", "😿", "😾", "😼", "😽", "🐈")),
@@ -54,7 +57,17 @@ fun GroupStickersScreen(ctx: KxScreenCtx) {
     var q by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf(false) }
     val tip = rememberGxTip()
-    val set = SSets[sel]
+    val store = ctx.store
+    val chatId = gxChatId(ctx.arg)
+    val realSets = gxLoad(chatId) { chatId?.let { store.stickerSets() } }
+    val info = gxLoad(chatId) { chatId?.let { store.groupInfo(it) } }
+    val loaded = remember { mutableStateMapOf<Long, List<String>>() }
+    val selId = realSets?.getOrNull(sel)?.id
+    LaunchedEffect(selId) { if (selId != null && selId !in loaded) loaded[selId] = store.stickers(selId).map { it.emoji.ifEmpty { "🙂" } } }
+    LaunchedEffect(realSets, info) { if (realSets != null && info != null) cur = realSets.indexOfFirst { it.id == info.stickerSetId && it.id != 0L } }
+    val sets = if (chatId == null) SSets else realSets.orEmpty().map { s -> SSet(s.title, s.cover?.emoji?.ifEmpty { null } ?: "🗂", false, loaded[s.id].orEmpty()) }
+    StoreErrorToasts(ctx)
+    val set = sets.getOrNull(sel) ?: SSet("", "🗂", false, emptyList())
     val isCur = cur == sel
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -63,7 +76,7 @@ fun GroupStickersScreen(ctx: KxScreenCtx) {
                 KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Column(Modifier.weight(1f)) {
                     Text("Стикеры группы", style = KxType.style(20.sp, FontWeight.ExtraBold))
-                    Text("Kotlin-клуб · уровень бустов 4", style = KxType.style(12.sp, color = Kx.text3))
+                    Text(if (chatId == null) "Kotlin-клуб · уровень бустов 4" else store.header(chatId).title, style = KxType.style(12.sp, color = Kx.text3))
                 }
             }
             Text("Набор появится у всех участников в панели стикеров, пока они в этой группе.", style = KxType.style(13.sp, color = Kx.text3, lineHeight = 18.2.sp),
@@ -79,7 +92,7 @@ fun GroupStickersScreen(ctx: KxScreenCtx) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 12.dp)) {
                 Text("Ваши наборы", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
                 Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SSets.forEachIndexed { i, p ->
+                    sets.forEachIndexed { i, p ->
                         if (q.isNotBlank() && !p.name.contains(q.trim(), ignoreCase = true)) return@forEachIndexed
                         val on = sel == i
                         val bg by animateColorAsState(if (on) Color(0x1A8FD3AC) else Kx.w(.04f), tween(200), label = "sb")
@@ -130,12 +143,12 @@ fun GroupStickersScreen(ctx: KxScreenCtx) {
                 }
                 GxPillButton(if (isCur) "Этот набор уже в группе" else "Сделать набором группы", Modifier.weight(1f), height = 54.dp,
                     brush = if (isCur) SolidColor(Kx.w(.07f)) else Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = if (isCur) Kx.text4 else Kx.onAccent,
-                    size = 16, weight = FontWeight.ExtraBold) { if (!isCur) { cur = sel; tip.say("«${set.name}» — набор группы") } }
+                    size = 16, weight = FontWeight.ExtraBold) { if (!isCur && set.name.isNotEmpty()) { cur = sel; if (chatId != null && selId != null) store.setGroupStickerSet(chatId, selId); tip.say("«${set.name}» — набор группы") } }
             }
         }
         GxTip(tip, bottom = 92.dp, icon = Icons.Rounded.CheckCircle, bg = Color(0xF528302C), textSize = 13)
         GxConfirm(confirm, "Убрать набор группы?", "Набор пропадёт из панели стикеров у всех участников.", confirm = "Убрать", onCancel = { confirm = false }) {
-            confirm = false; cur = -1; tip.say("Набор группы убран")
+            confirm = false; cur = -1; if (chatId != null) store.setGroupStickerSet(chatId, 0); tip.say("Набор группы убран")
         }
     }
 }

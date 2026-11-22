@@ -44,18 +44,25 @@ private data class PFeat(val icon: ImageVector, val title: String, val sub: Stri
 private val PFeats = listOf(
     PFeat(Icons.Rounded.Mic, "Голосовые в текст", "Читайте голосовые, когда неудобно слушать", Color(0xFF1F3A2C), Color(0xFF8FD3AC)),
     PFeat(Icons.Rounded.Speed, "Быстрая загрузка", "Файлы и медиа без ограничений скорости", Color(0xFF1F2E40), Color(0xFFA9CBF5)),
-    PFeat(Icons.Rounded.Mood, "Эмодзи-статус и свои эмодзи", "Анимированные эмодзи везде", Color(0xFF3A2A1E), Color(0xFFFFB68F)),
+    PFeat(Icons.Rounded.EmojiEmotions, "Эмодзи-статус и свои эмодзи", "Анимированные эмодзи везде", Color(0xFF3A2A1E), Color(0xFFFFB68F)),
     PFeat(Icons.Rounded.UploadFile, "Файлы до 4 ГБ", "Вдвое больше обычного", Color(0xFF2E2A3D), Color(0xFFCFC2F2)),
     PFeat(Icons.Rounded.Block, "Без рекламы", "В публичных каналах", Color(0xFF3A1E2A), Color(0xFFFF9CC8)),
     PFeat(Icons.Rounded.Palette, "Цвета и обои профиля", "Выделитесь в чатах", Color(0xFF2A3320), Color(0xFFC8E6A0)),
 )
-private val PGifts = listOf("🧸" to 15, "💐" to 25, "🎂" to 50, "💎" to 100, "🚀" to 250, "🏆" to 500)
 
 /** Board «Telegram Premium»: orbiting star, 6 features, @PremiumBot / gift buttons, gift sheet. */
 @Composable
 fun PremiumScreen(ctx: KxScreenCtx) {
-    // demo: needs store (stars balance, gift catalogue, sendGift(userId, giftId, text), open @PremiumBot)
-    var stars by rememberSaveable { mutableIntStateOf(420) }
+    val store = ctx.store
+    val scope = rememberCoroutineScope()
+    val stars = store.starsBalance ?: 0L
+    val gifts = store.giftCatalog.filter { !it.soldOut }.take(6)
+    // Recipient: user id from open("Premium:<userId>"), else the first contact.
+    val toId = ctx.arg?.toLongOrNull()
+    val toName = toId?.let { id -> store.contacts.firstOrNull { it.id == id }?.name ?: store.peer(id).name } ?: store.contacts.firstOrNull()?.name ?: ""
+    val toUser = toId ?: store.contacts.firstOrNull()?.id
+    var confirm by remember { mutableStateOf<KxConfirm?>(null) }
+    var busy by remember { mutableStateOf(false) }
     var giftOpen by rememberSaveable { mutableStateOf(false) }
     var pick by rememberSaveable { mutableStateOf<Int?>(null) }
     var sent by rememberSaveable { mutableStateOf(false) }
@@ -116,16 +123,16 @@ fun PremiumScreen(ctx: KxScreenCtx) {
             }
         }
         if (giftOpen) SSheet({ giftOpen = false }, "Подарок", top = Color(40, 34, 60).copy(alpha = .95f), bottomPad = 22.dp, grabberGap = 12.dp) {
-            val sel = pick?.let { PGifts[it] }
+            val sel = pick?.let { gifts.getOrNull(it) }
             if (!sent) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Подарок: Анна", style = KxType.style(19.sp, FontWeight.ExtraBold), modifier = Modifier.weight(1f))
+                    Text("Подарок: $toName", style = KxType.style(19.sp, FontWeight.ExtraBold), modifier = Modifier.weight(1f))
                     Text("★ $stars", style = KxType.style(13.sp, FontWeight.Bold, Color(0xFFFFD27A)))
                 }
                 Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PGifts.chunked(3).forEachIndexed { r, row ->
+                    gifts.chunked(3).forEachIndexed { r, row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            row.forEachIndexed { c, (e, price) ->
+                            row.forEachIndexed { c, gift -> val e = gift.emoji; val price = gift.stars
                                 val i = r * 3 + c; val on = pick == i
                                 val sc by animateFloatAsState(if (on) 1.04f else 1f, if (reduced) tween(0) else tween(250, easing = SpringEase), label = "g")
                                 val bd by animateColorAsState(if (on) Kx.accent.copy(alpha = .6f) else Kx.w(.06f), tween(200), label = "gb")
@@ -144,29 +151,39 @@ fun PremiumScreen(ctx: KxScreenCtx) {
                 Box(Modifier.padding(top = 12.dp).fillMaxWidth().height(46.dp).clip(RoundedCornerShape(16.dp)).background(Kx.fill).padding(horizontal = 14.dp), contentAlignment = Alignment.CenterStart) {
                     Text("Сообщение к подарку…", style = KxType.style(14.sp, color = Kx.text4))
                 }
-                val enough = sel != null && sel.second <= stars
+                val enough = sel != null && sel.stars <= stars && toUser != null && !busy
                 Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(54.dp).clip(RoundedCornerShape(18.dp))
                     .then(if (enough) Modifier.cssGradient(100f, 0f to Kx.accentMid, 1f to Kx.accentDeep) else Modifier.background(Kx.w(.07f)))
-                    .kxClick { if (enough && sel != null) { sent = true; stars -= sel.second } }, contentAlignment = Alignment.Center) {
-                    Text(if (sel == null) "Выберите подарок" else if (enough) "Отправить за ★ ${sel.second}" else "Не хватает звёзд",
+                    .kxClick {
+                        if (enough && sel != null && toUser != null) confirm = KxConfirm("Отправить подарок?", "$toName получит ${sel.emoji}. С баланса спишется ★ ${sel.stars}.", "Отправить за ★ ${sel.stars}", danger = false) {
+                            busy = true
+                            scope.launch {
+                                val err = store.sendGift(toUser, sel.id, "", false)
+                                busy = false
+                                if (err == null) sent = true else ctx.toast(err)
+                            }
+                        }
+                    }, contentAlignment = Alignment.Center) {
+                    Text(if (sel == null) "Выберите подарок" else if (sel.stars > stars) "Не хватает звёзд" else "Отправить за ★ ${sel.stars}",
                         style = KxType.style(15.sp, FontWeight.ExtraBold, if (enough) Kx.onAccent else Kx.text4))
                 }
             } else {
                 Column(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 10.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     val p = remember { Animatable(if (reduced) 1f else 0f) }
                     LaunchedEffect(Unit) { p.animateTo(1f, tween(600, easing = KxMotion.rise)) }
-                    Text(sel?.first ?: "🎁", style = KxType.style(72.sp, lineHeight = 72.sp), modifier = Modifier.graphicsLayer {
+                    Text(sel?.emoji ?: "🎁", style = KxType.style(72.sp, lineHeight = 72.sp), modifier = Modifier.graphicsLayer {
                         val v = p.value
                         if (v < .6f) { val k = v / .6f; val s = .4f + .75f * k; scaleX = s; scaleY = s; rotationZ = -20f + 26f * k; alpha = k }
                         else { val k = (v - .6f) / .4f; val s = 1.15f - .15f * k; scaleX = s; scaleY = s; rotationZ = 6f - 6f * k }
                     })
                     Text("Подарок отправлен", style = KxType.style(20.sp, FontWeight.ExtraBold))
-                    Text("Анна увидит его в чате и в профиле", style = KxType.style(13.sp, color = Kx.text3))
+                    Text("$toName увидит его в чате и в профиле", style = KxType.style(13.sp, color = Kx.text3))
                     Box(Modifier.padding(top = 8.dp).height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.1f)).kxClick { giftOpen = false }.padding(horizontal = 24.dp),
                         contentAlignment = Alignment.Center) { Text("Готово", style = KxType.style(14.sp, FontWeight.Bold)) }
                 }
             }
         }
+        confirm?.let { c -> KxConfirmDialog(c) { confirm = null } }
     }
 }
 
@@ -174,13 +191,14 @@ fun PremiumScreen(ctx: KxScreenCtx) {
 private fun StarHero(reduced: Boolean) {
     val orbit = remember { Animatable(0f) }
     val star = remember { Animatable(0f) }
+    var starOn by remember { mutableStateOf(false) }
     val tw1 = remember { Animatable(if (reduced) 1f else .2f) }
     val tw2 = remember { Animatable(if (reduced) 1f else .2f) }
     LaunchedEffect(reduced) {
         if (reduced) return@LaunchedEffect
         kotlinx.coroutines.coroutineScope {
             launch { repeat(2) { orbit.snapTo(0f); orbit.animateTo(360f, tween(14000, easing = LinearEasing)) } }
-            launch { repeat(2) { star.animateTo(1f, tween(2000, easing = CssEaseInOut)); star.animateTo(0f, tween(2000, easing = CssEaseInOut)) } }
+            launch { starOn = true; repeat(2) { star.animateTo(1f, tween(2000, easing = CssEaseInOut)); star.animateTo(0f, tween(2000, easing = CssEaseInOut)) }; starOn = false }
             launch { repeat(2) { tw1.animateTo(1f, tween(1000, easing = CssEase)); tw1.animateTo(.2f, tween(1000, easing = CssEase)) } }
             launch { kotlinx.coroutines.delay(500); repeat(2) { tw2.animateTo(1f, tween(1300, easing = CssEase)); tw2.animateTo(.2f, tween(1300, easing = CssEase)) } }
         }
@@ -195,7 +213,7 @@ private fun StarHero(reduced: Boolean) {
         Box(Modifier.align(Alignment.TopStart).offset(6.dp, 20.dp).size(4.dp).graphicsLayer { alpha = tw1.value }.clip(CircleShape).background(Color(0xFFFFE38A)))
         Box(Modifier.align(Alignment.BottomEnd).offset((-10).dp, (-18).dp).size(3.dp).graphicsLayer { alpha = tw2.value }.clip(CircleShape).background(Color(0xFFE6C3FF)))
         val shape = RoundedCornerShape(28.dp)
-        Box(Modifier.size(84.dp).graphicsLayer { rotationZ = -8f + 16f * star.value; val s = 1f + .08f * star.value; scaleX = s; scaleY = s }
+        Box(Modifier.size(84.dp).graphicsLayer { rotationZ = if (starOn) -8f + 16f * star.value else 0f; val s = 1f + .08f * star.value; scaleX = s; scaleY = s }
             .shadow(24.dp, shape, ambientColor = Color(110, 88, 201), spotColor = Color(110, 88, 201)).clip(shape)
             .cssGradient(140f, 0f to Color(0xFFB794FF), .5f to Color(0xFF6E58C9), 1f to Kx.accentDeep), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Star, null, Modifier.size(50.dp), tint = Color(0xFFFFF6D6))

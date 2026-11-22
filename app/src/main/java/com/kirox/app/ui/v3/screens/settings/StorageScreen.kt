@@ -84,18 +84,22 @@ internal fun SPills(labels: List<String>, selected: Int, height: Int = 32, radiu
 /** Board «Данные и память»: cache donut + legend, clear button, auto-download per network, keep-media pills. */
 @Composable
 fun StorageScreen(ctx: KxScreenCtx) {
-    // demo: needs store (storage statistics by type, clear cache action, auto-download presets, keep-media period)
-    val parts = listOf(Triple("Фото", 410, Color(0xFF8FD3AC)), Triple("Видео", 320, Color(0xFF7FC4F0)), Triple("Документы", 170, Color(0xFFFFAE80)),
-        Triple("Музыка", 130, Color(0xFFC9A6FF)), Triple("Голосовые", 96, Color(0xFFFFD27A)))
+    val store = ctx.store
+    val st = store.storage
+    val palette = listOf(Color(0xFF8FD3AC), Color(0xFF7FC4F0), Color(0xFFFFAE80), Color(0xFFC9A6FF), Color(0xFFFFD27A), Color(0xFFFF9CC8))
+    val parts = st?.byType.orEmpty().filter { it.second > 0 }.mapIndexed { i, (t, b) -> Triple(t, b, palette[i % palette.size]) }
+    val total = st?.totalBytes ?: 0L
+    var freed by rememberSaveable { mutableLongStateOf(0L) }
     var net by rememberSaveable { mutableIntStateOf(0) }
     var state by rememberSaveable { mutableStateOf("idle") }
-    var keep by rememberSaveable { mutableIntStateOf(2) }
+    val keep = store.keepMedia.coerceIn(0, store.keepMediaOptions.lastIndex.coerceAtLeast(0))
+    // demo: needs store (auto-download presets per network are not in the store yet)
     var auto by remember { mutableStateOf(listOf(
         mapOf("photo" to true, "video" to true, "file" to false, "music" to true),
         mapOf("photo" to true, "video" to false, "file" to false, "music" to false),
         mapOf("photo" to false, "video" to false, "file" to false, "music" to false))) }
     val done = state == "done"
-    LaunchedEffect(state) { if (state == "busy") { delay(1400); state = "done" } }
+    LaunchedEffect(state) { if (state == "busy") { freed = total; store.clearCache(); delay(1400); state = "done" } }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         SGlow(glowGreen(.18f), alignEnd = true)
@@ -107,7 +111,7 @@ fun StorageScreen(ctx: KxScreenCtx) {
                 Row(Modifier.sRise(0).fillMaxWidth().clip(shape).background(TileBg).border(1.dp, Kx.w(.06f), shape).padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
-                        val sum = parts.sumOf { it.second }.toFloat()
+                        val sum = parts.sumOf { it.second }.toFloat().coerceAtLeast(1f)
                         val cols = parts.map { p -> animateColorAsState(if (done) Kx.badgeMuted else p.third, tween(800, easing = CssEase), label = "d").value }
                         Canvas(Modifier.matchParentSize()) {
                             var acc = 0f
@@ -120,21 +124,21 @@ fun StorageScreen(ctx: KxScreenCtx) {
                             }
                         }
                         Column(Modifier.size(80.dp).clip(CircleShape).background(Color(0xFF121614)), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Text(if (done) "0 МБ" else "1,1 ГБ", style = KxType.style(20.sp, FontWeight.ExtraBold))
+                            Text(if (done) "0 МБ" else sBytes(total), style = KxType.style(20.sp, FontWeight.ExtraBold))
                             Text("кэш kiroX", style = KxType.style(11.sp, color = Kx.text4))
                         }
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        parts.forEach { (label, mb, c) ->
+                        parts.forEach { (label, bytes, c) ->
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(Modifier.size(8.dp).clip(CircleShape).background(c))
                                 Text(label, style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.weight(1f))
-                                Text(if (done) "0 МБ" else "$mb МБ", style = KxType.style(12.sp, color = Kx.text4))
+                                Text(if (done) "0 МБ" else sBytes(bytes), style = KxType.style(12.sp, color = Kx.text4))
                             }
                         }
                     }
                 }
-                ClearButton(state) { when (state) { "busy" -> Unit; "done" -> state = "idle"; else -> state = "busy" } }
+                ClearButton(state, sBytes(freed)) { when (state) { "busy" -> Unit; "done" -> state = "idle"; else -> state = "busy" } }
 
                 Column(Modifier.sRise(80)) {
                     GroupLabel("Автозагрузка медиа")
@@ -157,14 +161,14 @@ fun StorageScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                val keepOpts = listOf("3 дня", "Неделя", "Месяц", "Всегда")
+                val keepOpts = store.keepMediaOptions.let { o -> if (o.size == 4) listOf("3 дня", "Неделя", "Месяц", "Всегда") else o }
                 Column(Modifier.sRise(120).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(TileBg).padding(horizontal = 14.dp, vertical = 12.dp)) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text("Хранить медиа", style = KxType.style(14.sp), modifier = Modifier.weight(1f))
                         Text(keepOpts[keep], style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
                     }
                     Spacer(Modifier.height(10.dp))
-                    SPills(keepOpts, keep) { keep = it }
+                    SPills(keepOpts, keep) { store.setKeepMedia(it) }
                 }
             }
         }
@@ -172,7 +176,7 @@ fun StorageScreen(ctx: KxScreenCtx) {
 }
 
 @Composable
-private fun ClearButton(state: String, onClick: () -> Unit) {
+private fun ClearButton(state: String, freed: String, onClick: () -> Unit) {
     val done = state == "done"
     val bg by animateColorAsState(if (done) Kx.accent.copy(alpha = .16f) else Kx.accent, tween(300), label = "cb")
     val ink = if (done) Color(0xFFC8F0D8) else Kx.onAccent
@@ -197,6 +201,6 @@ private fun ClearButton(state: String, onClick: () -> Unit) {
             }, tint = ink)
             Spacer(Modifier.width(8.dp))
         }
-        Text(when (state) { "busy" -> "Очищаем…"; "done" -> "Освобождено 1,1 ГБ"; else -> "Очистить кэш" }, style = KxType.style(15.sp, FontWeight.ExtraBold, ink))
+        Text(when (state) { "busy" -> "Очищаем…"; "done" -> "Освобождено $freed"; else -> "Очистить кэш" }, style = KxType.style(15.sp, FontWeight.ExtraBold, ink))
     }
 }

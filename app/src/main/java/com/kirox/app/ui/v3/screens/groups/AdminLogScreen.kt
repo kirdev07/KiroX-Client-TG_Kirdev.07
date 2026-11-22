@@ -32,7 +32,8 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store (chat event log for 48h with filters; report spam, unban)
+// Board demo (no chat id). With "AdminLog:<chatId>" the log is store.adminLog(chatId).
+// demo: needs store (report spam / unban from the log: KxLogEntry has no user or message id yet)
 private data class LE(val id: Int, val k: String, val icon: ImageVector, val day: String, val who: String, val what: String, val quote: String = "",
                       val t: String, val act: String = "", val old: String? = null)
 private val LEvents = listOf(
@@ -52,11 +53,26 @@ private val LColors = mapOf("del" to (Kx.danger to Color(0x24FF8A80)), "ban" to 
 /** Board «Недавние действия»: filter chips, timeline grouped by day, quotes (old → new), report/unban actions. */
 @Composable
 fun AdminLogScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val chatId = gxChatId(ctx.arg)
+    val real = gxLoad(chatId) { chatId?.let { store.adminLog(it) } }
+    val events = if (chatId == null) LEvents else real.orEmpty().mapIndexed { i, e ->
+        val t = e.text.lowercase()
+        val kind = when {
+            "удал" in t -> "del"
+            "заблок" in t || "огранич" in t || "исключ" in t -> "ban"
+            "закреп" in t -> "pin"
+            "вступ" in t || "присоедин" in t || "добав" in t || "покинул" in t -> "join"
+            else -> "edit"
+        }
+        val icon = when (kind) { "del" -> Icons.Rounded.Delete; "ban" -> Icons.Rounded.Block; "pin" -> Icons.Rounded.PushPin; "join" -> Icons.Rounded.GroupAdd; else -> Icons.Rounded.Edit }
+        LE(i + 1, kind, icon, "", e.who, e.text, "", e.time)
+    }
     var f by remember { mutableStateOf("all") }
     var k by remember { mutableIntStateOf(0) }
     val done = remember { mutableStateListOf<Int>() }
     val tip = rememberGxTip()
-    val list = LEvents.filter { f == "all" || it.k == f }
+    val list = events.filter { f == "all" || it.k == f }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
@@ -64,7 +80,7 @@ fun AdminLogScreen(ctx: KxScreenCtx) {
                 KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Column(Modifier.weight(1f)) {
                     Text("Недавние действия", style = KxType.style(20.sp, FontWeight.ExtraBold))
-                    Text("Kotlin-клуб · за последние 48 часов", style = KxType.style(12.sp, color = Kx.text3))
+                    Text((if (chatId == null) "Kotlin-клуб" else store.header(chatId).title) + " · за последние 48 часов", style = KxType.style(12.sp, color = Kx.text3))
                 }
             }
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

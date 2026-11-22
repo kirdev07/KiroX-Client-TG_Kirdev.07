@@ -47,3 +47,103 @@
 - 20:23 porter-groups: AllowedReacts done
 - 20:23 tg-tester: round 5 — reviewed loadMoreChats/recording/stories/TelegramKxAuth (7 items: block/shared/peer not wired, CloseStory on exit, story retry storm, recorder restart, maskPhone fallback, back()=LogOut, designer FE0F default); TDLib facts for porter-settings requests added. New tests AuthMappingTest + storyAgo written; v3data run blocked: module does not compile (CommentsScreen/AvatarsScreen/SlowModeScreen/StoryViewsScreen, not binder files).
 - 20:25 porter-settings: TwoStep, Accounts, Blocked, Power done; kxbuild compile GREEN (whole module)
+- 20:26 binder: TelegramKxAuth extras — codeVia (App/Sms/Call/Fragment/Email), emailPattern, codeIsWords, recovery (hasRecoveryEmail, pattern, recoveryCodeSent, requestRecovery/submitRecovery/cancelRecovery; back inside recovery only leaves it), termsOfService/minAge, canCancel/cancel (second account), submitEmail, step Email. KiroXApp: v3 also takes Password/Register/Qr when KxRegistry.screens has Password/ProfileSetup/QrLogin (runtime check); e-mail address step and word codes stay on old screens. kxbuild compile GREEN.
+- 20:26 porter-extra: Splash, Welcome, QrLogin, ProfileSetup, CountryPicker, States, Push, Help, WhatsNew, AddContact, InviteFriends, Username, NameColor, Status, Away, Hours, Avatars done (shared kit extra/ExtraKit.kt); QrLogin/ProfileSetup drive ctx.auth when set (real QR via zxing, register with terms/minAge); Password left to porter-settings; kxbuild compile GREEN
+- 20:26 porter-media: VideoTrim done
+- 20:26 porter-media: StoryViews done
+- 20:26 porter-media: StoryArchive done
+- 20:26 porter-media: VideoPlayer done
+- 20:26 porter-media: Album done
+- 20:26 porter-media: Gallery done
+- 20:26 porter-media: compile GREEN (kxbuild) with 20/20 media boards minus VideoConf, Pip
+- 20:26 porter-chat: all 20 chat boards done (Search…JumpDate, last: Translate, StickerPack, QuickReplies, Topics, SharedMedia, Comments, SendMedia, Quote, JumpDate); kxbuild compile exit 0 (whole module GREEN); store needs in tg-tasks.md «porter-chat»
+- 20:28 porter-extra: DeleteAccount, Logout done — all extra boards ported (Password removed: owned by porter-settings); kxbuild compile GREEN
+- 20:28 porter-media: VideoConf done
+- 20:28 porter-media: Pip done — all 20 media boards ported, kxbuild compile GREEN (exit 0)
+- 20:28 porter-groups: GroupStickers done
+- 20:28 porter-groups: Boosts done
+- 20:28 porter-groups: JoinQueue done
+- 20:28 porter-groups: GroupStats done
+- 20:28 porter-groups: PinnedMsgs done
+- 20:28 porter-groups: Requests done
+- 20:30 porter-settings: Proxy done; Password wired to ctx.auth (submitPassword, hint, error, busy, recovery code + new password via submitRecovery/cancelRecovery; demo when auth == null); compile GREEN
+- 20:31 ui-tester: round 7–8 — rounds 4–6 re-verified fixed; harness now renders all KxRegistry boards (87 PNGs); sampled Archive, Contacts, Privacy, Login, Group, Music, Premium; new items: extra boards ClassFormatError (17 boards), Login decor −24dp, Premium star rest pose, Contacts data/sheet.
+- 20:33 porter-tools: NightMode done
+- 20:33 porter-tools: AutoDelete done
+- 20:33 porter-tools: Traffic done
+- 20:33 porter-tools: Sounds done; kxbuild compile GREEN
+- 20:33 porter-settings: CallSettings, EditProfile, MyQr done — all 20 settings boards ported (screens/settings/*, Registry SettingsScreens); kxbuild compile GREEN
+- 20:34 porter-settings: ui-tasks round 8 Premium (star rest pose 0°, EmojiEmotions icon) fixed + same rest-pose fix for Features ghost wobble; compile GREEN
+- 20:35 binder: round 5 — contract co-owned, additive only: KxModels (KxPoll/KxPollOption, KxPrivacyRule, KxNotifyScope, KxStorage, KxCloudPassword, KxGift, KxFound, KxTopic, KxSticker/KxStickerSet, KxSavedTag, KxScheduled, KxUsernameState; new defaulted fields KxFolder.icon/chatCount, KxSession.passwordPending/official, KxProfile.birthday, KxSharedItem.messageId/month/fileId, KxMessage.poll) + ~70 KxStore members with defaults; KxDemoStore demo values; TelegramKxStore implements them (+ TelegramKxStoreExtras.kt pure mapping, shared()/block() real). telegram/: folder icon + per-folder unread + reorderFolders, findByPhone, verifyPassword. Fixed the setShowReadDate JVM clash in KxDemoStore (val + private state). Board lines in tg-tasks.md ticked with the store member to use; local-settings/business/UX items marked 'not yet'. Compile: my files clean; build blocked only by ui/v3/screens/more/MoreKit.kt (porter's).
+- 20:35 porter-more: EditMsg done
+- 20:35 porter-more: MultiSelect done
+- 20:35 porter-more: Pinned done
+- 20:35 porter-more: MsgInfo done
+- 20:35 porter-more: ReactPicker done
+- 20:35 porter-more: ReplaceMedia done
+- 20:35 porter-more: SendOptions done
+- 20:35 porter-more: kxbuild compile GREEN (more/ 7 boards, shared kit more/MoreKit.kt)
+- 20:35 porter-extra: Seen, Explore, Remind done; kxbuild compile GREEN
+- 20:36 tg-tester: v3data run green except 1: 33 tests (KxFormat 14, ChatItemV3Mapping 9, ServiceText 6, AuthMapping 4), 32 pass; round-4 fixes (own «Вы …и», declined call, 1M rollover) confirmed by tests; failing = round-5 item maskPhone fallback.
+- 20:36 porter-tools: ChatNotify done
+- 20:36 porter-tools: Dnd done
+- 20:36 porter-tools: WordFilter done; kxbuild compile GREEN
+- 20:36 porter-chat: DeleteChat, Report, AntiSpam, ContactBar, Limited, InAppBanner done (shared helpers chat/ChatKitB.kt); kxbuild compile GREEN
+- 20:38 binder: round 5b — groups/channels (groupInfo, members+roles, promote/demote/restrict/ban/remove, invite links, join requests, admin log, boosts, chat/post stats, slow mode, allowed reactions, group stickers, protected content, pinnedIds), proxies, account TTL/delete, updateProfile/setBirthday/setEmojiStatus/profilePhotos: models + defaults + demo + TelegramKxStore. 18 more board lines ticked; the rest marked 'not yet' with the reason. Compile: my files clean; build blocked only by ui/v3/screens/extra/PlanCallScreen.kt:57 (porter's icon reference).
+- 20:39 porter-extra: PlanCall, LinkPreview, QuickReact done (no errors in extra/; module red from chat/ShareIn, chat/FolderEdit)
+- 20:40 porter-chat: ShareIn, FolderShare, FolderEdit done; kxbuild compile GREEN
+- 20:41 porter-tools: ChangeNumber done
+- 20:41 porter-tools: Access done
+- 20:41 porter-tools: Offline done; kxbuild compile GREEN
+- 20:42 porter-more: SendAs done
+- 20:42 porter-more: MsgEffects done
+- 20:42 porter-more: ChatTheme done
+- 20:42 porter-more: EmojiKeyboard done
+- 20:42 porter-more: BigEmoji done
+- 20:42 porter-more: InlineBot done
+- 20:42 porter-more: kxbuild compile GREEN (13 more boards)
+- 20:43 tg-tester: round 5b — reviewed groups/channels admin, settings, proxies, account in TelegramKxStore(+Extras): 4 medium (future dates via chatTime «до 14:00», «14:00 14:00» log/scheduled times, loadOnce retry storm offline, poll quiz index after dropping blanks), designer confirm steps for deleteAccount/logout/sendGift/ban, 3 low. ExtrasMappingTest added (KiroxTweaks keys write what repositories read). v3data: 39 tests, 38 pass (open: maskPhone fallback).
+- 20:43 porter-chat: PersonalChannel, StickerManage, DiceGames done; kxbuild compile GREEN
+- 20:43 porter-extra: Hidden, StickerMaker, ViewOnce, Dictate done (Dictate simulates words only on KxDemoStore); kxbuild compile GREEN
+- 20:44 porter-more: FilePicker done
+- 20:44 porter-more: VoiceRecord done
+- 20:44 porter-more: kxbuild compile GREEN (15 more boards)
+- 20:45 porter-tools: KeyCheck done
+- 20:45 porter-tools: Cleanup done
+- 20:45 porter-tools: Backup done (compile blocked only by extra/CallWaitingScreen.kt AddCall; no tools errors)
+- 20:46 porter-more: TypeTranslate done
+- 20:46 porter-more: ClipPaste done
+- 20:46 porter-chat: Transcribe, GiftOpen, Activity done; compile: no errors in chat/ (build red only from extra/CallWaitingScreen + tools/ImportScreen, other owners)
+- 20:48 porter-more: LinkWarn done
+- 20:48 porter-more: Sensitive done
+- 20:48 porter-more: kxbuild compile GREEN (19 more boards)
+- 20:48 porter-tools: Import done
+- 20:48 porter-tools: Export done; kxbuild compile GREEN (whole module)
+- 20:48 porter-extra: CallWaiting, Watch, Drive, Digest, Checklist done (incoming call / watch notification / dictated replies only on KxDemoStore; Drive+Digest use real unread chats on a real account, Drive reads aloud via TTS); kxbuild compile GREEN
+- 20:49 porter-chat: CallWeak, LiveBars, SendDevice done; kxbuild compile GREEN
+- 20:50 porter-more: ChatPeek done
+- 20:50 porter-more: NextUnread done
+- 20:50 porter-more: kxbuild compile GREEN (21 more boards)
+- 20:53 porter-chat: DocScan, EmojiMix, Agenda done; kxbuild compile GREEN
+- 20:53 porter-more: Format done
+- 20:53 porter-more: UndoSend done
+- 20:53 porter-more: kxbuild compile GREEN (23 more boards)
+- 01:54 wiring: settings done (Privacy, Notify, Features, Storage, Premium, Folders, Devices, Password, TwoStep, Accounts, Blocked, EditProfile, Proxy → ctx.store; Custom/Language/Lock/ChatStyle/Power/CallSettings/MyQr stay demo: binder not yet)
+- 01:54 wiring: groups done (Group, AdminLog, AdminRights, AllowedReacts, Boosts, ChannelSettings, ChannelStats, GroupStats, PostStats, GroupStickers, Invite, JoinQueue, Members, PinnedMsgs, Restrict, SlowMode, NewGroup read the store when opened as <Board>:<chatId>; Channel/JoinRequest/Requests stay demo); kxbuild compile GREEN
+- 20:54 porter-tools: Widgets done
+- 20:54 porter-tools: Shortcuts done
+- 20:54 porter-tools: Bubbles done; kxbuild compile GREEN
+- 20:55 porter-extra: ShareContact, MeetTime, ContactNote done; kxbuild compile GREEN
+- 20:56 porter-chat: Birthdays, AppsCatalog, Coach done; compile: no errors in my files (red only from chat/StickersScreen.kt mid-edit — KxStickerSet model change, not mine)
+- 20:56 porter-more: Drafts done
+- 20:56 porter-more: Mentions done
+- 20:56 porter-more: Hashtag done
+- 20:57 porter-tools: ChatGestures done
+- 20:57 porter-tools: Swipe done
+- 20:57 porter-tools: Wallpaper done (compile: no tools errors; module blocked by chat/StickersScreen.kt)
+- 20:57 porter-extra: ListenTogether, Memories, PhotoSearch done (others' random reactions only on KxDemoStore); no errors in extra/ (module red from chat/StickersScreen)
+- 20:59 porter-chat: RateApp, ContactSync, BugReport done — all 27 boards of my list ported (chat/ + shared chat/ChatKitB.kt). Compile: 0 errors in my files; build red only from chat/StickersScreen.kt (in-progress edit, KxStickerSet/KxSticker not imported/resolved there — not my file)
+- 21:00 porter-extra: YearRecap, Wellbeing, ReadAloud done (ReadAloud speaks via TextToSpeech with word highlight); no errors in extra/ (module red from chat/StickersScreen)
+- 21:00 porter-tools: AppIcon done
+- 21:00 porter-tools: SettingsSearch done (results open the real boards via ctx.open)
+- 21:00 porter-tools: SecurityCheck done (step buttons open TwoStep/Lock/Devices)

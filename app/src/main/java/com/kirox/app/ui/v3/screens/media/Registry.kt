@@ -22,4 +22,6 @@ val MediaScreens: Map<String, KxScreenFn> = mapOf(
     "VideoPlayer" to { ctx -> VideoPlayerScreen(ctx) },
     "Album" to { ctx -> AlbumScreen(ctx) },
     "Gallery" to { ctx -> GalleryScreen(ctx) },
+    "VideoConf" to { ctx -> VideoConfScreen(ctx) },
+    "Pip" to { ctx -> PipScreen(ctx) },
 )

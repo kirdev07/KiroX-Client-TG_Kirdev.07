@@ -40,7 +40,8 @@ import com.kirox.app.ui.v3.theme.Kx
 
 private data class SavedItem(val id: Long, val text: String, val tag: String?, val key: String?, val time: String, val from: String?, val fwd: String?, val img: Boolean)
 
-// demo: needs store (Saved Messages tags are Premium and not in the store; used when the Saved chat has no messages)
+// Demo list when the Saved chat has no messages. Tags: store.savedTags() (emoji, label, count) for the real Saved chat.
+// demo: needs store (filtering by tag and the saved-from chat of each message are not in the store yet)
 private val DemoSaved = listOf(
     SavedItem(1, "Купить билеты на субботу и попкорн", "🛒 Купить", "buy", "22:26", "Анна Ким", null, false),
     SavedItem(2, "Идея: тёмная тема с зелёным оттенком для kiroX", "💡 Идеи", "idea", "21:40", null, null, false),
@@ -49,6 +50,10 @@ private val DemoSaved = listOf(
     SavedItem(5, "Статья про жидкое стекло в интерфейсах", "📚 Прочитать", "read", "пн", "Кино по пятницам", "Кино по пятницам", false),
 )
 private val SavedTags = listOf(Triple("important", "⭐", "Важное"), Triple("idea", "💡", "Идеи"), Triple("buy", "🛒", "Купить"), Triple("read", "📚", "Прочитать"))
+
+@Composable
+private fun gxLoadTags(store: com.kirox.app.ui.v3.model.KxStore, on: Boolean): List<KxSavedTag> =
+    produceState(emptyList<KxSavedTag>(), on) { value = if (on) store.savedTags() else emptyList() }.value
 
 /** Board «Избранное»: the Saved chat's messages (newest at the bottom), tags, «По чатам» grouping, note composer. */
 @Composable
@@ -64,6 +69,9 @@ fun SavedScreen(ctx: KxScreenCtx) {
     var tag by rememberSaveable { mutableStateOf<String?>(null) }
     var from by rememberSaveable { mutableStateOf<String?>(null) }
     var note by rememberSaveable { mutableStateOf("") }
+    val realTags = gxLoadTags(store, real.isNotEmpty())
+    val tags = if (real.isEmpty()) SavedTags else realTags.map { Triple(it.emoji, it.emoji, it.label) }
+    fun tagCount(k: String) = if (real.isEmpty()) msgs.count { it.key == k } else realTags.firstOrNull { it.emoji == k }?.count ?: 0
     val list = msgs.filter { (tag == null || it.key == tag) && (from == null || it.from == from) }
     val sources = msgs.mapNotNull { it.from }.distinct()
 
@@ -92,14 +100,14 @@ fun SavedScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Outlined.Forum, null, Modifier.size(17.dp), tint = if (byChats) Kx.onAccent else Kx.text2)
                     Text("По чатам", style = ts(13, W700, if (byChats) Kx.onAccent else Kx.text2))
                 }
-                SavedTags.forEach { (k, e, label) ->
+                tags.forEach { (k, e, label) ->
                     val on = tag == k
                     val bg by animateColorAsState(if (on) Kx.accent else Kx.w(.07f), tween(250), label = "t")
                     val ink = if (on) Kx.onAccent else Kx.text2
-                    Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(bg).kxClick { tag = if (on) null else k; byChats = false }.padding(horizontal = 12.dp),
+                    Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(bg).kxClick { if (real.isNotEmpty()) ctx.toast("Фильтр по тегам пока не переносится") else { tag = if (on) null else k; byChats = false } }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Text("$e $label ", style = ts(13, W700, ink))
-                        Text("${msgs.count { it.key == k }}", style = ts(13, W700, ink.copy(alpha = .7f)))
+                        Text("${tagCount(k)}", style = ts(13, W700, ink.copy(alpha = .7f)))
                     }
                 }
             }

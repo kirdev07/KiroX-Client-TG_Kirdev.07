@@ -37,11 +37,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.launch
+import com.kirox.app.ui.v3.screens.settings.StoreErrorToasts
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboardManager
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store (chat invite links: primary link, additional links with limits/expiry/requests, create/revoke/replace)
+// Board demo (no chat id). With "Invite:<chatId>": store.inviteLinks / createInviteLink / revokeInviteLink (revoking the primary link replaces it).
+// demo: needs store (join-request counts per link; «1 час» expiry — the store takes whole days, so it is sent as 1 day)
 private enum class LState { Live, Full, Revoked }
 private data class ILink(val name: String, val time: String, val limit: Int, val used: Int, val req: Boolean, val state: LState)
 private val ISeed = listOf(
@@ -58,8 +63,24 @@ private const val IChars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz234
 /** Board «Ссылки-приглашения»: main link card (copy/share/QR/replace with confirm), create sheet, extra links with limits, revoke. */
 @Composable
 fun InviteScreen(ctx: KxScreenCtx) {
-    var main by rememberSaveable { mutableStateOf("Kx7pQ2mZr4Lw") }
-    val links = remember { mutableStateListOf(*ISeed.toTypedArray()) }
+    var mainDemo by rememberSaveable { mutableStateOf("Kx7pQ2mZr4Lw") }
+    val linksDemo = remember { mutableStateListOf(*ISeed.toTypedArray()) }
+    val store = ctx.store
+    val scope = rememberCoroutineScope()
+    val clipboard = LocalClipboardManager.current
+    val chatId = gxChatId(ctx.arg)
+    var reload by remember { mutableIntStateOf(0) }
+    val real = gxLoad(chatId, reload) { chatId?.let { store.inviteLinks(it) } }
+    val primary = real?.firstOrNull { it.primary }
+    val extra = real.orEmpty().filter { !it.primary }
+    val main = if (chatId == null) mainDemo else primary?.link?.substringAfter("t.me/")?.removePrefix("+") ?: ""
+    val links: List<ILink> = if (chatId == null) linksDemo else extra.map { l ->
+        ILink(l.name.ifEmpty { l.link.removePrefix("https://") }, l.expires.ifEmpty { "без срока" }, l.limit, l.members, false,
+            if (l.limit > 0 && l.members >= l.limit) LState.Full else LState.Live)
+    }
+    var askRevoke by remember { mutableIntStateOf(-1) }
+    fun copy(link: String?) { if (!link.isNullOrEmpty()) clipboard.setText(AnnotatedString(link)) }
+    StoreErrorToasts(ctx)
     var creating by remember { mutableStateOf(false) }
     var qr by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
@@ -77,11 +98,12 @@ fun InviteScreen(ctx: KxScreenCtx) {
                 KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Column(Modifier.weight(1f)) {
                     KxLine("Ссылки-приглашения", KxType.style(20.sp, FontWeight.ExtraBold))
-                    Text("Kotlin-клуб · 1 284 участника", style = KxType.style(12.sp, color = Kx.text3))
+                    Text(if (chatId == null) "Kotlin-клуб · 1 284 участника" else store.header(chatId).let { h -> h.title + if (h.members > 0) " · ${gxNum(h.members)} ${gxPlural(h.members, "участник", "участника", "участников")}" else "" },
+                        style = KxType.style(12.sp, color = Kx.text3))
                 }
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 40.dp)) {
-                MainCard(main, onCopy = { tip.say("Ссылка скопирована", Icons.Rounded.ContentCopy) }, onShare = { tip.say("Открыли «Поделиться»", Icons.Rounded.Share) },
+                MainCard(main, onCopy = { copy(primary?.link ?: "https://t.me/+$main"); tip.say("Ссылка скопирована", Icons.Rounded.ContentCopy) }, onShare = { tip.say("Открыли «Поделиться»", Icons.Rounded.Share) },
                     onQr = { qr = true }, onReset = { confirmReset = true })
                 Row(Modifier.padding(top = 14.dp).fillMaxWidth().height(56.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f))
                     .dashedBorder(Color(0x668FD3AC), 20.dp).kxClick { draft = ""; time = 0; users = 0; req = false; creating = true }.padding(horizontal = 16.dp),
@@ -96,8 +118,9 @@ fun InviteScreen(ctx: KxScreenCtx) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     links.forEachIndexed { i, l ->
                         key(l.name, i) {
-                            LinkRow(l, i, onCopy = { tip.say("Ссылка скопирована", Icons.Rounded.ContentCopy) }) {
-                                links[i] = l.copy(state = LState.Revoked, time = "отозвана"); tip.say("Ссылка отозвана", Icons.Rounded.LinkOff)
+                            LinkRow(l, i, onCopy = { copy(extra.getOrNull(i)?.link); tip.say("Ссылка скопирована", Icons.Rounded.ContentCopy) }) {
+                                if (chatId != null) askRevoke = i
+                                else { linksDemo[i] = l.copy(state = LState.Revoked, time = "отозвана"); tip.say("Ссылка отозвана", Icons.Rounded.LinkOff) }
                             }
                         }
                     }
@@ -136,14 +159,24 @@ fun InviteScreen(ctx: KxScreenCtx) {
             }
             GxPillButton("Создать ссылку", Modifier.padding(top = 10.dp).fillMaxWidth(), height = 54.dp,
                 brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent, size = 16, weight = FontWeight.ExtraBold, icon = Icons.Rounded.AddLink) {
-                links.add(0, ILink(draft.trim().ifEmpty { "Ссылка ${links.size + 1}" }, if (time != 0) "ещё " + ITimes[time] else "без срока", IUsers[users].second, 0, req, LState.Live))
-                creating = false; tip.say("Ссылка создана и скопирована", Icons.Rounded.AddLink)
+                if (chatId != null) {
+                    val days = listOf(0, 1, 1, 7)[time]
+                    val name = draft.trim(); val limit = IUsers[users].second; val byReq = req
+                    creating = false
+                    scope.launch {
+                        val made = store.createInviteLink(chatId, name, days, limit, byReq)
+                        if (made != null) { copy(made.link); reload++; tip.say("Ссылка создана и скопирована", Icons.Rounded.AddLink) }
+                    }
+                } else {
+                    linksDemo.add(0, ILink(draft.trim().ifEmpty { "Ссылка ${links.size + 1}" }, if (time != 0) "ещё " + ITimes[time] else "без срока", IUsers[users].second, 0, req, LState.Live))
+                    creating = false; tip.say("Ссылка создана и скопирована", Icons.Rounded.AddLink)
+                }
             }
         }
         GxSheet(qr, onClose = { qr = false }, scrimAlpha = .6f) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 QrBox(main)
-                Text("Kotlin-клуб", style = KxType.style(17.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 14.dp))
+                Text(if (chatId == null) "Kotlin-клуб" else store.header(chatId).title, style = KxType.style(17.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 14.dp))
                 Text("Наведите камеру, чтобы вступить", style = KxType.style(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 4.dp), textAlign = TextAlign.Center)
                 GxPillButton("Готово", Modifier.padding(top = 16.dp).fillMaxWidth(), height = 50.dp) { qr = false }
             }
@@ -152,8 +185,14 @@ fun InviteScreen(ctx: KxScreenCtx) {
         GxConfirm(confirmReset, "Сменить основную ссылку?", "Старая ссылка перестанет работать сразу у всех, кому вы её отправляли.", confirm = "Сменить",
             onCancel = { confirmReset = false }) {
             confirmReset = false
-            main = (1..12).map { IChars.random() }.joinToString("")
+            if (chatId != null) { primary?.let { store.revokeInviteLink(chatId, it.link) }; scope.launch { delay(600); reload++ } }
+            else mainDemo = (1..12).map { IChars.random() }.joinToString("")
             tip.say("Старая ссылка больше не работает", Icons.Rounded.Autorenew)
+        }
+        GxConfirm(askRevoke >= 0, "Отозвать ссылку?", "Ссылка перестанет работать сразу. Те, кто уже вступил по ней, останутся в группе.", confirm = "Отозвать",
+            onCancel = { askRevoke = -1 }) {
+            val l = extra.getOrNull(askRevoke); askRevoke = -1
+            if (chatId != null && l != null) { store.revokeInviteLink(chatId, l.link); scope.launch { delay(600); reload++ }; tip.say("Ссылка отозвана", Icons.Rounded.LinkOff) }
         }
     }
 }

@@ -190,6 +190,112 @@ class KxDemoStore : KxStore {
             }
         }
     }
+
+    // ---- Round 5 demo values (binder): what the boards show ----
+    override val sessions get() = sessionList
+    private val sessionList = mutableStateListOf(
+        KxSession(1, "Xiaomi 14", "kiroX 3.0", "Алматы, Казахстан", "в сети", current = true),
+        KxSession(2, "MacBook Air", "Telegram macOS 11.2", "Алматы, Казахстан", "сегодня 18:40"),
+        KxSession(3, "Chrome на Windows", "Telegram Web A", "Астана, Казахстан", "вчера", official = true),
+        KxSession(4, "iPad", "Telegram iOS 11.1", "Москва, Россия", "12 нояб.", passwordPending = true),
+    )
+    private var ttlDays by mutableStateOf(180)
+    override val sessionTtlDays get() = ttlDays
+    override fun terminateSession(id: Long) { sessionList.removeAll { it.id == id && !it.current } }
+    override fun terminateOtherSessions() { sessionList.removeAll { !it.current } }
+    override fun setSessionTtl(days: Int) { ttlDays = days }
+
+    private val privacyRules = mutableStateListOf(
+        KxPrivacyRule("PhoneNumber", "Номер телефона", 2),
+        KxPrivacyRule("LastSeen", "Время захода", 1, exceptions = 3),
+        KxPrivacyRule("ProfilePhoto", "Фото профиля", 0),
+        KxPrivacyRule("Bio", "О себе", 0),
+        KxPrivacyRule("Birthdate", "Дата рождения", 1),
+        KxPrivacyRule("ForwardLink", "Ссылка при пересылке", 1),
+        KxPrivacyRule("Calls", "Звонки", 1, exceptions = 1),
+        KxPrivacyRule("VoiceNotes", "Голосовые и видеосообщения", 0),
+        KxPrivacyRule("ChatInvites", "Приглашения в группы", 1),
+    )
+    override val privacy: List<KxPrivacyRule> get() = privacyRules
+    override fun setPrivacy(key: String, level: Int) { val i = privacyRules.indexOfFirst { it.key == key }; if (i >= 0) privacyRules[i] = privacyRules[i].copy(level = level) }
+    // Private state + val overrides: a `var x` next to `fun setX` clashes on the JVM (setX(Z)V).
+    private var readDate by mutableStateOf(true)
+    override val showReadDate get() = readDate
+    override fun setShowReadDate(on: Boolean) { readDate = on }
+    private var archiveNew by mutableStateOf(false)
+    override val archiveNewChats get() = archiveNew
+    override fun setArchiveNewChats(on: Boolean) { archiveNew = on }
+    override val blockedCount get() = blocked.size
+    override val blocked get() = listOf(KxContact(40, "Спам-бот", "был(а) давно", colorIndex = 4), KxContact(41, "Неизвестный", "был(а) недавно", colorIndex = 2))
+    override val cloudPassword get() = KxCloudPassword(has = true, hint = "любимый фильм", hasRecoveryEmail = true)
+    override suspend fun checkPassword(password: String): String? = if (password == "kirox") null else "Неверный пароль"
+
+    private val scopes = mutableStateListOf(
+        KxNotifyScope("private", "Личные чаты", true, exceptions = 2),
+        KxNotifyScope("groups", "Группы", true, exceptions = 5),
+        KxNotifyScope("channels", "Каналы", false, exceptions = 1),
+    )
+    override val notifyScopes: List<KxNotifyScope> get() = scopes
+    override fun setNotifyScope(key: String, enabled: Boolean, preview: Boolean) { val i = scopes.indexOfFirst { it.key == key }; if (i >= 0) scopes[i] = scopes[i].copy(enabled = enabled, preview = preview) }
+
+    override var storage by mutableStateOf<KxStorage?>(KxStorage(
+        2_684_354_560, 157_286_400,
+        listOf("Фото" to 943_718_400L, "Видео" to 1_181_116_006L, "Файлы" to 220_200_960L, "Музыка" to 125_829_120L, "Голосовые и кружки" to 52_428_800L, "Стикеры и GIF" to 104_857_600L),
+        listOf("Команда kiroX" to 734_003_200L, "Анна" to 419_430_400L, "Новости" to 262_144_000L),
+    ))
+    override fun clearCache(types: Set<String>) {
+        val st = storage ?: return
+        val kept = st.byType.filter { types.isNotEmpty() && it.first !in types }
+        storage = st.copy(totalBytes = kept.sumOf { it.second }, byType = kept, chats = if (types.isEmpty()) emptyList() else st.chats)
+    }
+    private var keepMediaIndex by mutableStateOf(1)
+    override val keepMedia get() = keepMediaIndex
+    override fun setKeepMedia(index: Int) { keepMediaIndex = index }
+
+    private val tweakMap = mutableStateMapOf("ghost" to false, "ghostNoRead" to true, "ghostNoTyping" to true, "ghostOffline" to true, "ghostStories" to true,
+        "keepDeleted" to true, "keepEdits" to false, "fileGuard" to true, "inAppBrowser" to true, "showIds" to false, "forwardWithoutAuthor" to false,
+        "confirmSticker" to false, "confirmVoice" to true, "hideCallsTab" to false, "hideStoriesTab" to false)
+    override val tweaks: Map<String, Boolean> get() = tweakMap
+    override fun setTweak(key: String, on: Boolean) { tweakMap[key] = on }
+
+    override val starsBalance: Long? get() = 250
+    override val giftCatalog get() = listOf(KxGift(1, "🧸", 15), KxGift(2, "🌹", 25), KxGift(3, "🎂", 50), KxGift(4, "💎", 100), KxGift(5, "🚀", 500, soldOut = true))
+
+    override suspend fun checkUsername(name: String): KxUsernameState = when {
+        name.length < 5 || !name.matches(Regex("[A-Za-z][A-Za-z0-9_]*")) -> KxUsernameState.Invalid
+        name.lowercase() in setOf("admin", "telegram", "kirox") -> KxUsernameState.Taken
+        else -> KxUsernameState.Free
+    }
+    override suspend fun findByPhone(phone: String): KxContact? =
+        if (phone.filter(Char::isDigit).endsWith("00")) null else KxContact(50, "Ольга", "был(а) недавно", colorIndex = 3)
+    override suspend fun searchMessages(query: String): List<KxFound> = if (query.isBlank()) emptyList() else listOf(
+        KxFound(11, 1, "Анна", "Беру билеты на 19:30, $query", "21:58"),
+        KxFound(12, 2, "Команда kiroX", "$query — сборка прошла", "21:29"),
+    )
+    override suspend fun forumTopics(chatId: Long): List<KxTopic> = listOf(
+        KxTopic(1, "Общее", general = true, preview = "Максим: всем привет", time = "21:10"),
+        KxTopic(2, "Релизы", unread = 4, pinned = true, preview = "Сборка 3.0 готова", time = "20:40"),
+        KxTopic(3, "Баги", unread = 1, preview = "Падает на Android 17", time = "вчера"),
+        KxTopic(4, "Архив идей", closed = true, preview = "Тёмная тема 2.0", time = "пн"),
+    )
+    override suspend fun savedTags(): List<KxSavedTag> = listOf(KxSavedTag("❤", "Важное", 12), KxSavedTag("👍", "Работа", 7), KxSavedTag("🔥", "", 3))
+    override suspend fun scheduled(chatId: Long): List<KxScheduled> = listOf(KxScheduled(1, "С днём рождения! 🎉", "завтра 09:00"), KxScheduled(2, "Не забудь про встречу", "когда будет в сети"))
+
+    // ---- Round 5b demo values ----
+    override suspend fun groupInfo(chatId: Long): KxGroupInfo? = KxGroupInfo(chatId, header(chatId).title, "Команда разработки kiroX: сборки, баги, идеи.",
+        username = "kirox_team", isPublic = true, slowModeSeconds = 0, reactions = listOf("❤", "🔥", "👍"), members = 128, owner = true,
+        canChangeInfo = true, canRestrict = true, canPromote = true, canInvite = true)
+    override suspend fun members(chatId: Long): List<KxMember> = listOf(
+        KxMember(1, "Алекс Миронов", "Создатель", "в сети"), KxMember(20, "Максим", "Администратор", "был(а) в 21:14", canEdit = true),
+        KxMember(11, "Анна", "", "в сети", canEdit = true), KxMember(17, "Дмитрий", "Только чтение", "был(а) вчера", canEdit = true))
+    override suspend fun inviteLinks(chatId: Long): List<KxInviteLink> = listOf(
+        KxInviteLink("https://t.me/+AbCdEf123", primary = true, members = 42), KxInviteLink("https://t.me/+Xyz789", "Для друзей", members = 7, expires = "до 30 нояб.", limit = 20))
+    override suspend fun joinRequests(chatId: Long): List<KxJoinRequest> = listOf(KxJoinRequest(60, "Ольга", "Дизайнер интерфейсов", "21:10"), KxJoinRequest(61, "Тимур", "", "вчера"))
+    override suspend fun adminLog(chatId: Long, query: String): List<KxLogEntry> = listOf(
+        KxLogEntry(1, "21:40", "Максим", "закрепил(а) сообщение"), KxLogEntry(2, "20:02", "Алекс Миронов", "изменил(а) описание группы"))
+    override suspend fun boostStatus(chatId: Long): KxBoostStatus? = KxBoostStatus(2, 14, 10, 20, "https://t.me/boost/kirox_team", 9)
+    override val proxies: List<KxProxy> get() = listOf(KxProxy(1, "proxy.example.org", 443, "MTProto", enabled = false))
+    override val accountTtlDays: Int get() = 365
 }
 
 /** A store for screens shown before sign-in (they only use ctx.auth). */

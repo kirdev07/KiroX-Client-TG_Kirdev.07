@@ -37,10 +37,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.launch
+import com.kirox.app.ui.v3.screens.settings.StoreErrorToasts
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store (contacts picker = store.contacts, createGroup action)
+// People = store.contacts (the board's demo people when the store has none); «Создать группу» = store.createGroup(title, userIds).
+// demo: needs store (group photo/colour, history for new members, join by request and slow mode at creation are not sent yet)
 private data class NgP(val name: String, val status: String, val online: Boolean, val from: Color, val to: Color, val ink: Color)
 private val NgPeople = listOf(
     NgP("Анна", "в сети", true, Color(0xFF4B3F7A), Color(0xFF2A2240), Color(0xFFDCD0FF)),
@@ -56,14 +59,25 @@ private val NgColors = listOf(
     Triple(Color(0xFF3F9A6C), Color(0xFF1F4D36), Color(0xFFDFF5E8)), Triple(Color(0xFF4B3F7A), Color(0xFF2A2240), Color(0xFFDCD0FF)),
     Triple(Color(0xFFB07A2E), Color(0xFF3A2A14), Color(0xFFFFE2B8)), Triple(Color(0xFF2F6E9E), Color(0xFF14243A), Color(0xFFCFE6FF)),
 )
+private val LocalNgPeople = compositionLocalOf { NgPeople }
 private val NgSlow = listOf("Выкл.", "10 с", "1 мин", "5 мин")
 private val NgConfetti = listOf(Color(0xFF8FD3AC), Color(0xFFE8B04A), Color(0xFFFF8A80), Color(0xFF9FB7FF), Color(0xFFDCD0FF), Color(0xFFF2A65A))
 
 /** Board «Новая группа»: step 1 pick people (chips + search), step 2 name and settings, then «Группа создана» with confetti. */
 @Composable
 fun NewGroupScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val scope = rememberCoroutineScope()
+    val contacts = store.contacts
+    val real = contacts.isNotEmpty() && store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val people = if (!real) NgPeople else contacts.mapIndexed { i, c ->
+        val look = NgPeople[i % NgPeople.size]; look.copy(name = c.name, status = c.status, online = c.online)
+    }
     var step by rememberSaveable { mutableIntStateOf(1) }
-    val sel = remember { mutableStateListOf(0, 2) }
+    val sel = remember { if (real) mutableStateListOf() else mutableStateListOf(0, 2) }
+    var creating by remember { mutableStateOf(false) }
+    var newId by remember { mutableStateOf<Long?>(null) }
+    StoreErrorToasts(ctx)
     var q by rememberSaveable { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf("") }
     var gc by rememberSaveable { mutableIntStateOf(0) }
@@ -77,6 +91,7 @@ fun NewGroupScreen(ctx: KxScreenCtx) {
     val goBack = { if (step == 1) ctx.back() else step = if (step == 3) 2 else step - 1 }
     BackHandler(step > 1) { goBack() }
 
+    CompositionLocalProvider(LocalNgPeople provides people) {
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically,
@@ -108,13 +123,27 @@ fun NewGroupScreen(ctx: KxScreenCtx) {
             Box(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 26.dp).fillMaxWidth().height(56.dp)
                 .then(if (canCreate) Modifier.shadow(18.dp, RoundedCornerShape(18.dp), ambientColor = Color(0x593F9A6C), spotColor = Color(0x593F9A6C)) else Modifier)
                 .clip(RoundedCornerShape(18.dp)).then(if (canCreate) Modifier.cssLinear(100f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.07f)))
-                .kxClick { if (canCreate) step = 3 }, contentAlignment = Alignment.Center) {
+                .kxClick {
+                    if (canCreate && !creating) {
+                        if (!real) step = 3
+                        else {
+                            creating = true
+                            val ids = sel.mapNotNull { contacts.getOrNull(it)?.id }
+                            scope.launch {
+                                val id = store.createGroup(name.trim(), ids)
+                                creating = false
+                                if (id != null) { newId = id; step = 3 }
+                            }
+                        }
+                    }
+                }, contentAlignment = Alignment.Center) {
                 Text("Создать группу", style = KxType.style(16.sp, FontWeight.ExtraBold, if (canCreate) Kx.onAccent else Color(0xFF5C6661)))
             }
         }
         AnimatedVisibility(step == 3, enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { 12 }, exit = fadeOut(tween(200))) {
-            Done(name, NgColors[gc], "$n $word", onInvite = { ctx.open("Invite") }, onOpen = ctx.back)
+            Done(name, NgColors[gc], "$n $word", onInvite = { ctx.open(newId?.let { "Invite:$it" } ?: "Invite") }, onOpen = { val id = newId; if (id != null) ctx.openChat(id) else ctx.back() })
         }
+    }
     }
 }
 
@@ -124,7 +153,7 @@ private fun ColumnScope.Step1(sel: MutableList<Int>, q: String, onQ: (String) ->
         .padding(horizontal = 10.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)) {
         sel.toList().forEach { i ->
             key(i) {
-                val p = NgPeople[i]
+                val p = LocalNgPeople.current[i]
                 Row(Modifier.align(Alignment.CenterVertically).gxPopIn(300, .4f).height(32.dp).clip(RoundedCornerShape(16.dp)).background(Color(0x248FD3AC))
                     .kxClick("Убрать ${p.name}") { sel.remove(i) }.padding(start = 3.dp, end = 10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -140,7 +169,7 @@ private fun ColumnScope.Step1(sel: MutableList<Int>, q: String, onQ: (String) ->
         }
     }
     val ql = q.trim().lowercase()
-    val list = NgPeople.withIndex().filter { ql.isEmpty() || it.value.name.lowercase().contains(ql) }
+    val list = LocalNgPeople.current.withIndex().filter { ql.isEmpty() || it.value.name.lowercase().contains(ql) }
     LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 100.dp)) {
         itemsIndexed(list, key = { _, it -> it.index }) { _, (i, p) ->
             val on = i in sel
@@ -202,7 +231,7 @@ private fun ColumnScope.Step2(name: String, onName: (String) -> Unit, gc: Int, o
         Text(membersTitle, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 6.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.045f)).padding(6.dp)) {
             sel.forEach { i ->
-                val p2 = NgPeople[i]
+                val p2 = LocalNgPeople.current[i]
                 Row(Modifier.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     GxLetter(p2.name.take(1), p2.from, p2.to, p2.ink)
                     Text(p2.name, style = KxType.style(15.sp, FontWeight.SemiBold))

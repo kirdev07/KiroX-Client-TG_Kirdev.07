@@ -31,6 +31,10 @@ class TelegramChatRepository(private val client: TelegramClient) {
     /** Members online right now, per chat (UpdateChatOnlineMemberCount comes only for opened chats). */
     val onlineMembers: StateFlow<Map<Long, Int>> = _onlineMembers.asStateFlow()
 
+    private val _folderUnread = MutableStateFlow<Map<Int, Int>>(emptyMap())
+    /** Unread unmuted chats per folder, as Telegram counts them (UpdateUnreadChatCount of ChatListFolder). */
+    val folderUnread: StateFlow<Map<Int, Int>> = _folderUnread.asStateFlow()
+
     private val _unreadUnmutedChats = MutableStateFlow(0)
     /** Chats-tab badge as Telegram counts it: unread unmuted chats of the main list (UpdateUnreadChatCount). */
     val unreadUnmutedChats: StateFlow<Int> = _unreadUnmutedChats.asStateFlow()
@@ -122,6 +126,11 @@ class TelegramChatRepository(private val client: TelegramClient) {
                 appendLine(messagePreview(message))
             }
         }
+    }
+
+    /** New order of the folders; the main list keeps its place (0 = first). */
+    suspend fun reorderFolders(ids: List<Int>, mainListPosition: Int = 0) {
+        client.query(TdApi.ReorderChatFolders(ids.toIntArray(), mainListPosition))
     }
 
     suspend fun deleteFolder(id: Int) { client.query(TdApi.DeleteChatFolder(id, LongArray(0))) }
@@ -439,7 +448,11 @@ class TelegramChatRepository(private val client: TelegramClient) {
             is TdApi.UpdateUserStatus -> peerUsers[update.userId]?.let { it.status = update.status; if (update.userId in chatsById) schedulePublish() }
             is TdApi.UpdateChatOnlineMemberCount -> _onlineMembers.value = _onlineMembers.value + (update.chatId to update.onlineMemberCount)
             // "Unread" already includes chats marked as unread (TDLib docs), so the marked count is not added.
-            is TdApi.UpdateUnreadChatCount -> if (update.chatList is TdApi.ChatListMain) _unreadUnmutedChats.value = update.unreadUnmutedCount
+            is TdApi.UpdateUnreadChatCount -> when (val list = update.chatList) {
+                is TdApi.ChatListMain -> _unreadUnmutedChats.value = update.unreadUnmutedCount
+                is TdApi.ChatListFolder -> _folderUnread.value = _folderUnread.value + (list.chatFolderId to update.unreadUnmutedCount)
+                else -> Unit
+            }
             is TdApi.UpdateScopeNotificationSettings -> {
                 val index = when (update.scope) { is TdApi.NotificationSettingsScopePrivateChats -> 0; is TdApi.NotificationSettingsScopeGroupChats -> 1; else -> 2 }
                 scopeMuteFor[index] = update.notificationSettings.muteFor
@@ -449,7 +462,7 @@ class TelegramChatRepository(private val client: TelegramClient) {
             is TdApi.UpdateMessageUnreadReactions -> mutate(update.chatId) { it.unreadReactionCount = update.unreadReactionCount }
             is TdApi.UpdateOption -> if (update.name == "my_id") { myId = (update.value as? TdApi.OptionValueInteger)?.value ?: 0L; schedulePublish() }
             is TdApi.UpdateChatFolders -> {
-                folders = update.chatFolders.map { TelegramFolder(it.id, it.name?.text?.text.orEmpty()) }
+                folders = update.chatFolders.map { TelegramFolder(it.id, it.name?.text?.text.orEmpty(), it.icon?.name.orEmpty()) }
                 schedulePublish()
             }
             is TdApi.UpdateChatTitle -> mutate(update.chatId) { it.title = update.title }

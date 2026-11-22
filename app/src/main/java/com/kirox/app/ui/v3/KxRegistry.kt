@@ -37,6 +37,8 @@ object KxRegistry {
             putAll(com.kirox.app.ui.v3.screens.groups.GroupScreens)
             putAll(com.kirox.app.ui.v3.screens.media.MediaScreens)
             putAll(com.kirox.app.ui.v3.screens.extra.ExtraScreens)
+            putAll(com.kirox.app.ui.v3.screens.more.MoreScreens)
+            putAll(com.kirox.app.ui.v3.screens.tools.ToolScreens)
         }
     }
 }

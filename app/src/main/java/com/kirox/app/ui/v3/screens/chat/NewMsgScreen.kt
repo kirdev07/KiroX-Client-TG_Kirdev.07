@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.theme.Kx
@@ -47,6 +48,12 @@ fun NewMsgScreen(ctx: KxScreenCtx) {
     var query by rememberSaveable { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf("") }
     var pub by rememberSaveable { mutableStateOf(false) }
+    // «Создать»: store.createGroup(title, userIds) / createChannel(title, about) → new chat id; failures come as store.error.
+    // demo: needs store (a public channel needs a username step: channels are created private for now; @username search of non-contacts)
+    val scope = rememberCoroutineScope()
+    var creating by remember { mutableStateOf(false) }
+    var newId by remember { mutableStateOf<Long?>(null) }
+    com.kirox.app.ui.v3.screens.settings.StoreErrorToasts(ctx)
     val multi = mode == "group"
     val isChannel = mode == "channel"
     val q = query.trim().lowercase()
@@ -137,7 +144,16 @@ fun NewMsgScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
-            if (step == "name") NameStep(isChannel, name, { name = it }, pub, { pub = it }, chips) { if (name.isNotBlank()) step = "done" }
+            if (step == "name") NameStep(isChannel, name, { name = it }, pub, { pub = it }, chips) {
+                if (name.isNotBlank() && !creating) {
+                    creating = true
+                    scope.launch {
+                        val id = if (isChannel) store.createChannel(name.trim(), "") else store.createGroup(name.trim(), picked)
+                        creating = false
+                        if (id != null) { newId = id; step = "done" }
+                    }
+                }
+            }
         }
         if (step == "pick" && multi) AnimatedVisibility(picked.isNotEmpty(), Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 16.dp, bottom = 26.dp),
             enter = fadeIn(tween(300)) + slideInVertically(tween(300, easing = com.kirox.app.ui.v3.theme.KxMotion.rise)) { 30 }) {
@@ -148,7 +164,11 @@ fun NewMsgScreen(ctx: KxScreenCtx) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = Kx.onAccent)
             }
         }
-        if (step == "done") DoneStep(isChannel, name.trim()) { mode = "msg"; step = "pick"; picked = emptyList(); name = ""; query = "" }
+        if (step == "done") DoneStep(isChannel, name.trim()) {
+            val id = newId
+            mode = "msg"; step = "pick"; picked = emptyList(); name = ""; query = ""; newId = null
+            if (id != null) ctx.openChat(id)
+        }
     }
 }
 
@@ -218,7 +238,6 @@ private fun DoneStep(isChannel: Boolean, name: String, restart: () -> Unit) {
         Box(Modifier.size(96.dp).chPop(.4f, 500).clip(CircleShape).background(Kx.accent), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Check, null, Modifier.size(54.dp), tint = Kx.onAccent)
         }
-        // demo: needs store (createGroup / createChannel are not in KxStore yet)
         Text(if (isChannel) "Канал создан" else "Группа создана", style = ts(22, W800), modifier = Modifier.chIn(150, 30.dp, 400))
         Text("«$name» уже в списке чатов", style = ts(14, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.chIn(200, 30.dp, 400))
         Box(Modifier.padding(top = 10.dp).chIn(250, 30.dp, 400).height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.08f)).kxClick(onClick = restart).padding(horizontal = 20.dp),

@@ -58,7 +58,9 @@ data class KxChat(
 
 /** id 0 = main list «Все чаты»; other ids are TDLib chatFolderId values (positive). */
 @Immutable
-data class KxFolder(val id: Int, val title: String, val unread: Int = 0)
+data class KxFolder(val id: Int, val title: String, val unread: Int = 0,
+                    /** TDLib ChatFolderIcon name («Work», «Love», «Custom»…), empty = default icon. */
+                    val icon: String = "", val chatCount: Int = 0)
 
 @Immutable
 data class KxStoryPeer(val id: Long, val name: String, val unseen: Boolean = true, val mine: Boolean = false, val avatar: String? = null, val colorIndex: Int = -1,
@@ -134,6 +136,8 @@ data class KxMessage(
     val pinned: Boolean = false,
     /** Shown instead of the text after «Перевести». */
     val translation: String? = null,
+    /** Poll / quiz of a [KxMsgKind.Poll] message. */
+    val poll: KxPoll? = null,
 )
 
 /** What the bottom of a chat shows instead of / as the composer. */
@@ -154,7 +158,9 @@ data class KxChatHeader(
 
 @Immutable
 data class KxProfile(val id: Long, val name: String, val username: String = "", val phone: String = "", val bio: String = "",
-                     val status: String = "в сети", val premium: Boolean = false, val avatar: String? = null, val colorIndex: Int = -1)
+                     val status: String = "в сети", val premium: Boolean = false, val avatar: String? = null, val colorIndex: Int = -1,
+                     /** «12.03» / «12.03.1998», empty when not set. */
+                     val birthday: String = "")
 
 /** Peer profile (board «Профиль»). Counts feed the shared-media tabs. */
 @Immutable
@@ -170,7 +176,9 @@ enum class KxSharedTab(val label: String) { Media("Медиа"), Files("Файл
 
 @Immutable
 data class KxSharedItem(val id: Long, val title: String = "", val sub: String = "", val media: String? = null, val video: String? = null,
-                        val playing: Boolean = false, val look: Int = 0, val fileExt: String = "")
+                        val playing: Boolean = false, val look: Int = 0, val fileExt: String = "",
+                        /** Message of the item (forward / delete / «В чате»), and its month for grouping («Ноябрь 2026»). */
+                        val messageId: Long = 0, val month: String = "", val fileId: Int = 0)
 
 enum class KxCallDir { Incoming, Outgoing, Missed, Declined }
 
@@ -185,7 +193,103 @@ data class KxContact(val id: Long, val name: String, val status: String, val onl
                      val avatar: String? = null, val colorIndex: Int = -1)
 
 @Immutable
-data class KxSession(val id: Long, val device: String, val app: String, val place: String, val time: String, val current: Boolean = false)
+data class KxSession(val id: Long, val device: String, val app: String, val place: String, val time: String, val current: Boolean = false,
+                     /** Signed in but waiting for the cloud password («ожидает пароль»). */
+                     val passwordPending: Boolean = false, val official: Boolean = true)
 
 /** Bottom dock tabs, in the mockup order. */
 enum class KxTab(val label: String) { Chats("Чаты"), Calls("Звонки"), Stories("Истории"), Settings("Настройки") }
+
+// ---- Round 5 (binder, additive): settings, accounts, search, chat tools ----
+
+@Immutable
+data class KxPollOption(val text: String, val percent: Int = 0, val voters: Int = 0, val chosen: Boolean = false, val correct: Boolean = false)
+
+@Immutable
+data class KxPoll(
+    val question: String, val options: List<KxPollOption>, val total: Int = 0, val closed: Boolean = false,
+    val multiple: Boolean = false, val quiz: Boolean = false, val anonymous: Boolean = true, val canVote: Boolean = true, val voted: Boolean = false,
+)
+
+/** One privacy item. [level]: 0 = Все, 1 = Мои контакты, 2 = Никто; [levels] are the ones Telegram allows for it. */
+@Immutable
+data class KxPrivacyRule(val key: String, val title: String, val level: Int, val exceptions: Int = 0, val levels: List<Int> = listOf(0, 1, 2))
+
+/** Notification defaults of one chat type ([key]: "private" / "groups" / "channels"). */
+@Immutable
+data class KxNotifyScope(val key: String, val title: String, val enabled: Boolean, val preview: Boolean = true, val exceptions: Int = 0)
+
+/** Storage usage: [byType] title → bytes («Фото», «Видео»…), [chats] title → bytes, biggest first. */
+@Immutable
+data class KxStorage(val totalBytes: Long, val databaseBytes: Long = 0, val byType: List<Pair<String, Long>> = emptyList(),
+                     val chats: List<Pair<String, Long>> = emptyList(), val loadingDetails: Boolean = false)
+
+@Immutable
+data class KxCloudPassword(val has: Boolean, val hint: String = "", val hasRecoveryEmail: Boolean = false, val pendingEmailPattern: String? = null)
+
+/** A Telegram gift for stars. Sending one spends stars: the UI must show [stars] and ask before sending. */
+@Immutable
+data class KxGift(val id: Long, val emoji: String, val stars: Long, val soldOut: Boolean = false, val sticker: String? = null)
+
+/** A message found by global search. */
+@Immutable
+data class KxFound(val chatId: Long, val messageId: Long, val chatTitle: String, val text: String, val time: String, val avatar: String? = null)
+
+/** Forum topic of a supergroup. */
+@Immutable
+data class KxTopic(val id: Int, val title: String, val unread: Int = 0, val pinned: Boolean = false, val closed: Boolean = false,
+                   val preview: String = "", val time: String = "", val general: Boolean = false)
+
+/** Sticker or GIF; [id] is what sendSticker takes. [path] is null until downloaded (then [fileId] can be passed to download). */
+@Immutable
+data class KxSticker(val id: String, val emoji: String = "", val path: String? = null, val fileId: Int = 0, val animated: Boolean = false, val gif: Boolean = false)
+
+@Immutable
+data class KxStickerSet(val id: Long, val title: String, val cover: KxSticker? = null)
+
+/** Saved Messages tag (Premium): reaction emoji, own name, how many messages carry it. */
+@Immutable
+data class KxSavedTag(val emoji: String, val label: String, val count: Int)
+
+@Immutable
+data class KxScheduled(val id: Long, val text: String, val time: String)
+
+enum class KxUsernameState { Free, Taken, Invalid, Purchasable, TooMany }
+
+// ---- Round 5b (binder, additive): groups & channels, proxies, profile ----
+
+/** Facts and rights of a group or channel for its settings boards. [reactions]: null = all allowed, empty = none. */
+@Immutable
+data class KxGroupInfo(
+    val chatId: Long, val title: String, val description: String = "", val username: String = "", val isChannel: Boolean = false,
+    val isPublic: Boolean = false, val slowModeSeconds: Int = 0, val joinByRequest: Boolean = false, val reactions: List<String>? = null,
+    val stickerSetId: Long = 0, val protectedContent: Boolean = false, val members: Int = 0,
+    val owner: Boolean = false, val canChangeInfo: Boolean = false, val canRestrict: Boolean = false, val canPromote: Boolean = false, val canInvite: Boolean = false,
+)
+
+/** [role]: «Создатель», «Администратор», «Только чтение», «Заблокирован» or empty for a member. */
+@Immutable
+data class KxMember(val userId: Long, val name: String, val role: String = "", val status: String = "", val avatar: String? = null, val canEdit: Boolean = false)
+
+@Immutable
+data class KxInviteLink(val link: String, val name: String = "", val primary: Boolean = false, val members: Int = 0, val expires: String = "", val limit: Int = 0)
+
+@Immutable
+data class KxJoinRequest(val userId: Long, val name: String, val bio: String = "", val time: String = "", val avatar: String? = null)
+
+@Immutable
+data class KxLogEntry(val id: Long, val time: String, val who: String, val text: String)
+
+@Immutable
+data class KxBoostStatus(val level: Int, val boosts: Int, val levelStart: Int, val nextLevel: Int, val link: String = "", val premiumMembers: Int = 0)
+
+/** Statistics: rows of title, current and previous value. */
+@Immutable
+data class KxStats(val isChannel: Boolean, val period: String, val rows: List<Triple<String, Double, Double>>, val notificationsPercent: Double? = null)
+
+@Immutable
+data class KxPostStats(val views: Int, val forwards: Int, val reactions: Int, val comments: Int)
+
+/** [type]: "SOCKS5", "HTTP" or "MTProto". */
+@Immutable
+data class KxProxy(val id: Int, val server: String, val port: Int, val type: String, val enabled: Boolean = false)

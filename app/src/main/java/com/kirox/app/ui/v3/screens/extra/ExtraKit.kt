@@ -116,19 +116,25 @@ internal fun Modifier.exPop(durMs: Int = 450, delayMs: Int = 0, easing: Easing =
 }
 
 /** CSS linear-gradient(deg, stops). */
-internal fun Modifier.lin(deg: Float, vararg stops: Pair<Float, Color>): Modifier = this.drawBehind {
-    drawRect(Brush.linearGradient(colorStops = stops, start = cssAngleStart(deg, size), end = cssAngleEnd(deg, size)))
+internal fun Modifier.lin(deg: Float, vararg stops: Pair<Float, Color>): Modifier {
+    // Copy the vararg before capturing it (a captured vararg produced an illegal "<anonymous>" method in the class file).
+    val st: List<Pair<Float, Color>> = stops.toList()
+    return this.drawBehind { drawRect(Brush.linearGradient(colorStops = st.toTypedArray(), start = cssAngleStart(deg, size), end = cssAngleEnd(deg, size))) }
 }
 internal fun Modifier.lin2(deg: Float, a: Color, b: Color): Modifier = lin(deg, 0f to a, 1f to b)
 
 /** CSS radial-gradient(Wx% Hy% at cx% cy%, stops…) — an ellipse sized relative to the box. */
-internal fun Modifier.ellipseBg(wPct: Float, hPct: Float, cxPct: Float, cyPct: Float, vararg stops: Pair<Float, Color>): Modifier = this.drawBehind {
+internal fun Modifier.ellipseBg(wPct: Float, hPct: Float, cxPct: Float, cyPct: Float, vararg stops: Pair<Float, Color>): Modifier {
+  val st: List<Pair<Float, Color>> = stops.toList()
+  return this.drawBehind {
+    val stops = st.toTypedArray()
     val rx = size.width * wPct; val ry = size.height * hPct
     val c = Offset(size.width * cxPct, size.height * cyPct)
     val k = ry / rx
     scale(1f, k, pivot = c) {
         drawRect(Brush.radialGradient(colorStops = stops, center = c, radius = rx), topLeft = Offset(0f, c.y - c.y / k), size = androidx.compose.ui.geometry.Size(size.width, size.height / k))
     }
+  }
 }
 
 /** radial-gradient(circle, c, transparent 65%) filling the box. */

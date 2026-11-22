@@ -82,7 +82,13 @@ fun ChatSearchScreen(ctx: KxScreenCtx) {
     var jump by remember { mutableIntStateOf(0) }
     var flash by remember { mutableIntStateOf(0) }
     val qq = q.trim().lowercase()
-    val hits = log.indices.filter { i -> val m = log[i]; m.day == null && qq.isNotEmpty() && m.text.lowercase().contains(qq) && (from == null || m.by == from) }
+    // Server search (store.searchInChat, newest first) adds hits that are loaded; ↑ past the oldest loaded hit loads older ones with store.jumpTo.
+    val remoteIds by produceState(emptyList<Long>(), chatId, qq) {
+        value = if (chatId == null || qq.isEmpty() || real.isEmpty()) emptyList() else { kotlinx.coroutines.delay(300); store.searchInChat(chatId, qq) }
+    }
+    val hits = log.indices.filter { i -> val m = log[i]; m.day == null && qq.isNotEmpty() && (m.text.lowercase().contains(qq) || (m.msgId != null && m.msgId in remoteIds)) && (from == null || m.by == from) }
+    val loadedIds = log.mapNotNull { it.msgId }.toSet()
+    val olderUnloaded = remoteIds.firstOrNull { it !in loadedIds && (log.firstOrNull { l -> l.msgId != null }?.msgId?.let { o -> it < o } ?: false) }
     val curPos = if (hits.isEmpty()) -1 else if (cur < 0 || cur >= hits.size) hits.size - 1 else cur
     val curIdx = if (curPos >= 0) hits[curPos] else -1
     val people = log.filter { it.day == null }.groupBy { it.by }
@@ -149,8 +155,10 @@ fun ChatSearchScreen(ctx: KxScreenCtx) {
                 .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(when { qq.isEmpty() && from == null -> "Введите слово для поиска"; hits.isNotEmpty() -> "${curPos + 1} из ${hits.size}"; else -> "Нет совпадений" },
                     style = ts(14, color = if (hits.isNotEmpty()) Kx.text2 else Kx.text4), modifier = Modifier.weight(1f))
-                ChRound(Icons.Outlined.KeyboardArrowUp, "Предыдущее совпадение", bg = Kx.w(.07f), border = Color.Transparent, tint = if (curPos > 0) Kx.text else Color(0xFF4A544F)) {
+                ChRound(Icons.Outlined.KeyboardArrowUp, "Предыдущее совпадение", bg = Kx.w(.07f), border = Color.Transparent,
+                    tint = if (curPos > 0 || olderUnloaded != null) Kx.text else Color(0xFF4A544F)) {
                     if (curPos > 0) { cur = curPos - 1; flash++ }
+                    else if (chatId != null && olderUnloaded != null) { store.jumpTo(chatId, olderUnloaded); cur = 0; flash++ }
                 }
                 ChRound(Icons.Outlined.KeyboardArrowDown, "Следующее совпадение", bg = Kx.w(.07f), border = Color.Transparent,
                     tint = if (curPos >= 0 && curPos < hits.size - 1) Kx.text else Color(0xFF4A544F)) { if (curPos < hits.size - 1) { cur = curPos + 1; flash++ } }
@@ -171,7 +179,7 @@ fun ChatSearchScreen(ctx: KxScreenCtx) {
             }
         }
         ChSheet(calSheet, { calSheet = false }, scrim = Color.Black.copy(alpha = .5f), bg = sheetBg) {
-            // demo: needs store (message dates per day for the calendar; KxMessage has only display time)
+            // demo: needs store (per-day message counts for the calendar are not in the store yet)
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 26.dp)) {
                 Text("Ноябрь 2026", style = ts(18, W800), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 12.dp))
                 MonthGrid(firstOffset = 6, days = 30, withMsgs = setOf(18, 20, 22), today = 22) { n -> calSheet = false; jump = if (log === DemoLog) n else log.firstOrNull { it.day != null }?.dayN ?: 0 }

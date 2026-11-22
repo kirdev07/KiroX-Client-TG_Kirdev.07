@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.model.KxChatKind
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
@@ -42,23 +43,42 @@ private val FolderIcons: Map<String, ImageVector> = mapOf(
     "mark_chat_unread" to Icons.Rounded.MarkChatUnread, "smart_toy" to Icons.Rounded.SmartToy,
 )
 
+/** TDLib ChatFolderIcon names ↔ the board's icon keys. */
+private val TdIconToLocal = mapOf("Work" to "work", "Home" to "home", "Study" to "school", "Favorite" to "favorite", "Love" to "favorite", "Game" to "sports_esports",
+    "Channels" to "campaign", "Unread" to "mark_chat_unread", "Bots" to "smart_toy")
+private val LocalIconToTd = mapOf("folder" to "Custom", "work" to "Work", "home" to "Home", "school" to "Study", "favorite" to "Favorite", "sports_esports" to "Game",
+    "campaign" to "Channels", "mark_chat_unread" to "Unread", "smart_toy" to "Bots")
+
 /** Board «Папки с чатами»: chip preview, reorderable folders, create sheet, recommended folders. */
 @Composable
 fun FoldersScreen(ctx: KxScreenCtx) {
-    // demo: needs store (folders with icon, chat count/unread summary; createFolder, reorderFolders, recommended folders)
-    var list by remember { mutableStateOf(listOf(
-        FFolder(1, "Работа", "work", "8 чатов · 2 непрочитанных", Color(0xFF1F2E40), Color(0xFFA9CBF5)),
-        FFolder(2, "Семья", "home", "3 чата", Color(0xFF3A1E2A), Color(0xFFFF9CC8)),
-        FFolder(3, "Каналы", "campaign", "Все каналы", Color(0xFF3B2A22), Color(0xFFFFB68F)))) }
+    val store = ctx.store
+    val tiles = listOf(Color(0xFF1F2E40) to Color(0xFFA9CBF5), Color(0xFF3A1E2A) to Color(0xFFFF9CC8), Color(0xFF3B2A22) to Color(0xFFFFB68F), Color(0xFF1F3A2C) to Color(0xFF8FD3AC))
+    val list = store.folders.filter { it.id != 0 }.mapIndexed { i, f ->
+        val n = f.chatCount
+        val sub = (if (n > 0) "$n " + plural(n, "чат", "чата", "чатов") else "Пустая") + (if (f.unread > 0) " · ${f.unread} " + plural(f.unread, "непрочитанный", "непрочитанных", "непрочитанных") else "")
+        FFolder(f.id.toLong(), f.title, TdIconToLocal[f.icon] ?: "folder", sub, tiles[i % tiles.size].first, tiles[i % tiles.size].second)
+    }
     var moved by remember { mutableStateOf<Pair<Long, Long>?>(null) }
     var editing by rememberSaveable { mutableStateOf(false) }
     var newName by rememberSaveable { mutableStateOf("") }
     var newIcon by rememberSaveable { mutableStateOf("folder") }
     var types by remember { mutableStateOf(mapOf("users" to true, "groups" to false, "channels" to false, "bots" to false, "unread" to false)) }
-    fun add(f: FFolder) { val id = System.nanoTime(); list = list + f.copy(id = id); moved = id to System.nanoTime() }
+    // Telegram folders hold chats, not type rules here: the picked types choose the chats now.
+    fun chatsFor(t: Map<String, Boolean>): List<Long> {
+        val kinds = buildSet {
+            if (t["users"] == true) { add(KxChatKind.Private); add(KxChatKind.Secret) }
+            if (t["groups"] == true) add(KxChatKind.Group)
+            if (t["channels"] == true) add(KxChatKind.Channel)
+            if (t["bots"] == true) add(KxChatKind.Bot)
+        }
+        return store.chats.filter { c -> (kinds.isEmpty() || c.kind in kinds) && (t["unread"] != true || c.unread > 0 || c.markedUnread) }.map { it.id }
+    }
+    fun add(title: String, icon: String, t: Map<String, Boolean>) { store.createFolder(title, LocalIconToTd[icon] ?: "Custom", chatsFor(t)) }
     fun move(i: Int, d: Int) {
         val j = i + d; if (j < 0 || j >= list.size) return
-        val l = list.toMutableList(); val t = l[i]; l[i] = l[j]; l[j] = t; list = l; moved = t.id to System.nanoTime()
+        val l = list.toMutableList(); val t = l[i]; l[i] = l[j]; l[j] = t
+        store.reorderFolders(l.map { it.id.toInt() }); moved = t.id to System.nanoTime()
     }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -107,10 +127,10 @@ fun FoldersScreen(ctx: KxScreenCtx) {
                 GroupLabel("Рекомендуем")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RecTile(Icons.Rounded.MarkChatUnread, Color(0xFFFFB68F), "Непрочитанные", Modifier.weight(1f)) {
-                        if (list.none { it.title == "Непрочитанные" }) add(FFolder(0, "Непрочитанные", "mark_chat_unread", "Только непрочитанные", Color(0xFF3B2A22), Color(0xFFFFB68F)))
+                        if (list.none { it.title == "Непрочитанные" }) add("Непрочитанные", "mark_chat_unread", mapOf("unread" to true))
                     }
                     RecTile(Icons.Rounded.SmartToy, Kx.link, "Боты", Modifier.weight(1f)) {
-                        if (list.none { it.title == "Боты" }) add(FFolder(0, "Боты", "smart_toy", "Все боты", Color(0xFF1F2E40), Color(0xFFA9CBF5)))
+                        if (list.none { it.title == "Боты" }) add("Боты", "smart_toy", mapOf("bots" to true))
                     }
                 }
             }
@@ -154,9 +174,8 @@ fun FoldersScreen(ctx: KxScreenCtx) {
                 .then(if (ok) Modifier.cssGradient(100f, 0f to Kx.accentMid, 1f to Kx.accentDeep) else Modifier.background(Kx.w(.07f)))
                 .kxClick {
                     if (ok) {
-                        val picked = tDefs.filter { types[it.first] == true }.map { it.second.lowercase() }
                         editing = false
-                        add(FFolder(0, newName.trim(), newIcon, if (picked.isEmpty()) "Пустая" else picked.joinToString(", "), Color(0xFF1F3A2C), Kx.accent))
+                        add(newName.trim(), newIcon, types)
                     }
                 }, contentAlignment = Alignment.Center) {
                 Text("Создать", style = KxType.style(15.sp, FontWeight.ExtraBold, if (ok) Kx.onAccent else Kx.text4))

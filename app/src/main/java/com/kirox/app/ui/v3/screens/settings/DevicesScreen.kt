@@ -48,17 +48,31 @@ private data class DSession(val id: Long, val icon: ImageVector, val name: Strin
 /** Board «Устройства»: connect by QR (scanner overlay), this device, active sessions with confirm sheet, TTL pills. */
 @Composable
 fun DevicesScreen(ctx: KxScreenCtx) {
-    // demo: needs store (sessions list with device/app/place/time, terminateSession(id), terminateOtherSessions(), sessionTtl, confirmQrLogin)
-    var list by remember { mutableStateOf(listOf(
-        DSession(1, Icons.Rounded.DesktopWindows, "Telegram Desktop", "Windows 11 · Алматы · 2 ч назад", Color(0xFF1F2E40), Color(0xFFA9CBF5)),
-        DSession(2, Icons.Rounded.Language, "Telegram Web", "Chrome · Астана · вчера", Color(0xFF2E2A3D), Color(0xFFCFC2F2)),
-        DSession(3, Icons.Rounded.TabletAndroid, "Telegram на планшете", "Android · Алматы · 3 дня назад", Color(0xFF3B2A22), Color(0xFFFFB68F)),
-        DSession(4, Icons.Rounded.LaptopMac, "Telegram macOS", "MacBook · Москва · неделю назад", Color(0xFF1E3333), Color(0xFF9FDCD6)))) }
+    val store = ctx.store
+    val tiles = listOf(Color(0xFF1F2E40) to Color(0xFFA9CBF5), Color(0xFF2E2A3D) to Color(0xFFCFC2F2), Color(0xFF3B2A22) to Color(0xFFFFB68F), Color(0xFF1E3333) to Color(0xFF9FDCD6))
+    val sessions = store.sessions
+    val current = sessions.firstOrNull { it.current }
+    val list = sessions.filter { !it.current }.mapIndexed { i, s ->
+        val d = (s.device + " " + s.app).lowercase()
+        val icon = when {
+            "web" in d || "chrome" in d || "firefox" in d || "safari" in d -> Icons.Rounded.Language
+            "mac" in d -> Icons.Rounded.LaptopMac
+            "ipad" in d || "tablet" in d || "планшет" in d -> Icons.Rounded.TabletAndroid
+            "windows" in d || "desktop" in d || "linux" in d -> Icons.Rounded.DesktopWindows
+            else -> Icons.Rounded.PhoneAndroid
+        }
+        val where = listOf(s.device, s.place, if (s.passwordPending) "ожидает пароль" else s.time).filter { it.isNotBlank() }.joinToString(" · ")
+        DSession(s.id, icon, s.app.ifBlank { s.device }, where, tiles[i % tiles.size].first, tiles[i % tiles.size].second)
+    }
     var ask by remember { mutableStateOf<Long?>(null) } // -1 = all
     var leaving by remember { mutableStateOf<Long?>(null) }
-    var ttl by rememberSaveable { mutableIntStateOf(2) }
+    val ttlDays = listOf(7, 30, 180, 365)
+    val ttl = ttlDays.indices.minByOrNull { kotlin.math.abs(ttlDays[it] - store.sessionTtlDays) } ?: 2
+    // demo: needs store (the QR scanner has no camera yet; store.confirmQrLogin(link) takes the scanned link)
     var qr by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(leaving) { val id = leaving ?: return@LaunchedEffect; delay(350); list = list.filter { it.id != id }; leaving = null }
+    LaunchedEffect(Unit) { store.refreshSessions() }
+    StoreErrorToasts(ctx)
+    LaunchedEffect(leaving) { val id = leaving ?: return@LaunchedEffect; delay(350); store.terminateSession(id); leaving = null }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         SGlow(glowGreen(.16f), alignEnd = true)
@@ -89,7 +103,7 @@ fun DevicesScreen(ctx: KxScreenCtx) {
                         PulseTile()
                         Column(Modifier.weight(1f)) {
                             Text("kiroX на Android", style = KxType.style(15.sp, FontWeight.Bold))
-                            Text("Xiaomi · Алматы · в сети", style = KxType.style(12.sp, color = Kx.text4))
+                            Text(current?.let { c -> listOf(c.device, c.place, c.time).filter { it.isNotBlank() }.joinToString(" · ") } ?: "в сети", style = KxType.style(12.sp, color = Kx.text4))
                         }
                     }
                     if (list.isNotEmpty()) Row(Modifier.padding(top = 8.dp).fillMaxWidth().height(48.dp).clip(RoundedCornerShape(16.dp)).background(Color(229, 72, 77).copy(alpha = .10f))
@@ -113,7 +127,7 @@ fun DevicesScreen(ctx: KxScreenCtx) {
                         Text(ttlOpts[ttl], style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
                     }
                     Spacer(Modifier.height(10.dp))
-                    SPills(ttlOpts, ttl) { ttl = it }
+                    SPills(ttlOpts, ttl) { store.setSessionTtl(ttlDays[it]) }
                 }
             }
         }
@@ -136,7 +150,7 @@ fun DevicesScreen(ctx: KxScreenCtx) {
                         Text("Отмена", style = KxType.style(15.sp, FontWeight.Bold))
                     }
                     Box(Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFFE5484D))
-                        .kxClick { if (a == -1L) list = emptyList() else leaving = a; ask = null }, contentAlignment = Alignment.Center) {
+                        .kxClick { if (a == -1L) store.terminateOtherSessions() else leaving = a; ask = null }, contentAlignment = Alignment.Center) {
                         Text("Завершить", style = KxType.style(15.sp, FontWeight.ExtraBold, Color.White))
                     }
                 }

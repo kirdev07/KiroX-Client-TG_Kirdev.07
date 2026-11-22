@@ -20,4 +20,8 @@ val SettingsScreens: Map<String, KxScreenFn> = mapOf(
     "Accounts" to { ctx -> AccountsScreen(ctx) },
     "Blocked" to { ctx -> BlockedScreen(ctx) },
     "Power" to { ctx -> PowerScreen(ctx) },
+    "Proxy" to { ctx -> ProxyScreen(ctx) },
+    "CallSettings" to { ctx -> CallSettingsScreen(ctx) },
+    "EditProfile" to { ctx -> EditProfileScreen(ctx) },
+    "MyQr" to { ctx -> MyQrScreen(ctx) },
 )

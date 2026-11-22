@@ -30,10 +30,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.screens.settings.StoreErrorToasts
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store (admin rights of a member: get/set rights + custom title, demote)
+// Board demo (no ids). With "AdminRights:<chatId>:<userId>": save = store.promote, «Снять» = store.demote.
+// demo: needs store (per-right toggles and the custom title are not sent yet: the repository promotes with a default set)
 private data class ARight(val icon: ImageVector, val label: String, val sub: String? = null)
 private val ARights = listOf(
     ARight(Icons.Outlined.Info, "Менять название и фото"),
@@ -56,6 +58,13 @@ private val ARoles = listOf(
 /** Board «Права администратора»: person card, title (16), quick roles, 9 rights, demote sheet, save bar. */
 @Composable
 fun AdminRightsScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val chatId = gxChatId(ctx.arg)
+    val userId = gxArg2(ctx.arg)
+    val member = gxLoad(chatId, userId) { if (chatId != null && userId != null) store.members(chatId).firstOrNull { it.userId == userId } else null }
+    val name = if (chatId == null || userId == null) "Мария" else member?.name ?: ""
+    val sub = if (chatId == null || userId == null) "в сети · в группе с марта" else member?.status ?: ""
+    StoreErrorToasts(ctx)
     var on by remember { mutableStateOf(setOf(1, 2, 4)) }
     var init by remember { mutableStateOf(setOf(1, 2, 4)) }
     var title by remember { mutableStateOf("модератор") }
@@ -76,15 +85,15 @@ fun AdminRightsScreen(ctx: KxScreenCtx) {
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).cssLinear(150f, Color(0x333F9A6C), Kx.w(.03f)).border(1.dp, Color(0x388FD3AC), RoundedCornerShape(24.dp))
                     .padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(Modifier.size(54.dp).clip(CircleShape).cssLinear(135f, Color(0xFFB07A2E), Color(0xFF6A4C9C)), contentAlignment = Alignment.Center) {
-                        Text("М", style = KxType.style(22.sp, FontWeight.ExtraBold))
+                        Text(name.take(1).uppercase(), style = KxType.style(22.sp, FontWeight.ExtraBold))
                     }
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Мария", style = KxType.style(17.sp, FontWeight.ExtraBold))
+                            Text(name, style = KxType.style(17.sp, FontWeight.ExtraBold))
                             Text(if (removed) "участник" else title.trim().ifEmpty { "админ" }, style = KxType.style(11.sp, FontWeight.ExtraBold, Kx.accent),
                                 modifier = Modifier.gxPopIn(250, .7f).clip(RoundedCornerShape(8.dp)).background(Color(0x298FD3AC)).padding(horizontal = 8.dp, vertical = 2.dp))
                         }
-                        Text("в сети · в группе с марта", style = KxType.style(12.sp, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
+                        Text(sub, style = KxType.style(12.sp, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
                     }
                 }
                 Row(Modifier.padding(top = 12.dp).fillMaxWidth().height(54.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(20.dp))
@@ -143,17 +152,21 @@ fun AdminRightsScreen(ctx: KxScreenCtx) {
             val bgBrush = if (changed) Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)) else SolidColor(Kx.w(.07f))
             GxPillButton(if (changed) "Сохранить права" else "Изменений нет", Modifier.fillMaxWidth(), height = 54.dp, brush = bgBrush,
                 ink = if (changed) Kx.onAccent else Color(0xFF5C6661), size = 16, weight = FontWeight.ExtraBold, icon = Icons.Rounded.AdminPanelSettings) {
-                if (changed) { init = on; initTitle = title; tip.say("Права обновлены · Мария", Icons.Rounded.AdminPanelSettings) }
+                if (changed) {
+                    if (chatId != null && userId != null) store.promote(chatId, userId)
+                    init = on; initTitle = title; tip.say("Права обновлены · $name", Icons.Rounded.AdminPanelSettings)
+                }
             }
         }
         GxSheet(confirm, onClose = { confirm = false }, bottomPad = 22.dp, handleGap = 16.dp) {
-            Text("Снять с админов: Мария?", style = KxType.style(19.sp, FontWeight.ExtraBold))
-            Text("Мария останется в группе как обычный участник. Сообщения, которые были закреплены или удалены от имени этого админа, не вернутся.",
+            Text("Снять с админов: $name?", style = KxType.style(19.sp, FontWeight.ExtraBold))
+            Text("$name останется в группе как обычный участник. Сообщения, которые были закреплены или удалены от имени этого админа, не вернутся.",
                 style = KxType.style(14.sp, color = Kx.text3, lineHeight = 20.3.sp), modifier = Modifier.padding(top = 6.dp))
             Row(Modifier.padding(top = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GxPillButton("Отмена", Modifier.weight(1f), height = 50.dp) { confirm = false }
                 GxPillButton("Снять", Modifier.weight(1f), height = 50.dp, bg = Kx.dangerSolid, ink = Color.White, weight = FontWeight.ExtraBold) {
-                    confirm = false; removed = true; on = emptySet(); title = ""; tip.say("Мария больше не админ", Icons.Rounded.PersonRemove)
+                    if (chatId != null && userId != null) store.demote(chatId, userId)
+                    confirm = false; removed = true; on = emptySet(); title = ""; tip.say("$name больше не админ", Icons.Rounded.PersonRemove)
                 }
             }
         }

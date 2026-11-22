@@ -68,7 +68,7 @@ fun SharedMediaScreen(ctx: KxScreenCtx) {
     val items = store.shared(chatId, Tabs[tab].second)
     BackHandler(selMode) { selMode = false; sel.clear() }
     val months: List<Pair<String, List<Int>>> = if (tab == 0 && items.isEmpty()) listOf("Ноябрь" to (0 until 9).toList(), "Октябрь" to (9 until 15).toList())
-        else listOf("Недавние" to items.indices.toList())
+        else items.indices.groupBy { items[it].month.ifEmpty { "Недавние" } }.toList()
     val mediaCount = if (items.isNotEmpty()) items.size else 15
     val sub = if (selMode) "Нажимайте, чтобы выбрать ещё" else when (tab) {
         0 -> "$mediaCount фото и видео"
@@ -164,14 +164,28 @@ fun SharedMediaScreen(ctx: KxScreenCtx) {
             enter = slideInVertically(tween(300, easing = CubicBezierEasing(.34f, 1.45f, .5f, 1f))) { it * 2 }) {
             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).background(Color(0xF0161B18)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
                 .border(1.dp, Kx.w(.16f), RoundedCornerShape(30.dp)).padding(8.dp), horizontalArrangement = Arrangement.SpaceAround) {
-                // demo: needs store (forward/save/delete of shared items by message id; KxSharedItem has no message id)
-                BarAct(Icons.AutoMirrored.Outlined.Forward, "Переслать", Kx.text) { selMode = false; sel.clear(); ctx.open("Forward") }
-                BarAct(Icons.Outlined.Download, "Сохранить", Kx.text) { selMode = false; sel.clear(); ctx.toast("Сохранено в галерею") }
-                BarAct(Icons.AutoMirrored.Outlined.Chat, "В чате", Kx.text) { selMode = false; sel.clear(); ctx.openChat(chatId) }
+                // Real items carry messageId / fileId (KxSharedItem): forward opens «Переслать» with the first one (that board takes one message),
+                // «Сохранить» downloads the files, «В чате» jumps to the first one, delete (after the confirm) removes the messages for me.
+                val picked = sel.mapNotNull { items.getOrNull(it) }
+                BarAct(Icons.AutoMirrored.Outlined.Forward, "Переслать", Kx.text) {
+                    val first = picked.firstOrNull { it.messageId != 0L }
+                    selMode = false; sel.clear(); ctx.open(if (first != null) "Forward:$chatId:${first.messageId}" else "Forward")
+                }
+                BarAct(Icons.Outlined.Download, "Сохранить", Kx.text) {
+                    val files = picked.filter { it.fileId != 0 }
+                    selMode = false; sel.clear()
+                    if (files.isNotEmpty()) { files.forEach { store.download(it.fileId) }; ctx.toast("Файлы загружаются на телефон") } else ctx.toast("Сохранено в галерею")
+                }
+                BarAct(Icons.AutoMirrored.Outlined.Chat, "В чате", Kx.text) {
+                    val first = picked.firstOrNull { it.messageId != 0L }
+                    selMode = false; sel.clear(); ctx.openChat(chatId); first?.let { store.jumpTo(chatId, it.messageId) }
+                }
                 BarAct(Icons.Outlined.Delete, "Удалить", Kx.danger) { confirm = true }
             }
         }
         ChConfirm(if (confirm) "Удалить выбранное?" else null, "Сообщения с этими файлами удалятся у вас. В личном чате можно удалить и у собеседника.", "Удалить", { confirm = false }) {
+            val ids = sel.mapNotNull { items.getOrNull(it)?.messageId?.takeIf { id -> id != 0L } }
+            if (ids.isNotEmpty()) store.delete(chatId, ids, false)
             confirm = false; selMode = false; sel.clear()
         }
     }

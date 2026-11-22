@@ -29,10 +29,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.screens.settings.StoreErrorToasts
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store (chat available reactions: all / some list / none, max reaction count, paid star reactions; setChatAvailableReactions)
+// Board demo (no chat id). With "AllowedReacts:<chatId>": KxGroupInfo.reactions (null = all, empty = none) and store.setAllowedReactions.
+// demo: needs store (max reactions per message and paid star reactions are not in the store yet)
 private val AEmoji = listOf("👍", "👎", "❤️", "🔥", "🥰", "👏", "😁", "🤔", "🤯", "😱", "🤬", "😢", "🎉", "🤩", "🤮", "💩", "🙏", "👌", "🕊", "🤡", "🥱", "😍", "🐳", "🚀")
 private val ACounts = linkedMapOf("🚀" to 24, "🔥" to 18, "👍" to 15, "❤️" to 9, "🎉" to 7, "👏" to 5, "🤯" to 3, "😁" to 2)
 
@@ -46,6 +48,18 @@ fun AllowedReactsScreen(ctx: KxScreenCtx) {
     var pk by remember { mutableIntStateOf(0) }
     var last by remember { mutableStateOf("") }
     val tip = rememberGxTip()
+    val store = ctx.store
+    val chatId = gxChatId(ctx.arg)
+    val info = gxLoad(chatId) { chatId?.let { store.groupInfo(it) } }
+    fun norm(e: String) = e.replace("\uFE0F", "")
+    LaunchedEffect(info) {
+        val i = info ?: return@LaunchedEffect
+        val r = i.reactions
+        mode = when { r == null -> 0; r.isEmpty() -> 2; else -> 1 }
+        if (r != null && r.isNotEmpty()) { val n = r.map(::norm).toSet(); on = AEmoji.filter { norm(it) in n }.toSet() }
+        pk++
+    }
+    StoreErrorToasts(ctx)
     fun allowed(e: String) = mode == 0 || (mode == 1 && e in on)
     val prev = buildList {
         if (paid && mode != 2) add("⭐" to 12)
@@ -58,7 +72,7 @@ fun AllowedReactsScreen(ctx: KxScreenCtx) {
                 KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Column(Modifier.weight(1f)) {
                     Text("Реакции", style = KxType.style(20.sp, FontWeight.ExtraBold))
-                    Text("Канал «Kotlin по-русски»", style = KxType.style(12.sp, color = Kx.text3))
+                    Text(if (chatId == null) "Канал «Kotlin по-русски»" else "«${store.header(chatId).title}»", style = KxType.style(12.sp, color = Kx.text3))
                 }
             }
             Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f))
@@ -147,7 +161,10 @@ fun AllowedReactsScreen(ctx: KxScreenCtx) {
             }
             Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 20.dp)) {
                 GxPillButton("Сохранить", Modifier.fillMaxWidth(), height = 54.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent,
-                    size = 16, weight = FontWeight.ExtraBold) { tip.say("Реакции канала обновлены") }
+                    size = 16, weight = FontWeight.ExtraBold) {
+                    if (chatId != null) store.setAllowedReactions(chatId, when (mode) { 0 -> null; 2 -> emptyList(); else -> on.toList() })
+                    tip.say("Реакции канала обновлены")
+                }
             }
         }
         GxTip(tip, bottom = 92.dp, icon = Icons.Rounded.CheckCircle, durationMs = 2000, bg = Color(0xF528302C), textSize = 13)

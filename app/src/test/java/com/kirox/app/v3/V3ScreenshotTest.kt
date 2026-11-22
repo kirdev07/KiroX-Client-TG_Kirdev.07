@@ -111,7 +111,7 @@ class V3ScreenshotTest {
 
     @Test fun calls() = shot("Calls") { Home(KxTab.Calls) { CallsScreen(store, { _, _ -> }, {}) } }
 
-    @Test fun calling() = shot("Calling") { KxScreen { CallingScreen("Анна", 11L, "Соединение", {}) } }
+    @Test fun calling() = shot("Calling") { KxScreen { CallingScreen("Анна", 11L, colorIndex = 0, onEnd = {}) } }
 
     @Test fun settings() = shot("Settings") { Home(KxTab.Settings) { SettingsScreen(store, {}) } }
 

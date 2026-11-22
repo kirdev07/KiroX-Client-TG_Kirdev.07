@@ -43,7 +43,7 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-private data class BPeer(val id: Int, val name: String, val sub: String, val a1: Color, val a2: Color, val ink: Color)
+private data class BPeer(val id: Long, val name: String, val sub: String, val a1: Color, val a2: Color, val ink: Color)
 
 private val BAll = listOf(
     BPeer(1, "Реклама Окон", "в чёрном списке 3 дня", Color(0xFF7A5A2E), Color(0xFF3A2A14), Color(0xFFFFE2B8)),
@@ -57,9 +57,17 @@ private val BAll = listOf(
 /** Board «Заблокированные»: block button + sheet, list with unblock (slide out + undo toast), suspicious message with report flow. */
 @Composable
 fun BlockedScreen(ctx: KxScreenCtx) {
-    // demo: needs store (blocked users list, block/unblock (store.block exists for userId), suspicious chats, reportChat(reason, text))
-    var ids by remember { mutableStateOf(listOf(1, 2, 3)) }
-    var leaving by remember { mutableIntStateOf(0) }
+    // store.blocked / store.block(userId, blocked). The suspicious-message card and the report flow stay a local demo
+    // (demo: needs store — reportChat is a multi-step Telegram flow, not in the store yet); its peer has a negative local id.
+    val store = ctx.store
+    fun look(i: Int) = BAll[i % 3]
+    val spam = BAll[5].copy(id = -6)
+    var spamBlocked by remember { mutableStateOf(false) }
+    val real = store.blocked.mapIndexed { i, c -> look(i).copy(id = c.id, name = c.name, sub = c.status) }
+    val all = (if (spamBlocked) listOf(spam) else emptyList()) + real
+    val ids = all.map { it.id }
+    val candidates = store.contacts.filter { c -> real.none { it.id == c.id } }.take(5).mapIndexed { i, c -> BAll[3 + i % 2].copy(id = c.id, name = c.name, sub = c.status) }
+    var leaving by remember { mutableLongStateOf(0L) }
     var add by remember { mutableStateOf(false) }
     var report by remember { mutableStateOf(false) }
     var step by remember { mutableIntStateOf(1) }
@@ -67,14 +75,18 @@ fun BlockedScreen(ctx: KxScreenCtx) {
     var alsoBlock by remember { mutableStateOf(true) }
     var toastAt by remember { mutableLongStateOf(0L) }
     var toastText by remember { mutableStateOf("") }
-    var undoId by remember { mutableIntStateOf(0) }
-    fun say(t: String, undo: Int = 0) { toastText = t; undoId = undo; toastAt = System.nanoTime() }
-    fun block(id: Int) { if (id !in ids) ids = listOf(id) + ids }
+    var undoId by remember { mutableLongStateOf(0L) }
+    fun say(t: String, undo: Long = 0L) { toastText = t; undoId = undo; toastAt = System.nanoTime() }
+    fun block(id: Long) { if (id < 0) spamBlocked = true else store.block(id, true) }
     LaunchedEffect(leaving) {
-        val id = leaving; if (id == 0) return@LaunchedEffect
-        delay(300); ids = ids - id; leaving = 0
-        say("${BAll.first { it.id == id }.name} снова может вам писать", id)
+        val id = leaving; if (id == 0L) return@LaunchedEffect
+        val name = all.firstOrNull { it.id == id }?.name ?: ""
+        delay(300)
+        if (id < 0) spamBlocked = false else store.block(id, false)
+        leaving = 0L
+        say("$name снова может вам писать", id)
     }
+    StoreErrorToasts(ctx)
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize()) {
@@ -93,8 +105,8 @@ fun BlockedScreen(ctx: KxScreenCtx) {
                     modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 12.dp))
                 Text(if (ids.isNotEmpty()) "Список · ${ids.size}" else "Список", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp))
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg)) {
-                    ids.forEachIndexed { i, id ->
-                        val p = BAll.first { it.id == id }
+                    all.forEachIndexed { i, p ->
+                        val id = p.id
                         key(id) { BlockedRow(p, i > 0, leaving == id) { leaving = id } }
                     }
                     if (ids.isEmpty()) Text("Список пуст", style = KxType.style(14.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(26.dp))
@@ -119,7 +131,7 @@ fun BlockedScreen(ctx: KxScreenCtx) {
                         Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(14.dp)).background(Kx.danger.copy(alpha = .12f)).kxClick { report = true; step = 1 }, contentAlignment = Alignment.Center) {
                             Text("Пожаловаться", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.danger))
                         }
-                        Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.07f)).kxClick { block(6); say("Crypto Bonus в чёрном списке") }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.07f)).kxClick { block(-6); say("Crypto Bonus в чёрном списке") }, contentAlignment = Alignment.Center) {
                             Text("Заблокировать", style = KxType.style(13.sp, FontWeight.Bold))
                         }
                     }
@@ -128,7 +140,7 @@ fun BlockedScreen(ctx: KxScreenCtx) {
         }
         if (add) AccSheet({ add = false }) {
             Text("Кого заблокировать?", style = KxType.style(18.sp, FontWeight.ExtraBold), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp))
-            BAll.filter { (it.id == 4 || it.id == 5) && it.id !in ids }.forEach { c ->
+            candidates.forEach { c ->
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).kxClick { block(c.id); add = false; say("${c.name} в чёрном списке") }.padding(horizontal = 6.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(Modifier.size(42.dp).clip(CircleShape).cssGradient(140f, 0f to c.a1, 1f to c.a2), contentAlignment = Alignment.Center) {
@@ -176,7 +188,7 @@ fun BlockedScreen(ctx: KxScreenCtx) {
                                 Text("Также заблокировать и удалить чат", style = KxType.style(15.sp))
                             }
                             Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(Kx.dangerSolid)
-                                .kxClick { if (alsoBlock) block(6); step = 3 }, contentAlignment = Alignment.Center) {
+                                .kxClick { if (alsoBlock) block(-6); step = 3 }, contentAlignment = Alignment.Center) {
                                 Text("Отправить жалобу", style = KxType.style(15.sp, FontWeight.ExtraBold, Color.White))
                             }
                         }
@@ -199,7 +211,7 @@ fun BlockedScreen(ctx: KxScreenCtx) {
                 }
             }
         }
-        if (toastAt != 0L) key(toastAt) { UndoToast(toastText, undoId != 0, { block(undoId); toastAt = 0L }) { toastAt = 0L } }
+        if (toastAt != 0L) key(toastAt) { UndoToast(toastText, undoId != 0L, { block(undoId); toastAt = 0L }) { toastAt = 0L } }
     }
 }
 
@@ -243,9 +255,9 @@ private fun BlockedRow(p: BPeer, line: Boolean, leaving: Boolean, onUnblock: () 
 
 /** kxToast 3s: rise in, hold, fade; optional «Отменить». */
 @Composable
-private fun BoxScope.UndoToast(text: String, canUndo: Boolean, onUndo: () -> Unit, onDone: () -> Unit) {
+internal fun BoxScope.UndoToast(text: String, canUndo: Boolean, onUndo: () -> Unit, durMs: Int = 3000, onDone: () -> Unit) {
     val p = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { p.animateTo(1f, tween(3000, easing = LinearEasing)); onDone() }
+    LaunchedEffect(Unit) { p.animateTo(1f, tween(durMs, easing = LinearEasing)); onDone() }
     val t = p.value
     val a = when { t < .12f -> t / .12f; t < .85f -> 1f; else -> 1f - (t - .85f) / .15f }
     val dy = if (t < .12f) (1f - t / .12f) * 16f else 0f

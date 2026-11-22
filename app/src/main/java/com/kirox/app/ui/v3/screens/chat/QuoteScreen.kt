@@ -44,14 +44,22 @@ import com.kirox.app.ui.v3.theme.Kx
 import com.kirox.app.ui.v3.theme.LocalKxReducedMotion
 import kotlinx.coroutines.delay
 
-// demo: needs store (reply with a quote: send(chatId, text, replyTo, quoteText) is not in KxStore yet)
+// Opened as "Quote:<chatId>:<messageId>": the message is the store's; a reply here = store.sendQuote(chatId, text, messageId, quote) (open chat);
+// into another chat the quote goes as text («…»). Without ids (board demo) nothing is sent to a real account.
 private val QText = "Итоги митапа: собираемся в субботу в 11:00 в коворкинге на Абая, вход со двора. Возьмите ноутбуки, будем писать виджет на Compose. Пицца за счёт клуба."
-private val Words = QText.split(' ')
+
 
 /** Board «Цитата»: pick the first and last word of a message to quote, reply here or in another chat. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun QuoteScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val srcChat = ctx.arg?.substringBefore(':')?.toLongOrNull()
+    val srcMsgId = ctx.arg?.substringAfter(':', "")?.toLongOrNull()
+    val srcMsg = if (srcChat != null && srcMsgId != null) store.messages(srcChat).firstOrNull { it.id == srcMsgId } else null
+    val srcHeader = srcChat?.let { store.header(it) }
+    val Words = (srcMsg?.text?.ifBlank { null } ?: QText).split(' ').filter { it.isNotEmpty() }
+    val canSend = srcMsg != null || store is com.kirox.app.ui.v3.demo.KxDemoStore
     var a by remember { mutableIntStateOf(-1) }
     var b by remember { mutableIntStateOf(-1) }
     var draft by remember { mutableStateOf("") }
@@ -72,8 +80,8 @@ fun QuoteScreen(ctx: KxScreenCtx) {
             Row(Modifier.fillMaxWidth().drawBehind { drawLine(Kx.w(.06f), Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx()) }
                 .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", onClick = ctx.back)
-                Box(Modifier.size(40.dp).clip(CircleShape).cssGradient(135f, Color(0xFF6FA9D8), Color(0xFF2F6E9E)), contentAlignment = Alignment.Center) { Text("K", style = ts(16, W800)) }
-                Column(Modifier.weight(1f)) { Text("Kotlin-клуб", style = ts(16, W800)); Text("1 284 участника", style = ts(12, color = Kx.text3)) }
+                Box(Modifier.size(40.dp).clip(CircleShape).cssGradient(135f, Color(0xFF6FA9D8), Color(0xFF2F6E9E)), contentAlignment = Alignment.Center) { Text((srcHeader?.title ?: "K").take(1).uppercase(), style = ts(16, W800)) }
+                Column(Modifier.weight(1f)) { Text(srcHeader?.title ?: "Kotlin-клуб", style = ts(16, W800)); Text(srcHeader?.status ?: "1 284 участника", style = ts(12, color = Kx.text3)) }
             }
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Сегодня", style = ts(12, color = Kx.text3), modifier = Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(12.dp)).background(Kx.w(.06f)).padding(horizontal = 12.dp, vertical = 4.dp))
@@ -160,8 +168,11 @@ fun QuoteScreen(ctx: KxScreenCtx) {
                         .kxClick(if (target != null) "Отправить в другой чат" else "Отправить") {
                             if (!can) return@kxClick
                             val t = target
-                            if (t != null) { ctx.store.send(t.id, "«$sel»\n${draft.trim()}"); toast = "Ответ с цитатой ушёл в «${t.title}»" to System.nanoTime(); clear(); draft = "" }
-                            else { sent += sel to draft.trim(); clear(); draft = "" }
+                            if (t != null) { if (canSend) store.send(t.id, "«$sel»\n${draft.trim()}"); toast = "Ответ с цитатой ушёл в «${t.title}»" to System.nanoTime(); clear(); draft = "" }
+                            else {
+                                if (srcChat != null && srcMsgId != null && srcMsg != null) store.sendQuote(srcChat, draft.trim(), srcMsgId, sel)
+                                sent += sel to draft.trim(); clear(); draft = ""
+                            }
                         }, contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.Send, null, tint = if (can) Kx.onAccent else Color(0xFF5C6661)) }
                 }
             }

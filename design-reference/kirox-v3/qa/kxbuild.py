@@ -45,7 +45,10 @@ def main():
     try:
         p = subprocess.run([gradlew] + args + ['--offline', '-q'], cwd=ROOT, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
         out = (p.stdout or '') + (p.stderr or '')
-        lines = [l for l in out.splitlines() if l.startswith('e: ') or 'FAILED' in l or 'What went wrong' in l or 'tests completed' in l]
+        ol = out.splitlines(); lines = []
+        for i, l in enumerate(ol):
+            if l.startswith('e: ') or 'file:///' in l or 'FAILED' in l or 'tests completed' in l: lines.append(l)
+            if 'What went wrong' in l: lines.extend(ol[i:i + 6])
         print('\n'.join(lines[:60]) if lines else out[-3000:])
         print(f'[kxbuild] exit {p.returncode}')
         return p.returncode

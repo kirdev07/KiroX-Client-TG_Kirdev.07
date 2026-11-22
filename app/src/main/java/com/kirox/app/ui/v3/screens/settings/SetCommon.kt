@@ -214,3 +214,16 @@ internal fun Modifier.cssGradient(deg: Float, vararg stops: Pair<Float, Color>):
 internal fun Modifier.wBorder(a: Float, shape: Shape): Modifier = this.border(1.dp, Kx.w(a), shape)
 
 @Suppress("unused") private val keepOffset = Offset.Zero
+
+/** Size as the settings boards write it: «1,1 ГБ», «410 МБ», «0 МБ». */
+internal fun sBytes(bytes: Long): String = when {
+    bytes >= 1L shl 30 -> "%.1f ГБ".format(java.util.Locale.ROOT, bytes / (1L shl 30).toDouble()).replace('.', ',')
+    else -> "${(bytes + (1L shl 19)) / (1L shl 20)} МБ"
+}
+
+/** Shows store actions' failures (store.error, e.g. FLOOD_WAIT, no rights) as a toast while the screen is open. */
+@Composable
+internal fun StoreErrorToasts(ctx: com.kirox.app.ui.v3.KxScreenCtx) {
+    val err = ctx.store.error
+    LaunchedEffect(err) { if (err != null) { ctx.toast(err); ctx.store.clearError() } }
+}

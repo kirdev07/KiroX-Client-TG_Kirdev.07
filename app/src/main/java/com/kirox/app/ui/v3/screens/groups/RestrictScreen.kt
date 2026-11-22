@@ -40,11 +40,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.screens.settings.StoreErrorToasts
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store (member restrict/ban with permissions + until date, delete all messages of a member)
+// Board demo (no ids). With "Restrict:<chatId>:<userId>": «Применить» (after the confirm) = store.ban / store.restrict (read-only); «Отменить» undoes it.
+// demo: needs store (per-permission toggles, the until date, the reason and deleting all messages of the member are not in the store yet)
 private val RPerms = listOf(Icons.Outlined.Chat to "Текст", Icons.Outlined.Image to "Фото и видео", Icons.Outlined.EmojiEmotions to "Стикеры и GIF",
     Icons.Outlined.Link to "Ссылки", Icons.Outlined.Ballot to "Опросы", Icons.Outlined.PersonAdd to "Приглашать")
 private data class RDur(val chip: String, val word: String, val until: String)
@@ -69,6 +71,14 @@ fun RestrictScreen(ctx: KxScreenCtx) {
     LaunchedEffect(toastId) { if (toastId > 0) { toastShown = true; delay(4000); toastShown = false } }
     val ban = mode == 1
     val d = RDurs[dur]
+    val store = ctx.store
+    val chatId = gxChatId(ctx.arg)
+    val userId = gxArg2(ctx.arg)
+    val real = chatId != null && userId != null
+    val member = gxLoad(chatId, userId) { if (chatId != null && userId != null) store.members(chatId).firstOrNull { it.userId == userId } else null }
+    val who = if (real) member?.name ?: "" else "Crypto Max"
+    var appliedBan by remember { mutableStateOf(false) }
+    StoreErrorToasts(ctx)
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
@@ -86,13 +96,13 @@ fun RestrictScreen(ctx: KxScreenCtx) {
                             val m = remember(gray) { ColorMatrix().apply { setToSaturation(gray) } }
                             Box(Modifier.size(50.dp).graphicsLayer { }.clip(CircleShape).drawBehind {
                                 drawRect(Brush.linearGradient(listOf(Color(0xFFB07A2E), Color(0xFF7A3B2E)), cssAngleStart(135f, size), cssAngleEnd(135f, size)), colorFilter = ColorFilter.colorMatrix(m))
-                            }, contentAlignment = Alignment.Center) { Text("C", style = KxType.style(20.sp, FontWeight.ExtraBold)) }
+                            }, contentAlignment = Alignment.Center) { Text(who.take(1).uppercase().ifEmpty { "?" }, style = KxType.style(20.sp, FontWeight.ExtraBold)) }
                             Column(Modifier.weight(1f)) {
-                                Text("Crypto Max", style = KxType.style(16.sp, FontWeight.ExtraBold))
-                                Text("@crypto_max_x · в группе 2 дня", style = KxType.style(12.sp, color = Kx.text3))
+                                Text(who, style = KxType.style(16.sp, FontWeight.ExtraBold))
+                                Text(if (real) member?.let { listOf(it.role, it.status).filter { s -> s.isNotBlank() }.joinToString(" · ") } ?: "" else "@crypto_max_x · в группе 2 дня", style = KxType.style(12.sp, color = Kx.text3))
                             }
                         }
-                        Text("Заработай x100 за неделю! Пиши в личку, ссылка в профиле 🚀", style = KxType.style(13.sp, color = Color(0xFFE4C3BF)),
+                        if (!real) Text("Заработай x100 за неделю! Пиши в личку, ссылка в профиле 🚀", style = KxType.style(13.sp, color = Color(0xFFE4C3BF)),
                             modifier = Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0x14E5534B))
                                 .drawBehind { drawRect(Red, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height)) }.padding(start = 15.dp, end = 12.dp, top = 8.dp, bottom = 8.dp))
                     }
@@ -169,13 +179,17 @@ fun RestrictScreen(ctx: KxScreenCtx) {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(if (ban) Icons.Rounded.Block else Icons.Rounded.VoiceOverOff, null, Modifier.size(20.dp), tint = Kx.accent)
                 Text(toastText, style = KxType.style(14.sp, FontWeight.SemiBold), maxLines = 1)
-                Text("Отменить", style = KxType.style(14.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 6.dp).kxClick { done = false; toastShown = false })
+                Text("Отменить", style = KxType.style(14.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 6.dp).kxClick {
+                    if (real) { if (appliedBan) store.ban(chatId!!, userId!!, false) else store.restrict(chatId!!, userId!!, false) }
+                    done = false; toastShown = false
+                })
             }
         }
         GxConfirm(confirm, "Применить ограничения?", "Если выбрано удаление всех сообщений участника, вернуть их будет нельзя.", confirm = "Применить",
             onCancel = { confirm = false }) {
             confirm = false
-            toastText = if (ban) "Блокировка · Crypto Max" else if (allow.isNotEmpty()) "Ограничения включены" else "Crypto Max в муте"
+            if (real) { appliedBan = ban; if (ban) store.ban(chatId!!, userId!!, true) else store.restrict(chatId!!, userId!!, true) }
+            toastText = if (ban) "Блокировка · $who" else if (allow.isNotEmpty() && !real) "Ограничения включены" else "$who в муте"
             done = true; toastId++
         }
     }

@@ -357,6 +357,12 @@ class TelegramSettingsRepository(private val client: TelegramClient) {
 
     // ---------- Cloud password ----------
 
+    /**
+     * Checks the cloud password: TDLib has no direct check, but GetRecoveryEmailAddress needs the
+     * password and fails with PASSWORD_HASH_INVALID when it is wrong (throws TdException then).
+     */
+    suspend fun verifyPassword(password: String) { client.query(TdApi.GetRecoveryEmailAddress(password)) }
+
     suspend fun passwordState(): CloudPasswordState = client.query(TdApi.GetPasswordState()).toState()
 
     /**

@@ -29,11 +29,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.delay
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.theme.Kx
 
-// demo: needs store (recent search queries are not kept by the store yet)
+// Server search: store.searchChats / searchMessages (debounced) merged with the loaded chats and messages.
+// demo: needs store (recent search queries and «Часто пишете» top peers are not kept by the store yet)
 private val RecentQueries = listOf("кино", "сборка", "билеты", "фото с гор")
 private val SearchTabs = listOf("Всё", "Чаты", "Сообщения", "Медиа", "Ссылки", "Файлы")
 
@@ -50,21 +52,32 @@ fun SearchScreen(ctx: KxScreenCtx) {
     val q = query.trim()
     val chats = store.chats
 
-    val chatHits = remember(q, chats, store.contacts) {
+    val remoteChats by produceState(emptyList<KxChat>(), q) { value = if (q.isEmpty()) emptyList() else { delay(300); store.searchChats(q) } }
+    val remoteMsgs by produceState(emptyList<com.kirox.app.ui.v3.model.KxFound>(), q) { value = if (q.isEmpty()) emptyList() else { delay(300); store.searchMessages(q) } }
+    val chatHits = remember(q, chats, store.contacts, remoteChats) {
         if (q.isEmpty()) emptyList() else {
             val fromChats = chats.mapNotNull { c ->
                 splitHit(c.title, q)?.let { ChatHit(c, it, chatSub(store, c)) }
             }
             val known = fromChats.map { it.chat.id }.toSet()
-            fromChats + store.contacts.filter { it.id !in known }.mapNotNull { p ->
+            val local = fromChats + store.contacts.filter { it.id !in known }.mapNotNull { p ->
                 splitHit(p.name, q)?.let { ChatHit(KxChat(p.id, p.name, online = p.online, colorIndex = p.colorIndex), it, p.status) }
             }
+            val ids = local.map { it.chat.id }.toSet()
+            local + remoteChats.filter { it.id !in ids }.map { c -> ChatHit(c, splitHit(c.title, q) ?: AnnotatedString(c.title), chatSub(store, c)) }
         }
     }
-    val msgHits = remember(q, chats) {
-        if (q.isEmpty()) emptyList() else chats.flatMap { c ->
-            store.messages(c.id).asReversed().filter { it.text.isNotEmpty() }.mapNotNull { m ->
-                splitHit(m.text, q)?.let { MsgHit(c, it, m.time, "${c.id}:${m.id}") }
+    val msgHits = remember(q, chats, remoteMsgs) {
+        if (q.isEmpty()) emptyList() else {
+            val local = chats.flatMap { c ->
+                store.messages(c.id).asReversed().filter { it.text.isNotEmpty() }.mapNotNull { m ->
+                    splitHit(m.text, q)?.let { MsgHit(c, it, m.time, "${c.id}:${m.id}") }
+                }
+            }
+            val keys = local.map { it.key }.toSet()
+            local + remoteMsgs.filter { "${it.chatId}:${it.messageId}" !in keys }.map { f ->
+                val c = chats.firstOrNull { it.id == f.chatId } ?: KxChat(f.chatId, f.chatTitle, avatar = f.avatar)
+                MsgHit(c, splitHit(f.text, q) ?: AnnotatedString(f.text), f.time, "${f.chatId}:${f.messageId}")
             }
         }
     }
@@ -142,7 +155,9 @@ fun SearchScreen(ctx: KxScreenCtx) {
                     if (showMsgs) {
                         item { ChCaption("Сообщения · ${msgHits.size}", Modifier.padding(top = 10.dp)) }
                         items(msgHits, key = { "m" + it.key }) { h ->
-                            Row(Modifier.fillMaxWidth().chIn().clip(RoundedCornerShape(16.dp)).kxClick { ctx.openChat(h.chat.id) }.padding(horizontal = 4.dp, vertical = 8.dp),
+                            Row(Modifier.fillMaxWidth().chIn().clip(RoundedCornerShape(16.dp)).kxClick {
+                                ctx.openChat(h.chat.id); h.key.substringAfter(':').toLongOrNull()?.let { store.jumpTo(h.chat.id, it) }
+                            }.padding(horizontal = 4.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 ChatAvatar(h.chat, 44.dp)
                                 Column(Modifier.weight(1f)) {

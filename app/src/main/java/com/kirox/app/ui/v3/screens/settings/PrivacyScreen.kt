@@ -38,27 +38,31 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-private data class PrivDef(val key: String, val icon: ImageVector, val label: String, val hint: String)
+/** [storeKey]: KxPrivacyRule.key (TDLib PrivacyItem name). */
+private data class PrivDef(val key: String, val icon: ImageVector, val label: String, val hint: String, val storeKey: String)
 
 private val PrivDefs = listOf(
-    PrivDef("phone", Icons.Outlined.Call, "Номер телефона", "Кто видит ваш номер в профиле"),
-    PrivDef("seen", Icons.Outlined.Schedule, "Время захода", "Скрыв время, вы тоже не увидите его у других"),
-    PrivDef("photo", Icons.Outlined.AccountCircle, "Фото профиля", "Кто видит ваши фотографии"),
-    PrivDef("calls", Icons.Outlined.PhoneInTalk, "Звонки", "Кто может вам звонить"),
-    PrivDef("invites", Icons.Outlined.GroupAdd, "Приглашения", "Кто может добавлять вас в группы"),
-    PrivDef("forward", Icons.AutoMirrored.Outlined.Forward, "Пересылка", "Будет ли ссылка на вас в пересланных сообщениях"),
+    PrivDef("phone", Icons.Outlined.Call, "Номер телефона", "Кто видит ваш номер в профиле", "PhoneNumber"),
+    PrivDef("seen", Icons.Outlined.Schedule, "Время захода", "Скрыв время, вы тоже не увидите его у других", "LastSeen"),
+    PrivDef("photo", Icons.Outlined.AccountCircle, "Фото профиля", "Кто видит ваши фотографии", "ProfilePhoto"),
+    PrivDef("calls", Icons.Outlined.PhoneInTalk, "Звонки", "Кто может вам звонить", "Calls"),
+    PrivDef("invites", Icons.Outlined.GroupAdd, "Приглашения", "Кто может добавлять вас в группы", "ChatInvites"),
+    PrivDef("forward", Icons.AutoMirrored.Outlined.Forward, "Пересылка", "Будет ли ссылка на вас в пересланных сообщениях", "ForwardLink"),
 )
 private val PrivOpts = listOf("Все", "Мои контакты", "Никто")
 
 /** Board «Конфиденциальность»: protection score, 4 security tiles, «Кто видит» rows with a picker sheet, 2 switches. */
 @Composable
 fun PrivacyScreen(ctx: KxScreenCtx) {
-    // demo: needs store (privacy rules, passcode/cloud password state, sessions and blocked counts)
-    var vals by remember { mutableStateOf(mapOf("phone" to 2, "seen" to 1, "photo" to 0, "calls" to 1, "invites" to 1, "forward" to 0)) }
+    val store = ctx.store
+    val rules = store.privacy
+    val vals = PrivDefs.associate { d -> d.key to (rules.firstOrNull { it.key == d.storeKey }?.level ?: 0) }
+    // demo: needs store (kiroX passcode is local, not in the store yet)
     val pin = true
+    val cloud = store.cloudPassword?.has == true
     var picking by rememberSaveable { mutableStateOf<String?>(null) }
-    var readTime by rememberSaveable { mutableStateOf(true) }
-    var archive by rememberSaveable { mutableStateOf(false) }
+    val readTime = store.showReadDate
+    val archive = store.archiveNewChats
     val strict = vals.values.count { it > 0 } + (if (pin) 1 else 0)
     val good = strict >= 5
 
@@ -90,11 +94,11 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             SecTile(Icons.Rounded.Pin, Kx.accent, if (pin) "Включён" else "Выключен", if (pin) Kx.accent else Kx.danger, "Код-пароль", Modifier.weight(1f)) { ctx.open("Lock") }
-                            SecTile(Icons.Rounded.Key, Kx.link, "Включён", Kx.accent, "Облачный пароль", Modifier.weight(1f)) { ctx.open("TwoStep") }
+                            SecTile(Icons.Rounded.Key, Kx.link, if (cloud) "Включён" else "Выключен", if (cloud) Kx.accent else Kx.danger, "Облачный пароль", Modifier.weight(1f)) { ctx.open("TwoStep") }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SecTile(Icons.Rounded.Devices, Color(0xFFFFD27A), "3", Kx.text3, "Устройства", Modifier.weight(1f)) { ctx.open("Devices") }
-                            SecTile(Icons.Rounded.Block, Kx.danger, "2", Kx.text3, "Чёрный список", Modifier.weight(1f)) { ctx.open("Blocked") }
+                            SecTile(Icons.Rounded.Devices, Color(0xFFFFD27A), store.sessions.size.toString(), Kx.text3, "Устройства", Modifier.weight(1f)) { ctx.open("Devices") }
+                            SecTile(Icons.Rounded.Block, Kx.danger, store.blockedCount.toString(), Kx.text3, "Чёрный список", Modifier.weight(1f)) { ctx.open("Blocked") }
                         }
                     }
                 }
@@ -116,8 +120,8 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Column(Modifier.sRise(150), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SSwitchRow(null, "Время прочтения", readTime, groupShape(0, 2, 20.dp), sub = "Показывать, когда вы прочитали сообщение", small = true, subSize = 11) { readTime = !readTime }
-                    SSwitchRow(null, "Новые чаты — в архив", archive, groupShape(1, 2, 20.dp), sub = "Сообщения от незнакомцев не мешают", small = true, subSize = 11) { archive = !archive }
+                    SSwitchRow(null, "Время прочтения", readTime, groupShape(0, 2, 20.dp), sub = "Показывать, когда вы прочитали сообщение", small = true, subSize = 11) { store.setShowReadDate(!readTime) }
+                    SSwitchRow(null, "Новые чаты — в архив", archive, groupShape(1, 2, 20.dp), sub = "Сообщения от незнакомцев не мешают", small = true, subSize = 11) { store.setArchiveNewChats(!archive) }
                 }
             }
         }
@@ -128,7 +132,7 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
             Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 val icons = listOf(Icons.Outlined.Public to Icons.Rounded.Public, Icons.Outlined.Contacts to Icons.Rounded.Contacts, Icons.Outlined.Lock to Icons.Rounded.Lock)
                 PrivOpts.forEachIndexed { i, label ->
-                    SChoice(icons[i].first, icons[i].second, label, vals[cur.key] == i) { vals = vals + (cur.key to i) }
+                    SChoice(icons[i].first, icons[i].second, label, vals[cur.key] == i) { store.setPrivacy(cur.storeKey, i) }
                 }
             }
             Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.KxChatKind
 import com.kirox.app.ui.v3.theme.Kx
@@ -52,10 +53,22 @@ private data class SMsg(val id: Int, val mine: Boolean, val text: String, val ti
 /** Board «Секретный чат»: intro card, self-destruct timer sheet, burning messages, encryption key sheet. */
 @Composable
 fun SecretScreen(ctx: KxScreenCtx) {
-    // demo: needs store (secret chats: createSecretChat, self-destruct timer, key fingerprint are not in KxStore yet)
+    // Opened as "Secret:<userId>" with the real store: the first message creates the secret chat (store.createSecretChat), messages go
+    // through store.send, the timer is store.setAutoDelete. The burning bubbles here stay the local preview.
+    // demo: needs store (key fingerprint and per-message TTL are not in the store yet)
     val store = ctx.store
     val peerId = ctx.arg?.toLongOrNull() ?: store.chats.firstOrNull { it.kind == KxChatKind.Private }?.id ?: 0L
     val h = store.header(peerId)
+    val scope = rememberCoroutineScope()
+    val realChat = store !is com.kirox.app.ui.v3.demo.KxDemoStore && ctx.arg?.toLongOrNull() != null
+    var secretId by remember { mutableStateOf<Long?>(null) }
+    suspend fun ensureSecret(): Long? {
+        secretId?.let { return it }
+        val id = store.createSecretChat(peerId)
+        if (id == null) ctx.toast(store.error ?: "Не удалось начать секретный чат").also { store.clearError() }
+        secretId = id
+        return id
+    }
     var timer by remember { mutableIntStateOf(2) }
     var draft by remember { mutableStateOf("") }
     var timerSheet by remember { mutableStateOf(false) }
@@ -68,7 +81,8 @@ fun SecretScreen(ctx: KxScreenCtx) {
     }
     var replyAt by remember { mutableLongStateOf(0L) }
     LaunchedEffect(replyAt) {
-        if (replyAt == 0L) return@LaunchedEffect
+        // Simulated reply only in the demo app: never fake activity on a real account.
+        if (replyAt == 0L || ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) return@LaunchedEffect
         delay(1600)
         val ttl = Timers[timer].second
         msgs += SMsg(nextId++, false, "Получила, вижу таймер 👀", hhmm(), System.currentTimeMillis(), if (ttl in 1..60) ttl else 0, if (ttl > 60) Timers[timer].first else "")
@@ -78,6 +92,7 @@ fun SecretScreen(ctx: KxScreenCtx) {
         val ttl = Timers[timer].second
         msgs += SMsg(nextId++, true, t, hhmm(), System.currentTimeMillis(), if (ttl in 1..60) ttl else 0, if (ttl > 60) Timers[timer].first else "")
         draft = ""; replyAt = System.currentTimeMillis()
+        if (realChat) scope.launch { ensureSecret()?.let { id -> store.send(id, t) } }
     }
     val list = rememberLazyListState()
     LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) list.animateScrollToItem(msgs.size) }
@@ -139,6 +154,7 @@ fun SecretScreen(ctx: KxScreenCtx) {
                             Box(Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(16.dp)).background(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.045f))
                                 .border(1.dp, if (on) Kx.accent.copy(alpha = .5f) else Color.Transparent, RoundedCornerShape(16.dp)).kxClick(label) {
                                     timer = i; timerSheet = false
+                                    if (realChat) scope.launch { ensureSecret()?.let { id -> store.setAutoDelete(id, Timers[i].second) } }
                                     msgs += SMsg(nextId++, false, if (i > 0) "Вы включили автоудаление: $label" else "Вы выключили автоудаление", "", 0, 0, service = true)
                                 }, contentAlignment = Alignment.Center) { Text(label, style = ts(14, W700, if (on) Kx.accent else Kx.text)) }
                         }

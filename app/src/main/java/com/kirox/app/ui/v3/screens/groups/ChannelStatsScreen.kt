@@ -40,7 +40,8 @@ import com.kirox.app.ui.v3.theme.*
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-// demo: needs store (channel statistics: subscribers graph, views, reach, unsubscribes, join sources, top posts)
+// Board demo (no chat id). With "ChannelStats:<chatId>" the 4 tiles are the first rows of store.chatStats(chatId).
+// demo: needs store (graphs, join sources and top posts are not in the store yet: they stay the board's demo)
 private val SPer = listOf("7 дней" to 7, "30 дней" to 30, "90 дней" to 90)
 private val SMon = listOf("янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек")
 private fun sSeries(days: Int): List<Int> {
@@ -64,6 +65,9 @@ fun ChannelStatsScreen(ctx: KxScreenCtx) {
     val data = remember(days) { sSeries(days) }
     val gained = data.last() - data.first()
     val views = days * 1840
+    val store = ctx.store
+    val chatId = gxChatId(ctx.arg)
+    val stats = gxLoad(chatId) { chatId?.let { store.chatStats(it) } }
 
     Column(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically,
@@ -71,21 +75,21 @@ fun ChannelStatsScreen(ctx: KxScreenCtx) {
             KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
             Column(Modifier.weight(1f)) {
                 Text("Статистика", style = KxType.style(20.sp, FontWeight.ExtraBold))
-                Text("Android Weekly", style = KxType.style(12.sp, color = Kx.text3))
+                Text(if (chatId == null) "Android Weekly" else store.header(chatId).title + (stats?.period?.let { " · $it" } ?: ""), style = KxType.style(12.sp, color = Kx.text3))
             }
         }
         Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             SPer.forEachIndexed { i, (label, _) -> GxSegChip(label, per == i, Modifier.weight(1f)) { per = i; hover = -1 } }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 30.dp)) {
-            val tiles = listOf(
+            val tiles = if (chatId != null) stats?.rows.orEmpty().take(4).map { (t, cur, prev) -> Triple(t, gxStatValue(cur), gxDelta(cur, prev)) } else listOf(
                 Triple("Подписчики", gxRu(data.last()), "+" + gxRu(gained)), Triple("Просмотры", gxK(views), "+12%"),
                 Triple("Охват поста", gxK((data.last() * 0.64).roundToInt()), "+4%"), Triple("Отписались", gxRu((days * 6.2).roundToInt()), "−3%"),
             )
             tiles.chunked(2).forEachIndexed { r, row ->
                 Row(Modifier.padding(top = if (r == 0) 0.dp else 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEachIndexed { c, (label, value, delta) ->
-                        val k = r * 2 + c; val down = k == 3
+                        val k = r * 2 + c; val down = if (chatId != null) delta.startsWith("−") else k == 3
                         key(per) {
                             Column(Modifier.weight(1f).gxRise(k * 50, 300, 8.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(18.dp))
                                 .padding(horizontal = 14.dp, vertical = 12.dp)) {

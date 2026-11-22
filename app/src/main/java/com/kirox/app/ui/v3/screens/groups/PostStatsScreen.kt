@@ -39,7 +39,8 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlin.math.roundToInt
 
-// demo: needs store (message statistics: views graph 24h/7d, forwards, reactions, comments, view sources)
+// Board demo (no ids). With "PostStats:<chatId>:<messageId>" the 4 KPIs come from store.postStats.
+// demo: needs store (views graph, sources and the post preview text/date are not in the store yet)
 private val PH24 = listOf(3100, 2400, 1700, 1300, 1100, 900, 760, 680, 620, 540, 480, 410)
 private val PD7 = listOf(14610, 3220, 1480, 860, 540, 390, 310)
 
@@ -53,13 +54,18 @@ fun PostStatsScreen(ctx: KxScreenCtx) {
     val max = data.max()
     fun label(i: Int) = if (r == 0) "${(10 + i * 2) % 24}:00–${(12 + i * 2) % 24}:00" else "${15 + i} ноября"
     val s = sel.coerceAtMost(data.size - 1)
+    val store = ctx.store
+    val chatId = gxChatId(ctx.arg)
+    val msgId = gxArg2(ctx.arg)
+    val ps = gxLoad(chatId, msgId) { if (chatId != null && msgId != null) store.postStats(chatId, msgId) else null }
+    val post = if (chatId != null && msgId != null) store.messages(chatId).firstOrNull { it.id == msgId } else null
 
     Column(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
             Column(Modifier.weight(1f)) {
                 Text("Статистика поста", style = KxType.style(20.sp, FontWeight.ExtraBold))
-                Text("Канал «Kotlin по-русски»", style = KxType.style(12.sp, color = Kx.text3))
+                Text(if (chatId == null) "Канал «Kotlin по-русски»" else "Канал «${store.header(chatId).title}»", style = KxType.style(12.sp, color = Kx.text3))
             }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
@@ -69,11 +75,14 @@ fun PostStatsScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Rounded.Code, null, Modifier.size(24.dp), tint = Color.White)
                 }
                 Column(Modifier.weight(1f)) {
-                    KxLine("Корутины без боли: 7 ошибок новичков", KxType.style(14.sp, FontWeight.Bold))
-                    Text("Опубликован 15 ноября в 10:00", style = KxType.style(12.sp, color = Kx.text3))
+                    KxLine(post?.text?.lineSequence()?.firstOrNull()?.ifBlank { null } ?: "Корутины без боли: 7 ошибок новичков", KxType.style(14.sp, FontWeight.Bold))
+                    Text(post?.let { "Опубликован ${it.dayHeader ?: ""} в ${it.time}".replace("  ", " ") } ?: "Опубликован 15 ноября в 10:00", style = KxType.style(12.sp, color = Kx.text3))
                 }
             }
-            val kpis = listOf(
+            val kpis = if (ps != null) listOf(
+                listOf(Icons.Outlined.Visibility, "Просмотры", gxNum(ps.views), "", Kx.accent), listOf(Icons.AutoMirrored.Outlined.Forward, "Репосты", gxNum(ps.forwards), "", Kx.accent),
+                listOf(Icons.Outlined.FavoriteBorder, "Реакции", gxNum(ps.reactions), "", Kx.accent), listOf(Icons.Outlined.ChatBubbleOutline, "Комментарии", gxNum(ps.comments), "", Kx.accent),
+            ) else listOf(
                 listOf(Icons.Outlined.Visibility, "Просмотры", "21 410", "+38% к среднему", Kx.accent), listOf(Icons.AutoMirrored.Outlined.Forward, "Репосты", "486", "+12%", Kx.accent),
                 listOf(Icons.Outlined.FavoriteBorder, "Реакции", "312", "−4%", Kx.danger), listOf(Icons.Outlined.ChatBubbleOutline, "Комментарии", "57", "+21%", Kx.accent),
             )

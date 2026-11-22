@@ -61,7 +61,17 @@ fun PollScreen(ctx: KxScreenCtx) {
                 Text(if (quiz) "Викторина" else "Опрос", style = ts(22, W800), modifier = Modifier.weight(1f))
                 val bg by animateColorAsState(if (canCreate) Kx.accent else Kx.w(.07f), tween(200), label = "cb")
                 val ink by animateColorAsState(if (canCreate) Kx.onAccent else Color(0xFF5C6661), tween(200), label = "ci")
-                Box(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(bg).kxClick { if (canCreate) sent = true }.padding(horizontal = 16.dp),
+                Box(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(bg).kxClick {
+                    if (canCreate) {
+                        sent = true
+                        // «Создать» sends the poll to the chat it was opened from ("Poll:<chatId>"); the bubble below is the local preview.
+                        val cid = ctx.arg?.toLongOrNull()
+                        if (cid != null) {
+                            val shown = opts.withIndex().filter { it.value.isNotBlank() }
+                            ctx.store.sendPoll(cid, q.trim(), shown.map { it.value.trim() }, anon, multi && !quiz, if (quiz) shown.indexOfFirst { it.index == correct }.takeIf { it >= 0 } else null)
+                        }
+                    }
+                }.padding(horizontal = 16.dp),
                     contentAlignment = Alignment.Center) { Text("Создать", style = ts(14, W700, ink)) }
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 30.dp)) {
@@ -107,7 +117,7 @@ fun PollScreen(ctx: KxScreenCtx) {
                 }
             }
         } else {
-            // demo: needs store (sendPoll / votePoll are not in KxStore yet; the bubble is a local preview)
+            // Preview of the sent poll; voting on the real poll happens on its bubble in the chat (store.votePoll there).
             val h = ctx.arg?.toLongOrNull()?.let { ctx.store.header(it) }
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp) { sent = false }

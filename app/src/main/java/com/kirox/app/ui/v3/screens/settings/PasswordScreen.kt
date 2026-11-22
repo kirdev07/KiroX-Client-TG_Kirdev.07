@@ -54,7 +54,10 @@ import kotlinx.coroutines.launch
 /** Board «Облачный пароль» (2-step password at sign-in): floating lock, password field, hint, recovery sheet, success. */
 @Composable
 fun PasswordScreen(ctx: KxScreenCtx) {
-    // demo: needs store (checkPassword, password hint, recovery email pattern, requestRecoveryCode/checkRecoveryCode, requestAccountReset); demo password «kirox»
+    // Signed in (auth == null): store.checkPassword + store.cloudPassword.hint.
+    // demo: needs store (signed-in recovery by e-mail code / account reset: not in the store yet)
+    val isDemo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    var errText by remember { mutableStateOf("Неверный пароль") }
     var pw by remember { mutableStateOf("") }
     var show by remember { mutableStateOf(false) }
     var focus by remember { mutableStateOf(false) }
@@ -68,8 +71,12 @@ fun PasswordScreen(ctx: KxScreenCtx) {
     var mail by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val reduced = LocalKxReducedMotion.current
-    val ready = pw.isNotEmpty() && !checking
-    val errOn = tries > 0 && pw.isEmpty()
+    // Sign-in mode: KxScreenCtx.auth drives the real 2-step password check; null = board demo.
+    val auth = ctx.auth
+    val busy = checking || auth?.busy == true
+    val ready = pw.isNotEmpty() && !busy
+    val errOn = if (auth != null) auth.error != null else tries > 0 && pw.isEmpty()
+    LaunchedEffect(auth?.error) { if (auth?.error != null) err = System.nanoTime() }
     val shake = remember { Animatable(0f) }
     LaunchedEffect(err) {
         if (err != 0L && !reduced) shake.animateTo(0f, keyframes { durationMillis = 450; -10f at 90 using CssEase; 8f at 180 using CssEase; -6f at 270 using CssEase; 3f at 360 using CssEase; 0f at 450 })
@@ -86,7 +93,7 @@ fun PasswordScreen(ctx: KxScreenCtx) {
                             Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = Kx.text)
                         }
                     }
-                    LockBadge(if (checking) Icons.Rounded.LockOpen else Icons.Rounded.Lock, if (errOn) Kx.danger else Kx.accent, reduced, Modifier.align(Alignment.CenterHorizontally).padding(top = 36.dp))
+                    LockBadge(if (busy) Icons.Rounded.LockOpen else Icons.Rounded.Lock, if (errOn) Kx.danger else Kx.accent, reduced, Modifier.align(Alignment.CenterHorizontally).padding(top = 36.dp))
                 }
             }
             Text("Облачный пароль", style = KxType.style(28.sp, FontWeight.Bold, lineHeight = 34.sp), textAlign = TextAlign.Center,
@@ -115,7 +122,7 @@ fun PasswordScreen(ctx: KxScreenCtx) {
                 Row(Modifier.heightIn(min = 22.dp).padding(start = 4.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     val ink = if (errOn) Kx.danger else Kx.text4
                     if (errOn) Icon(Icons.Outlined.ErrorOutline, null, Modifier.size(16.dp), tint = ink)
-                    Text(if (errOn) "Неверный пароль" + (if (tries > 1) " · попыток: $tries" else "") else "Макет: пароль kirox", style = KxType.style(13.sp, color = ink))
+                    Text(if (auth != null) auth.error ?: "" else if (errOn) errText + (if (tries > 1) " · попыток: $tries" else "") else if (isDemo) "Макет: пароль kirox" else "", style = KxType.style(13.sp, color = ink))
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -123,25 +130,30 @@ fun PasswordScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Outlined.Lightbulb, null, Modifier.size(18.dp), tint = Kx.accent)
                     Text(if (hint) "Скрыть подсказку" else "Подсказка", style = KxType.style(14.sp, FontWeight.Medium, Kx.accent))
                 }
-                Box(Modifier.height(40.dp).kxClick { forgot = true; step = "choose"; mail = "" }.padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.height(40.dp).kxClick {
+                    if (auth != null) { if (auth.hasRecoveryEmail) { auth.requestRecovery(); step = "authcode" } else step = "reset" } else { step = "choose"; mail = "" }
+                    forgot = true
+                }.padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
                     Text("Забыли пароль?", style = KxType.style(14.sp, FontWeight.Medium, Kx.text3))
                 }
             }
             if (hint) Text(buildAnnotatedString {
-                append("Подсказка: "); withStyle(SpanStyle(color = Kx.text, fontWeight = FontWeight.Bold)) { append("название приложения") }
+                append("Подсказка: "); withStyle(SpanStyle(color = Kx.text, fontWeight = FontWeight.Bold)) { append(if (auth != null) auth.passwordHint.ifEmpty { "не задана" } else ctx.store.cloudPassword?.hint?.ifEmpty { null } ?: "не задана") }
             }, style = KxType.style(14.sp, color = Kx.text2), modifier = Modifier.sRise(0, 300, 16.dp).padding(top = 4.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp))
                 .background(Kx.accent.copy(alpha = .08f)).border(1.dp, Kx.accent.copy(alpha = .22f), RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 12.dp))
             Spacer(Modifier.weight(1f))
-            SubmitButton(ready, checking, reduced) {
+            SubmitButton(ready, busy, reduced) {
                 if (!ready) return@SubmitButton
+                if (auth != null) { auth.submitPassword(pw); return@SubmitButton }
                 checking = true
                 scope.launch {
-                    delay(900)
-                    if (pw.trim().lowercase() == "kirox") { checking = false; done = true } else { checking = false; pw = ""; err = System.nanoTime(); tries++ }
+                    val e = ctx.store.checkPassword(pw)
+                    checking = false
+                    if (e == null) done = true else { errText = e; pw = ""; err = System.nanoTime(); tries++ }
                 }
             }
         }
-        if (forgot) RecoverySheet(step, mail, { forgot = false }, { step = it; if (it != "reset") mail = "" }) {
+        if (forgot) RecoverySheet(step, mail, auth, { forgot = false; auth?.cancelRecovery() }, { step = it; if (it != "reset") mail = "" }) {
             if (mail.length == 6) { forgot = false; done = true }
             else scope.launch { val code = "305871"; while (mail.length < 6) { delay(110); mail = code.take(mail.length + 1) } }
         }
@@ -221,7 +233,7 @@ internal fun Spinner(size: androidx.compose.ui.unit.Dp, ink: Color = Kx.onAccent
 }
 
 @Composable
-private fun BoxScope.RecoverySheet(step: String, mail: String, onClose: () -> Unit, onStep: (String) -> Unit, onMail: () -> Unit) {
+private fun BoxScope.RecoverySheet(step: String, mail: String, auth: com.kirox.app.ui.v3.model.KxAuth?, onClose: () -> Unit, onStep: (String) -> Unit, onMail: () -> Unit) {
     val p = remember { Animatable(0f) }
     val fade = remember { Animatable(0f) }
     LaunchedEffect(Unit) { launch { fade.animateTo(1f, tween(250)) }; p.animateTo(1f, tween(320, easing = CubicBezierEasing(.2f, .9f, .3f, 1f))) }
@@ -232,6 +244,7 @@ private fun BoxScope.RecoverySheet(step: String, mail: String, onClose: () -> Un
         Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.dashed))
         Spacer(Modifier.height(18.dp))
         when (step) {
+            "authcode" -> if (auth != null) { AuthRecovery(auth); BackLink(onClose) }
             "email" -> {
                 Text("Код с почты", style = KxType.style(20.sp, FontWeight.ExtraBold))
                 Text("Отправили 6 цифр на p•••@example.com", style = KxType.style(14.sp, color = Kx.text3, lineHeight = 20.sp), modifier = Modifier.padding(top = 6.dp))
@@ -257,7 +270,7 @@ private fun BoxScope.RecoverySheet(step: String, mail: String, onClose: () -> Un
                     .border(1.dp, Color(229, 83, 75).copy(alpha = .35f), RoundedCornerShape(16.dp)).kxClick {}, contentAlignment = Alignment.Center) {
                     Text("Запросить сброс", style = KxType.style(15.sp, FontWeight.Bold, Kx.danger))
                 }
-                BackLink { onStep("choose") }
+                if (auth == null) BackLink { onStep("choose") } else BackLink(onClose)
             }
             else -> {
                 Text("Восстановить доступ", style = KxType.style(20.sp, FontWeight.ExtraBold))
@@ -309,5 +322,38 @@ private fun BoxScope.Success(onRestart: () -> Unit) {
         Text("Загружаем чаты…", style = KxType.style(14.sp, color = Kx.text3))
         Box(Modifier.padding(top = 18.dp).height(42.dp).clip(RoundedCornerShape(21.dp)).background(Kx.w(.08f)).kxClick(onClick = onRestart).padding(horizontal = 18.dp),
             contentAlignment = Alignment.Center) { Text("Начать сначала", style = KxType.style(14.sp, FontWeight.Bold)) }
+    }
+}
+
+/** Sign-in recovery: code from the recovery email + new password (+ hint) → auth.submitRecovery. */
+@Composable
+private fun AuthRecovery(auth: com.kirox.app.ui.v3.model.KxAuth) {
+    var code by remember { mutableStateOf("") }
+    var npw by remember { mutableStateOf("") }
+    var nhint by remember { mutableStateOf("") }
+    Text("Код с почты", style = KxType.style(20.sp, FontWeight.ExtraBold))
+    Text(if (auth.recoveryCodeSent) "Отправили код на ${auth.recoveryEmailPattern}" else "Отправляем код на ${auth.recoveryEmailPattern}…",
+        style = KxType.style(14.sp, color = Kx.text3, lineHeight = 20.sp), modifier = Modifier.padding(top = 6.dp))
+    Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(Triple("Код из письма", code) { v: String -> code = v.filter { it.isDigit() }.take(8) },
+            Triple("Новый пароль (можно оставить пустым)", npw) { v: String -> npw = v },
+            Triple("Подсказка к паролю", nhint) { v: String -> nhint = v }).forEachIndexed { i, (ph, v, set) ->
+            Box(Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(14.dp)).background(Kx.surface).border(1.dp, Kx.surface3, RoundedCornerShape(14.dp)).padding(horizontal = 14.dp),
+                contentAlignment = Alignment.CenterStart) {
+                if (v.isEmpty()) Text(ph, style = KxType.style(15.sp, color = Kx.text4))
+                BasicTextField(v, set, Modifier.fillMaxWidth(), singleLine = true, textStyle = KxType.style(15.sp), cursorBrush = SolidColor(Kx.accent),
+                    visualTransformation = if (i == 1) PasswordVisualTransformation() else VisualTransformation.None)
+            }
+        }
+    }
+    auth.error?.let { Text(it, style = KxType.style(13.sp, color = Kx.danger), modifier = Modifier.padding(top = 8.dp)) }
+    val can = code.isNotEmpty() && !auth.busy
+    Box(Modifier.padding(top = 16.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp))
+        .then(if (can) Modifier.cssGradient(100f, 0f to Kx.accentMid, 1f to Kx.accentDeep) else Modifier.background(Kx.w(.07f)))
+        .kxClick { if (can) auth.submitRecovery(code, npw, nhint) }, contentAlignment = Alignment.Center) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (auth.busy) { Spinner(18.dp); Spacer(Modifier.width(8.dp)) }
+            Text("Войти", style = KxType.style(15.sp, FontWeight.Bold, if (can || auth.busy) Kx.onAccent else Color(0xFF5C6661)))
+        }
     }
 }

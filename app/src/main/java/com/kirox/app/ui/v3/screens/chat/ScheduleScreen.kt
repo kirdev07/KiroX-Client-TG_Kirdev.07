@@ -59,7 +59,8 @@ private fun p2(n: Int) = n.toString().padStart(2, '0')
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ScheduleScreen(ctx: KxScreenCtx) {
-    // demo: needs store (sendSilent, schedule(at / whenOnline), scheduled list, sendScheduledNow, deleteScheduled are not in KxStore yet)
+    // Real chat ("Schedule:<chatId>"): store.send / sendSilent / sendScheduled(at | -1 = when online), the list is store.scheduled(chatId),
+    // «Отправить сейчас» = sendScheduledNow, delete (after the confirm) = deleteScheduled. Without a chat id nothing is sent (board demo).
     val store = ctx.store
     val chatId = ctx.arg?.toLongOrNull() ?: store.chats.firstOrNull { it.kind == KxChatKind.Private }?.id ?: 0L
     val h = store.header(chatId)
@@ -77,14 +78,31 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
     var toast by remember { mutableStateOf<Pair<String, Long>?>(null) }
     var confirm by remember { mutableStateOf<Sched?>(null) }
     val text = draft.trim()
+    val realChat = ctx.arg?.toLongOrNull() != null || store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val live = ctx.arg?.toLongOrNull() != null
+    val realIds = remember { mutableStateMapOf<Int, Long>() }
+    var reload by remember { mutableIntStateOf(0) }
+    LaunchedEffect(live, reload) {
+        if (!live) return@LaunchedEffect
+        if (reload > 0) kotlinx.coroutines.delay(800)
+        val items = store.scheduled(chatId)
+        sched.clear(); realIds.clear()
+        items.forEach { s -> val id = nextId++; realIds[id] = s.id; sched += Sched(id, s.text, s.time.substringBeforeLast(' ', s.time), s.time.substringAfterLast(' ', "—")) }
+    }
+    fun unixAt(dayOffset: Int, h: Int, m: Int): Int = java.util.Calendar.getInstance().apply {
+        add(java.util.Calendar.DAY_OF_MONTH, dayOffset); set(java.util.Calendar.HOUR_OF_DAY, h); set(java.util.Calendar.MINUTE, m); set(java.util.Calendar.SECOND, 0)
+    }.timeInMillis.div(1000).toInt()
     fun now() = SimpleDateFormat("H:mm", Locale.getDefault()).format(Date())
     fun say(t: String) { toast = t to System.nanoTime() }
     fun sendNow(silent: Boolean) {
         if (text.isEmpty()) return
-        sent += SentMsg(text, now(), silent); if (!silent && chatId != 0L) store.send(chatId, text)
+        sent += SentMsg(text, now(), silent)
+        if (realChat && chatId != 0L) { if (silent) store.sendSilent(chatId, text) else store.send(chatId, text) }
         draft = ""; menu = false; if (silent) say("Отправлено без звука")
     }
-    fun addSched(whenDay: String, time: String) {
+    fun addSched(whenDay: String, time: String, at: Int) {
+        if (realChat && chatId != 0L) store.sendScheduled(chatId, text, at)
+        if (live) reload++
         sched += Sched(nextId++, text, whenDay, time); draft = ""; menu = false; picker = false
         say("Отправится ${whenDay.lowercase()} в $time")
     }
@@ -126,7 +144,7 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
                                 ChatBubble(true, m.text, m.time, false, Icons.Outlined.Schedule)
                                 Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Row(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.accent.copy(alpha = .12f)).kxClick {
-                                        sched.remove(m); sent += SentMsg(m.text, now(), false); if (chatId != 0L) store.send(chatId, m.text)
+                                        sched.remove(m); sent += SentMsg(m.text, now(), false); realIds[m.id]?.let { store.sendScheduledNow(chatId, it) }
                                     }.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                         Icon(Icons.AutoMirrored.Outlined.Send, null, Modifier.size(15.dp), tint = Kx.accent); Text("Отправить сейчас", style = ts(12, W700, Kx.accent))
                                     }
@@ -156,7 +174,7 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
                 MenuItem(Icons.AutoMirrored.Outlined.Send, "Отправить", null, Kx.text) { sendNow(false) }
                 MenuItem(Icons.Outlined.NotificationsOff, "Без звука", "Придёт тихо, не разбудит", Kx.text) { sendNow(true) }
                 MenuItem(Icons.AutoMirrored.Outlined.ScheduleSend, "Отложить", "Выбрать дату и время", Kx.accent) { menu = false; picker = true }
-                MenuItem(Icons.Outlined.HowToReg, "Когда будет в сети", "${h.title} · ${h.status}", Kx.text) { addSched("Когда будет в сети", "—") }
+                MenuItem(Icons.Outlined.HowToReg, "Когда будет в сети", "${h.title} · ${h.status}", Kx.text) { addSched("Когда будет в сети", "—", -1) }
             }
         }
         ChSheet(picker, { picker = false }, scrim = Color.Black.copy(alpha = .5f), bg = Brush.verticalGradient(listOf(Color(0xFF121614), Color(0xFF121614)))) {
@@ -177,11 +195,11 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
                     Wheel(Modifier.weight(1f), hh, 24, { p2(it) }) { hh = it; quick = -1 }
                     Wheel(Modifier.weight(1f), mm / 5, 12, { p2(it * 5) }) { mm = it * 5; quick = -1 }
                 }
-                ChPrimary("Отправить $whenLabel", modifier = Modifier.padding(top = 14.dp).fillMaxWidth(), height = 54.dp, radius = 16.dp) { addSched(Days[day], "$hh:${p2(mm)}") }
+                ChPrimary("Отправить $whenLabel", modifier = Modifier.padding(top = 14.dp).fillMaxWidth(), height = 54.dp, radius = 16.dp) { addSched(Days[day], "$hh:${p2(mm)}", unixAt(day, hh, mm)) }
             }
         }
         toast?.let { (t, id) -> key(id) { FwdToast(t, 0, bottom = 86.dp, side = 20.dp, minH = 46.dp, radius = 16.dp) { toast = null } } }
-        ChConfirm(if (confirm != null) "Удалить отложенное сообщение?" else null, "Сообщение не будет отправлено.", "Удалить", { confirm = null }) { confirm?.let { sched.remove(it) }; confirm = null }
+        ChConfirm(if (confirm != null) "Удалить отложенное сообщение?" else null, "Сообщение не будет отправлено.", "Удалить", { confirm = null }) { confirm?.let { c -> sched.remove(c); realIds[c.id]?.let { store.deleteScheduled(chatId, it) } }; confirm = null }
     }
 }
 

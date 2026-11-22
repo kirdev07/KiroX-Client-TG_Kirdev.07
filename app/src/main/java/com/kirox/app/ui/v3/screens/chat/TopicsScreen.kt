@@ -44,6 +44,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.Kx
 
@@ -57,7 +58,14 @@ private data class Topic(val name: String, val icon: Int, val c: Int, val who: S
 /** Board «Темы»: forum topics as rows or tiles, topic chat, and the new-topic sheet (color + icon). */
 @Composable
 fun TopicsScreen(ctx: KxScreenCtx) {
-    // demo: needs store (forum topics: list, open topic history, createForumTopic, closed/pinned flags are not in KxStore yet)
+    // Opened as "Topics:<chatId>": the list is store.forumTopics(chatId); a tap opens the topic as the conversation (store.openTopic + openChat);
+    // «Создать» = store.createTopic(chatId, title). demo: needs store (topic colour/icon are not sent / not read yet: drawn from the board's palette)
+    val store = ctx.store
+    val chatId = ctx.arg?.toLongOrNull()
+    val scope = rememberCoroutineScope()
+    var reload by remember { mutableIntStateOf(0) }
+    val realTopics by produceState<List<com.kirox.app.ui.v3.model.KxTopic>?>(null, chatId, reload) { if (chatId != null) value = store.forumTopics(chatId) }
+    val header = chatId?.let { store.header(it) }
     val list = remember { mutableStateListOf(
         Topic("Общий чат", 0, 0, "Дана", "Кто идёт на митап в субботу?", "15:40", 18, pinned = true),
         Topic("Объявления", 1, 3, "Админ", "Новые правила форума", "12:02", 1, pinned = true, closed = true),
@@ -65,6 +73,14 @@ fun TopicsScreen(ctx: KxScreenCtx) {
         Topic("Баги и краши", 3, 4, "Тимур", "Падает на Android 14 при старте", "Вчера", 0),
         Topic("Compose", 4, 2, "Марина", "Покажу пример с анимацией", "Вчера", 3),
         Topic("Вакансии", 5, 5, "Алина", "Ищем Kotlin-разработчика", "Пн", 0)) }
+    LaunchedEffect(realTopics) {
+        val rt = realTopics ?: return@LaunchedEffect
+        list.clear()
+        rt.forEachIndexed { i, x ->
+            val who = x.preview.substringBefore(": ", "")
+            list += Topic(x.title, if (x.general) 0 else (i % TIcons.size), i % TCol.size, who, if (who.isEmpty()) x.preview else x.preview.substringAfter(": "), x.time, x.unread, x.pinned, x.closed)
+        }
+    }
     var open by remember { mutableIntStateOf(-1) }
     var grid by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf(false) }
@@ -74,7 +90,11 @@ fun TopicsScreen(ctx: KxScreenCtx) {
     var nKey by remember { mutableIntStateOf(0) }
     val t = list.getOrNull(open)
     BackHandler(t != null) { open = -1 }
-    fun openAt(i: Int) { list[i] = list[i].copy(badge = 0); open = i }
+    fun openAt(i: Int) {
+        val rt = realTopics?.getOrNull(i)
+        if (chatId != null && rt != null) { store.openTopic(chatId, rt.id, rt.title); ctx.openChat(chatId); return }
+        list[i] = list[i].copy(badge = 0); open = i
+    }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -82,9 +102,9 @@ fun TopicsScreen(ctx: KxScreenCtx) {
                 .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp) { if (t != null) open = -1 else ctx.back() }
                 if (t == null) {
-                    Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).cssGradient(140f, Kx.accentDeep, Color(0xFF1B2E3A)), contentAlignment = Alignment.Center) { Text("A", style = ts(16, W800, Color(0xFFDFF5E8))) }
-                    Column(Modifier.weight(1f)) { Text("Android-разработка", style = ts(16, W800), maxLines = 1); Text("форум · 2 140 участников", style = ts(12, color = Kx.text3)) }
-                    Box(Modifier.size(42.dp).clip(CircleShape).kxClick("Поиск") { ctx.open("ChatSearch") }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Search, null, tint = Kx.text) }
+                    Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).cssGradient(140f, Kx.accentDeep, Color(0xFF1B2E3A)), contentAlignment = Alignment.Center) { Text((header?.title ?: "A").take(1).uppercase(), style = ts(16, W800, Color(0xFFDFF5E8))) }
+                    Column(Modifier.weight(1f)) { Text(header?.title ?: "Android-разработка", style = ts(16, W800), maxLines = 1); Text(if (header != null) "форум · ${header.status}" else "форум · 2 140 участников", style = ts(12, color = Kx.text3)) }
+                    Box(Modifier.size(42.dp).clip(CircleShape).kxClick("Поиск") { ctx.open(if (chatId != null) "ChatSearch:$chatId" else "ChatSearch") }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Search, null, tint = Kx.text) }
                 } else {
                     Box(Modifier.size(40.dp).clip(CircleShape).background(TCol[t.c].second), contentAlignment = Alignment.Center) { Icon(TIcons[t.icon], null, Modifier.size(22.dp), tint = Color.White) }
                     Column(Modifier.weight(1f)) { Text(t.name, style = ts(16, W800), maxLines = 1); Text("тема в «Android-разработка»", style = ts(12, color = Kx.text3), maxLines = 1) }
@@ -197,7 +217,18 @@ fun TopicsScreen(ctx: KxScreenCtx) {
                 }
                 val can = nName.isNotBlank()
                 Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).then(if (can) Modifier.cssGradient(100f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.07f)))
-                    .kxClick { if (can) { list.add(0, Topic(nName.trim(), ni, nc, "Вы", "Тема создана", "сейчас", 0)); sheet = false; open = 0 } },
+                    .kxClick {
+                        if (can) {
+                            if (chatId != null) {
+                                val title = nName.trim(); sheet = false
+                                scope.launch {
+                                    val id = store.createTopic(chatId, title)
+                                    if (id != null) { store.openTopic(chatId, id, title); reload++; ctx.openChat(chatId) }
+                                    else ctx.toast(store.error ?: "Не удалось создать тему").also { store.clearError() }
+                                }
+                            } else { list.add(0, Topic(nName.trim(), ni, nc, "Вы", "Тема создана", "сейчас", 0)); sheet = false; open = 0 }
+                        }
+                    },
                     contentAlignment = Alignment.Center) { Text("Создать тему", style = ts(15, W800, if (can) Kx.onAccent else Color(0xFF5C6661))) }
             }
         }

@@ -36,10 +36,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.screens.settings.StoreErrorToasts
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboardManager
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store (channel title/description/username/private link, sign posts, protected content, linked discussion, reactions, silent posts, delete channel)
+// Board demo (no chat id). With "ChannelSettings:<chatId>": store.groupInfo; save = setChatTitle / setChatDescription / setProtectedContent;
+// reactions switch = setAllowedReactions(null / empty); delete = deleteChat(id, true) after the confirm.
+// demo: needs store (changing username / private link, sign posts, linked discussion, silent posts: not in the store yet)
 private data class COpt(val icon: ImageVector, val label: String, val sub: String)
 private val COpts = listOf(
     COpt(Icons.Outlined.Draw, "Подписывать посты", "Под постом будет имя админа"),
@@ -52,7 +57,12 @@ private val COpts = listOf(
 /** Board «Настройки канала»: photo + title, description, public/private, link, 5 switches, live post preview, delete (confirm), save. */
 @Composable
 fun ChannelSettingsScreen(ctx: KxScreenCtx) {
-    val chatId = ctx.arg?.toLongOrNull()
+    val chatId = gxChatId(ctx.arg)
+    val store = ctx.store
+    val info = gxLoad(chatId) { chatId?.let { store.groupInfo(it) } }
+    val links = gxLoad(chatId) { chatId?.let { store.inviteLinks(it) } }
+    val clipboard = LocalClipboardManager.current
+    StoreErrorToasts(ctx)
     var title by rememberSaveable { mutableStateOf(chatId?.let { ctx.store.header(it).title } ?: "Android Weekly") }
     var desc by rememberSaveable { mutableStateOf("Новости Android-разработки каждую неделю: Compose, Kotlin, инструменты.") }
     var pub by rememberSaveable { mutableStateOf(true) }
@@ -60,6 +70,13 @@ fun ChannelSettingsScreen(ctx: KxScreenCtx) {
     var askDelete by remember { mutableStateOf(false) }
     val tip = rememberGxTip()
     val (sign, protect, comments, react) = opts
+    LaunchedEffect(info) {
+        val i = info ?: return@LaunchedEffect
+        title = i.title; desc = i.description; pub = i.isPublic
+        opts = opts.toMutableList().also { it[1] = i.protectedContent; it[3] = i.reactions == null || i.reactions.isNotEmpty() }
+    }
+    val pubLink = if (chatId == null) "t.me/android_weekly_ru" else info?.username?.takeIf { it.isNotBlank() }?.let { "t.me/$it" } ?: ""
+    val privLink = if (chatId == null) "t.me/+Ab3dK9xQ2pLm" else links?.firstOrNull { it.primary }?.link?.removePrefix("https://") ?: ""
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
@@ -105,9 +122,9 @@ fun ChannelSettingsScreen(ctx: KxScreenCtx) {
                     Row(Modifier.padding(top = 8.dp).gxRise(0, 200, 6.dp).fillMaxWidth().height(48.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(16.dp))
                         .padding(start = 14.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(if (pub) Icons.Outlined.AlternateEmail else Icons.Outlined.Key, null, Modifier.size(20.dp), tint = Kx.text3)
-                        Text(if (pub) "t.me/android_weekly_ru" else "t.me/+Ab3dK9xQ2pLm", style = KxType.style(14.sp, FontWeight.SemiBold), maxLines = 1,
+                        Text(if (pub) pubLink else privLink, style = KxType.style(14.sp, FontWeight.SemiBold), maxLines = 1,
                             overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                        Box(Modifier.size(36.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("Скопировать ссылку") { tip.say("Ссылка скопирована", Icons.Rounded.ContentCopy) },
+                        Box(Modifier.size(36.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("Скопировать ссылку") { val l = if (pub) pubLink else privLink; if (l.isNotEmpty()) clipboard.setText(AnnotatedString("https://$l")); tip.say("Ссылка скопирована", Icons.Rounded.ContentCopy) },
                             contentAlignment = Alignment.Center) { Icon(Icons.Outlined.ContentCopy, null, Modifier.size(18.dp), tint = Kx.text) }
                     }
                 }
@@ -167,7 +184,17 @@ fun ChannelSettingsScreen(ctx: KxScreenCtx) {
         Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(0f to Color(0x000A0C0B), .4f to Kx.bg))
             .navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp)) {
             GxPillButton("Сохранить", Modifier.fillMaxWidth(), height = 54.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent,
-                size = 16, weight = FontWeight.ExtraBold, icon = Icons.Rounded.Done) { tip.say("Настройки канала сохранены", Icons.Rounded.Done) }
+                size = 16, weight = FontWeight.ExtraBold, icon = Icons.Rounded.Done) {
+                if (chatId != null) {
+                    val i = info
+                    if (title.isNotBlank() && title != i?.title) store.setChatTitle(chatId, title.trim())
+                    if (desc != i?.description) store.setChatDescription(chatId, desc)
+                    if (protect != i?.protectedContent) store.setProtectedContent(chatId, protect)
+                    val wasOn = i == null || i.reactions == null || i.reactions.isNotEmpty()
+                    if (react != wasOn) store.setAllowedReactions(chatId, if (react) null else emptyList())
+                }
+                tip.say("Настройки канала сохранены", Icons.Rounded.Done)
+            }
         }
         GxTip(tip, bottom = 96.dp, durationMs = 2400, bg = Kx.surface3, border = Kx.w(.16f), textSize = 14, iconSize = 20.dp, padH = 18.dp, padV = 12.dp)
         GxConfirm(askDelete, "Удалить канал «$title»?", "Канал и все публикации удалятся у всех подписчиков. Вернуть их будет нельзя.", confirm = "Удалить",

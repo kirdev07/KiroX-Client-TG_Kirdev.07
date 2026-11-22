@@ -207,7 +207,7 @@ private fun FullPlayer(c: MusicTrack, playing: Boolean, progress: Float, pos: In
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MRoundBtn(Icons.Rounded.KeyboardArrowDown, "Свернуть", bg = Kx.w(.08f), border = null, onClick = onCollapse)
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                T("ИГРАЕТ ИЗ", 11.sp, color = Color.White.copy(alpha = .65f), modifier = Modifier)
+                androidx.compose.material3.Text("ИГРАЕТ ИЗ", style = ts(11.sp, color = Color.White.copy(alpha = .65f)).copy(letterSpacing = 1.sp))
                 T("Вся музыка", 14.sp, FontWeight.Bold)
             }
             MRoundBtn(Icons.Rounded.MoreHoriz, "Ещё", bg = Kx.w(.08f), border = null)

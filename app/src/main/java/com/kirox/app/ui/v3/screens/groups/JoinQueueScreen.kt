@@ -35,12 +35,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.screens.settings.StoreErrorToasts
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
-// demo: needs store (chat join requests: user, date, invite link, bio note, mutual info, new-account flag; approve/decline one or all)
+// Board demo (no chat id). With "JoinQueue:<chatId>": store.joinRequests + processJoinRequest(chatId, userId, approve).
+// demo: needs store (invite link of the request, mutual contacts and the new-account flag are not in the store yet)
 private data class JReq(val id: Int, val n: String, val l: String, val c: Color, val meta: String, val note: String, val mutual: String, val flag: String? = null)
 private val JReqs = listOf(
     JReq(1, "Ерлан", "Е", Color(0xFFC0443C), "заявка 2 часа назад · по ссылке Анны", "Играю в «Каркассон», хочу в пятницу прийти", "Знакомые в группе: Анна, Дана"),
@@ -58,7 +60,16 @@ fun JoinQueueScreen(ctx: KxScreenCtx) {
     var noN by remember { mutableIntStateOf(0) }
     var confirm by remember { mutableStateOf(false) }
     val tip = rememberGxTip()
-    val left = JReqs.filter { it.id !in done }
+    val store = ctx.store
+    val chatId = gxChatId(ctx.arg)
+    val realReqs = gxLoad(chatId) { chatId?.let { store.joinRequests(it) } }
+    val palette = JReqs.map { it.c }
+    val reqs = if (chatId == null) JReqs else realReqs.orEmpty().mapIndexed { i, q ->
+        JReq(i + 1, q.name, q.name.take(1).uppercase().ifEmpty { "?" }, palette[i % palette.size], if (q.time.isNotEmpty()) "заявка ${q.time}" else "заявка", q.bio, "")
+    }
+    fun process(r: JReq, ok: Boolean) { if (chatId != null) realReqs?.getOrNull(r.id - 1)?.let { store.processJoinRequest(chatId, it.userId, ok) } }
+    StoreErrorToasts(ctx)
+    val left = reqs.filter { it.id !in done }
     fun say(t: String, ok: Boolean) = tip.say(t, if (ok) Icons.Rounded.CheckCircle else Icons.Rounded.Block, if (ok) Kx.accent else Kx.danger)
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -67,7 +78,7 @@ fun JoinQueueScreen(ctx: KxScreenCtx) {
                 KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Column(Modifier.weight(1f)) {
                     Text("Заявки · ${left.size}", style = KxType.style(20.sp, FontWeight.ExtraBold))
-                    Text("Настолки по пятницам", style = KxType.style(12.sp, color = Kx.text3))
+                    Text(if (chatId == null) "Настолки по пятницам" else store.header(chatId).title, style = KxType.style(12.sp, color = Kx.text3))
                 }
             }
             Row(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kx.w(.04f)).padding(horizontal = 12.dp, vertical = 10.dp),
@@ -79,9 +90,9 @@ fun JoinQueueScreen(ctx: KxScreenCtx) {
                 left.forEach { r ->
                     key(r.id) {
                         ReqCard(r, leaving[r.id], onNo = {
-                            leaving[r.id] = false; say("Заявка отклонена: ${r.n}", false)
+                            leaving[r.id] = false; process(r, false); say("Заявка отклонена: ${r.n}", false)
                         }, onOk = {
-                            leaving[r.id] = true; say("${r.n} в группе", true)
+                            leaving[r.id] = true; process(r, true); say("${r.n} в группе", true)
                         }, onGone = { ok -> done.add(r.id); if (ok) okN++ else noN++ })
                     }
                 }
@@ -91,7 +102,7 @@ fun JoinQueueScreen(ctx: KxScreenCtx) {
                     }
                     Text("Заявок нет", style = KxType.style(17.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 12.dp))
                     Text("Принято: $okN · отклонено: $noN", style = KxType.style(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 4.dp))
-                    Box(Modifier.padding(top = 16.dp).drawBehind {
+                    if (chatId == null) Box(Modifier.padding(top = 16.dp).drawBehind {
                         val o = 3.dp.toPx()
                         drawRoundRect(Color(0x808FD3AC), Offset(-o, -o), Size(size.width + 2 * o, size.height + 2 * o), CornerRadius(20.dp.toPx() + o),
                             style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))))
@@ -106,11 +117,11 @@ fun JoinQueueScreen(ctx: KxScreenCtx) {
             .border(1.dp, Kx.w(.16f), RoundedCornerShape(26.dp)).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GxPillButton("Отклонить всех", Modifier.weight(1f), height = 46.dp, bg = Color(0x1FE5534B), ink = Kx.danger, size = 13, weight = FontWeight.ExtraBold) { confirm = true }
             GxPillButton("Принять всех · ${left.size}", Modifier.weight(1.3f), height = 46.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)),
-                ink = Kx.onAccent, size = 13, weight = FontWeight.ExtraBold) { val n = left.size; done.addAll(left.map { it.id }); okN += n; say("Приняты все: $n", true) }
+                ink = Kx.onAccent, size = 13, weight = FontWeight.ExtraBold) { val n = left.size; left.forEach { process(it, true) }; done.addAll(left.map { it.id }); okN += n; say("Приняты все: $n", true) }
         }
         GxTip(tip, bottom = 90.dp, icon = Icons.Rounded.CheckCircle, durationMs = 2000, bg = Color(0xF528302C), textSize = 13)
         GxConfirm(confirm, "Отклонить все заявки?", "Все люди из списка получат отказ.", confirm = "Отклонить всех", onCancel = { confirm = false }) {
-            confirm = false; val l = JReqs.filter { it.id !in done }; done.addAll(l.map { it.id }); noN += l.size; say("Отклонены все: ${l.size}", false)
+            confirm = false; val l = reqs.filter { it.id !in done }; l.forEach { process(it, false) }; done.addAll(l.map { it.id }); noN += l.size; say("Отклонены все: ${l.size}", false)
         }
     }
 }

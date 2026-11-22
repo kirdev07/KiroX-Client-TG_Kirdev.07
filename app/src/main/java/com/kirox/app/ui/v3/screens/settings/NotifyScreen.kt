@@ -50,8 +50,24 @@ private val NotifyCats = listOf(
 /** Board «Уведомления»: expandable categories with switches and sounds, in-app switches, «Проверить» test banner. */
 @Composable
 fun NotifyScreen(ctx: KxScreenCtx) {
-    // demo: needs store (notification scopes, sound, exceptions count, in-app settings)
-    var on by remember { mutableStateOf(mapOf("users" to true, "groups" to true, "channels" to false, "reactions" to true, "calls" to true)) }
+    val store = ctx.store
+    val scopes = store.notifyScopes
+    fun scopeOf(key: String) = scopes.firstOrNull { it.key == (if (key == "users") "private" else key) }
+    // demo: needs store (reactions / calls switches, sound name and in-app settings are local prefs, not in the store yet)
+    var localOn by remember { mutableStateOf(mapOf("reactions" to true, "calls" to true)) }
+    val on = NotifyCats.associate { c -> c.key to (scopeOf(c.key)?.enabled ?: localOn[c.key] ?: true) }
+    fun excText(key: String, fallback: String): String {
+        val n = scopeOf(key)?.exceptions ?: return fallback
+        return if (n == 0) "Исключений нет" else when (key) {
+            "users" -> "$n " + plural(n, "чат", "чата", "чатов")
+            "groups" -> "$n " + plural(n, "группа", "группы", "групп")
+            else -> "$n " + plural(n, "канал", "канала", "каналов")
+        }
+    }
+    fun toggle(key: String, v: Boolean) {
+        val sc = scopeOf(key)
+        if (sc != null) store.setNotifyScope(sc.key, v, sc.preview) else localOn = localOn + (key to v)
+    }
     var open by rememberSaveable { mutableStateOf<String?>("users") }
     var sound by rememberSaveable { mutableStateOf("Нота") }
     var app by remember { mutableStateOf(mapOf("sound" to true, "vibrate" to true, "banner" to true, "badge" to true)) }
@@ -85,7 +101,7 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                                 }
                                 Icon(Icons.Rounded.ExpandMore, null, Modifier.size(20.dp).graphicsLayer { rotationZ = chev }, tint = Kx.text4)
                             }
-                            Box(Modifier.kxClick(c.label, role = Role.Switch) { on = on + (c.key to !isOn) }) {
+                            Box(Modifier.kxClick(c.label, role = Role.Switch) { toggle(c.key, !isOn) }) {
                                 SSwitch(isOn, w = 48.dp, h = 28.dp, knob = 22.dp, highlight = false)
                             }
                         }
@@ -99,8 +115,10 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                                     }
                                 }
                             }
-                            Row { Text("Текст сообщения", style = KxType.style(13.sp, color = Kx.text2), modifier = Modifier.weight(1f)); Text("Показывать", style = KxType.style(13.sp, color = Kx.accent)) }
-                            Row { Text("Исключения", style = KxType.style(13.sp, color = Kx.text2), modifier = Modifier.weight(1f)); Text(c.exc, style = KxType.style(13.sp, color = Kx.text3)) }
+                            Row { Text("Текст сообщения", style = KxType.style(13.sp, color = Kx.text2), modifier = Modifier.weight(1f)); val sc = scopeOf(c.key); val pv = sc?.preview ?: true
+                                Text(if (pv) "Показывать" else "Скрывать", style = KxType.style(13.sp, color = if (pv) Kx.accent else Kx.text3),
+                                    modifier = Modifier.kxClick { if (sc != null) store.setNotifyScope(sc.key, sc.enabled, !pv) }) }
+                            Row { Text("Исключения", style = KxType.style(13.sp, color = Kx.text2), modifier = Modifier.weight(1f)); Text(excText(c.key, c.exc), style = KxType.style(13.sp, color = Kx.text3)) }
                         }
                     }
                 }

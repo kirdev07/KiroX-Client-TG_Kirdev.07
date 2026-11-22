@@ -45,9 +45,12 @@ import com.kirox.app.ui.v3.theme.LocalKxReducedMotion
 import kotlinx.coroutines.delay
 
 private data class Cm(val id: Int, val name: String, val l: String, val c: Color, val time: String, val text: String, val likes: Int, val at: Int,
-                      val mine: Boolean = false, val admin: Boolean = false, val to: String? = null, val replies: List<Cm> = emptyList())
+                      val mine: Boolean = false, val admin: Boolean = false, val to: String? = null, val replies: List<Cm> = emptyList(),
+                      /** Real comment: whether my ❤️ is on it (likes already include it). */
+                      val liveLiked: Boolean? = null)
 
-// demo: needs store (channel post comments thread: load, send reply, react are not in KxStore yet)
+// Board demo (no ids). With "Comments:<channelId>:<postId>": store.openComments, then the thread is messages(store.historyChatId)
+// (the discussion group): replies are grouped under the comment they answer, ❤️ = store.react, send = store.send(…, replyTo).
 private val Seed = listOf(
     Cm(1, "Дмитрий", "Д", Color(0xFF2F6E9E), "09:41", "Переходы наконец-то без костылей, перевёл два экрана за вечер.", 48, 1, replies = listOf(
         Cm(11, "Android Weekly", "A", Color(0xFF3F9A6C), "09:50", "Покажете в следующем выпуске? Пришлите гифку 🙂", 21, 2, admin = true, to = "Дмитрий"),
@@ -62,6 +65,31 @@ private data class Row2(val c: Cm, val child: Boolean, val parent: Cm?)
 @Composable
 fun CommentsScreen(ctx: KxScreenCtx) {
     var list by remember { mutableStateOf(Seed) }
+    val store = ctx.store
+    val chatId = ctx.arg?.substringBefore(':')?.toLongOrNull()
+    val postId = ctx.arg?.substringAfter(':', "")?.toLongOrNull()
+    val live = chatId != null && postId != null
+    LaunchedEffect(live) { if (live) store.openComments(chatId!!, postId!!) }
+    val disc = store.historyChatId.takeIf { live && it != 0L }
+    val post = if (live) store.messages(chatId!!).firstOrNull { it.id == postId } else null
+    val thread = disc?.let { store.messages(it) }.orEmpty().filter { it.kind != com.kirox.app.ui.v3.model.KxMsgKind.Service }
+        .let { t -> if (t.firstOrNull()?.forwardedFrom != null) t.drop(1) else t }
+    val palette = listOf(Color(0xFF2F6E9E), Color(0xFF3F9A6C), Color(0xFFB07A2E), Color(0xFF6A4C9C), Color(0xFFC0443C), Color(0xFF5C6661))
+    val realIdOf = thread.withIndex().associate { (i, m) -> (i + 1) to m.id }
+    val liveList: List<Cm> = if (!live) emptyList() else {
+        fun cm(i: Int, m: com.kirox.app.ui.v3.model.KxMessage) = Cm(i + 1, if (m.out) "Вы" else m.sender ?: "", (m.sender ?: "?").take(1).uppercase(),
+            palette[((if (m.senderColorIndex >= 0) m.senderColorIndex else (m.senderId % palette.size).toInt()) % palette.size + palette.size) % palette.size],
+            m.time, m.text.ifEmpty { m.meta.ifEmpty { "Вложение" } }, m.reactions.sumOf { it.count }, i, mine = m.out, to = m.reply?.sender,
+            liveLiked = m.reactions.any { it.mine })
+        fun root(m: com.kirox.app.ui.v3.model.KxMessage): Long {
+            var cur = m; var guard = 0
+            while (guard++ < 20) { val p = cur.reply?.messageId?.let { r -> thread.firstOrNull { it.id == r } } ?: break; cur = p }
+            return cur.id
+        }
+        val tops = thread.withIndex().filter { (_, m) -> root(m) == m.id }
+        tops.map { (i, m) -> cm(i, m).copy(replies = thread.withIndex().filter { (_, x) -> x.id != m.id && root(x) == m.id }.map { (j, x) -> cm(j, x) }) }
+    }
+    val shown = if (live) liveList else list
     var sort by remember { mutableIntStateOf(0) }
     val open = remember { mutableStateMapOf(1 to true) }
     val liked = remember { mutableStateMapOf<Int, Boolean>() }
@@ -74,9 +102,9 @@ fun CommentsScreen(ctx: KxScreenCtx) {
     var fresh by remember { mutableIntStateOf(0) }
     var typing by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) { delay(6000); typing = false }
-    val total = list.sumOf { 1 + it.replies.size }
+    val total = shown.sumOf { 1 + it.replies.size }
     val rows = buildList {
-        list.sortedByDescending { if (sort == 0) it.likes else it.at }.forEach { c -> add(Row2(c, false, null)); if (open[c.id] == true) c.replies.forEach { add(Row2(it, true, c)) } }
+        shown.sortedByDescending { if (sort == 0) it.likes else it.at }.forEach { c -> add(Row2(c, false, null)); if (open[c.id] == true) c.replies.forEach { add(Row2(it, true, c)) } }
     }
     val can = draft.isNotBlank()
 
@@ -85,7 +113,7 @@ fun CommentsScreen(ctx: KxScreenCtx) {
             ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", onClick = ctx.back)
             Column(Modifier.weight(1f)) {
                 Text("$total ${plural(total, "комментарий", "комментария", "комментариев")}", style = ts(20, W800))
-                Text("Android Weekly · обсуждение", style = ts(12, color = Kx.text3))
+                Text((if (live) store.header(chatId!!).title else "Android Weekly") + " · обсуждение", style = ts(12, color = Kx.text3))
             }
             ChRound(if (mute) Icons.Outlined.NotificationsOff else Icons.Outlined.Notifications, if (mute) "Включить уведомления об ответах" else "Выключить уведомления об ответах",
                 border = Color.Transparent, tint = if (mute) Kx.text3 else Kx.accent) { mute = !mute }
@@ -98,12 +126,13 @@ fun CommentsScreen(ctx: KxScreenCtx) {
                         Box(Modifier.size(34.dp).clip(CircleShape).cssGradient(135f, Kx.accentMid, Color(0xFF2F6E9E)), contentAlignment = Alignment.Center) {
                             Icon(Icons.Rounded.Campaign, null, Modifier.size(18.dp), tint = Kx.onAccent)
                         }
-                        Column(Modifier.weight(1f)) { Text("Android Weekly", style = ts(14, W800)); Text("Сегодня в 09:30 · 18,4 тыс. просмотров", style = ts(11, color = Kx.text4)) }
+                        Column(Modifier.weight(1f)) { Text(if (live) store.header(chatId!!).title else "Android Weekly", style = ts(14, W800))
+                            Text(if (post != null) listOf(post.time, post.views.takeIf { it.isNotEmpty() }?.let { "$it просмотров" }).filterNotNull().joinToString(" · ") else "Сегодня в 09:30 · 18,4 тыс. просмотров", style = ts(11, color = Kx.text4)) }
                     }
                     Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(120.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFF121816))
                         .ellipseGlow(.3f, .2f, .8f * .6f, .9f * .6f, Kx.accentMid.copy(alpha = .55f)).ellipseGlow(.85f, .9f, .7f * .6f, .8f * .6f, Color(0xFF2F6E9E).copy(alpha = .6f)),
                         contentAlignment = Alignment.Center) { Icon(Icons.Outlined.DeveloperMode, null, Modifier.size(46.dp), tint = Color.White.copy(alpha = .85f)) }
-                    Text("Вышел Compose 1.9: общие переходы между экранами стали стабильными, ленивые списки быстрее на 30%, а превью теперь понимают тёмную тему. Делитесь, что уже попробовали.",
+                    Text(post?.text?.ifEmpty { null } ?: "Вышел Compose 1.9: общие переходы между экранами стали стабильными, ленивые списки быстрее на 30%, а превью теперь понимают тёмную тему. Делитесь, что уже попробовали.",
                         style = ts(14, lh = 20.3.sp), maxLines = if (more) 12 else 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp).animateContentSize())
                     Text(if (more) "Свернуть" else "Читать полностью", style = ts(13, W700, Kx.accent), modifier = Modifier.padding(top = 4.dp).kxClick { more = !more })
                 }
@@ -122,8 +151,8 @@ fun CommentsScreen(ctx: KxScreenCtx) {
             }
             items(rows, key = { it.c.id }) { r ->
                 val c = r.c
-                val isLiked = liked[c.id] == true
-                val n = c.likes + if (isLiked) 1 else 0
+                val isLiked = c.liveLiked ?: (liked[c.id] == true)
+                val n = if (c.liveLiked != null) c.likes else c.likes + if (isLiked) 1 else 0
                 val isOpen = open[c.id] == true
                 val av: Dp = if (r.child) 28.dp else 36.dp
                 val isNew = c.id == fresh
@@ -148,7 +177,10 @@ fun CommentsScreen(ctx: KxScreenCtx) {
                             }
                         }
                     }
-                    Column(Modifier.width(36.dp).kxClick(if (isLiked) "Убрать ❤️" else "Нравится") { liked[c.id] = !isLiked; pop = if (!isLiked) c.id else 0 },
+                    Column(Modifier.width(36.dp).kxClick(if (isLiked) "Убрать ❤️" else "Нравится") {
+                        if (disc != null) realIdOf[c.id]?.let { store.react(disc, it, "❤️") } else liked[c.id] = !isLiked
+                        pop = if (!isLiked) c.id else 0
+                    },
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         val ink = if (isLiked) Kx.danger else Kx.text4
                         key(isLiked && pop == c.id) { Icon(if (isLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder, null, Modifier.size(20.dp).then(if (isLiked && pop == c.id) Modifier.heart() else Modifier), tint = ink) }
@@ -156,7 +188,7 @@ fun CommentsScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
-            if (typing) item {
+            if (typing && ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) item {
                 Row(Modifier.padding(start = 60.dp, end = 16.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) { repeat(3) { BounceDot(it * 150, 5.dp, Kx.accent) } }
                     Text("Ирина пишет комментарий", style = ts(12, color = Kx.text4))
@@ -186,6 +218,10 @@ fun CommentsScreen(ctx: KxScreenCtx) {
                 }
                 Box(Modifier.size(50.dp).clip(CircleShape).then(if (can) Modifier.cssGradient(135f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.07f))).kxClick("Отправить") {
                     if (!can) return@kxClick
+                    if (live) {
+                        if (disc != null) { store.send(disc, draft.trim(), reply?.first?.let { realIdOf[it] }); reply = null; draft = ""; sort = 1 }
+                        return@kxClick
+                    }
                     val id = next
                     val c = Cm(id, "Вы", "Я", Kx.accentDeep, "10:" + minOf(59, 44 + (next - 100)).toString().padStart(2, '0'), draft.trim(), 0, 100 + id, mine = true)
                     val rp = reply

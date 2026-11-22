@@ -30,10 +30,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboardManager
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store (chat boost status: level, boost count, next level goal, boosters list, my boost slots; boostChat, boost link)
+// Board demo (no chat id). With "Boosts:<chatId>": store.boostStatus (level, boosts, levelStart, nextLevel, link).
+// demo: needs store (boosters list, my boost slots and boostChat are not in the store yet)
 private val BLv = listOf(0, 1, 3, 7, 12, 18, 25)
 private val BPerks = listOf(
     Triple(1, Icons.Rounded.AutoStories, "Истории в группе"), Triple(2, Icons.Rounded.Palette, "Цвет названия и профиля"),
@@ -50,20 +53,26 @@ private fun bWord(n: Int) = gxPlural(n, "буст", "буста", "бустов"
 /** Board «Бусты»: level hero with burst + shine bar, level perks (unlock pop), boosters, boost / share. */
 @Composable
 fun BoostsScreen(ctx: KxScreenCtx) {
-    var have by remember { mutableIntStateOf(16) }
+    var haveDemo by remember { mutableIntStateOf(16) }
     var mine by remember { mutableIntStateOf(0) }
     var k by remember { mutableIntStateOf(0) }
     var uk by remember { mutableIntStateOf(0) }
     var justLvl by remember { mutableIntStateOf(-1) }
     val tip = rememberGxTip()
     val reduced = LocalKxReducedMotion.current
-    val lvl = BLv.indexOfLast { have >= it }
-    val top = lvl >= BLv.size - 1
-    val goal = if (top) BLv.last() else BLv[lvl + 1]
-    val base = BLv[lvl]
-    val pct = if (top) 1f else ((have - base).toFloat() / (goal - base))
-    val need = goal - have
-    val boosters = if (mine > 0) listOf(Booster("Вы", "В", Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), "только что", mine)) + BBase else BBase
+    val store = ctx.store
+    val chatId = gxChatId(ctx.arg)
+    val st = gxLoad(chatId) { chatId?.let { store.boostStatus(it) } }
+    val clipboard = LocalClipboardManager.current
+    val real = chatId != null
+    val have = if (real) st?.boosts ?: 0 else haveDemo
+    val lvl = if (real) st?.level ?: 0 else BLv.indexOfLast { have >= it }
+    val top = if (real) st != null && st.nextLevel <= st.levelStart else lvl >= BLv.size - 1
+    val goal = if (real) (st?.nextLevel ?: 0) else if (top) BLv.last() else BLv[lvl + 1]
+    val base = if (real) (st?.levelStart ?: 0) else BLv[lvl]
+    val pct = if (top) 1f else ((have - base).toFloat() / (goal - base).coerceAtLeast(1)).coerceIn(0f, 1f)
+    val need = (goal - have).coerceAtLeast(0)
+    val boosters = if (real) emptyList() else if (mine > 0) listOf(Booster("Вы", "В", Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), "только что", mine)) + BBase else BBase
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -71,7 +80,7 @@ fun BoostsScreen(ctx: KxScreenCtx) {
                 KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Column(Modifier.weight(1f)) {
                     Text("Бусты", style = KxType.style(20.sp, FontWeight.ExtraBold))
-                    Text("Kotlin-клуб · 1 284 участника", style = KxType.style(12.sp, color = Kx.text3))
+                    Text(if (chatId == null) "Kotlin-клуб · 1 284 участника" else store.header(chatId).let { h -> h.title + if (h.members > 0) " · ${gxNum(h.members)} ${gxPlural(h.members, "участник", "участника", "участников")}" else "" }, style = KxType.style(12.sp, color = Kx.text3))
                 }
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
@@ -137,16 +146,24 @@ fun BoostsScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.size(54.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("Поделиться ссылкой на буст") { tip.say("Ссылка на буст скопирована") }, contentAlignment = Alignment.Center) {
+                Box(Modifier.size(54.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("Поделиться ссылкой на буст") {
+                    if (real) { val l = st?.link.orEmpty(); if (l.isNotEmpty()) { clipboard.setText(AnnotatedString(l)); tip.say("Ссылка на буст скопирована") } }
+                    else tip.say("Ссылка на буст скопирована")
+                }, contentAlignment = Alignment.Center) {
                     Icon(Icons.Outlined.Share, null, Modifier.size(24.dp), tint = Kx.text)
                 }
                 val full = mine >= 4
                 GxPillButton(if (full) "Все ваши бусты здесь" else if (mine > 0) "Добавить ещё буст" else "Забустить группу", Modifier.weight(1f), height = 54.dp,
                     brush = if (full) SolidColor(Kx.w(.07f)) else Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = if (full) Kx.text4 else Kx.onAccent,
                     size = 16, weight = FontWeight.ExtraBold, icon = Icons.Rounded.Bolt) {
-                    if (!full) {
+                    if (real) {
+                        // demo: needs store (boostChat): boosting stays in the official app; the link is copied for it
+                        val l = st?.link.orEmpty()
+                        if (l.isNotEmpty()) clipboard.setText(AnnotatedString(l))
+                        ctx.toast("Забустить можно по ссылке в официальном Telegram — ссылка скопирована")
+                    } else if (!full) {
                         val nh = have + 1; val nl = BLv.indexOfLast { nh >= it }; val up = nl > lvl
-                        have = nh; mine++; k++
+                        haveDemo = nh; mine++; k++
                         if (up) { justLvl = nl; uk++ }
                         tip.say(if (up) "Уровень $nl! Открыто: " + (BPerks.firstOrNull { it.first == nl }?.third ?: "новое") else "Спасибо за буст!")
                     }

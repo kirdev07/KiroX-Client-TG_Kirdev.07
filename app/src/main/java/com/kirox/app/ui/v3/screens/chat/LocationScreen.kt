@@ -45,7 +45,8 @@ import kotlinx.coroutines.delay
 
 private class Place(val name: String, val sub: String, val icon: ImageVector, val ink: Color, val x: Int, val y: Int)
 
-// demo: needs store (nearby venues and sendLocation / sendLiveLocation are not in KxStore yet)
+// «Отправить мою геопозицию» (opened as "Location:<chatId>", real store): the system's last known position → store.sendLocation.
+// demo: needs store (nearby venues, live location and map tiles are not in the store yet: they stay the board's local preview, nothing is sent)
 private val Places = listOf(
     Place("Кофейня «Зерно»", "Кафе · 120 м", Icons.Rounded.LocalCafe, Color(0xFFE8B04A), 250, 170),
     Place("Центральный парк", "Парк · 350 м", Icons.Rounded.Park, Kx.accent, 110, 100),
@@ -71,6 +72,29 @@ fun LocationScreen(ctx: KxScreenCtx) {
     val total = Durs[dur].second
     LaunchedEffect(live, sent) { while (live && sent) { delay(1000); left = maxOf(0, left - 60) } }
     BackHandler(sent || sheet) { if (sheet) sheet = false else sent = false }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val realSend = store !is com.kirox.app.ui.v3.demo.KxDemoStore && ctx.arg?.toLongOrNull() != null
+    fun sendMine() {
+        if (!realSend) { live = false; place = -1; sent = true; return }
+        val manager = context.getSystemService(android.location.LocationManager::class.java)
+        val last = runCatching {
+            listOf(android.location.LocationManager.GPS_PROVIDER, android.location.LocationManager.NETWORK_PROVIDER, android.location.LocationManager.PASSIVE_PROVIDER)
+                .mapNotNull { manager.getLastKnownLocation(it) }.maxByOrNull { it.time }
+        }.getOrNull()
+        if (last == null) { ctx.toast("Не удалось определить местоположение — включите геолокацию"); return }
+        store.sendLocation(chatId, last.latitude, last.longitude)
+        live = false; place = -1; sent = true
+    }
+    val permission = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+        if (granted.values.any { it }) sendMine() else ctx.toast("Без доступа к геопозиции отправить её нельзя")
+    }
+    fun askAndSend() {
+        if (!realSend) { sendMine(); return }
+        val ok = listOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION).any {
+            androidx.core.content.ContextCompat.checkSelfPermission(context, it) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (ok) sendMine() else permission.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+    }
     fun fmt(sec: Int) = if (sec >= 3600) "${Math.round(sec / 3600f)} ч" else "${maxOf(1, Math.round(sec / 60f))} мин"
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -121,7 +145,7 @@ fun LocationScreen(ctx: KxScreenCtx) {
                 .drawBehind { drawLine(Kx.w(.08f), Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
                 .verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 44.dp)) {
                 Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp).size(36.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.dashed))
-                LocRow(Icons.Rounded.NearMe, "Отправить мою геопозицию", "Точность 12 м", true) { live = false; place = -1; sent = true }
+                LocRow(Icons.Rounded.NearMe, "Отправить мою геопозицию", "Точность 12 м", true) { askAndSend() }
                 Spacer(Modifier.height(8.dp))
                 LocRow(Icons.Outlined.ShareLocation, "Транслировать геопозицию", "Обновляется, пока вы двигаетесь", false) { sheet = true }
                 Text("Места рядом", style = ts(13, W800, Kx.accent), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 14.dp, bottom = 6.dp))
