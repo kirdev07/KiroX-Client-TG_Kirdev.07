@@ -80,7 +80,8 @@ class TelegramStoryRepository(
                     storyIds = stories.stories.sortedBy { it.date }.map { it.storyId },
                     hasUnread = stories.stories.any { it.storyId > stories.maxReadStoryId },
                     // A user's private chat id equals their user id.
-                    isSelf = stories.chatId == myChatId
+                    isSelf = stories.chatId == myChatId,
+                    newestDate = stories.stories.maxOfOrNull { it.date } ?: 0
                 )
             }
         }

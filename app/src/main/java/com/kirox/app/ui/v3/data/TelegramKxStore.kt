@@ -56,12 +56,15 @@ import java.util.concurrent.ConcurrentHashMap
  * - Files: avatars, photos, stickers and thumbnails download by themselves (small, like the old UI);
  *   videos, voice, music and documents only on [download]. Paths come back through [paths].
  *
- * [startCall] lets the host ask for microphone/camera permissions first. Call [close] when done.
+ * [startCall] lets the host ask for microphone/camera permissions first; [requestMicrophone] asks
+ * for the microphone when a voice recording is refused for lack of it. Call [close] when done.
  */
 class TelegramKxStore(
     private val vm: TelegramViewModel,
     private val startCall: (userId: Long, video: Boolean, start: () -> Unit) -> Unit = { _, _, start -> start() },
+    private val requestMicrophone: () -> Unit = {},
 ) : KxStore {
+    private val app: android.app.Application = vm.getApplication()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override var me by mutableStateOf(KxProfile(0, ""))
@@ -120,6 +123,15 @@ class TelegramKxStore(
     private val translations = MutableStateFlow<Map<Long, String>>(emptyMap())
 
     private val requestedFolders = HashSet<Int>()
+
+    /** The old UI's OGG/Opus recorder (ui/chat/VoiceNotes.kt), reused for hold-to-record. */
+    private val recorder = com.kirox.app.ui.chat.VoiceRecorder(app)
+    private var levelJob: Job? = null
+
+    /** Story contents by (chat, story id), fetched once per story (GetStory). */
+    private val storyCache = MutableStateFlow<Map<Pair<Long, Int>, com.kirox.app.telegram.TelegramStory>>(emptyMap())
+    private val storyAsked = HashSet<Pair<Long, Int>>()
+    private var openStory: Pair<Long, Int>? = null
     private var draftJob: Job? = null
     private val lastDraft = HashMap<Long, String>()
     /** History size when [fillFirstPage] last asked for more, so a failed request is not repeated forever. */
@@ -157,9 +169,10 @@ class TelegramKxStore(
                 .flowOn(Dispatchers.Default).collect { contacts = it }
         }
         scope.launch {
-            combine(vm.stories.storyChats, paths) { list, _ -> list.sortedByDescending { it.isSelf }.map { it.toKx() } }
+            combine(vm.stories.storyChats, pathsDaily, storyCache) { list, _, cache -> list.sortedByDescending { it.isSelf }.map { it.toKx(cache) } }
                 .flowOn(Dispatchers.Default).collect { stories = it }
         }
+        scope.launch { vm.stories.storyChats.collect { list -> list.forEach { c -> c.storyIds.forEach { fetchStory(c.chatId, it) } } } }
         scope.launch {
             combine(vm.calls.state, pathsDaily) { state, _ -> mapCalls(state.calls) }.flowOn(Dispatchers.Default)
                 .collect { (list, missed) -> calls = list; missedCalls = missed }
@@ -188,7 +201,12 @@ class TelegramKxStore(
         vm.calls.loadMore()
     }
 
-    fun close() = scope.cancel()
+    fun close() {
+        openStory?.let { (c, id) -> vm.stories.close(c, id) }
+        // A recording still running when the host goes away is discarded, never sent.
+        if (recorder.isRecording) recorder.stop(discard = true)
+        scope.cancel()
+    }
 
     // ---- Reads -------------------------------------------------------------------------------
 
@@ -266,13 +284,20 @@ class TelegramKxStore(
 
     // ---- Chat list actions -------------------------------------------------------------------
 
+    /** 0 = main list, a TDLib folder id, or a negative id for the archive (the contract has no archive id yet). */
+    override fun loadMoreChats(folderId: Int) = vm.chats.loadMore(
+        when {
+            folderId == 0 -> TelegramChatListKey.Main
+            folderId > 0 -> TelegramChatListKey.Folder(folderId)
+            else -> TelegramChatListKey.Archive
+        }
+    )
+
     override fun openChat(chatId: Long) {
         vm.messages.open(chatId)
         fillAskedAt = -1
-        val kind = items[chatId]?.kind
-        if (kind == TelegramChatKind.Group || kind == TelegramChatKind.Channel) scope.launch {
-            vm.chats.memberCount(chatId).takeIf { it > 0 }?.let { memberCounts[chatId] = it }
-        }
+        // Always asked (0 for private chats): a group opened from search or a link is not in the loaded lists.
+        scope.launch { vm.chats.memberCount(chatId).takeIf { it > 0 }?.let { memberCounts[chatId] = it } }
         scope.launch { writeAccess[chatId] = vm.chats.writeAccess(chatId) }
     }
 
@@ -320,8 +345,44 @@ class TelegramKxStore(
         vm.messages.saveDraft(chatId, "")
     }
 
-    // sendVoice / sendVideoNote: the contract gives no recorded file, so there is nothing to upload yet
-    // (proposal in qa/tg-tasks.md). The interface defaults (no-op) stay in place.
+    /**
+     * Hold-to-record. Voice uses the old UI's recorder (OGG/Opus, as Telegram wants it); round video
+     * needs a camera preview the v3 chat does not have yet, so [video] does nothing here.
+     */
+    override fun recordStart(chatId: Long, video: Boolean) {
+        if (video) return
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(app, android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) { error = "Нужен доступ к микрофону"; requestMicrophone(); return }
+        if (!recorder.start()) { error = "Не удалось начать запись"; return }
+        vm.activity.send(chatId, ChatActivity.RecordingVoice)
+        // The waveform is built from levels sampled ~10 times a second.
+        levelJob?.cancel()
+        levelJob = scope.launch {
+            while (recorder.isRecording) {
+                recorder.sampleLevel()
+                vm.activity.send(chatId, ChatActivity.RecordingVoice) // repeated; the repository throttles it
+                delay(100)
+            }
+        }
+    }
+
+    override fun recordStop(chatId: Long, send: Boolean, seconds: Int) {
+        levelJob?.cancel(); levelJob = null
+        vm.activity.send(chatId, null)
+        if (!recorder.isRecording) return
+        // Too short (< MIN_DURATION) or cancelled: the recorder deletes the file and returns null.
+        val recording = recorder.stop(discard = !send) ?: return
+        vm.messages.sendVoiceIn(chatId, recording.file.absolutePath, recording.durationSeconds, recording.waveform)
+    }
+
+    override fun sendVoice(chatId: Long, seconds: Int, path: String?, waveform: ByteArray?) {
+        if (path != null) vm.messages.sendVoiceIn(chatId, path, seconds, waveform ?: ByteArray(0))
+    }
+
+    override fun sendVideoNote(chatId: Long, seconds: Int, path: String?, length: Int) {
+        if (path != null) vm.messages.sendVideoNoteIn(chatId, path, seconds, length)
+    }
 
     override fun edit(chatId: Long, messageId: Long, text: String) {
         if (text.isNotBlank()) vm.messages.editIn(chatId, messageId, text.trim())
@@ -391,6 +452,45 @@ class TelegramKxStore(
         val ref = TelegramFileRef(fileId, null)
         vm.files.download(ref)
         watchFile(ref)
+    }
+
+    // ---- Stories -----------------------------------------------------------------------------
+
+    /** Opens the story for TDLib (marks it viewed unless ghost mode) and downloads its video and the next one. */
+    override fun viewStory(peerId: Long, storyId: Int) {
+        val key = peerId to storyId
+        if (openStory != key) {
+            openStory?.let { (c, id) -> vm.stories.close(c, id) }
+            openStory = key
+            vm.stories.open(peerId, storyId)
+        }
+        val ids = vm.stories.storyChats.value.firstOrNull { it.chatId == peerId }?.storyIds.orEmpty()
+        val next = ids.getOrNull(ids.indexOf(storyId) + 1)
+        listOfNotNull(storyId, next).forEach { id ->
+            fetchStory(peerId, id)
+            storyCache.value[peerId to id]?.video?.let { ref -> vm.files.download(ref); watchFile(ref) }
+        }
+    }
+
+    /** Toggles like message reactions: choosing the current one removes it. */
+    override fun reactStory(peerId: Long, storyId: Int, emoji: String) {
+        val key = peerId to storyId
+        val chosen = reactionKey(emoji)
+        val remove = storyCache.value[key]?.chosenReaction == chosen
+        scope.launch {
+            runCatching { vm.stories.react(peerId, storyId, if (remove) null else chosen) }
+                .onSuccess { storyCache.update { m -> m[key]?.let { m + (key to it.copy(chosenReaction = if (remove) null else chosen)) } ?: m } }
+                .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; showError(it) }
+        }
+    }
+
+    override fun replyStory(peerId: Long, storyId: Int, text: String) {
+        val body = text.trim()
+        if (body.isEmpty()) return
+        scope.launch {
+            runCatching { vm.stories.reply(peerId, storyId, body) }
+                .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; showError(it) }
+        }
     }
 
     // ---- Calls -------------------------------------------------------------------------------
@@ -678,8 +778,27 @@ class TelegramKxStore(
         TelegramUserStatus.LongAgo -> 1
     }
 
-    private fun TelegramStoryChat.toKx() = KxStoryPeer(chatId, if (isSelf) "Вы" else title, unseen = hasUnread, mine = isSelf,
-        avatar = avatarOf(photo, paths.value), colorIndex = items[chatId]?.accentColorId ?: -1)
+    private fun TelegramStoryChat.toKx(cache: Map<Pair<Long, Int>, com.kirox.app.telegram.TelegramStory>): KxStoryPeer {
+        val known = paths.value
+        return KxStoryPeer(chatId, if (isSelf) "Вы" else title, unseen = hasUnread, mine = isSelf,
+            avatar = avatarOf(photo, known), colorIndex = items[chatId]?.accentColorId ?: -1,
+            time = KxFormat.ago(newestDate),
+            // Not fetched yet: an empty slide keeps the count (the viewer shows its placeholder look).
+            slides = storyIds.map { id -> cache[chatId to id]?.let { st ->
+                val image = autoPath(st.image, known)
+                // A video plays once its file is on disk (viewStory downloads it); until then the cover is shown as a photo.
+                val video = if (st.isVideo) knownPath(st.video, known) else null
+                KxStorySlide(id, st.caption, media = video ?: image, video = video != null)
+            } ?: KxStorySlide(id) })
+    }
+
+    private fun fetchStory(chatId: Long, storyId: Int) {
+        if (!storyAsked.add(chatId to storyId)) return
+        scope.launch {
+            vm.stories.story(chatId, storyId)?.let { st -> storyCache.update { it + ((chatId to storyId) to st) } }
+                ?: storyAsked.remove(chatId to storyId) // failed (network): asked again on the next list update
+        }
+    }
 
     private fun TelegramUserProfile.toKx() = KxProfile(
         id = id, name = name, username = username.orEmpty(),

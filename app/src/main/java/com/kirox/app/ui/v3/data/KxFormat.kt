@@ -29,6 +29,18 @@ internal object KxFormat {
         }
     }
 
+    /** Story age: «только что», «15 мин назад», «3 ч назад», then like [chatTime]. */
+    fun ago(unix: Int, now: Long = System.currentTimeMillis(), zone: TimeZone = TimeZone.getDefault()): String {
+        if (unix <= 0) return ""
+        val minutes = ((now / 1000 - unix) / 60).toInt()
+        return when {
+            minutes < 1 -> "только что"
+            minutes < 60 -> "$minutes мин назад"
+            minutes < 24 * 60 -> "${minutes / 60} ч назад"
+            else -> chatTime(unix, now, zone)
+        }
+    }
+
     /** Bubble time «09:05». */
     fun messageTime(unix: Int, zone: TimeZone = TimeZone.getDefault()): String = if (unix <= 0) "" else hhmm(cal(unix * 1000L, zone))
 
@@ -60,10 +72,14 @@ internal object KxFormat {
     fun count(n: Int): String = n.toString().reversed().chunked(3).joinToString(" ").reversed()
 
     /** Channel views «950», «1,2K», «3,4M». */
-    fun compactCount(n: Int): String = when {
-        n >= 1_000_000 -> "%.1fM".format(Locale.ROOT, n / 1_000_000.0).replace(".0M", "M").replace('.', ',')
-        n >= 1_000 -> "%.1fK".format(Locale.ROOT, n / 1_000.0).replace(".0K", "K").replace('.', ',')
-        else -> n.toString()
+    fun compactCount(n: Int): String {
+        fun short(value: Double, unit: String) = "%.1f$unit".format(Locale.ROOT, value).replace(".0$unit", unit).replace('.', ',')
+        return when {
+            // 999 950 rounds to «1000K»: switch to millions at the rounded value.
+            n >= 999_950 -> short(n / 1_000_000.0, "M")
+            n >= 1_000 -> short(n / 1_000.0, "K")
+            else -> n.toString()
+        }
     }
 
     fun members(n: Int): String = "${count(n)} ${plural(n, "участник", "участника", "участников")}"

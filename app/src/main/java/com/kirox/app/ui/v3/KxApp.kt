@@ -29,6 +29,7 @@ sealed interface KxRoute {
     data class Screen(val name: String) : KxRoute
     data class Call(val peerId: Long, val name: String) : KxRoute
     data class Story(val index: Int) : KxRoute
+    data class Profile(val chatId: Long) : KxRoute
 }
 
 /** Tiny back stack for the v3 UI. */
@@ -51,6 +52,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
     var tab by rememberSaveable { mutableStateOf(KxTab.Chats) }
     BackHandler(enabled = nav.stack.size > 1 || tab != KxTab.Chats) { if (!nav.pop()) tab = KxTab.Chats }
     KxScreen(modifier) { KxToastHost {
+        val toast = com.kirox.app.ui.v3.components.LocalKxToast.current
         AnimatedContent(
             targetState = nav.current,
             transitionSpec = {
@@ -82,9 +84,20 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                     KxDock(tab, { tab = it }, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 22.dp),
                         chatsBadge = store.unreadTotal, callsBadge = store.missedCalls)
                 }
-                is KxRoute.Chat -> ChatScreen(store, route.chatId, onBack = { store.closeChat(route.chatId); nav.pop() })
+                is KxRoute.Chat -> ChatScreen(store, route.chatId, onBack = { store.closeChat(route.chatId); nav.pop() },
+                    onCall = { v -> val h = store.header(route.chatId); store.call(route.chatId, v); nav.push(KxRoute.Call(route.chatId, h.title)) },
+                    onProfile = { if (store.header(route.chatId).kind == com.kirox.app.ui.v3.model.KxChatKind.Private) nav.push(KxRoute.Profile(route.chatId)) else nav.push(KxRoute.Screen("Group")) })
+                is KxRoute.Profile -> ProfileScreen(store, route.chatId, onBack = { nav.pop() },
+                    onCall = { v -> store.call(route.chatId, v); nav.push(KxRoute.Call(route.chatId, store.peer(route.chatId).name)) },
+                    onSearch = { nav.push(KxRoute.Screen("ChatSearch")) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                 KxRoute.Archive -> ArchiveScreen(store, onBack = { nav.pop() }, onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) })
-                is KxRoute.Screen -> KxComingSoon(route.name) { nav.pop() }
+                is KxRoute.Screen -> {
+                    val name = route.name.substringBefore(':')
+                    val fn = KxRegistry.screens[name]
+                    if (fn == null) KxComingSoon(name) { nav.pop() }
+                    else fn(KxScreenCtx(store, back = { nav.pop() }, open = { nav.push(KxRoute.Screen(it)) },
+                        openChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) }, toast = toast, arg = route.name.substringAfter(':', "").ifEmpty { null }))
+                }
                 is KxRoute.Story -> StoryViewer(store, route.index, onClose = { nav.pop() })
                 is KxRoute.Call -> CallingScreen(route.name, route.peerId, "Соединение", onEnd = { nav.pop() })
             }

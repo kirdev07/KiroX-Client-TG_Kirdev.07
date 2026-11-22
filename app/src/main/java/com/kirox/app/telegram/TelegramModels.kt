@@ -298,7 +298,9 @@ data class TelegramStoryChat(
     val photo: TelegramFileRef?,
     val storyIds: List<Int>,
     val hasUnread: Boolean,
-    val isSelf: Boolean
+    val isSelf: Boolean,
+    /** Unix time of the newest active story (v3 «15 мин назад»); 0 when unknown. */
+    val newestDate: Int = 0
 )
 
 data class TelegramStory(

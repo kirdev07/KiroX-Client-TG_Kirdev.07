@@ -82,7 +82,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Tile(Icons.Rounded.HelpOutline, "Помощь", Kx.link, Modifier.weight(1f)) { onOpen("Help") }
-                        Tile(Icons.Rounded.Info, "О приложении", Color(0xFFFFD58A), Modifier.weight(1f), corner = "v" + com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-').removeSuffix(".0")) { onOpen("About") }
+                        Tile(Icons.Rounded.Info, "О приложении", Color(0xFFFFD58A), Modifier.weight(1f), corner = "v" + com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-').removeSuffix(".0")) { onOpen("WhatsNew") }
                     }
                 }
             }
@@ -93,7 +93,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                 .clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Color(0xF22E3A34), Color(0xF5181E1B)))).border(1.dp, Kx.stroke, RoundedCornerShape(20.dp)).padding(6.dp)) {
                 listOf(Icons.Rounded.AccountCircle to "Мой профиль", Icons.Rounded.SwitchAccount to "Аккаунты", Icons.Rounded.Contacts to "Контакты",
                     Icons.Rounded.Devices to "Устройства", Icons.Rounded.Folder to "Чаты и папки", Icons.Rounded.History to "Старый дизайн").forEach { (ic, t) ->
-                    Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick { menu = false; onOpen(t) }.padding(horizontal = 12.dp),
+                    Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick { menu = false; onOpen(mapOf("Мой профиль" to "EditProfile", "Аккаунты" to "Accounts", "Контакты" to "Contacts", "Устройства" to "Devices", "Чаты и папки" to "Folders")[t] ?: t) }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(ic, null, Modifier.size(20.dp), tint = Kx.accent); Text(t, style = KxType.style(15.sp))
                     }

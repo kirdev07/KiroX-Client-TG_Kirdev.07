@@ -78,6 +78,12 @@ interface KxStore {
     /** Starts downloading a file (avatar/media); the path appears in the models when ready. */
     fun download(fileId: Int) {}
 
+    // Profiles
+    /** Peer of a private chat (or the user behind a contact). */
+    fun peer(chatId: Long): KxPeer = header(chatId).let { KxPeer(chatId, chatId, it.title, it.status, it.online, muted = it.muted, avatar = it.avatar, colorIndex = it.colorIndex) }
+    fun shared(chatId: Long, tab: KxSharedTab): List<KxSharedItem> = emptyList()
+    fun block(userId: Long, blocked: Boolean) {}
+
     // Stories
     fun viewStory(peerId: Long, storyId: Int) {}
     fun reactStory(peerId: Long, storyId: Int, emoji: String) {}

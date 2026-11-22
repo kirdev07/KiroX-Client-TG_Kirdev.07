@@ -156,6 +156,22 @@ data class KxChatHeader(
 data class KxProfile(val id: Long, val name: String, val username: String = "", val phone: String = "", val bio: String = "",
                      val status: String = "в сети", val premium: Boolean = false, val avatar: String? = null, val colorIndex: Int = -1)
 
+/** Peer profile (board «Профиль»). Counts feed the shared-media tabs. */
+@Immutable
+data class KxPeer(
+    val id: Long, val chatId: Long, val name: String, val status: String, val online: Boolean = false, val premium: Boolean = false,
+    val bio: String = "", val username: String = "", val phone: String = "", val birthday: String = "",
+    val gifts: Int = 0, val commonGroups: Int = 0, val muted: Boolean = false, val avatar: String? = null, val colorIndex: Int = -1,
+    val isContact: Boolean = true, val blocked: Boolean = false,
+    val counts: Map<KxSharedTab, Int> = emptyMap(),
+)
+
+enum class KxSharedTab(val label: String) { Media("Медиа"), Files("Файлы"), Music("Музыка"), Links("Ссылки"), Voice("Голосовые"), Gif("GIF") }
+
+@Immutable
+data class KxSharedItem(val id: Long, val title: String = "", val sub: String = "", val media: String? = null, val video: String? = null,
+                        val playing: Boolean = false, val look: Int = 0, val fileExt: String = "")
+
 enum class KxCallDir { Incoming, Outgoing, Missed, Declined }
 
 @Immutable

@@ -36,6 +36,9 @@ fun KxTelegramHost(
         if (result[Manifest.permission.RECORD_AUDIO] != false) action?.invoke()
     }
     val launcher = rememberUpdatedState(permissions)
+    // Hold-to-record found no microphone access: ask; the user records again after allowing it.
+    val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    val micLauncher = rememberUpdatedState(micPermission)
     val store = remember(viewModel) {
         TelegramKxStore(viewModel, startCall = { _, video, start ->
             val needed = listOfNotNull(
@@ -44,7 +47,7 @@ fun KxTelegramHost(
                 if (Build.VERSION.SDK_INT >= 31) Manifest.permission.BLUETOOTH_CONNECT else null,
             ).filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
             if (needed.isEmpty()) start() else { pending[0] = start; launcher.value.launch(needed.toTypedArray()) }
-        })
+        }, requestMicrophone = { micLauncher.value.launch(Manifest.permission.RECORD_AUDIO) })
     }
     DisposableEffect(store) { onDispose { store.close() } }
     KxApp(store = store, modifier = modifier, reducedMotion = reducedMotion)

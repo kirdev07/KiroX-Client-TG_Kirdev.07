@@ -71,7 +71,7 @@ private data class PendingDelete(val message: KxMessage, val forAll: Boolean, va
 
 /** Conversation (board «Чат»): flat header + pinned bar, bubbles, glass composer, round mic/send button. */
 @Composable
-fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit = {}, onMenu: () -> Unit = {}) {
+fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit = {}, onMenu: () -> Unit = {}, onProfile: () -> Unit = {}) {
     val header = store.header(chatId)
     val toast = LocalKxToast.current
     var text by rememberSaveable(chatId) { mutableStateOf("") }
@@ -125,7 +125,7 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
             }
         }
         ChatHeader(header.copy(typing = if (recording != null) (if (recording == true) "записывает видео" else "записывает голосовое") else header.typing),
-            onBack, onCall, onMenu, Modifier.align(Alignment.TopCenter)) { header.pinned?.let { store.pin(chatId, it.messageId, false) } }
+            onBack, onCall, onMenu, Modifier.align(Alignment.TopCenter), onProfile) { header.pinned?.let { store.pin(chatId, it.messageId, false) } }
 
         if (recording == true) CircleRecording(recSecs)
         when (header.composer) {
@@ -177,12 +177,12 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
 }
 
 @Composable
-private fun ChatHeader(h: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) -> Unit, onMenu: () -> Unit, modifier: Modifier, onUnpin: () -> Unit) {
+private fun ChatHeader(h: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) -> Unit, onMenu: () -> Unit, modifier: Modifier, onProfile: () -> Unit, onUnpin: () -> Unit) {
     Column(modifier.fillMaxWidth().background(Color(0xFF0D100E)).drawBehind { drawLine(Kx.w(.06f), Offset(0f, size.height - .5f), Offset(size.width, size.height - .5f), 1f) }
         .statusBarsPadding().padding(start = 6.dp, end = 6.dp, top = 4.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", size = 48.dp, filled = false, tint = Kx.text, onClick = onBack)
-            Row(Modifier.weight(1f).height(56.dp).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).kxClick("Профиль: ${h.title}", onClick = onProfile).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box {
                     KxAvatar(h.title, h.chatId, size = 42.dp, icon = if (h.kind == KxChatKind.Saved) Icons.Rounded.Bookmark else null, colorIndex = h.colorIndex)
                     if (h.online) Box(Modifier.align(Alignment.BottomEnd).offset(1.dp, 1.dp).size(16.dp).clip(CircleShape).background(Color(0xFF1B221E)).padding(2.dp).clip(CircleShape).background(Kx.accent))

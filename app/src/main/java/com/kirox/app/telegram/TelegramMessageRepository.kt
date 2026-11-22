@@ -459,6 +459,22 @@ class TelegramMessageRepository(
         client.send(TdApi.DeleteMessages(chatId, messageIds.toLongArray(), forEveryone)) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
     }
 
+    /** Voice note to [chatId] (any chat; the open one keeps its thread/topic). [waveform]: Telegram's packed 5-bit bars. */
+    fun sendVoiceIn(chatId: Long, path: String, durationSeconds: Int, waveform: ByteArray) = client.post {
+        val inTopic = if (chatId == this.chatId) topic else null
+        client.send(TdApi.SendMessage(chatId, inTopic, null, null, null, TdApi.InputMessageVoiceNote(
+            TdApi.InputVoiceNote(TdApi.InputFileLocal(path), durationSeconds, waveform), TdApi.FormattedText("", emptyArray()), null
+        ))) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
+    }
+
+    /** Round video message to [chatId]; [length] is the side of the square video in pixels. */
+    fun sendVideoNoteIn(chatId: Long, path: String, durationSeconds: Int, length: Int) = client.post {
+        val inTopic = if (chatId == this.chatId) topic else null
+        client.send(TdApi.SendMessage(chatId, inTopic, null, null, null,
+            TdApi.InputMessageVideoNote(TdApi.InputVideoNote(TdApi.InputFileLocal(path), null, durationSeconds, length), null)
+        )) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
+    }
+
     /** «Повторить» for messages that failed to send. */
     fun resend(chatId: Long, messageIds: List<Long>) = client.post {
         client.send(TdApi.ResendMessages(chatId, messageIds.toLongArray(), null, 0)) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
@@ -912,6 +928,19 @@ internal fun bestPhoto(photo: TdApi.Photo): TdApi.PhotoSize? =
  * v3 chat list (TelegramChatItem.lastServiceText) and history (TelegramMessage.serviceText).
  */
 internal fun serviceText(message: TdApi.Message, who: String, isChannel: Boolean, user: (Long) -> String): String? {
+    val line = serviceLine(message, who, isChannel, user) ?: return null
+    // Own lines use the plural verb, as Telegram writes them: «Вы закрепили сообщение», «Вы присоединились».
+    return if (who == "Вы") line.replace("лся(-ась)", "лись").replace("л(а)", "ли") else line
+}
+
+/** «42 сек», «12 мин», «1 ч 5 мин»: minutes rounded first, so 59:40 is «1 ч», never «60 мин». */
+internal fun callLength(seconds: Int): String {
+    if (seconds < 60) return "$seconds сек"
+    val minutes = (seconds + 30) / 60
+    return if (minutes < 60) "$minutes мин" else "${minutes / 60} ч" + (minutes % 60).let { if (it > 0) " $it мин" else "" }
+}
+
+private fun serviceLine(message: TdApi.Message, who: String, isChannel: Boolean, user: (Long) -> String): String? {
     val senderId = (message.senderId as? TdApi.MessageSenderUser)?.userId
     val channel = isChannel || message.isChannelPost
     return when (val c = message.content) {
@@ -942,16 +971,17 @@ internal fun serviceText(message: TdApi.Message, who: String, isChannel: Boolean
         is TdApi.MessageVideoChatEnded -> if (channel) "Трансляция завершена" else "Видеочат завершён"
         // A call is a message in TDLib; Telegram draws it as a line: «Исходящий звонок · 3 мин».
         is TdApi.MessageCall -> {
-            val missed = c.discardReason is TdApi.CallDiscardReasonMissed || c.discardReason is TdApi.CallDiscardReasonDeclined
+            val declined = c.discardReason is TdApi.CallDiscardReasonDeclined
+            val missed = c.discardReason is TdApi.CallDiscardReasonMissed || declined
             val what = if (c.isVideo) "видеозвонок" else "звонок"
             val title = when {
                 message.isOutgoing && missed -> "Отменённый $what"
                 message.isOutgoing -> "Исходящий $what"
+                declined -> "Отклонённый $what"
                 missed -> "Пропущенный $what"
                 else -> "Входящий $what"
             }
-            val minutes = (c.duration + 30) / 60
-            if (c.duration > 0) "$title · " + (if (c.duration < 60) "${c.duration} сек" else "$minutes мин") else title
+            if (c.duration > 0) "$title · ${callLength(c.duration)}" else title
         }
         is TdApi.MessageGameScore, is TdApi.MessagePaymentSuccessful, is TdApi.MessageGiftedPremium, is TdApi.MessageGift,
         is TdApi.MessageCustomServiceAction, is TdApi.MessageExpiredPhoto, is TdApi.MessageExpiredVideo -> messagePreview(message).takeIf { it != "Сообщение" } ?: "Служебное сообщение"

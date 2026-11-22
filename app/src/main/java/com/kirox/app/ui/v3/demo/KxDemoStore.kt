@@ -140,6 +140,22 @@ class KxDemoStore : KxStore {
             waveform = listOf(.5f, .85f, .4f, .7f, .55f, .9f, .35f, .6f, .8f, .45f, .65f, .3f, .75f, .5f)), "🎤 Голосовое сообщение · ${dur(seconds)}")
     override fun sendVideoNote(chatId: Long, seconds: Int, path: String?, length: Int) =
         append(chatId, KxMessage(nextId++, true, "", now(), KxMsgKind.VideoNote, KxOutState.Sent, meta = dur(seconds)), "Видеосообщение")
+    override fun peer(chatId: Long): KxPeer {
+        val c = (list + archive).firstOrNull { it.id == chatId }
+        return if (chatId == 11L) KxPeer(11, 11, "Анна Ким", "в сети", online = true, premium = true, bio = "Люблю кино и горы 🏔", username = "anna",
+            phone = "+7 ··· ··· ·· ··", birthday = "14 марта", gifts = 3, commonGroups = 2, muted = c?.muted == true, colorIndex = 0,
+            counts = mapOf(KxSharedTab.Media to 48, KxSharedTab.Files to 6, KxSharedTab.Music to 12, KxSharedTab.Links to 9, KxSharedTab.Voice to 21, KxSharedTab.Gif to 4))
+        else KxPeer(chatId, chatId, c?.title ?: "Контакт", header(chatId).status, online = c?.online == true, muted = c?.muted == true, colorIndex = c?.colorIndex ?: -1)
+    }
+    override fun shared(chatId: Long, tab: KxSharedTab): List<KxSharedItem> = when (tab) {
+        KxSharedTab.Media -> (0..5).map { KxSharedItem(it.toLong(), look = it, video = if (it == 1) "0:24" else if (it == 4) "0:08" else null) }
+        KxSharedTab.Gif -> (0..2).map { KxSharedItem(it.toLong(), look = 10 + it) }
+        KxSharedTab.Files -> listOf(KxSharedItem(1, "Билеты_Октябрь.pdf", "248 КБ · сегодня", fileExt = "pdf"), KxSharedItem(2, "Бюджет поездки.xlsx", "36 КБ · вчера", fileExt = "xlsx"),
+            KxSharedItem(3, "Фото с гор.zip", "84 МБ · 12 нояб.", fileExt = "zip"))
+        KxSharedTab.Music -> listOf(KxSharedItem(1, "Лето — Ночные огни", "3:42 · сейчас играет", playing = true, look = 0), KxSharedItem(2, "Северный ветер", "4:05", look = 1), KxSharedItem(3, "Город спит", "2:58", look = 2))
+        KxSharedTab.Links -> listOf(KxSharedItem(1, "kinooktyabr.ru/afisha", "Афиша кинотеатра"), KxSharedItem(2, "maps.app/route", "Маршрут до озера"), KxSharedItem(3, "github.com/kirox", "kiroX на GitHub"))
+        KxSharedTab.Voice -> listOf(KxSharedItem(1, "Голосовое · 0:18", "Анна · сегодня 19:13"), KxSharedItem(2, "Голосовое · 1:02", "Вы · вчера"), KxSharedItem(3, "Кружок · 0:05", "Анна · вчера", video = "circle"))
+    }
     private var recVideo = false
     override fun recordStart(chatId: Long, video: Boolean) { recVideo = video }
     override fun recordStop(chatId: Long, send: Boolean, seconds: Int) {

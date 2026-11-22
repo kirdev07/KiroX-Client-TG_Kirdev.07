@@ -3,6 +3,8 @@ package com.kirox.app.ui.v3.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Construction
 import androidx.compose.material3.Icon
@@ -24,7 +26,10 @@ fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit
     Column(Modifier.fillMaxSize()) {
         KxTopBar("Архив", Modifier.statusBarsPadding(), subtitle = "Чаты без звука остаются тут, даже когда приходят новые сообщения", onBack = onBack)
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-            items(store.archivedChats, key = { it.id }) { c -> ChatRow(c, onClick = { onOpenChat(c.id) }, onLongClick = {}) }
+            itemsIndexed(store.archivedChats, key = { _, c -> c.id }) { i, c ->
+                if (i >= store.archivedChats.size - 10) LaunchedEffect(store.archivedChats.size) { store.loadMoreChats(-1) }
+                ChatRow(c, onClick = { onOpenChat(c.id) }, onLongClick = {})
+            }
         }
     }
 }
