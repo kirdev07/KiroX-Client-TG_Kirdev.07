@@ -141,7 +141,7 @@ private fun ProfileCard(store: KxStore, onOpen: (String) -> Unit) {
             }
             Spacer(Modifier.weight(1f))
             Text("Аккаунты", style = KxType.caption)
-            Row(Modifier.kxClick("Аккаунты") { onOpen("Accounts") }) {
+            Row(Modifier.padding(start = 2.dp).kxClick("Аккаунты") { onOpen("Accounts") }) {
                 store.accounts.forEachIndexed { i, a ->
                     val sw = if (i == 0) KxAvatarPalette.Swatch(Color(0xFF3E7A5A), Color(0xFF173A28), Color(0xFFDDF5E5)) else KxAvatarPalette.Swatch(Color(0xFF3C7BD0), Color(0xFF142A4A), Color(0xFFD6E6FF))
                     KxAvatar(a.name, a.id, Modifier.offset(x = (-8 * i).dp).border(2.dp, Color(0xFF14201A), CircleShape), size = 30.dp, swatch = sw, letterWeight = FontWeight.ExtraBold, letterSize = 12.sp)

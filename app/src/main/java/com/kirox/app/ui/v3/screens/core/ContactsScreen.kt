@@ -61,7 +61,7 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                         .kxClick(if (byName) "Сортировка: по имени" else "Сортировка: по времени захода") { byName = !byName }.padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Icon(Icons.Outlined.SwapVert, null, Modifier.size(18.dp), tint = Kx.text2)
-                        Text(if (byName) "А–Я" else "Время", style = KxType.style(13.sp, FontWeight.SemiBold, Kx.text2))
+                        Text(if (byName) "А–Я" else "В сети", style = KxType.style(13.sp, FontWeight.SemiBold, Kx.text2))
                     }
                     KxIconButton(Icons.Rounded.PersonAddAlt1, "Добавить контакт", size = 42.dp, accent = true) { ctx.open("AddContact") }
                 }
@@ -79,7 +79,7 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(20.dp))
                             .drawBehind { drawRect(Brush.linearGradient(listOf(Color(0x383F9A6C), Kx.w(.04f)), cssAngleStart(150f, size), cssAngleEnd(150f, size))) }
-                            .border(1.dp, Kx.accent.copy(alpha = .18f), RoundedCornerShape(20.dp)).kxClick { ctx.open("InviteFriends") }.padding(horizontal = 12.dp),
+                            .border(1.dp, Kx.accent.copy(alpha = .16f), RoundedCornerShape(20.dp)).kxClick { ctx.open("InviteFriends") }.padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Icon(Icons.Rounded.Share, null, tint = Kx.accent); Text("Пригласить", style = KxType.style(14.sp, FontWeight.SemiBold))
                         }
@@ -94,7 +94,10 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                 Row(Modifier.padding(top = 12.dp).horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     online.forEach { c ->
                         Column(Modifier.width(58.dp).clip(RoundedCornerShape(14.dp)).kxClick(c.name) { sheet = c }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            KxAvatar(c.name, c.id, size = 54.dp, online = true, colorIndex = c.colorIndex, photo = c.avatar)
+                            val pulse = remember { Animatable(0f) }
+                            val reduced = LocalKxReducedMotion.current
+                            LaunchedEffect(reduced) { if (!reduced) repeat(2) { pulse.animateTo(1f, tween(1000)); pulse.animateTo(0f, tween(1000)) } }
+                            KxAvatar(c.name, c.id, Modifier.graphicsLayer { val s = 1f + .04f * pulse.value; scaleX = s; scaleY = s }, size = 54.dp, online = true, colorIndex = c.colorIndex, photo = c.avatar)
                             Text(c.name.substringBefore(' '), style = KxType.style(11.sp), maxLines = 1)
                         }
                     }
@@ -102,7 +105,7 @@ fun ContactsScreen(ctx: KxScreenCtx) {
             }
             val groups: List<Pair<String, List<KxContact>>> = if (byName)
                 list.sortedWith(compareBy(java.text.Collator.getInstance(java.util.Locale.forLanguageTag("ru"))) { it.name }).groupBy { it.name.take(1).uppercase() }.toList()
-            else listOf("Недавно в сети" to (list.filter { it.online } + list.filterNot { it.online }))
+            else listOf("По времени захода" to (list.filter { it.online } + list.filterNot { it.online }))
             groups.forEach { (head, items) ->
                 item(key = "h$head") { Text(head, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)) }
                 items(items, key = { it.id }) { c ->
@@ -129,16 +132,17 @@ fun ContactsScreen(ctx: KxScreenCtx) {
 
 @Composable
 private fun ContactSheet(c: KxContact, ctx: KxScreenCtx, onClose: () -> Unit) {
+    val peer = remember(c.id) { runCatching { ctx.store.peer(c.id) }.getOrNull() }
     val y = remember { Animatable(1f) }
-    LaunchedEffect(Unit) { y.animateTo(0f, tween(300, easing = KxMotion.rise)) }
+    LaunchedEffect(Unit) { y.animateTo(0f, tween(380, easing = androidx.compose.animation.core.CubicBezierEasing(.2f, .9f, .25f, 1f))) }
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .55f)).kxClick("Закрыть", onClick = onClose))
         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
             .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Brush.verticalGradient(listOf(Color(0xF0222C27), Color(0xF7101412))))
-            .drawBehind { drawLine(Kx.w(.14f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp)) {
+            .drawBehind { drawLine(Kx.w(.14f), Offset(0f, .5f), Offset(size.width, .5f), 1f); drawLine(Kx.w(.2f), Offset(0f, 1.5f), Offset(size.width, 1.5f), 1f) }.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp)) {
             Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 14.dp).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                KxAvatar(c.name, c.id, size = 84.dp, colorIndex = c.colorIndex, photo = c.avatar)
+                KxAvatar(c.name, c.id, size = 84.dp, colorIndex = c.colorIndex, photo = c.avatar, letterWeight = FontWeight.ExtraBold, letterSize = 32.sp)
                 Text(c.name, style = KxType.style(22.sp, FontWeight.ExtraBold))
                 Text(c.status, style = KxType.style(13.sp, color = if (c.online) Kx.accent else Kx.text4))
             }
@@ -147,6 +151,19 @@ private fun ContactSheet(c: KxContact, ctx: KxScreenCtx, onClose: () -> Unit) {
                 SheetAction(Icons.Outlined.Call, "Звонок", Modifier.weight(1f)) { ctx.store.call(c.id, false); onClose() }
                 SheetAction(Icons.Outlined.Videocam, "Видео", Modifier.weight(1f)) { ctx.store.call(c.id, true); onClose() }
                 SheetAction(Icons.Outlined.Edit, "Изменить", Modifier.weight(1f)) { onClose(); ctx.open("EditContact") }
+            }
+            // Info card (phone + username) under the actions.
+            Column(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Phone, null, Modifier.size(20.dp), tint = Kx.text4)
+                    Text(peer?.phone?.ifEmpty { null } ?: "+7 ··· ··· ·· ··", style = KxType.style(14.sp), modifier = Modifier.weight(1f))
+                    Text("мобильный", style = KxType.style(12.sp, color = Kx.text4))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.AlternateEmail, null, Modifier.size(20.dp), tint = Kx.text4)
+                    Text(peer?.username?.takeIf { it.isNotEmpty() }?.let { "@$it" } ?: "нет имени пользователя", style = KxType.style(14.sp))
+                }
             }
         }
     }

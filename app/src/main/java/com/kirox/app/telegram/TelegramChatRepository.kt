@@ -64,9 +64,10 @@ class TelegramChatRepository(private val client: TelegramClient) {
     suspend fun createSecretChat(userId: Long): Long = client.query(TdApi.CreateNewSecretChat(userId)).id
 
     /** New folder with the given chats; returns its id. */
-    suspend fun createFolder(name: String, chatIds: List<Long>): Int {
+    /** [icon]: TDLib ChatFolderIcon name («Work», «Love»…), empty lets Telegram choose. */
+    suspend fun createFolder(name: String, chatIds: List<Long>, icon: String = ""): Int {
         val folder = TdApi.ChatFolder(
-            TdApi.ChatFolderName(TdApi.FormattedText(name, emptyArray()), false), null, -1, false,
+            TdApi.ChatFolderName(TdApi.FormattedText(name, emptyArray()), false), icon.takeIf { it.isNotBlank() }?.let { TdApi.ChatFolderIcon(it) }, -1, false,
             LongArray(0), chatIds.toLongArray(), LongArray(0), false, false, false, false, false, false, false, false
         )
         return client.query(TdApi.CreateChatFolder(folder)).id
@@ -355,8 +356,11 @@ class TelegramChatRepository(private val client: TelegramClient) {
     }
 
     /** Newest photos/videos, files, voice notes or links of a chat, for the profile tabs. */
-    suspend fun sharedMedia(chatId: Long, kind: SharedMediaKind): List<TelegramSharedItem> {
-        val filter: TdApi.SearchMessagesFilter = when (kind) {
+    /** GIFs of a chat (v3 «GIF» tab); a separate call so SharedMediaKind — the old profile's tabs — stays as it is. */
+    suspend fun sharedGifs(chatId: Long): List<TelegramSharedItem> = sharedMedia(chatId, SharedMediaKind.Media, TdApi.SearchMessagesFilterAnimation())
+
+    suspend fun sharedMedia(chatId: Long, kind: SharedMediaKind, filterOverride: TdApi.SearchMessagesFilter? = null): List<TelegramSharedItem> {
+        val filter: TdApi.SearchMessagesFilter = filterOverride ?: when (kind) {
             SharedMediaKind.Media -> TdApi.SearchMessagesFilterPhotoAndVideo()
             SharedMediaKind.Files -> TdApi.SearchMessagesFilterDocument()
             SharedMediaKind.Music -> TdApi.SearchMessagesFilterAudio()
@@ -368,6 +372,8 @@ class TelegramChatRepository(private val client: TelegramClient) {
             when (val content = message.content) {
                 is TdApi.MessagePhoto -> TelegramSharedItem(message.id, message.date, thumb = content.photo.sizes.minByOrNull { kotlin.math.abs(it.width - 320) }?.photo?.toRef(), full = content.photo.sizes.maxByOrNull { it.width }?.photo?.toRef())
                 is TdApi.MessageVideo -> TelegramSharedItem(message.id, message.date, thumb = content.video.thumbnail?.file?.toRef(), subtitle = durationText(content.video.duration), isVideo = true)
+                is TdApi.MessageAnimation -> TelegramSharedItem(message.id, message.date, thumb = content.animation.thumbnail?.file?.toRef(), subtitle = durationText(content.animation.duration),
+                    isVideo = true, file = content.animation.animation.toRef(), title = content.animation.fileName.orEmpty())
                 is TdApi.MessageDocument -> content.document.let { d ->
                     TelegramSharedItem(message.id, message.date, thumb = d.thumbnail?.file?.toRef(), title = d.fileName.ifBlank { "Файл" }, subtitle = sizeText(d.document.size),
                         file = d.document.toRef(), size = d.document.size.takeIf { it > 0 } ?: d.document.expectedSize, mimeType = d.mimeType.orEmpty())

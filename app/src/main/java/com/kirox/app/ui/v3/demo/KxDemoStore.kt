@@ -56,13 +56,12 @@ class KxDemoStore : KxStore {
         KxCall(6, 15, "Илья", "10:21", KxCallDir.Incoming, duration = "1 мин", colorIndex = 5),
     )
     override val contacts = listOf(
-        KxContact(11, "Анна", "в сети", online = true, hasStory = true, colorIndex = 0),
-        KxContact(17, "Дмитрий", "в сети", online = true, colorIndex = 1),
-        KxContact(15, "Илья", "был(а) 5 минут назад", colorIndex = 5),
-        KxContact(21, "Лиза", "был(а) вчера в 21:14", colorIndex = 4),
+        KxContact(11, "Анна Ким", "в сети", online = true, hasStory = true, colorIndex = 0),
+        KxContact(15, "Илья Петров", "был(а) 5 мин назад", colorIndex = 5),
+        KxContact(20, "Максим Ли", "в сети", online = true, colorIndex = 1),
         KxContact(13, "Мама", "был(а) недавно", colorIndex = 3),
-        KxContact(20, "Максим", "был(а) в 12:40", colorIndex = 1),
-        KxContact(16, "Света", "был(а) недавно", colorIndex = 6),
+        KxContact(16, "Света Орлова", "в сети", online = true, colorIndex = 6),
+        KxContact(17, "Дмитрий Ан", "был(а) на этой неделе", colorIndex = 2),
     )
     /** The board shows the sum of unread messages in unmuted chats. */
     override val unreadTotal: Int get() = list.filter { !it.muted }.sumOf { it.unread }

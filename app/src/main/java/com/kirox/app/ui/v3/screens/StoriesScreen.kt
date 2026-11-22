@@ -130,6 +130,7 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
         open = op; slide = sl
     }
     LaunchedEffect(open, slide) { store.viewStory(peer.id, s.id); progress.snapTo(0f) }
+    DisposableEffect(Unit) { onDispose { store.closeStory() } }
     LaunchedEffect(open, slide, paused) {
         if (!paused) { progress.animateTo(1f, tween(((1f - progress.value) * 5000).toInt().coerceAtLeast(1), easing = LinearEasing)); advance(1) }
         else progress.stop()

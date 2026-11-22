@@ -112,3 +112,9 @@
 - [x] Premium: star tile rests rotated -8° (also with reduced motion). Mockup kxStar (rotate -8°→8°→-8°, scale 1→1.08) runs 2 times with no fill-mode, so before/after and under reduced motion the tile is at 0° and scale 1 → rest pose rotationZ = 0, apply -8 + 16·v only while the animation runs (PremiumScreen.kt:198).
 - [x] Premium: «Эмодзи-статус» icon is Icons.Rounded.Mood (ring face). Mockup `ms fill` mood = solid face → Icons.Rounded.EmojiEmotions (minor).
 - Checked OK on screenshots: Group (hero 100 r34, actions, members/roles), Music (header, chips 34, Для вас cards, mini player), Premium layout/rows.
+
+## Round 9 — device (Xiaomi, build installed 02:13)
+- Re-verified on device (02:14): Round 5b hint bubble (right-aligned small, no icon) and attach grid (4px gaps, one r18 container, green camera tile) are fixed.
+- Device-verified OK: Settings → Конфиденциальность navigation, «Кто видит» picker sheet opens with radio choices; Settings accounts stack, Premium sheen runs.
+- [ ] Privacy (device): the «Номер телефона» picker sheet is see-through — rows of the screen behind («Приглашения», «Мои контакты», the switch) read clearly through the sheet AND through the choice rows. Mockup sheet bg linear-gradient(rgba(34,44,39,.94), rgba(16,20,18,.97)) (PORTING: sheets solid, no glass) → raise the sheet alpha to .94/.97 (or opaque #222C27→#101412) and give choice rows an opaque base so nothing behind shows through.
+- [ ] Settings (device): «Аккаунты» label touches the avatar stack (~2dp). Mockup gap 8px between the label and the stack → spacedBy(8.dp) / padding.

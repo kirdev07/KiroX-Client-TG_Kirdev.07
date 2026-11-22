@@ -158,3 +158,6 @@
 - 21:06 porter-tools: Update done
 - 21:06 porter-tools: NetCheck done — all 30 tools boards ported; kxbuild compile GREEN (whole module, exit 0)
 - 21:11 tg-tester: final check — no binder changes since 20:38; wiring of DeleteAccount/Logout has confirm dialogs (OK). Open in tg-tasks.md: 13 binder (none high; top: future dates «до 14:00», loadOnce offline retry, peer(), CloseStory, maskPhone), designer items incl. delete-dialog cases and confirm steps. v3data 39 tests, 38 pass. Handing off.
+- 21:14 ui-tester: round 9 — device check of the 02:13 build (Settings, Privacy sheet): 2 items. Total open items in ui-tasks.md: 10.
+- 21:15 ui-tester: final round for now — 10 items open (Contacts ×5, extra-boards ClassFormatError, Login decor −24dp, Privacy sheet transparency, Settings accounts gap, dock blur). Harness: V3ScreenshotTest (core screens) + V3RegistryScreenshotTest (all registered boards) → app/build/screenshots-v3/.
+- 21:15 binder: round 6 — all 13 tg-tester binder items fixed (futureTime/dateTime, loadOnce back-off, poll quiz index, peer(), closeStory (new contract member), story refetch limit, recording restart + 4 s chat action, maskPhone fallback, back() without LogOut, GIF tab, folder icon, stable account ids); ❤ without FE0F in KxStore default + demo. compile GREEN; v3data tests 39/39.

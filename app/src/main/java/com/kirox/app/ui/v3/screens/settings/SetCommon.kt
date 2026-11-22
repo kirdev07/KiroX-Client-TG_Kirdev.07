@@ -159,7 +159,7 @@ internal fun BoxScope.SSheet(onClose: () -> Unit, label: String? = null, top: Co
     Box(Modifier.matchParentSize().graphicsLayer { alpha = fade.value }.background(Color.Black.copy(alpha = .55f)).kxClick("Закрыть", onClick = onClose))
     Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = (1f - p.value) * size.height }
         .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
-        .background(Brush.verticalGradient(listOf(top, bottom)))
+        .background(Color(0xFF101412)).background(Brush.verticalGradient(listOf(top, bottom)))
         .drawBehind { drawLine(Kx.w(.2f), Offset(0f, 1.5f), Offset(size.width, 1.5f), 1f); drawLine(Kx.w(.16f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }
         .then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier)
         .clickable(interactionSource = null, indication = null) {}

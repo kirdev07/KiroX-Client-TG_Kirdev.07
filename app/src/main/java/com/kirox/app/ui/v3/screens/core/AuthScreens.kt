@@ -84,18 +84,18 @@ fun LoginScreen(auth: KxAuth) {
     val focusPulse = pulse(2200, times = 2, delayMs = 800)
     Box(Modifier.fillMaxSize().background(AuthBg)) {
         // Art (right side): glow, big green bubble, typing bubble, three twinkles.
-        Canvas(Modifier.align(Alignment.TopEnd).offset((40).dp, 70.dp).size(260.dp).graphicsLayer { val s = 1f + .12f * glow; scaleX = s; scaleY = s; alpha = .7f + .3f * glow }) {
+        Canvas(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((40).dp, 70.dp).size(260.dp).graphicsLayer { val s = 1f + .12f * glow; scaleX = s; scaleY = s; alpha = .7f + .3f * glow }) {
             drawCircle(Brush.radialGradient(listOf(Color(0x4746A06E), Color.Transparent), radius = size.minDimension / 2 * 1.41f * .65f))
         }
         Box(Modifier.fillMaxSize().graphicsLayer { translationY = -10.dp.toPx() * float }) {
-            Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-26).dp, 104.dp - 24.dp).size(116.dp, 84.dp)
+            Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-26).dp, 104.dp).size(116.dp, 84.dp)
                 .clip(RoundedCornerShape(30.dp, 30.dp, 8.dp, 30.dp))
                 .drawBehind { drawRect(Brush.linearGradient(0f to Color(0xFFA6E3C1), .35f to Color(0xFF6FC497), 1f to Color(0xFF2E7A54), start = cssAngleStart(150f, size), end = cssAngleEnd(150f, size))) }
                 .padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
                 Box(Modifier.fillMaxWidth(.7f).height(9.dp).clip(RoundedCornerShape(5.dp)).background(Color(0x8C06150D)))
                 Box(Modifier.fillMaxWidth(.45f).height(9.dp).clip(RoundedCornerShape(5.dp)).background(Color(0x5906150D)))
             }
-            Row(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-118).dp, 166.dp - 24.dp).size(84.dp, 50.dp).clip(RoundedCornerShape(22.dp, 22.dp, 22.dp, 6.dp))
+            Row(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-118).dp, 166.dp).size(84.dp, 50.dp).clip(RoundedCornerShape(22.dp, 22.dp, 22.dp, 6.dp))
                 .background(Color(0xE61A241F)).border(1.dp, Color(0xFF2E4A3A), RoundedCornerShape(22.dp, 22.dp, 22.dp, 6.dp)),
                 horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                 val t = rememberInfiniteTransition(label = "dots")
@@ -106,7 +106,7 @@ fun LoginScreen(auth: KxAuth) {
             }
         }
         listOf(Triple(168, 96, 6) to tw1, Triple(22, 250, 4) to tw2, Triple(120, 270, 3) to tw3).forEach { (p, a) ->
-            Box(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-p.first).dp, (p.second - 24).dp).size(p.third.dp).graphicsLayer { alpha = .15f + .85f * a }.clip(CircleShape).background(Kx.accentLight))
+            Box(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-p.first).dp, p.second.dp).size(p.third.dp).graphicsLayer { alpha = .15f + .85f * a }.clip(CircleShape).background(Kx.accentLight))
         }
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 24.dp)) {
             Box(Modifier.height(64.dp), contentAlignment = Alignment.CenterStart) {

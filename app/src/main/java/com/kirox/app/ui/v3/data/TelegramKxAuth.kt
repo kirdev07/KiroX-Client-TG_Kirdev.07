@@ -42,12 +42,14 @@ class TelegramKxAuth(
      * TDLib keeps its state; the next number is sent straight away (TDLib accepts a new
      * SetAuthenticationPhoneNumber in those states), so nothing is logged out.
      */
-    private var editingPhone by mutableStateOf(false)
+    private var editingFrom by mutableStateOf<TelegramAuthState?>(null)
+    /** True while the auth state is the one «Изменить номер» was pressed in (TDLib's next state ends it). */
+    private val editingPhone: Boolean get() = editingFrom != null && authState() === editingFrom
 
     /** Number check message from PhoneEntryState («Проверьте номер…»), shown before anything is sent. */
     private var localError by mutableStateOf<String?>(null)
 
-    override val step: KxAuthStep get() = authState().let { s -> if (editingPhone && canResetPhone(s)) KxAuthStep.Phone else stepOf(s) }
+    override val step: KxAuthStep get() = if (editingPhone) KxAuthStep.Phone else stepOf(authState())
     override val busy: Boolean get() = isBusy()
     override val error: String?
         get() = localError ?: blocked() ?: (authState() as? TelegramAuthState.Blocked)?.message ?: authError()
@@ -122,7 +124,6 @@ class TelegramKxAuth(
         phone.updateNumber(digits)
         if (!phone.validate()) { localError = (phone.status as? PhoneStatus.Error)?.message; return }
         localError = null
-        editingPhone = false
         vm.auth.clearError()
         vm.auth.phone(phone.internationalNumber)
     }
@@ -159,7 +160,7 @@ class TelegramKxAuth(
             // Inside password recovery, back only leaves the recovery (as the old screen does).
             step == KxAuthStep.Password && recoverySent() -> vm.auth.cancelPasswordRecovery()
             editingPhone -> Unit
-            canResetPhone(state) -> editingPhone = true
+            canResetPhone(state) -> editingFrom = state
             // QR login (and anything else) can only be left by abandoning it.
             step != KxAuthStep.Phone && step != KxAuthStep.Ready -> vm.auth.logOut()
         }
