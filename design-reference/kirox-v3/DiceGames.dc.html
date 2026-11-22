@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Игры в чате</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.92)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxRoll{0%{transform:rotate(0) scale(.6)}50%{transform:rotate(360deg) scale(1.1)}100%{transform:rotate(720deg) scale(1)}}
+@keyframes kxLand{0%{transform:scale(1.25)}60%{transform:scale(.92)}100%{transform:none}}
+@keyframes kxIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes kxScore{0%{transform:scale(1)}40%{transform:scale(1.35);color:#8FD3AC}100%{transform:scale(1)}}
+@keyframes kxScore2{0%{transform:scale(1)}40%{transform:scale(1.35);color:#8FD3AC}100%{transform:scale(1)}}
+@keyframes kxDots{0%,100%{opacity:.3}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #5C6661; display: flex; align-items: center; justify-content: center; font-weight: 800">О</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Олег</div><div style="font-size: 12px; color: {{statusInk}}">{{status}}</div></div>
+  </header>
+
+  <!-- Scoreboard -->
+  <div style="margin: 10px 12px 0; padding: 10px 14px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05)); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; gap: 10px">
+    <span style="font-size: 22px">{{gameEmoji}}</span>
+    <span style="flex: 1; font-size: 13px; font-weight: 700; color: #C9D2CC">{{gameName}} · до 3 побед</span>
+    <span style="font-size: 12px; color: #9AA59F">Вы</span>
+    <span style="font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; display: inline-block; animation: {{meAnim}}">{{me}}</span>
+    <span style="color: #8A958F">:</span>
+    <span style="font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; display: inline-block; animation: {{opAnim}}">{{op}}</span>
+    <span style="font-size: 12px; color: #9AA59F">Олег</span>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px">
+    <div style="align-self: flex-start; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">Кто проиграет — тот платит за кофе ☕</div>
+    <sc-for list="{{msgs}}" as="m" hint-placeholder-count="2">
+      <div style="align-self: {{m.side}}; display: flex; flex-direction: column; align-items: {{m.side}}; gap: 4px; animation: kxIn .3s ease both">
+        <span style="width: 96px; height: 96px; border-radius: 26px; background: {{m.bg}}; border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center; position: relative">
+          <span style="font-size: 52px; display: inline-block; animation: {{m.anim}}">{{m.e}}</span>
+          <span style="position: absolute; right: -6px; top: -6px; min-width: 28px; height: 28px; padding: 0 6px; box-sizing: border-box; border-radius: 14px; background: {{m.badgeBg}}; color: {{m.badgeInk}}; font-size: 14px; font-weight: 800; display: {{m.badgeShow}}; align-items: center; justify-content: center">{{m.v}}</span>
+        </span>
+        <span style="font-size: 12px; font-weight: 700; color: {{m.labInk}}">{{m.lab}}</span>
+      </div>
+    </sc-for>
+    <sc-if value="{{typing}}" hint-placeholder-val="{{false}}">
+      <div style="align-self: flex-start; padding: 10px 14px; border-radius: 18px; background: rgba(255,255,255,.07); display: flex; gap: 4px" aria-label="Олег бросает"><span style="width: 7px; height: 7px; border-radius: 4px; background: #9AA59F; animation: kxDots 1s ease 0s infinite"></span><span style="width: 7px; height: 7px; border-radius: 4px; background: #9AA59F; animation: kxDots 1s ease .2s infinite"></span><span style="width: 7px; height: 7px; border-radius: 4px; background: #9AA59F; animation: kxDots 1s ease .4s infinite"></span></div>
+    </sc-if>
+    <sc-if value="{{winner}}" hint-placeholder-val="{{false}}">
+      <div style="align-self: center; margin-top: 4px; padding: 12px 16px; border-radius: 20px; background: rgba(143,211,172,.12); border: 1px solid rgba(143,211,172,.35); text-align: center; animation: kxIn .3s ease both">
+        <div style="font-size: 15px; font-weight: 800">{{winText}}</div>
+        <button onClick="{{rematch}}" style="margin-top: 8px; height: 36px; padding: 0 14px; border-radius: 18px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 13px; font-weight: 800">Реванш</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- Game picker -->
+  <div style="padding: 8px 12px 18px; border-top: 1px solid rgba(255,255,255,.06)">
+    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px">
+      <sc-for list="{{games}}" as="g" hint-placeholder-count="6"><button onClick="{{g.tap}}" aria-label="{{g.name}}" aria-pressed="{{g.on}}" style="height: 50px; border-radius: 16px; background: {{g.bg}}; border: 1.5px solid {{g.bd}}; display: flex; align-items: center; justify-content: center; font-size: 26px; opacity: {{g.op}}">{{g.e}}</button></sc-for>
+    </div>
+    <button onClick="{{throwIt}}" style="margin-top: 8px; width: 100%; height: 52px; border-radius: 26px; background: {{thBg}}; color: {{thInk}}; font-size: 16px; font-weight: 800; text-align: center; transition: all .2s">{{thText}}</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PL = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
+
+const G = [
+  ['🎲', 'Кубик', v => 'Выпало ' + v],
+  ['🎯', 'Дартс', v => v === 6 ? 'В яблочко!' : v + ' ' + PL(v, 'очко', 'очка', 'очков')],
+  ['🏀', 'Баскетбол', v => v >= 4 ? 'Попадание!' : 'Мимо'],
+  ['⚽', 'Футбол', v => v >= 3 ? 'Гол!' : 'Штанга'],
+  ['🎳', 'Боулинг', v => v === 6 ? 'Страйк!' : 'Сбито ' + (v + 3)],
+  ['🎰', 'Слоты', v => v === 64 ? 'Джекпот! 7️⃣7️⃣7️⃣' : 'Почти…']
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { g: 0, msgs: [], me: 0, op: 0, busy: false, typing: false, mk: 0, ok: 0 }; }
+componentWillUnmount() { clearTimeout(this.t1); clearTimeout(this.t2); clearTimeout(this.t3); }
+roll(mine) {
+  const s = this.state;
+  const v = 1 + Math.floor(Math.random() * [6, 6, 5, 5, 6, 64][s.g]);
+  const id = Date.now() + (mine ? 0 : 1);
+  this.setState({ msgs: [...s.msgs, { id, mine, g: s.g, v, done: false }] });
+  return { id, v };
+}
+land(id) { this.setState({ msgs: this.state.msgs.map(m => m.id === id ? { ...m, done: true } : m) }); }
+renderVals() {
+  const s = this.state;
+  const game = G[s.g];
+  const over = s.me >= 3 || s.op >= 3;
+  const throwIt = () => {
+    if (s.busy || over) return;
+    this.setState({ busy: true });
+    const a = this.roll(true);
+    this.t1 = setTimeout(() => { this.land(a.id); this.setState({ typing: true }); }, 1100);
+    this.t2 = setTimeout(() => { this.setState({ typing: false }); const b = this.roll(false);
+      this.t3 = setTimeout(() => { this.land(b.id); const st = this.state;
+        if (a.v > b.v) this.setState({ me: st.me + 1, mk: st.mk + 1, busy: false });
+        else if (b.v > a.v) this.setState({ op: st.op + 1, ok: st.ok + 1, busy: false });
+        else this.setState({ busy: false });
+      }, 1100); }, 2200);
+  };
+  const last = s.msgs.slice(-4);
+  return {
+    status: s.typing ? 'бросает ' + game[0] + '…' : 'в сети', statusInk: s.typing ? '#E8B04A' : '#8FD3AC',
+    gameEmoji: game[0], gameName: game[1],
+    me: s.me, op: s.op,
+    meAnim: s.mk ? (s.mk % 2 ? 'kxScore2' : 'kxScore') + ' .5s ease both' : 'none',
+    opAnim: s.ok ? (s.ok % 2 ? 'kxScore2' : 'kxScore') + ' .5s ease both' : 'none',
+    msgs: last.map(m => { const gg = G[m.g]; return { side: m.mine ? 'flex-end' : 'flex-start', e: gg[0],
+      bg: m.mine ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.06)',
+      anim: m.done ? 'kxLand .35s ease both' : 'kxRoll 1.1s cubic-bezier(.3,.7,.3,1) both',
+      v: m.v, badgeShow: m.done ? 'flex' : 'none', badgeBg: m.v === 6 ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(40,48,44,.98)', badgeInk: m.v === 6 ? '#06150D' : '#EEF3EF',
+      lab: m.done ? (m.mine ? 'Вы · ' : 'Олег · ') + gg[2](m.v) : '…', labInk: m.done && m.v === 6 ? '#8FD3AC' : '#9AA59F' }; }),
+    typing: s.typing,
+    winner: over, winText: s.me >= 3 ? 'Вы победили! Кофе за соперником ☕' : 'Победа соперника. Кофе за вами ☕',
+    rematch: () => this.setState({ me: 0, op: 0, msgs: [], mk: 0, ok: 0 }),
+    games: G.map(([e, name], i) => { const on = s.g === i; return { e, name, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.05)', bd: on ? '#8FD3AC' : 'transparent', op: s.busy && !on ? .4 : 1, tap: () => !s.busy && this.setState({ g: i, me: 0, op: 0, msgs: [] }) }; }),
+    throwIt,
+    thText: over ? 'Партия окончена' : s.busy ? 'Ждём результат…' : 'Бросить ' + game[0],
+    thBg: over || s.busy ? 'rgba(255,255,255,.07)' : 'linear-gradient(135deg, #6FC497, #3F9A6C)', thInk: over || s.busy ? '#8A958F' : '#06150D'
+  };
+}
+}
+</script>
+</body>
+</html>

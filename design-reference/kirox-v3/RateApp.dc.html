@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Оцените kiroX</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.93)}
+textarea{font:inherit;color:inherit}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFace{0%{transform:scale(.6) rotate(-10deg)}60%{transform:scale(1.15) rotate(5deg)}100%{transform:none}}
+@keyframes kxFace2{0%{transform:scale(.6) rotate(-10deg)}60%{transform:scale(1.15) rotate(5deg)}100%{transform:none}}
+@keyframes kxHeart{0%{transform:translateY(0) scale(.5);opacity:0}20%{opacity:1}100%{transform:translateY(-180px) scale(1.2);opacity:0}}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <!-- Dim chat list behind -->
+  <div style="position: absolute; inset: 0; padding: 16px; opacity: .35" aria-hidden="true">
+    <div style="font-size: 24px; font-weight: 800">Чаты</div>
+    <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; gap: 12px; align-items: center"><span style="width: 48px; height: 48px; border-radius: 24px; background: #B07A2E"></span><span style="flex: 1; height: 12px; border-radius: 6px; background: rgba(255,255,255,.15)"></span></div>
+      <div style="display: flex; gap: 12px; align-items: center"><span style="width: 48px; height: 48px; border-radius: 24px; background: #C0443C"></span><span style="flex: 1; height: 12px; border-radius: 6px; background: rgba(255,255,255,.15)"></span></div>
+      <div style="display: flex; gap: 12px; align-items: center"><span style="width: 48px; height: 48px; border-radius: 24px; background: #2F6E9E"></span><span style="flex: 1; height: 12px; border-radius: 6px; background: rgba(255,255,255,.15)"></span></div>
+    </div>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(0,0,0,.45)"></div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 18px 26px; border-radius: 32px 32px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.98), rgba(18,22,20,1)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .4s cubic-bezier(.2,.8,.2,1) both">
+    <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 16px"></div>
+
+    <sc-if value="{{asking}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center">
+        <span style="position: relative; width: 96px; height: 96px; border-radius: 48px; background: {{faceBg}}; display: flex; align-items: center; justify-content: center; font-size: 56px; animation: {{faceAnim}}; transition: background .3s">{{face}}</span>
+        <div style="margin-top: 12px; font-size: 20px; font-weight: 800">Как вам новый kiroX?</div>
+        <div style="margin-top: 4px; font-size: 14px; color: {{moodInk}}; font-weight: 700; min-height: 20px">{{mood}}</div>
+        <div style="margin-top: 14px; width: 100%; display: flex; justify-content: space-between">
+          <sc-for list="{{faces}}" as="f" hint-placeholder-count="5"><button onClick="{{f.tap}}" aria-label="{{f.label}}" style="width: 58px; height: 58px; border-radius: 20px; background: {{f.bg}}; border: 2px solid {{f.bd}}; font-size: 30px; display: flex; align-items: center; justify-content: center; filter: {{f.filter}}; transform: {{f.tf}}; transition: all .2s">{{f.e}}</button></sc-for>
+        </div>
+      </div>
+      <sc-if value="{{low}}" hint-placeholder-val="{{false}}">
+        <div style="margin-top: 16px; animation: kxIn .25s ease both">
+          <div style="font-size: 13px; font-weight: 700; color: #8FD3AC">Что улучшить?</div>
+          <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px">
+            <sc-for list="{{tags}}" as="t" hint-placeholder-count="5"><button onClick="{{t.tap}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: {{t.bg}}; color: {{t.ink}}; border: 1px solid {{t.bd}}; font-size: 12px; font-weight: 700">{{t.label}}</button></sc-for>
+          </div>
+          <textarea onInput="{{onNote}}" placeholder="Пара слов разработчику (необязательно)" aria-label="Отзыв" style="margin-top: 10px; width: 100%; box-sizing: border-box; height: 64px; padding: 10px 12px; border-radius: 14px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.1); outline: none; resize: none; font-size: 14px"></textarea>
+        </div>
+      </sc-if>
+      <div style="margin-top: 16px; display: flex; gap: 8px">
+        <button onClick="{{later}}" style="height: 52px; padding: 0 18px; border-radius: 26px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700">Позже</button>
+        <button onClick="{{submit}}" style="flex: 1; height: 52px; border-radius: 26px; background: {{subBg}}; color: {{subInk}}; font-size: 15px; font-weight: 800; text-align: center; transition: all .2s">{{subText}}</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{thanks}}" hint-placeholder-val="{{false}}">
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 10px 0 6px">
+        <sc-for list="{{hearts}}" as="h" hint-placeholder-count="6"><span style="position: absolute; left: {{h.x}}; bottom: 40px; font-size: 22px; animation: kxHeart 1.6s ease-out {{h.d}} both">💚</span></sc-for>
+        <span style="width: 86px; height: 86px; border-radius: 43px; background: linear-gradient(135deg, #6FC497, #3F9A6C); display: flex; align-items: center; justify-content: center; color: #06150D; animation: kxFace .5s ease both"><span class="ms fill" style="font-size: 46px" aria-hidden="true">favorite</span></span>
+        <div style="margin-top: 14px; font-size: 20px; font-weight: 800">Спасибо!</div>
+        <div style="margin-top: 6px; font-size: 14px; color: #9AA59F; line-height: 1.45">{{thanksText}}</div>
+        <button onClick="{{restart}}" style="outline: 1px dashed rgba(143,211,172,.5); outline-offset: 2px; margin-top: 16px; height: 44px; padding: 0 18px; border-radius: 22px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; color: #8FD3AC">Макет: показать снова</button>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const F = [['😣', 'Совсем не нравится', '#E5534B'], ['😕', 'Так себе', '#E8B04A'], ['😐', 'Нормально', '#9AA59F'], ['🙂', 'Нравится', '#8FD3AC'], ['🤩', 'Обожаю!', '#8FD3AC']];
+const TAGS = ['Скорость', 'Дизайн', 'Уведомления', 'Звонки', 'Батарея'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { r: -1, k: 0, tags: {}, done: false }; }
+renderVals() {
+  const s = this.state;
+  const sel = s.r >= 0 ? F[s.r] : null;
+  const low = s.r >= 0 && s.r <= 2;
+  return {
+    asking: !s.done, thanks: s.done, low,
+    face: sel ? sel[0] : '💬', faceBg: sel ? sel[2] + '33' : 'rgba(255,255,255,.08)',
+    faceAnim: s.k ? (s.k % 2 ? 'kxFace' : 'kxFace2') + ' .4s ease both' : 'none',
+    mood: sel ? sel[1] : 'Выберите смайлик', moodInk: sel ? sel[2] : '#9AA59F',
+    faces: F.map(([e, label, c], i) => { const on = s.r === i; return { e, label, bg: on ? c + '2E' : 'rgba(255,255,255,.05)', bd: on ? c : 'transparent', filter: s.r >= 0 && !on ? 'grayscale(.7) opacity(.6)' : 'none', tf: on ? 'scale(1.12)' : 'none', tap: () => this.setState({ r: i, k: s.k + 1 }) }; }),
+    tags: TAGS.map((label, i) => { const on = !!s.tags[i]; return { label, bg: on ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: on ? '#8FD3AC' : '#C9D2CC', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', tap: () => this.setState({ tags: { ...s.tags, [i]: !on } }) }; }),
+    onNote: () => {},
+    subBg: s.r >= 0 ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', subInk: s.r >= 0 ? '#06150D' : '#8A958F',
+    subText: s.r >= 0 ? 'Отправить отзыв' : 'Оценить',
+    submit: () => s.r >= 0 && this.setState({ done: true }),
+    later: () => this.setState({ r: -1, tags: {} }),
+    hearts: Array.from({ length: 6 }, (_, i) => ({ x: (25 + i * 9) + '%', d: (i * 0.15) + 's' })),
+    thanksText: 'Отзыв ушёл разработчику. Если хотите, оцените kiroX и в магазине — при любой оценке.',
+    restart: () => this.setState({ r: -1, tags: {}, done: false })
+  };
+}
+}
+</script>
+</body>
+</html>

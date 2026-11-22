@@ -18,7 +18,7 @@ if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
     // releaseCheck (package com.kirox.app.check) is a local R8 check build without Firebase:
     // google-services.json has no client for it, so its config task is skipped.
-    tasks.matching { it.name == "processReleaseCheckGoogleServices" }.configureEach { enabled = false }
+    tasks.matching { it.name == "processReleaseCheckGoogleServices" || it.name == "processV3previewGoogleServices" }.configureEach { enabled = false }
 }
 
 android {
@@ -38,6 +38,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("int", "TELEGRAM_API_ID", secret("KIROX_API_ID", "kirox.apiId").toIntOrNull()?.toString() ?: "0")
         buildConfigField("boolean", "TELEGRAM_USE_TEST_DC", "false")
+        // kiroX v3 preview: the new design on demo data, as its own app (see buildTypes.v3preview).
+        buildConfigField("boolean", "KX_V3_DEMO", "false")
+        manifestPlaceholders["appLabel"] = "kiroX"
         buildConfigField("String", "TELEGRAM_API_HASH", "\"${secret("KIROX_API_HASH", "kirox.apiHash").replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         // TDLib ships arm64 only; the call engine is built for the same ABI.
         ndk { abiFilters += "arm64-v8a" }
@@ -90,6 +93,14 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".check"
             matchingFallbacks += "release"
+        }
+        // The new kiroX v3 design on demo data only: installed next to the real app, never signs in.
+        create("v3preview") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".v3"
+            matchingFallbacks += "debug"
+            buildConfigField("boolean", "KX_V3_DEMO", "true")
+            manifestPlaceholders["appLabel"] = "kiroX v3"
         }
     }
 

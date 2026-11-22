@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Поделиться папкой</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxIn2{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxFolder{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-3deg)}}
+@keyframes kxChip{0%{transform:scale(.6);opacity:0}100%{transform:none;opacity:1}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="flex: 1; font-size: 20px; font-weight: 800">{{title}}</span>
+  </header>
+
+  <div style="margin: 0 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 18px; background: rgba(255,255,255,.05)">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button onClick="{{t.tap}}" aria-pressed="{{t.on}}" style="height: 38px; border-radius: 14px; background: {{t.bg}}; color: {{t.ink}}; font-size: 13px; font-weight: 700; text-align: center">{{t.t}}</button></sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 16px 0; animation: {{tabAnim}}">
+    <div style="display: flex; flex-direction: column; align-items: center; text-align: center">
+      <span style="position: relative; width: 80px; height: 66px; animation: kxFolder 3s ease-in-out 2" aria-hidden="true">
+        <span style="position: absolute; left: 0; top: 0; width: 34px; height: 16px; border-radius: 8px 8px 0 0; background: #3F9A6C"></span>
+        <span style="position: absolute; left: 0; right: 0; top: 10px; bottom: 0; border-radius: 4px 14px 14px 14px; background: linear-gradient(135deg, #6FC497, #3F9A6C); display: flex; align-items: center; justify-content: center"><span class="ms fill" style="color: #06150D; font-size: 28px">{{folderIcon}}</span></span>
+      </span>
+      <div style="margin-top: 10px; font-size: 19px; font-weight: 800">{{heroTitle}}</div>
+      <div style="margin-top: 4px; font-size: 13px; color: #9AA59F; line-height: 1.4">{{heroSub}}</div>
+    </div>
+
+    <sc-if value="{{share}}" hint-placeholder-val="{{true}}">
+      <div style="margin-top: 14px; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid {{linkBd}}; display: flex; align-items: center; gap: 10px">
+        <span class="ms" style="color: #8FD3AC" aria-hidden="true">link</span>
+        <span style="flex: 1; font-size: 14px; font-weight: 700; color: {{linkInk}}">{{link}}</span>
+        <button onClick="{{copy}}" aria-label="Скопировать ссылку" style="width: 38px; height: 38px; border-radius: 19px; background: rgba(143,211,172,.14); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">content_copy</span></button>
+      </div>
+    </sc-if>
+
+    <div style="margin-top: 14px; display: flex; align-items: center"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">{{listTitle}}</span><button onClick="{{all}}" style="height: 30px; padding: 0 10px; border-radius: 15px; font-size: 12px; font-weight: 700; color: #9AA59F">{{allText}}</button></div>
+    <div style="margin-top: 6px; display: flex; flex-direction: column">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="6"><button onClick="{{r.tap}}" role="checkbox" aria-checked="{{r.on}}" style="width: 100%; min-height: 58px; display: flex; align-items: center; gap: 12px; opacity: {{r.op}}"><span style="width: 44px; height: 44px; border-radius: {{r.rad}}; background: {{r.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0">{{r.l}}</span><span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{r.n}}</span><span style="display: block; font-size: 12px; color: {{r.subInk}}">{{r.sub}}</span></span><span style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid {{r.cb}}; background: {{r.cf}}; color: #06150D; display: flex; align-items: center; justify-content: center; transition: all .15s"><span class="ms" style="font-size: 17px; font-weight: 700; display: {{r.tick}}" aria-hidden="true">check</span></span></button></sc-for>
+    </div>
+    <div style="height: 14px"></div>
+  </div>
+
+  <div style="padding: 10px 16px 20px">
+    <button onClick="{{main}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{mBg}}; color: {{mInk}}; font-size: 16px; font-weight: 800; text-align: center; transition: all .2s">{{mText}}</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 92px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const MINE = [
+  { n: 'Kotlin-клуб', l: 'K', c: '#3F9A6C', kind: 'Группа · вы админ', ok: true },
+  { n: 'Kotlin по-русски', l: 'K', c: '#2F6E9E', kind: 'Канал · вы админ', ok: true, ch: true },
+  { n: 'Android Dev KZ', l: 'A', c: '#B07A2E', kind: 'Группа · публичная', ok: true },
+  { n: 'Митапы Алматы', l: 'М', c: '#6A4C9C', kind: 'Канал · публичный', ok: true, ch: true },
+  { n: 'Анна', l: 'А', c: '#C0443C', kind: 'Личный чат — нельзя добавить', ok: false },
+  { n: 'Работа', l: 'Р', c: '#5C6661', kind: 'Частная группа без прав приглашать', ok: false }
+];
+const THEIRS = [
+  { n: 'Дизайн-ревью', l: 'Д', c: '#C0443C', kind: 'Группа · 340 участников', joined: false },
+  { n: 'Figma по-русски', l: 'F', c: '#6A4C9C', kind: 'Канал · 12 тыс. подписчиков', joined: false, ch: true },
+  { n: 'UX-заметки', l: 'U', c: '#2F6E9E', kind: 'Канал · вы уже подписаны', joined: true, ch: true },
+  { n: 'Иконки и шрифты', l: 'И', c: '#B07A2E', kind: 'Канал · 4 тыс. подписчиков', joined: false, ch: true },
+  { n: 'Портфолио-клуб', l: 'П', c: '#3F9A6C', kind: 'Группа · 98 участников', joined: false }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { tab: 0, k: 0, mine: { 0: 1, 1: 1, 2: 1 }, linked: false, theirs: { 0: 1, 1: 1, 3: 1, 4: 1 }, added: false, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2200); };
+  const share = s.tab === 0;
+  const word = (n) => n % 10 === 1 && n % 100 !== 11 ? 'чат' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'чата' : 'чатов';
+  const mineN = Object.keys(s.mine).filter(k => s.mine[k]).length;
+  const thN = Object.keys(s.theirs).filter(k => s.theirs[k]).length;
+  const cb = (on, dis) => ({ cb: dis ? 'rgba(255,255,255,.12)' : on ? '#8FD3AC' : 'rgba(255,255,255,.3)', cf: on ? '#8FD3AC' : 'transparent', tick: on ? 'inline-block' : 'none', on: on ? 'true' : 'false' });
+  return {
+    title: share ? 'Папка «Kotlin»' : 'Новая папка',
+    tabs: [['Вы делитесь', 0], ['Вам прислали', 1]].map(([t, i]) => { const on = s.tab === i; return { t, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.18)' : 'transparent', ink: on ? '#8FD3AC' : '#9AA59F', tap: () => this.setState({ tab: i, k: s.k + 1 }) }; }),
+    tabAnim: (s.k % 2 ? 'kxIn2' : 'kxIn') + ' .3s ease both',
+    folderIcon: share ? 'code' : 'palette',
+    heroTitle: share ? 'Поделиться папкой «Kotlin»' : 'Добавить папку «Дизайн»?',
+    heroSub: share ? 'По ссылке человек получит такую же папку и сможет вступить во все выбранные чаты сразу' : 'Лиза делится подборкой чатов. Отметьте, куда хотите вступить',
+    share,
+    link: s.linked ? 't.me/addlist/kX7pQ2…' : 'Ссылка появится после создания', linkInk: s.linked ? '#EEF3EF' : '#8A958F', linkBd: s.linked ? 'rgba(143,211,172,.35)' : 'rgba(255,255,255,.08)',
+    copy: () => s.linked ? say('Ссылка скопирована') : say('Сначала создайте ссылку'),
+    listTitle: share ? 'Что войдёт в ссылку · ' + mineN : 'Вступить · ' + thN + ' из ' + THEIRS.filter(x => !x.joined).length,
+    allText: share ? 'Все доступные' : (thN ? 'Снять все' : 'Выбрать все'),
+    all: () => share ? this.setState({ mine: { 0: 1, 1: 1, 2: 1, 3: 1 } }) : this.setState({ theirs: thN ? {} : { 0: 1, 1: 1, 3: 1, 4: 1 } }),
+    rows: share
+      ? MINE.map((x, i) => { const on = !!s.mine[i] && x.ok; return { n: x.n, l: x.l, c: x.c, rad: x.ch ? '14px' : '22px', sub: x.kind, subInk: x.ok ? '#9AA59F' : '#C9A06A', op: x.ok ? 1 : .55, ...cb(on, !x.ok), tap: () => x.ok ? this.setState({ mine: { ...s.mine, [i]: !s.mine[i] } }) : say('В ссылку можно добавить только группы и каналы, куда можно приглашать') }; })
+      : THEIRS.map((x, i) => { const on = x.joined || !!s.theirs[i]; return { n: x.n, l: x.l, c: x.c, rad: x.ch ? '14px' : '22px', sub: x.kind, subInk: x.joined ? '#8FD3AC' : '#9AA59F', op: x.joined ? .7 : 1, ...cb(on, x.joined), tap: () => !x.joined && this.setState({ theirs: { ...s.theirs, [i]: !s.theirs[i] } }) }; }),
+    mText: share ? (s.linked ? 'Поделиться ссылкой' : mineN ? 'Создать ссылку · ' + mineN + ' ' + word(mineN) : 'Выберите чаты') : (s.added ? 'Папка добавлена ✓' : 'Добавить папку' + (thN ? ' и вступить в ' + thN : '')),
+    mBg: (share ? mineN : !s.added) ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', mInk: (share ? mineN : !s.added) ? '#06150D' : '#8A958F',
+    main: () => { if (share) { if (!mineN) return; if (!s.linked) { this.setState({ linked: true }); say('Ссылка создана'); } else say('Откроем «Поделиться»'); } else if (!s.added) { this.setState({ added: true }); say('Папка «Дизайн» в списке чатов'); } },
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2.2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

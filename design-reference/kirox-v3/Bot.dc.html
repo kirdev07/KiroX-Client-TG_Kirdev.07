@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Бот и мини-приложение</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes kxDots{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxPop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes kxKb{from{transform:translateY(100%)}to{transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.05)">
+    <button aria-label="Назад" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: linear-gradient(140deg,#E8B04A,#8A5A14); color: #2A1A04; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 22px" aria-hidden="true">local_pizza</span></span>
+    <div style="flex: 1; min-width: 0">
+      <div style="font-size: 16px; font-weight: 800">Пицца рядом</div>
+      <div style="font-size: 12px; color: #9AA59F">бот · 12 400 пользователей</div>
+    </div>
+    <button aria-label="Ещё" style="width: 42px; height: 42px; border-radius: 21px; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">more_vert</span></button>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+    <sc-if value="{{fresh}}" hint-placeholder-val="{{true}}">
+      <div style="align-self: center; margin-top: 30px; width: 290px; border-radius: 24px; overflow: hidden; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.07); animation: kxIn .4s ease both">
+        <div style="height: 120px; background: radial-gradient(80% 90% at 30% 20%, #E8B04A, #8A3A14 70%); display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 64px; color: #2A1A04" aria-hidden="true">local_pizza</span></div>
+        <div style="padding: 14px 16px 16px">
+          <div style="font-size: 15px; font-weight: 800">Что умеет этот бот?</div>
+          <div style="margin-top: 6px; font-size: 13px; line-height: 19px; color: #C9D2CC">Покажу меню пиццерий рядом, соберу заказ и пришлю статус доставки.</div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-for list="{{msgs}}" as="m" hint-placeholder-count="2">
+      <div style="align-self: {{m.side}}; max-width: 82%; animation: kxIn .3s ease both">
+        <div style="padding: 9px 12px; border-radius: {{m.r}}; background: {{m.bg}}; color: {{m.ink}}; font-size: 15px; line-height: 1.38">{{m.text}}</div>
+        <sc-if value="{{m.hasBtns}}" hint-placeholder-val="{{false}}">
+          <div style="margin-top: 4px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px">
+            <sc-for list="{{m.btns}}" as="b" hint-placeholder-count="4"><button onClick="{{b.tap}}" style="grid-column: {{b.span}}; height: 40px; border-radius: 14px; background: rgba(143,211,172,.12); border: 1px solid rgba(143,211,172,.22); color: #8FD3AC; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><sc-if value="{{b.hasIcon}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="font-size: 17px" aria-hidden="true">{{b.icon}}</span></sc-if>{{b.label}}</button></sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+    <sc-if value="{{typing}}" hint-placeholder-val="{{false}}">
+      <div style="align-self: flex-start; height: 36px; padding: 0 14px; border-radius: 18px 18px 18px 5px; background: #161B18; display: flex; align-items: center; gap: 4px">
+        <span style="width: 6px; height: 6px; border-radius: 3px; background: #8A958F; animation: kxDots 1.2s infinite"></span><span style="width: 6px; height: 6px; border-radius: 3px; background: #8A958F; animation: kxDots 1.2s .15s infinite"></span><span style="width: 6px; height: 6px; border-radius: 3px; background: #8A958F; animation: kxDots 1.2s .3s infinite"></span>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- Bottom -->
+  <sc-if value="{{fresh}}" hint-placeholder-val="{{true}}">
+    <div style="padding: 8px 12px 20px"><button onClick="{{start}}" style="width: 100%; height: 54px; border-radius: 18px; background: linear-gradient(100deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; text-align: center; box-shadow: 0 10px 28px rgba(63,154,108,.35)">Запустить</button></div>
+  </sc-if>
+  <sc-if value="{{chatting}}" hint-placeholder-val="{{false}}">
+    <div>
+      <div style="padding: 6px 10px 8px; display: flex; align-items: center; gap: 8px">
+        <button onClick="{{toggleCmds}}" style="height: 46px; padding: 0 14px; border-radius: 23px; background: #8FD3AC; color: #06150D; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800"><span class="ms" style="font-size: 20px" aria-hidden="true">menu</span>Меню</button>
+        <div style="flex: 1; height: 46px; border-radius: 23px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; padding: 0 14px; color: #8A958F; font-size: 15px">Сообщение</div>
+        <button onClick="{{toggleKb}}" aria-label="Клавиатура бота" style="width: 46px; height: 46px; border-radius: 23px; background: rgba(255,255,255,.07); color: {{kbInk}}; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">{{kbIcon}}</span></button>
+      </div>
+      <sc-if value="{{kb}}" hint-placeholder-val="{{true}}">
+        <div style="padding: 8px 10px 18px; background: #111513; border-top: 1px solid rgba(255,255,255,.06); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; animation: kxKb .3s cubic-bezier(.2,.9,.3,1) both">
+          <sc-for list="{{keys}}" as="k" hint-placeholder-count="4"><button onClick="{{k.tap}}" style="height: 46px; border-radius: 14px; background: rgba(255,255,255,.07); font-size: 14px; font-weight: 600; text-align: center">{{k.label}}</button></sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- Commands -->
+  <sc-if value="{{cmds}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{toggleCmds}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.4); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; left: 10px; right: 10px; bottom: 76px; padding: 6px; border-radius: 22px; background: #161B18; border: 1px solid rgba(255,255,255,.08); box-shadow: 0 20px 50px rgba(0,0,0,.6); animation: kxIn .25s ease both">
+      <sc-for list="{{commands}}" as="c" hint-placeholder-count="4">
+        <button onClick="{{c.tap}}" style="width: 100%; padding: 10px 12px; border-radius: 16px; display: flex; align-items: center; gap: 12px">
+          <span style="font-size: 14px; font-weight: 800; color: #8FD3AC; width: 82px">{{c.cmd}}</span><span style="flex: 1; font-size: 14px; color: #C9D2CC">{{c.desc}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- Mini app -->
+  <sc-if value="{{app}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeApp}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 720px; border-radius: 30px 30px 0 0; background: #141110; overflow: hidden; display: flex; flex-direction: column; animation: kxSheet .4s cubic-bezier(.2,.9,.3,1) both">
+      <div style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; background: #1C1714">
+        <button onClick="{{closeApp}}" style="height: 34px; padding: 0 12px; border-radius: 17px; background: rgba(255,255,255,.08); font-size: 13px; font-weight: 700">Закрыть</button>
+        <div style="flex: 1; text-align: center"><div style="font-size: 15px; font-weight: 800">Пицца рядом</div><div style="font-size: 11px; color: #A8988C">мини-приложение</div></div>
+        <button aria-label="Ещё" style="width: 34px; height: 34px; border-radius: 17px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">more_horiz</span></button>
+      </div>
+      <div class="scroll" style="flex: 1; min-height: 0; padding: 14px">
+        <div style="font-size: 22px; font-weight: 800">Меню</div>
+        <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <sc-for list="{{pizzas}}" as="p" hint-placeholder-count="4">
+            <div style="border-radius: 20px; background: #221C18; padding: 10px; display: flex; flex-direction: column; align-items: center">
+              <span style="width: 86px; height: 86px; border-radius: 43px; background: {{p.bg}}; box-shadow: inset 0 0 0 6px #C98A3A; margin: 4px 0 8px"></span>
+              <span style="font-size: 14px; font-weight: 700">{{p.name}}</span>
+              <span style="font-size: 12px; color: #A8988C">{{p.price}}</span>
+              <sc-if value="{{p.none}}" hint-placeholder-val="{{true}}"><button onClick="{{p.add}}" style="margin-top: 8px; width: 100%; height: 34px; border-radius: 12px; background: #E8B04A; color: #2A1A04; font-size: 13px; font-weight: 800; text-align: center">Добавить</button></sc-if>
+              <sc-if value="{{p.some}}" hint-placeholder-val="{{false}}"><div style="margin-top: 8px; width: 100%; height: 34px; border-radius: 12px; background: rgba(232,176,74,.16); display: flex; align-items: center; justify-content: space-between; padding: 0 4px; box-sizing: border-box"><button onClick="{{p.sub}}" aria-label="Меньше" style="width: 28px; height: 28px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #E8B04A"><span class="ms" style="font-size: 18px" aria-hidden="true">remove</span></button><span style="font-size: 14px; font-weight: 800; color: #E8B04A; animation: kxPop .25s ease both">{{p.n}}</span><button onClick="{{p.add}}" aria-label="Больше" style="width: 28px; height: 28px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #E8B04A"><span class="ms" style="font-size: 18px" aria-hidden="true">add</span></button></div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <sc-if value="{{hasCart}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 10px 14px 22px; background: #1C1714"><button onClick="{{order}}" style="width: 100%; height: 52px; border-radius: 16px; background: #E8B04A; color: #2A1A04; font-size: 15px; font-weight: 800; text-align: center; animation: kxIn .25s ease both">Оформить · {{total}}</button></div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PIZZAS = [
+  { name: 'Маргарита', price: 3900, bg: 'radial-gradient(circle at 40% 40%, #F2D27A, #D9762E 70%)' },
+  { name: 'Пепперони', price: 4500, bg: 'radial-gradient(circle at 30% 30%, #B5402E 8px, transparent 9px), radial-gradient(circle at 65% 55%, #B5402E 8px, transparent 9px), radial-gradient(circle at 40% 70%, #B5402E 7px, transparent 8px), radial-gradient(circle, #F2C66A, #D9762E 70%)' },
+  { name: 'Грибная', price: 4200, bg: 'radial-gradient(circle at 35% 40%, #8C7A66 7px, transparent 8px), radial-gradient(circle at 62% 62%, #8C7A66 7px, transparent 8px), radial-gradient(circle, #F4E2B0, #C98A3A 70%)' },
+  { name: 'Четыре сыра', price: 4800, bg: 'radial-gradient(circle at 40% 40%, #FFF2C2, #E6B850 70%)' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { fresh: true, msgs: [], typing: false, kb: true, cmds: false, app: false, cart: [0, 0, 0, 0] }; }
+componentWillUnmount() { clearTimeout(this.t); }
+user(text) { this.setState({ msgs: [...this.state.msgs, { mine: true, text }], cmds: false }); }
+bot(text, btns, delay) {
+  this.setState({ typing: true });
+  clearTimeout(this.t);
+  this.t = setTimeout(() => this.setState({ typing: false, msgs: [...this.state.msgs, { mine: false, text, btns }] }), delay || 900);
+}
+renderVals() {
+  const s = this.state;
+  const openApp = () => this.setState({ app: true, cmds: false });
+  const MENU_BTNS = [{ label: 'Открыть меню', icon: 'storefront', app: true, span: 'span 2' }, { label: 'Акции' }, { label: 'Мои заказы' }];
+  const act = label => {
+    if (label === 'Акции') { this.user('Акции'); this.bot('Сегодня вторая пицца за полцены 🍕 Действует до 23:00.', [{ label: 'Открыть меню', icon: 'storefront', app: true, span: 'span 2' }]); }
+    else if (label === 'Мои заказы') { this.user('Мои заказы'); this.bot('Заказов пока нет. Самое время выбрать пиццу!', MENU_BTNS); }
+    else if (label === 'Помощь') { this.user('/help'); this.bot('Нажмите «Меню» слева от поля ввода или кнопку ниже.', MENU_BTNS); }
+  };
+  const msgs = s.msgs.map(m => ({
+    text: m.text, side: m.mine ? 'flex-end' : 'flex-start',
+    r: m.mine ? '18px 18px 5px 18px' : '18px 18px 18px 5px',
+    bg: m.mine ? 'linear-gradient(160deg, #2E6B4B, #1F4D36)' : '#161B18', ink: m.mine ? '#E6F6EC' : '#EEF3EF',
+    hasBtns: !!(m.btns && m.btns.length),
+    btns: (m.btns || []).map(b => ({ label: b.label, icon: b.icon || '', hasIcon: !!b.icon, span: b.span || 'auto', tap: () => b.app ? openApp() : act(b.label) }))
+  }));
+  const n = s.cart.reduce((a, b) => a + b, 0);
+  const sum = s.cart.reduce((a, c, i) => a + c * PIZZAS[i].price, 0);
+  const money = v => v.toLocaleString('ru-RU') + ' ₸';
+  return {
+    fresh: s.fresh, chatting: !s.fresh, msgs, typing: s.typing,
+    start: () => { this.setState({ fresh: false, msgs: [{ mine: true, text: '/start' }] }); this.bot('Привет! Я помогу заказать пиццу. Что делаем?', MENU_BTNS, 1000); },
+    kb: s.kb, toggleKb: () => this.setState({ kb: !s.kb }), kbIcon: s.kb ? 'keyboard_hide' : 'apps', kbInk: s.kb ? '#8FD3AC' : '#EEF3EF',
+    keys: ['Акции', 'Мои заказы', 'Помощь'].map(label => ({ label, tap: () => act(label) })).concat([{ label: '🍕 Меню', tap: openApp }]),
+    cmds: s.cmds, toggleCmds: () => this.setState({ cmds: !s.cmds }),
+    commands: [
+      { cmd: '/menu', desc: 'Открыть меню', tap: openApp },
+      { cmd: '/sale', desc: 'Акции дня', tap: () => act('Акции') },
+      { cmd: '/orders', desc: 'Мои заказы', tap: () => act('Мои заказы') },
+      { cmd: '/help', desc: 'Помощь', tap: () => act('Помощь') }
+    ],
+    app: s.app, closeApp: () => this.setState({ app: false }),
+    pizzas: PIZZAS.map((p, i) => {
+      const k = s.cart[i];
+      const set = v => { const cart = s.cart.slice(); cart[i] = Math.max(0, v); this.setState({ cart }); };
+      return { name: p.name, price: money(p.price), bg: p.bg, n: String(k), none: k === 0, some: k > 0, add: () => set(k + 1), sub: () => set(k - 1) };
+    }),
+    hasCart: n > 0, total: n + ' шт · ' + money(sum),
+    order: () => { const text = 'Заказ оформлен: ' + n + ' шт на ' + money(sum) + '. Курьер будет через 35 минут 🛵'; this.setState({ app: false, cart: [0, 0, 0, 0] }); this.bot(text, [{ label: 'Где курьер?', span: 'span 2' }], 700); }
+  };
+}
+}
+</script>
+</body>
+</html>

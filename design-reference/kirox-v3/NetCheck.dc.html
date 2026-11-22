@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Проверка соединения</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxPulse{0%{transform:scale(.6);opacity:.7}100%{transform:scale(2.2);opacity:0}}
+@keyframes kxPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.2);opacity:1}100%{transform:scale(1)}}
+@keyframes kxDash{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Проверка соединения</h1>
+  </header>
+
+  <!-- Path diagram -->
+  <div style="margin: 4px 16px 0; height: 150px; position: relative; border-radius: 26px; background: radial-gradient(90% 80% at 50% 0%, rgba(63,154,108,.18), transparent 70%), rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08)">
+    <svg width="358" height="150" viewBox="0 0 358 150" style="position: absolute; inset: 0" aria-hidden="true">
+      <line x1="70" y1="70" x2="179" y2="70" stroke="{{l1}}" stroke-width="3" stroke-dasharray="6 6" style="animation: {{d1}}"></line>
+      <line x1="179" y1="70" x2="288" y2="70" stroke="{{l2}}" stroke-width="3" stroke-dasharray="6 6" style="animation: {{d2}}"></line>
+    </svg>
+    <sc-for list="{{nodes}}" as="n" hint-placeholder-count="3">
+      <div style="position: absolute; left: {{n.x}}; top: 40px; width: 60px; margin-left: -30px; display: flex; flex-direction: column; align-items: center; gap: 6px">
+        <span style="position: relative; width: 60px; height: 60px; border-radius: 30px; background: {{n.bg}}; color: {{n.ink}}; border: 1.5px solid {{n.bd}}; display: flex; align-items: center; justify-content: center; transition: all .3s">
+          <sc-if value="{{n.busy}}" hint-placeholder-val="{{false}}"><span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8FD3AC; animation: kxPulse 1.2s ease-out infinite"></span></sc-if>
+          <span class="ms fill" style="font-size: 28px" aria-hidden="true">{{n.icon}}</span>
+        </span>
+        <span style="font-size: 11px; color: #C9D2CC; white-space: nowrap">{{n.label}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 16px 110px">
+    <!-- Steps -->
+    <div style="border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+        <div style="padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05)">
+          <span style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+            <sc-if value="{{s.wait}}" hint-placeholder-val="{{false}}"><span style="width: 10px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.2)"></span></sc-if>
+            <sc-if value="{{s.run}}" hint-placeholder-val="{{false}}"><span style="width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(143,211,172,.25); border-top-color: #8FD3AC; animation: kxSpin .8s linear infinite"></span></sc-if>
+            <sc-if value="{{s.ok}}" hint-placeholder-val="{{true}}"><span class="ms fill" style="color: {{s.ink}}; animation: kxPop .3s ease both" aria-hidden="true">{{s.icon}}</span></sc-if>
+          </span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{s.label}}</span><span style="display: block; font-size: 12px; color: {{s.subInk}}">{{s.sub}}</span></span>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- Data centers -->
+    <sc-if value="{{showDc}}" hint-placeholder-val="{{false}}">
+      <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px; animation: kxIn .3s ease both">Серверы Telegram · задержка</div>
+      <div style="padding: 12px 14px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); animation: kxIn .3s ease both">
+        <sc-for list="{{dcs}}" as="d" hint-placeholder-count="5">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0">
+            <span style="width: 56px; font-size: 13px; font-weight: 700">{{d.name}}</span>
+            <span style="flex: 1; height: 8px; border-radius: 4px; background: rgba(255,255,255,.06); overflow: hidden"><span style="display: block; height: 100%; width: {{d.w}}; border-radius: 0 4px 4px 0; background: {{d.c}}; transition: width .6s cubic-bezier(.2,.8,.2,1)"></span></span>
+            <span style="width: 64px; text-align: right; font-size: 13px; font-weight: 700; color: {{d.ink}}; font-variant-numeric: tabular-nums">{{d.ms}}</span>
+          </div>
+        </sc-for>
+        <div style="margin-top: 6px; font-size: 11px; color: #8A958F">Ваш сервер — DC2 (Европа). Меньше — лучше.</div>
+      </div>
+    </sc-if>
+
+    <!-- Verdict -->
+    <sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+      <div style="margin-top: 14px; padding: 14px 16px; border-radius: 22px; background: {{vBg}}; border: 1px solid {{vBd}}; display: flex; gap: 12px; animation: kxIn .3s ease both">
+        <span class="ms fill" style="color: {{vInk}}; font-size: 28px" aria-hidden="true">{{vIcon}}</span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 800">{{vTitle}}</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #C9D2CC; line-height: 1.4">{{vText}}</span></span>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; background: linear-gradient(180deg, rgba(10,12,11,0), #0A0C0B 40%); display: flex; gap: 8px">
+    <button onClick="{{toggleBad}}" style="height: 54px; padding: 0 14px; border-radius: 27px; background: rgba(255,255,255,.06); font-size: 12px; font-weight: 700; color: #9AA59F; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 18px" aria-hidden="true">{{badIcon}}</span>{{badText}}</button>
+    <button onClick="{{run}}" style="flex: 1; height: 54px; border-radius: 27px; background: {{runBg}}; color: {{runInk}}; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" aria-hidden="true">network_check</span>{{runText}}</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const STEPS = [['Интернет', 'wifi'], ['Имена сайтов (DNS)', 'dns'], ['Доступ к Telegram', 'send'], ['Скорость загрузки', 'speed']];
+const DCS = [['DC1', 186], ['DC2', 48], ['DC3', 192], ['DC4', 61], ['DC5', 214]];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { step: -1, bad: false, dc: false }; }
+componentWillUnmount() { clearTimeout(this.t); }
+run() {
+  clearTimeout(this.t);
+  this.setState({ step: 0, dc: false });
+  const tick = k => { this.t = setTimeout(() => { if (k < 4) { this.setState({ step: k + 1, dc: k + 1 >= 3 }); tick(k + 1); } }, 900); };
+  tick(0);
+}
+renderVals() {
+  const s = this.state;
+  const done = s.step >= 4;
+  const failAt = s.bad ? 2 : 99;
+  const st = i => s.step < 0 || i > s.step ? 'wait' : i === s.step && !done ? 'run' : i >= failAt ? 'fail' : 'ok';
+  const subs = s.bad ? ['Wi-Fi «Home_5G» · сигнал отличный', 'Работает', 'Сервер не отвечает — возможно, блокировка', 'Не проверялось'] : ['Wi-Fi «Home_5G» · сигнал отличный', 'Работает', 'Подключено к DC2 за 48 мс', '18,4 Мбит/с — фото и видео грузятся быстро'];
+  const nodeSt = [st(0), st(1), st(2)];
+  const ns = k => { const v = nodeSt[k]; return v === 'ok' ? ['rgba(143,211,172,.16)', '#8FD3AC', 'rgba(143,211,172,.5)'] : v === 'fail' ? ['rgba(229,83,75,.16)', '#FF8A80', 'rgba(229,83,75,.5)'] : v === 'run' ? ['rgba(255,255,255,.08)', '#EEF3EF', 'rgba(143,211,172,.5)'] : ['rgba(255,255,255,.04)', '#8A958F', 'rgba(255,255,255,.1)']; };
+  const lineC = k => { const v = nodeSt[k]; return v === 'ok' ? '#8FD3AC' : v === 'fail' ? '#FF8A80' : 'rgba(255,255,255,.15)'; };
+  return {
+    l1: lineC(1), l2: lineC(2),
+    d1: st(1) === 'run' ? 'kxDash .6s linear 2' : 'none', d2: st(2) === 'run' ? 'kxDash .6s linear 2' : 'none',
+    nodes: [['phone_android', 'Телефон', '18%'], ['router', 'Интернет', '50%'], ['send', 'Telegram', '82%']].map(([icon, label, x], k) => { const c = ns(k); return { icon, label, x, bg: c[0], ink: c[1], bd: c[2], busy: nodeSt[k] === 'run' }; }),
+    steps: STEPS.map(([label], i) => { const v = st(i); return { label, wait: v === 'wait', run: v === 'run', ok: v === 'ok' || v === 'fail', icon: v === 'fail' ? 'cancel' : 'check_circle', ink: v === 'fail' ? '#FF8A80' : '#8FD3AC', sub: v === 'wait' ? 'Ожидает' : v === 'run' ? 'Проверяем…' : subs[i], subInk: v === 'fail' ? '#FF8A80' : '#8A958F' }; }),
+    showDc: s.dc && !s.bad,
+    dcs: DCS.map(([name, ms]) => ({ name, w: Math.min(100, ms / 2.2) + '%', ms: ms + ' мс', c: ms < 80 ? '#8FD3AC' : ms < 150 ? '#E8B04A' : '#9AA59F', ink: ms < 80 ? '#8FD3AC' : '#C9D2CC' })),
+    done,
+    vBg: s.bad ? 'rgba(229,83,75,.08)' : 'rgba(143,211,172,.08)', vBd: s.bad ? 'rgba(229,83,75,.3)' : 'rgba(143,211,172,.3)', vInk: s.bad ? '#FF8A80' : '#8FD3AC',
+    vIcon: s.bad ? 'vpn_lock' : 'verified', vTitle: s.bad ? 'Telegram недоступен в этой сети' : 'Всё в порядке',
+    vText: s.bad ? 'Включите прокси в «Данные и память → Прокси» или попробуйте мобильный интернет.' : 'Соединение быстрое и стабильное. Если что-то не грузится — дело не в сети.',
+    run: () => this.run(), runText: s.step >= 0 && !done ? 'Проверяем…' : done ? 'Проверить снова' : 'Начать проверку',
+    runBg: s.step >= 0 && !done ? 'rgba(255,255,255,.07)' : 'linear-gradient(135deg, #6FC497, #3F9A6C)', runInk: s.step >= 0 && !done ? '#5C6661' : '#06150D',
+    toggleBad: () => this.setState({ bad: !s.bad, step: -1, dc: false }), badIcon: s.bad ? 'wifi_off' : 'wifi', badText: s.bad ? 'Пример: блок' : 'Пример: норма'
+  };
+}
+}
+</script>
+</body>
+</html>

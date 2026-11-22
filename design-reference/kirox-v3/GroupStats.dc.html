@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Статистика группы</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxW{from{width:0}}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxCell{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">Статистика группы</div><div style="font-size: 12px; color: #9AA59F">Android Dev KZ · 15–21 ноября</div></div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 0 16px 20px">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+      <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4"><div style="padding: 12px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.035)); border: 1px solid rgba(255,255,255,.08); animation: kxIn .3s ease {{k.d}} both"><div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9AA59F"><span class="ms" style="font-size: 16px" aria-hidden="true">{{k.i}}</span>{{k.t}}</div><div style="margin-top: 4px; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums">{{k.v}}</div><div style="font-size: 12px; font-weight: 700; color: {{k.dc}}">{{k.delta}}</div></div></sc-for>
+    </div>
+
+    <!-- Active hours heatmap -->
+    <div style="margin-top: 16px; padding: 14px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07)">
+      <div style="display: flex; align-items: center"><span style="flex: 1; font-size: 15px; font-weight: 800">Когда пишут · по часам и дням недели</span><span style="font-size: 12px; color: #9AA59F">{{hint}}</span></div>
+      <div style="margin-top: 10px; display: grid; grid-template-columns: 22px repeat(8, 1fr); gap: 3px; align-items: center">
+        <sc-for list="{{heat}}" as="h" hint-placeholder-count="63"><button onClick="{{h.tap}}" aria-label="{{h.aria}}" style="height: {{h.hgt}}; border-radius: 5px; background: {{h.bg}}; font-size: 11px; color: #8A958F; display: flex; align-items: center; justify-content: center; outline: {{h.ol}}; animation: kxCell .3s ease {{h.d}} both">{{h.t}}</button></sc-for>
+      </div>
+      <div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8A958F"><span>меньше</span><span style="width: 14px; height: 10px; border-radius: 3px; background: rgba(143,211,172,.1)"></span><span style="width: 14px; height: 10px; border-radius: 3px; background: rgba(143,211,172,.35)"></span><span style="width: 14px; height: 10px; border-radius: 3px; background: rgba(143,211,172,.65)"></span><span style="width: 14px; height: 10px; border-radius: 3px; background: #8FD3AC"></span><span>больше</span></div>
+    </div>
+
+    <!-- Top members -->
+    <div style="margin-top: 16px; font-size: 15px; font-weight: 800">Самые активные</div>
+    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 10px">
+      <sc-for list="{{tops}}" as="t" hint-placeholder-count="5"><div style="display: flex; align-items: center; gap: 10px"><span style="width: 18px; font-size: 13px; font-weight: 800; color: #8A958F; text-align: right">{{t.r}}</span><span style="width: 34px; height: 34px; border-radius: 17px; background: {{t.c}}; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0">{{t.l}}</span><div style="flex: 1; min-width: 0"><div style="display: flex; font-size: 13px"><span style="flex: 1; font-weight: 700">{{t.n}}</span><span style="font-weight: 800; font-variant-numeric: tabular-nums">{{t.v}}</span></div><div style="margin-top: 4px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.06)"><span style="display: block; height: 100%; width: {{t.w}}; border-radius: 3px; background: #8FD3AC; opacity: {{t.op}}; animation: kxW .8s cubic-bezier(.2,.8,.2,1) both"></span></div></div></div></sc-for>
+    </div>
+
+    <!-- Growth -->
+    <div style="margin-top: 16px; font-size: 15px; font-weight: 800">Участники за неделю</div>
+    <div style="margin-top: 8px; display: flex; gap: 8px">
+      <div style="flex: 1; padding: 12px; border-radius: 16px; background: rgba(143,211,172,.08); text-align: center"><div style="font-size: 20px; font-weight: 800; color: #8FD3AC">+64</div><div style="font-size: 11px; color: #9AA59F">вступили</div></div>
+      <div style="flex: 1; padding: 12px; border-radius: 16px; background: rgba(255,138,128,.08); text-align: center"><div style="font-size: 20px; font-weight: 800; color: #FF8A80">−18</div><div style="font-size: 11px; color: #9AA59F">вышли</div></div>
+      <div style="flex: 1; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.05); text-align: center"><div style="font-size: 20px; font-weight: 800">+46</div><div style="font-size: 11px; color: #9AA59F">итого</div></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const DAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+const HOURS = ['0', '3', '6', '9', '12', '15', '18', '21'];
+const M = [
+  [2, 0, 1, 14, 30, 28, 46, 40],
+  [3, 1, 1, 16, 34, 31, 52, 38],
+  [2, 0, 2, 18, 29, 35, 61, 44],
+  [4, 1, 1, 15, 33, 30, 49, 41],
+  [5, 2, 1, 12, 27, 26, 38, 57],
+  [9, 4, 0, 4, 18, 26, 33, 36],
+  [6, 2, 0, 3, 14, 22, 30, 27]
+];
+const TOP = [['Дмитрий', 'Д', '#3F9A6C', 214], ['Айгерим', 'А', '#B07A2E', 168], ['Сергей', 'С', '#6A4C9C', 131], ['Ерлан', 'Е', '#C0443C', 96], ['Дана', 'Д', '#7FB8E0', 72]];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { sel: [2, 6] }; }
+renderVals() {
+  const s = this.state;
+  const max = Math.max(...M.flat());
+  const shade = (v) => v === 0 ? 'rgba(255,255,255,.03)' : v / max < .25 ? 'rgba(143,211,172,.12)' : v / max < .5 ? 'rgba(143,211,172,.35)' : v / max < .8 ? 'rgba(143,211,172,.65)' : '#8FD3AC';
+  const heat = [{ t: '', hgt: '16px', bg: 'transparent', ol: 'none', aria: '', d: '0s', tap: () => {} }, ...HOURS.map(h => ({ t: h, hgt: '16px', bg: 'transparent', ol: 'none', aria: h + ' часов', d: '0s', tap: () => {} }))];
+  M.forEach((row, di) => { heat.push({ t: DAYS[di], hgt: '24px', bg: 'transparent', ol: 'none', aria: DAYS[di], d: '0s', tap: () => {} }); row.forEach((v, hi) => { const on = s.sel[0] === di && s.sel[1] === hi; heat.push({ t: '', hgt: '24px', bg: shade(v), ol: on ? '2px solid #EEF3EF' : 'none', aria: DAYS[di] + ', ' + HOURS[hi] + ':00–' + (Number(HOURS[hi]) + 3) + ':00 — ' + v + ' сообщений', d: ((di * 8 + hi) * 0.006) + 's', tap: () => this.setState({ sel: [di, hi] }) }); }); });
+  const v = M[s.sel[0]][s.sel[1]];
+  const h = Number(HOURS[s.sel[1]]);
+  return {
+    kpis: [['chat', 'Сообщений', '1 104', '+18% к прошлой неделе', '#8FD3AC'], ['person', 'Писали', '312', '+9%', '#8FD3AC'], ['visibility', 'Читали', '3 960', '−3%', '#FF8A80'], ['group_add', 'Новых', '64', '+22%', '#8FD3AC']].map(([i, t, val, delta, dc], n) => ({ i, t, v: val, delta, dc, d: (n * 0.05) + 's' })),
+    heat, hint: DAYS[s.sel[0]] + ', ' + h + ':00–' + (h + 3) + ':00 · ' + v + ' сообщ.',
+    tops: TOP.map(([n, l, c, val], i) => ({ r: i + 1, n, l, c, v: val, w: (val / TOP[0][3] * 100) + '%', op: 1 - i * 0.14 }))
+  };
+}
+}
+</script>
+</body>
+</html>

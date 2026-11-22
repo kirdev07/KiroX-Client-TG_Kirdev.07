@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Виджеты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes kxDrop{0%{transform:translateY(-30px) scale(.9);opacity:0}60%{transform:translateY(4px) scale(1.02);opacity:1}100%{transform:none}}
+@keyframes kxDrop2{0%{transform:translateY(-30px) scale(.9);opacity:0}60%{transform:translateY(4px) scale(1.02);opacity:1}100%{transform:none}}
+@keyframes kxBadge{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Виджеты</h1>
+  </header>
+
+  <!-- Fake home screen -->
+  <div style="margin: 4px 16px 0; height: 330px; position: relative; border-radius: 28px; overflow: hidden; background: {{wall}}; transition: background .5s">
+    <div style="position: absolute; left: 16px; top: 14px; font-size: 40px; font-weight: 300; letter-spacing: -1px; color: rgba(255,255,255,.95)">18:04</div>
+    <div style="position: absolute; left: 18px; top: 62px; font-size: 12px; color: rgba(255,255,255,.75)">Воскресенье, 22 ноября</div>
+
+    <!-- widget slot -->
+    <div style="position: absolute; left: 14px; right: 14px; top: 96px; animation: {{dropAnim}}">
+      <sc-if value="{{wChats}}" hint-placeholder-val="{{true}}">
+        <div style="padding: 12px; border-radius: {{radius}}; background: {{wBg}}; backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%); border: 1px solid rgba(255,255,255,.18)">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: {{wAccent}}"><span style="width: 18px; height: 18px; border-radius: 6px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center">kX</span>Чаты<span style="margin-left: auto; color: rgba(255,255,255,.7); font-weight: 600">{{unreadText}}</span></div>
+          <sc-for list="{{chats}}" as="c" hint-placeholder-count="3">
+            <div style="margin-top: 8px; display: flex; align-items: center; gap: 10px">
+              <span style="width: 34px; height: 34px; border-radius: 17px; background: {{c.c}}; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0">{{c.l}}</span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 700">{{c.name}}</span><span style="display: block; font-size: 12px; color: rgba(255,255,255,.75); overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{c.msg}}</span></span>
+              <sc-if value="{{c.unread}}" hint-placeholder-val="{{false}}"><span style="min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: {{wAccent}}; color: #06150D; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{c.n}}</span></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{wPeople}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 14px 10px; border-radius: {{radius}}; background: {{wBg}}; backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%); border: 1px solid rgba(255,255,255,.18); display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px">
+          <sc-for list="{{people}}" as="p" hint-placeholder-count="4">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+              <span style="position: relative; width: 52px; height: 52px; border-radius: 26px; background: {{p.c}}; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800">{{p.l}}
+                <sc-if value="{{p.unread}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: -2px; top: -2px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; background: {{wAccent}}; color: #06150D; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; animation: kxBadge 1.6s ease-in-out 2">{{p.n}}</span></sc-if>
+              </span>
+              <span style="font-size: 11px; color: rgba(255,255,255,.85)">{{p.name}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{wCompact}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; gap: 10px">
+          <div style="width: 150px; height: 150px; padding: 14px; box-sizing: border-box; border-radius: {{radius}}; background: {{wBg}}; backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%); border: 1px solid rgba(255,255,255,.18); display: flex; flex-direction: column">
+            <span style="width: 30px; height: 30px; border-radius: 10px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center">kX</span>
+            <span style="margin-top: auto; font-size: 40px; font-weight: 800; line-height: 1; color: {{wAccent}}">{{unreadNum}}</span>
+            <span style="font-size: 12px; color: rgba(255,255,255,.8)">непрочитанных</span>
+          </div>
+          <div style="flex: 1; display: grid; grid-template-rows: 1fr 1fr; gap: 10px">
+            <div style="border-radius: {{radiusSm}}; background: {{wBg}}; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 700"><span class="ms fill" style="color: {{wAccent}}" aria-hidden="true">edit_square</span>Написать</div>
+            <div style="border-radius: {{radiusSm}}; background: {{wBg}}; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 700"><span class="ms fill" style="color: {{wAccent}}" aria-hidden="true">bookmark</span>Избранное</div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; gap: 18px">
+      <sc-for list="{{dock}}" as="d" hint-placeholder-count="4"><span style="width: 46px; height: 46px; border-radius: 15px; background: rgba(255,255,255,.18); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center"><span class="ms" style="color: #fff" aria-hidden="true">{{d}}</span></span></sc-for>
+    </div>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 16px 110px">
+    <div style="font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">Виджет</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px">
+      <sc-for list="{{types}}" as="t" hint-placeholder-count="3"><button onClick="{{t.tap}}" aria-pressed="{{t.on}}" style="padding: 12px 8px; border-radius: 18px; background: {{t.bg}}; border: 1px solid {{t.bd}}; text-align: center; transition: all .2s"><span class="ms" style="color: {{t.ic}}; font-variation-settings: {{t.fill}}" aria-hidden="true">{{t.icon}}</span><span style="display: block; margin-top: 4px; font-size: 13px; font-weight: 700">{{t.label}}</span><span style="display: block; font-size: 11px; color: #8A958F">{{t.size}}</span></button></sc-for>
+    </div>
+    <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">Стиль</div>
+    <div style="display: flex; gap: 8px">
+      <sc-for list="{{styles}}" as="s" hint-placeholder-count="3"><button onClick="{{s.tap}}" aria-pressed="{{s.on}}" style="flex: 1; height: 46px; border-radius: 16px; background: {{s.bg}}; border: 1.5px solid {{s.bd}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><span style="width: 16px; height: 16px; border-radius: 5px; background: {{s.sw}}; border: 1px solid rgba(255,255,255,.3)"></span>{{s.label}}</button></sc-for>
+    </div>
+    <div style="margin-top: 12px; display: flex; gap: 8px">
+      <sc-for list="{{walls}}" as="w" hint-placeholder-count="3"><button onClick="{{w.tap}}" aria-label="{{w.label}}" style="flex: 1; height: 44px; border-radius: 14px; background: {{w.bg}}; border: 2px solid {{w.bd}}"></button></sc-for>
+    </div>
+    <div style="margin-top: 6px; font-size: 11px; color: #8A958F; text-align: center">Фон только для примера</div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; background: linear-gradient(180deg, rgba(10,12,11,0), #0A0C0B 40%)">
+    <button onClick="{{add}}" style="width: 100%; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" aria-hidden="true">add_to_home_screen</span>Добавить на главный экран</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">add_to_home_screen</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PL = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
+
+const CHATS = [['Мама', 'М', '#B07A2E', 'Купи хлеб по дороге 🙂', 2], ['Kotlin-клуб', 'K', '#2F6E9E', 'Дмитрий: PR готов к ревью', 14], ['Анна', 'А', '#C0443C', 'Фото с дачи 📸', 0]];
+const PEOPLE = [['Мама', 'М', '#B07A2E', 2], ['Анна', 'А', '#C0443C', 0], ['Папа', 'П', '#2F6E9E', 1], ['Лиза', 'Л', '#6A4C9C', 0]];
+const STYLES = [['Стекло', 'linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,.08))', '#8FD3AC', 'rgba(255,255,255,.3)'], ['Тёмный', 'rgba(10,12,11,.82)', '#8FD3AC', '#0A0C0B'], ['Мятный', 'linear-gradient(160deg, rgba(63,154,108,.85), rgba(30,75,54,.85))', '#EEF3EF', '#3F9A6C']];
+const WALLS = ['radial-gradient(80% 60% at 30% 20%, #F2B866, transparent 60%), linear-gradient(180deg, #E07A4F, #6A4C9C 60%, #1E1530)', 'radial-gradient(80% 60% at 70% 20%, #9CC4E8, transparent 60%), linear-gradient(180deg, #2F6E9E, #0D1A26)', 'linear-gradient(160deg, #1A201D, #050606)'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { type: 0, style: 0, wall: 0, k: 0, toast: 0, toastText: '' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const st = STYLES[s.style];
+  const unread = CHATS.reduce((a, c) => a + c[4], 0);
+  return {
+    wall: WALLS[s.wall], dropAnim: (s.k % 2 ? 'kxDrop2' : 'kxDrop') + ' .45s cubic-bezier(.2,.8,.2,1) both',
+    wChats: s.type === 0, wPeople: s.type === 1, wCompact: s.type === 2,
+    wBg: st[1], wAccent: st[2], radius: '26px', radiusSm: '20px',
+    unreadText: unread + ' ' + PL(unread, 'новое', 'новых', 'новых'), unreadNum: String(unread),
+    chats: CHATS.map(([name, l, c, msg, n]) => ({ name, l, c, msg, n: String(n), unread: n > 0 })),
+    people: PEOPLE.map(([name, l, c, n]) => ({ name, l, c, n: String(n), unread: n > 0 })),
+    dock: ['call', 'chat', 'photo_camera', 'public'],
+    types: [['Чаты', 'forum', '4 × 2'], ['Люди', 'groups', '4 × 1'], ['Счётчик', 'counter_1', '2 × 2 + кнопки']].map(([label, icon, size], i) => { const on = s.type === i; return { label, icon, size, on, bg: on ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.04)', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', ic: on ? '#8FD3AC' : '#9AA59F', fill: on ? "'FILL' 1" : "'FILL' 0", tap: () => this.setState({ type: i, k: s.k + 1 }) }; }),
+    styles: STYLES.map(([label, , , sw], i) => ({ label, sw, on: s.style === i, bg: s.style === i ? 'rgba(143,211,172,.1)' : 'rgba(255,255,255,.04)', bd: s.style === i ? '#8FD3AC' : 'rgba(255,255,255,.08)', tap: () => this.setState({ style: i }) })),
+    walls: WALLS.map((bg, i) => ({ bg, bd: s.wall === i ? '#8FD3AC' : 'transparent', label: 'Фон ' + (i + 1), tap: () => this.setState({ wall: i }) })),
+    add: () => { clearTimeout(this.tt); this.setState({ toast: s.toast + 1, toastText: 'Android спросит, куда поставить виджет' }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); },
+    toast: s.toast > 0, toastText: s.toastText
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Быстрые ответы</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+input,textarea{font:inherit;color:inherit;background:none;border:0;outline:0;resize:none}
+input::placeholder,textarea::placeholder{color:#8A958F}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button onClick="{{goList}}" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 22px; font-weight: 800">{{title}}</h1>
+    <div style="display: flex; padding: 3px; border-radius: 16px; background: rgba(255,255,255,.06)">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button onClick="{{t.tap}}" style="height: 32px; padding: 0 12px; border-radius: 13px; background: {{t.bg}}; color: {{t.ink}}; font-size: 12px; font-weight: 800; transition: all .2s">{{t.label}}</button></sc-for>
+    </div>
+  </header>
+
+  <!-- List -->
+  <sc-if value="{{listView}}" hint-placeholder-val="{{true}}">
+    <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 110px">
+      <div style="padding: 12px 14px; border-radius: 18px; background: rgba(143,211,172,.07); border: 1px solid rgba(143,211,172,.18); display: flex; gap: 10px; font-size: 13px; line-height: 18px; color: #C9D2CC"><span class="ms" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">bolt</span><span>Наберите <b style="color: #8FD3AC">/</b> в любом чате, чтобы быстро вставить готовый ответ.</span></div>
+      <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{items}}" as="q" hint-placeholder-count="4">
+          <button onClick="{{q.edit}}" style="width: 100%; padding: 12px 14px; border-radius: 20px; background: rgba(255,255,255,.045); display: flex; gap: 12px; align-items: flex-start; animation: kxIn .3s ease {{q.d}} both">
+            <span style="height: 28px; padding: 0 10px; border-radius: 14px; background: rgba(143,211,172,.14); color: #8FD3AC; font-size: 13px; font-weight: 800; display: flex; align-items: center; flex-shrink: 0">/{{q.key}}</span>
+            <span style="flex: 1; min-width: 0; font-size: 14px; line-height: 19px; color: #C9D2CC; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">{{q.text}}</span>
+            <span style="font-size: 11px; color: #8A958F; flex-shrink: 0; margin-top: 6px">{{q.uses}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <button onClick="{{newItem}}" style="position: absolute; left: 16px; right: 16px; bottom: 26px; height: 56px; border-radius: 18px; background: linear-gradient(100deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 28px rgba(63,154,108,.35)"><span class="ms" aria-hidden="true">add</span>Новый ответ</button>
+  </sc-if>
+
+  <!-- Chat demo -->
+  <sc-if value="{{chatView}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column">
+      <div class="scroll" style="flex: 1; min-height: 0; padding: 10px 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; background: radial-gradient(120% 60% at 100% 0%, rgba(63,154,108,.12), #0A0C0B 60%)">
+        <div style="align-self: flex-start; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 5px; background: #161B18; font-size: 15px; line-height: 1.35">Здравствуйте! Вы работаете в воскресенье?</div>
+        <sc-for list="{{sent}}" as="m" hint-placeholder-count="1"><div style="align-self: flex-end; max-width: 80%; padding: 8px 12px; border-radius: 18px 18px 5px 18px; background: linear-gradient(160deg, #2E6B4B, #1F4D36); color: #E6F6EC; font-size: 15px; line-height: 1.35; animation: kxUp .3s ease both">{{m}}</div></sc-for>
+      </div>
+      <sc-if value="{{suggest}}" hint-placeholder-val="{{true}}">
+        <div style="margin: 0 10px; padding: 6px; border-radius: 20px; background: #161B18; border: 1px solid rgba(255,255,255,.08); box-shadow: 0 -10px 30px rgba(0,0,0,.4); animation: kxUp .2s ease both">
+          <sc-for list="{{matches}}" as="q" hint-placeholder-count="3">
+            <button onClick="{{q.use}}" style="width: 100%; padding: 9px 10px; border-radius: 14px; display: flex; gap: 10px; align-items: center">
+              <span style="font-size: 13px; font-weight: 800; color: #8FD3AC; width: 74px; flex-shrink: 0">/{{q.key}}</span>
+              <span style="flex: 1; min-width: 0; font-size: 13px; color: #C9D2CC; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{q.text}}</span>
+            </button>
+          </sc-for>
+          <sc-if value="{{noMatch}}" hint-placeholder-val="{{false}}"><div style="padding: 10px; font-size: 13px; color: #8A958F">Нет ответа с таким именем</div></sc-if>
+        </div>
+      </sc-if>
+      <div style="padding: 8px 10px 18px; display: flex; align-items: center; gap: 8px">
+        <div style="flex: 1; height: 46px; border-radius: 23px; background: rgba(255,255,255,.07); border: 1px solid {{inBorder}}; display: flex; align-items: center; padding: 0 14px">
+          <input aria-label="Сообщение" placeholder="Наберите /" value="{{draft}}" onInput="{{onDraft}}" style="flex: 1; font-size: 15px">
+        </div>
+        <button onClick="{{send}}" aria-label="Отправить" style="width: 46px; height: 46px; border-radius: 23px; background: linear-gradient(140deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">send</span></button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Editor sheet -->
+  <sc-if value="{{editor}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeEditor}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px 12px; font-size: 18px; font-weight: 800">{{editorTitle}}</div>
+      <div style="height: 52px; border-radius: 16px; background: rgba(255,255,255,.05); border: 1px solid {{keyBorder}}; display: flex; align-items: center; padding: 0 14px; gap: 2px"><span style="font-size: 16px; font-weight: 800; color: #8FD3AC">/</span><input aria-label="Короткое имя" placeholder="имя" value="{{ek}}" onInput="{{onEk}}" style="flex: 1; font-size: 16px; font-weight: 700"></div>
+      <div style="margin-top: 8px; border-radius: 16px; background: rgba(255,255,255,.05); padding: 12px 14px"><textarea aria-label="Текст ответа" rows="4" placeholder="Текст ответа" onInput="{{onEt}}" style="width: 100%; font-size: 15px; line-height: 21px">{{et}}</textarea></div>
+      <div style="margin-top: 12px; display: flex; gap: 8px">
+        <sc-if value="{{canDelete}}" hint-placeholder-val="{{false}}"><button onClick="{{del}}" aria-label="Удалить" style="width: 52px; height: 52px; border-radius: 16px; background: rgba(255,138,128,.1); color: #FF8A80; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">delete</span></button></sc-if>
+        <button onClick="{{saveItem}}" style="flex: 1; height: 52px; border-radius: 16px; background: {{saveBg}}; color: {{saveInk}}; font-size: 15px; font-weight: 800; text-align: center; transition: all .2s">Сохранить</button>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { view: 'list', list: [
+    { key: 'привет', text: 'Здравствуйте! Спасибо, что написали 🙂 Отвечу в течение часа.', uses: 24 },
+    { key: 'график', text: 'Работаем каждый день с 10:00 до 20:00, в воскресенье до 18:00.', uses: 17 },
+    { key: 'адрес', text: 'Мы на ул. Примерная, 12, вход со двора. Есть парковка.', uses: 9 },
+    { key: 'оплата', text: 'Принимаем карты, переводы и наличные. Чек пришлём в этот чат.', uses: 5 }
+  ], editing: -2, ek: '', et: '', draft: '/', sent: [] };
+}
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const q = s.draft.startsWith('/') ? s.draft.slice(1).toLowerCase() : null;
+  const matches = q === null ? [] : s.list.filter(x => x.key.startsWith(q));
+  const canSave = /^[a-zа-яё0-9_]{2,}$/i.test(s.ek.trim()) && s.et.trim().length > 0;
+  const use = x => { const list = s.list.map(y => y === x ? { ...y, uses: y.uses + 1 } : y); this.setState({ sent: [...s.sent, x.text], draft: '', list }); };
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    title: s.view === 'list' ? 'Быстрые ответы' : 'Проверка',
+    tabs: [['list', 'Список'], ['chat', 'В чате']].map(([id, label]) => ({ label, bg: s.view === id ? 'rgba(143,211,172,.16)' : 'transparent', ink: s.view === id ? '#8FD3AC' : '#9AA59F', tap: () => this.setState({ view: id, draft: '/', sent: id === 'chat' ? [] : s.sent }) })),
+    goList: () => this.setState({ view: 'list' }),
+    listView: s.view === 'list', chatView: s.view === 'chat',
+    items: s.list.map((x, i) => ({ ...x, uses: x.uses + '×', d: (i * 0.04) + 's', edit: () => this.setState({ editing: i, ek: x.key, et: x.text }) })),
+    newItem: () => this.setState({ editing: -1, ek: '', et: '' }),
+    editor: s.editing > -2, closeEditor: () => this.setState({ editing: -2 }),
+    editorTitle: s.editing === -1 ? 'Новый быстрый ответ' : 'Изменить ответ',
+    ek: s.ek, et: s.et, onEk: e => this.setState({ ek: e.target.value.replace(/\s/g, '') }), onEt: e => this.setState({ et: e.target.value }),
+    keyBorder: s.ek && !/^[a-zа-яё0-9_]{2,}$/i.test(s.ek) ? 'rgba(255,138,128,.5)' : 'transparent',
+    canDelete: s.editing >= 0, del: () => this.ask('Удалить быстрый ответ?', 'Шаблон пропадёт из списка.', 'Удалить', () => this.setState({ list: s.list.filter((_, i) => i !== s.editing), editing: -2 })),
+    saveBg: canSave ? 'linear-gradient(100deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', saveInk: canSave ? '#06150D' : '#5C6661',
+    saveItem: () => {
+      if (!canSave) return;
+      const item = { key: s.ek.trim().toLowerCase(), text: s.et.trim(), uses: s.editing >= 0 ? s.list[s.editing].uses : 0 };
+      const list = s.editing >= 0 ? s.list.map((x, i) => i === s.editing ? item : x) : [...s.list, item];
+      this.setState({ list, editing: -2 });
+    },
+    sent: s.sent, draft: s.draft, onDraft: e => this.setState({ draft: e.target.value }),
+    suggest: q !== null, matches: matches.map(x => ({ key: x.key, text: x.text, use: () => use(x) })), noMatch: q !== null && matches.length === 0,
+    inBorder: q !== null ? 'rgba(143,211,172,.4)' : 'rgba(255,255,255,.1)',
+    send: () => { if (!s.draft.trim()) return; if (matches.length === 1 && q) { use(matches[0]); return; } this.setState({ sent: [...s.sent, s.draft.trim()], draft: '' }); }
+  };
+}
+}
+</script>
+</body>
+</html>

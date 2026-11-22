@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Копия настроек</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxUp{0%{transform:translateY(16px);opacity:0}30%{opacity:1}100%{transform:translateY(-26px);opacity:0}}
+@keyframes kxDown{0%{transform:translateY(-26px);opacity:0}30%{opacity:1}100%{transform:translateY(16px);opacity:0}}
+@keyframes kxCloud{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes kxPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.2);opacity:1}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Копия настроек kiroX</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 30px">
+    <!-- Cloud card -->
+    <div style="padding: 18px 16px; border-radius: 26px; background: radial-gradient(100% 90% at 50% 0%, rgba(63,154,108,.3), transparent 65%), rgba(255,255,255,.04); border: 1px solid rgba(143,211,172,.22); display: flex; flex-direction: column; align-items: center; text-align: center">
+      <div style="position: relative; width: 90px; height: 76px">
+        <span class="ms fill" style="position: absolute; left: 50%; top: 0; transform: translateX(-50%); font-size: 70px; color: {{cloudInk}}; animation: kxCloud 3s ease-in-out 2; transition: color .3s" aria-hidden="true">cloud</span>
+        <sc-if value="{{uploading}}" hint-placeholder-val="{{false}}"><span class="ms" style="position: absolute; left: 33px; top: 30px; font-size: 24px; color: #06150D; animation: kxUp 1s ease-in 2" aria-hidden="true">arrow_upward</span></sc-if>
+        <sc-if value="{{downloading}}" hint-placeholder-val="{{false}}"><span class="ms" style="position: absolute; left: 33px; top: 30px; font-size: 24px; color: #06150D; animation: kxDown 1s ease-in 2" aria-hidden="true">arrow_downward</span></sc-if>
+        <sc-if value="{{ok}}" hint-placeholder-val="{{true}}"><span class="ms fill" style="position: absolute; left: 33px; top: 28px; font-size: 24px; color: #06150D; animation: kxPop .4s ease both" aria-hidden="true">check</span></sc-if>
+      </div>
+      <div style="margin-top: 6px; font-size: 17px; font-weight: 800">{{title}}</div>
+      <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">{{sub}}</div>
+      <sc-if value="{{busy}}" hint-placeholder-val="{{false}}">
+        <div style="margin-top: 12px; width: 100%; height: 8px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden"><div style="height: 100%; width: {{pct}}; border-radius: 4px; background: linear-gradient(90deg, #6FC497, #3F9A6C); transition: width .2s linear"></div></div>
+      </sc-if>
+      <div style="margin-top: 14px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+        <button onClick="{{backup}}" style="height: 48px; border-radius: 24px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; opacity: {{btnOp}}"><span class="ms" style="font-size: 20px" aria-hidden="true">backup</span>Сохранить</button>
+        <button onClick="{{restore}}" style="height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; opacity: {{btnOp}}"><span class="ms" style="font-size: 20px" aria-hidden="true">settings_backup_restore</span>Вернуть</button>
+      </div>
+    </div>
+
+    <!-- What -->
+    <div style="margin-top: 16px; display: flex; align-items: center; padding: 0 4px 8px"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">Что сохранять</span><span style="font-size: 12px; color: #8A958F">{{sizeText}}</span></div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+      <sc-for list="{{parts}}" as="p" hint-placeholder-count="6">
+        <button onClick="{{p.tap}}" aria-pressed="{{p.on}}" style="padding: 12px; border-radius: 18px; background: {{p.bg}}; border: 1px solid {{p.bd}}; display: flex; align-items: center; gap: 10px; transition: all .2s">
+          <span class="ms" style="font-size: 22px; color: {{p.ic}}; font-variation-settings: {{p.fill}}" aria-hidden="true">{{p.icon}}</span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 700">{{p.label}}</span><span style="display: block; font-size: 11px; color: #8A958F">{{p.sub}}</span></span>
+        </button>
+      </sc-for>
+    </div>
+
+    <!-- Where / auto -->
+    <div style="margin-top: 16px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <div style="padding: 13px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05)">
+        <span class="ms" style="color: #9AA59F" aria-hidden="true">bookmark</span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">Где хранится</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">Файлом в «Избранном» — его видите только вы</span></span>
+      </div>
+      <button onClick="{{toggleAuto}}" style="width: 100%; padding: 13px 16px; display: flex; align-items: center; gap: 12px">
+        <span class="ms" style="color: #9AA59F" aria-hidden="true">event_repeat</span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">Сохранять каждую неделю</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{autoSub}}</span></span>
+        <span style="width: 48px; height: 28px; border-radius: 14px; background: {{autoTrack}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{autoKnob}}; width: 22px; height: 22px; border-radius: 11px; background: {{autoKnobBg}}; transition: left .2s"></span></span>
+      </button>
+    </div>
+
+    <!-- History -->
+    <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">Прошлые копии</div>
+    <sc-for list="{{history}}" as="h" hint-placeholder-count="3">
+      <div style="padding: 10px 6px; display: flex; align-items: center; gap: 12px; animation: kxIn .25s ease both">
+        <span style="width: 38px; height: 38px; border-radius: 12px; background: rgba(143,211,172,.1); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">description</span></span>
+        <span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 700">{{h.date}}</span><span style="display: block; font-size: 12px; color: #8A958F">{{h.sub}}</span></span>
+        <sc-if value="{{h.fresh}}" hint-placeholder-val="{{false}}"><span style="padding: 2px 8px; border-radius: 8px; background: #8FD3AC; color: #06150D; font-size: 11px; font-weight: 900">НОВАЯ</span></sc-if>
+      </div>
+    </sc-for>
+    <p style="margin: 10px 4px 0; font-size: 12px; line-height: 1.45; color: #8A958F">Пароли, код-пароль и секретные чаты в копию не попадают.</p>
+  </div>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PARTS = [['Темы и вид', 'palette', 'Цвета, обои, шрифт', 18], ['Папки', 'folder', 'Порядок и правила', 4], ['Фильтр слов', 'filter_alt', 'Слова и наборы', 2], ['Уведомления', 'notifications', 'Звуки и исключения', 3], ['Быстрые ответы', 'bolt', 'Шаблоны', 6], ['Функции kiroX', 'tune', 'Все переключатели', 1]];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { on: { 0: true, 1: true, 2: true, 3: true, 4: true, 5: true }, phase: 'idle', prog: 0, auto: true, hist: [['15 ноября, 03:00', 'Автоматически · 34 КБ', false], ['8 ноября, 03:00', 'Автоматически · 33 КБ', false]] }; }
+componentWillUnmount() { clearInterval(this.iv); }
+go(kind) {
+  if (this.state.phase === 'up' || this.state.phase === 'down') return;
+  this.setState({ phase: kind, prog: 0 });
+  clearInterval(this.iv);
+  this.iv = setInterval(() => {
+    const p = Math.min(100, this.state.prog + 7 + Math.random() * 8);
+    if (p >= 100) {
+      clearInterval(this.iv);
+      const kb = Object.keys(this.state.on).filter(k => this.state.on[k]).reduce((a, k) => a + PARTS[k][3], 0);
+      if (kind === 'up') this.setState({ phase: 'savedUp', prog: 100, hist: [['Сегодня, 18:04', 'Вручную · ' + kb + ' КБ', true], ...this.state.hist.map(h => [h[0], h[1], false])].slice(0, 4) });
+      else this.setState({ phase: 'savedDown', prog: 100 });
+    } else this.setState({ prog: p });
+  }, 140);
+}
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const n = Object.values(s.on).filter(Boolean).length;
+  const kb = Object.keys(s.on).filter(k => s.on[k]).reduce((a, k) => a + PARTS[k][3], 0);
+  const busy = s.phase === 'up' || s.phase === 'down';
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    cloudInk: busy ? '#6FC497' : '#8FD3AC',
+    uploading: s.phase === 'up', downloading: s.phase === 'down', ok: !busy, busy,
+    title: s.phase === 'up' ? 'Сохраняем…' : s.phase === 'down' ? 'Возвращаем настройки…' : s.phase === 'savedUp' ? 'Копия сохранена' : s.phase === 'savedDown' ? 'Настройки вернулись' : 'Последняя копия · 15 ноября',
+    sub: busy ? Math.round(s.prog) + '%' : s.phase === 'savedDown' ? 'kiroX перезапустит экран, чтобы применить их' : 'Перенесите свой kiroX на новый телефон за минуту',
+    pct: s.prog + '%', btnOp: busy ? '.5' : '1',
+    backup: () => n ? this.go('up') : null, restore: () => this.ask('Вернуть настройки из копии?', 'Текущие настройки kiroX на этом телефоне заменятся настройками из копии.', 'Вернуть', () => this.go('down')),
+    sizeText: n + ' из ' + PARTS.length + ' · ' + kb + ' КБ',
+    parts: PARTS.map(([label, icon, sub], i) => { const on = !!s.on[i]; return { label, icon, sub, on, bg: on ? 'rgba(143,211,172,.1)' : 'rgba(255,255,255,.04)', bd: on ? 'rgba(143,211,172,.4)' : 'rgba(255,255,255,.08)', ic: on ? '#8FD3AC' : '#8A958F', fill: on ? "'FILL' 1" : "'FILL' 0", tap: () => this.setState({ on: { ...s.on, [i]: !on } }) }; }),
+    toggleAuto: () => this.setState({ auto: !s.auto }), autoSub: s.auto ? 'Следующая — в ночь на воскресенье' : 'Только вручную',
+    autoTrack: s.auto ? '#3F9A6C' : 'rgba(255,255,255,.14)', autoKnob: s.auto ? '23px' : '3px', autoKnobBg: s.auto ? '#EEF3EF' : '#9AA59F',
+    history: s.hist.map(([date, sub, fresh]) => ({ date, sub, fresh }))
+  };
+}
+}
+</script>
+</body>
+</html>

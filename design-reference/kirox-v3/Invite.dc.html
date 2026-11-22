@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Ссылки-приглашения</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+input{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@keyframes kxShine{0%{transform:translateX(-120%)}100%{transform:translateX(220%)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1; min-width: 0">
+      <h1 style="margin: 0; font-size: 20px; font-weight: 800">Ссылки-приглашения</h1>
+      <div style="font-size: 12px; color: #9AA59F">Kotlin-клуб · 1 284 участника</div>
+    </div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 6px 16px 40px">
+    <!-- Main link -->
+    <div style="position: relative; overflow: hidden; padding: 16px; border-radius: 26px; background: linear-gradient(150deg, rgba(63,154,108,.24), rgba(255,255,255,.03)); border: 1px solid rgba(143,211,172,.24)">
+      <div style="position: absolute; top: 0; bottom: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.07), transparent); animation: kxShine 4s ease-in-out 2" aria-hidden="true"></div>
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #8FD3AC"><span class="ms fill" style="font-size: 16px" aria-hidden="true">link</span>Основная ссылка</div>
+      <div style="margin-top: 10px; height: 50px; padding: 0 6px 0 16px; border-radius: 16px; background: rgba(0,0,0,.32); display: flex; align-items: center; gap: 8px">
+        <span style="flex: 1; font-size: 16px; font-weight: 700; letter-spacing: .2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{mainLink}}</span>
+        <button onClick="{{copyMain}}" aria-label="Скопировать" style="width: 40px; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" aria-hidden="true">content_copy</span></button>
+      </div>
+      <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px">
+        <button onClick="{{shareMain}}" style="height: 46px; border-radius: 23px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms fill" style="font-size: 20px" aria-hidden="true">share</span>Поделиться</button>
+        <button onClick="{{showQr}}" style="height: 46px; border-radius: 23px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms" style="font-size: 20px" aria-hidden="true">qr_code_2</span>QR-код</button>
+        <button onClick="{{resetMain}}" style="height: 46px; border-radius: 23px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms" style="font-size: 20px" aria-hidden="true">autorenew</span>Сменить</button>
+      </div>
+      <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px">
+        <span style="display: flex">
+          <sc-for list="{{joiners}}" as="j" hint-placeholder-count="4"><span style="width: 26px; height: 26px; border-radius: 13px; margin-left: {{j.ml}}; background: {{j.c}}; border: 2px solid #142019; font-size: 11px; font-weight: 800; color: #fff; display: flex; align-items: center; justify-content: center">{{j.l}}</span></sc-for>
+        </span>
+        <span style="font-size: 13px; color: #C9D2CC">{{mainJoined}}</span>
+      </div>
+    </div>
+
+    <button onClick="{{openCreate}}" style="margin-top: 14px; width: 100%; height: 56px; padding: 0 16px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px dashed rgba(143,211,172,.4); display: flex; align-items: center; gap: 12px; color: #8FD3AC; font-size: 15px; font-weight: 700"><span class="ms" aria-hidden="true">add_link</span>Создать новую ссылку</button>
+
+    <div style="margin-top: 18px; display: flex; align-items: center; padding: 0 4px 8px"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">Дополнительные ссылки</span><span style="font-size: 12px; color: #8A958F">{{activeCount}}</span></div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <sc-for list="{{links}}" as="l" hint-placeholder-count="3">
+        <div style="padding: 12px 12px 12px 14px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); opacity: {{l.op}}; animation: kxIn .25s ease {{l.d}} both; transition: opacity .3s">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span style="width: 42px; height: 42px; border-radius: 14px; background: {{l.ibg}}; color: {{l.iink}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 22px" aria-hidden="true">{{l.icon}}</span></span>
+            <span style="flex: 1; min-width: 0">
+              <span style="display: block; font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{l.name}}</span>
+              <span style="display: block; margin-top: 2px; font-size: 12px; color: {{l.subInk}}">{{l.sub}}</span>
+            </span>
+            <sc-if value="{{l.live}}" hint-placeholder-val="{{true}}">
+              <button onClick="{{l.copy}}" aria-label="Скопировать ссылку" style="width: 38px; height: 38px; border-radius: 19px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 19px" aria-hidden="true">content_copy</span></button>
+              <button onClick="{{l.revoke}}" aria-label="Отозвать ссылку" style="width: 38px; height: 38px; border-radius: 19px; display: flex; align-items: center; justify-content: center; color: #FF8A80"><span class="ms" style="font-size: 20px" aria-hidden="true">link_off</span></button>
+            </sc-if>
+          </div>
+          <sc-if value="{{l.hasLimit}}" hint-placeholder-val="{{true}}">
+            <div style="margin: 10px 0 0 54px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden"><div style="height: 100%; width: {{l.pct}}; border-radius: 3px; background: {{l.bar}}; transition: width .4s"></div></div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin: 12px 4px 0; font-size: 12px; line-height: 1.45; color: #8A958F">Отозванная ссылка перестаёт работать сразу. Те, кто уже вступил по ней, останутся в группе.</p>
+  </div>
+
+  <!-- Create sheet -->
+  <sc-if value="{{creating}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{closeCreate}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 22px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .32s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+      <div style="font-size: 19px; font-weight: 800">Новая ссылка</div>
+      <label style="display: block; margin-top: 14px; height: 52px; padding: 0 16px; border-radius: 16px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 10px">
+        <span class="ms" style="color: #9AA59F" aria-hidden="true">label</span>
+        <input value="{{draftName}}" onInput="{{onName}}" placeholder="Название, видно только админам" aria-label="Название ссылки" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 15px">
+      </label>
+
+      <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC">Срок действия</div>
+      <div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap">
+        <sc-for list="{{timeChips}}" as="c" hint-placeholder-count="4"><button onClick="{{c.tap}}" style="height: 36px; padding: 0 14px; border-radius: 18px; background: {{c.bg}}; color: {{c.ink}}; border: 1px solid {{c.bd}}; font-size: 13px; font-weight: 700; transition: all .2s">{{c.label}}</button></sc-for>
+      </div>
+
+      <div style="margin-top: 14px; font-size: 13px; font-weight: 700; color: #8FD3AC">Сколько человек может вступить</div>
+      <div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap">
+        <sc-for list="{{userChips}}" as="c" hint-placeholder-count="4"><button onClick="{{c.tap}}" style="height: 36px; padding: 0 14px; border-radius: 18px; background: {{c.bg}}; color: {{c.ink}}; border: 1px solid {{c.bd}}; font-size: 13px; font-weight: 700; transition: all .2s">{{c.label}}</button></sc-for>
+      </div>
+
+      <button onClick="{{toggleReq}}" style="margin-top: 14px; width: 100%; padding: 12px 0; display: flex; align-items: center; gap: 12px">
+        <span class="ms" style="color: #9AA59F" aria-hidden="true">how_to_reg</span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">Заявки на вступление</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">Админ одобряет каждого вручную · без лимита людей</span></span>
+        <span style="width: 48px; height: 28px; border-radius: 14px; background: {{reqTrack}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{reqKnob}}; width: 22px; height: 22px; border-radius: 11px; background: {{reqKnobBg}}; transition: left .2s"></span></span>
+      </button>
+
+      <button onClick="{{create}}" style="margin-top: 10px; width: 100%; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" aria-hidden="true">add_link</span>Создать ссылку</button>
+    </div>
+  </sc-if>
+
+  <!-- QR sheet -->
+  <sc-if value="{{qr}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{closeQr}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.6); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 24px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); border-top: 1px solid rgba(255,255,255,.16); text-align: center; animation: kxSheet .32s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 16px"></div>
+      <div style="margin: 0 auto; width: 196px; height: 196px; padding: 14px; box-sizing: border-box; border-radius: 26px; background: #EEF3EF; display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px">
+        <sc-for list="{{qrCells}}" as="q" hint-placeholder-count="20"><span style="border-radius: 2px; background: {{q}}"></span></sc-for>
+      </div>
+      <div style="margin-top: 14px; font-size: 17px; font-weight: 800">Kotlin-клуб</div>
+      <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">Наведите камеру, чтобы вступить</div>
+      <button onClick="{{closeQr}}" style="margin-top: 16px; width: 100%; height: 50px; border-radius: 25px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Готово</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 34px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PL = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
+
+const TIMES = ['Без срока', '1 час', '1 день', '1 неделя'];
+const USERS = [['Без лимита', 0], ['10', 10], ['50', 50], ['100', 100]];
+const SEED = [
+  { name: 'Для курса Compose', time: 'до 30 ноября', limit: 100, used: 64, req: false, state: 'live' },
+  { name: 'Митап в субботу', time: 'до 23 ноября', limit: 50, used: 50, req: false, state: 'full' },
+  { name: 'Новички из чата Android', time: 'без срока', limit: 0, used: 18, req: true, state: 'live' },
+  { name: 'Старая ссылка с форума', time: 'отозвана', limit: 0, used: 211, req: false, state: 'revoked' }
+];
+const JOIN = [['А', '#2F6E9E'], ['М', '#B07A2E'], ['Д', '#6A4C9C'], ['К', '#C0443C']];
+const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+const rnd = n => Array.from({ length: n }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { main: 'Kx7pQ2mZr4Lw', links: SEED, creating: false, qr: false, draftName: '', time: 0, users: 0, req: false, toast: 0, toastText: '', toastIcon: 'done', seed: 1 };
+}
+componentWillUnmount() { clearTimeout(this.tt); }
+showToast(text, icon) {
+  clearTimeout(this.tt);
+  this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon || 'done' });
+  this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400);
+}
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const chip = (on, label, tap) => ({ label, tap, bg: on ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: on ? '#8FD3AC' : '#C9D2CC', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)' });
+  const qrCells = [];
+  let h = 0; for (const ch of s.main) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  for (let i = 0; i < 169; i++) {
+    const x = i % 13, y = Math.floor(i / 13);
+    const finder = (x < 3 && y < 3) || (x > 9 && y < 3) || (x < 3 && y > 9);
+    h = (h * 1103515245 + 12345) >>> 0;
+    qrCells.push(finder ? '#0A0C0B' : (h >> 16) & 1 ? '#0A0C0B' : 'transparent');
+  }
+  const liveCount = s.links.filter(l => l.state === 'live').length;
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    mainLink: 't.me/+' + s.main,
+    copyMain: () => this.showToast('Ссылка скопирована', 'content_copy'),
+    shareMain: () => this.showToast('Открыли «Поделиться»', 'share'),
+    showQr: () => this.setState({ qr: true }), closeQr: () => this.setState({ qr: false }), qr: s.qr, qrCells,
+    resetMain: () => this.ask('Сменить основную ссылку?', 'Старая ссылка перестанет работать сразу у всех, кому вы её отправляли.', 'Сменить', () => { this.setState({ main: rnd(12) }); this.showToast('Старая ссылка больше не работает', 'autorenew'); }),
+    joiners: JOIN.map(([l, c], i) => ({ l, c, ml: i ? '-8px' : '0' })),
+    mainJoined: 'По этой ссылке вступили: 342',
+    openCreate: () => this.setState({ creating: true, draftName: '', time: 0, users: 0, req: false }),
+    closeCreate: () => this.setState({ creating: false }), creating: s.creating,
+    activeCount: liveCount + ' ' + PL(liveCount, 'активная', 'активные', 'активных'),
+    links: s.links.map((l, i) => {
+      const dead = l.state !== 'live';
+      const icon = l.state === 'revoked' ? 'link_off' : l.state === 'full' ? 'group_off' : l.req ? 'how_to_reg' : 'link';
+      const lim = l.limit ? l.used + ' из ' + l.limit : 'вступили: ' + l.used;
+      const sub = l.state === 'revoked' ? 'Отозвана · вступили: ' + l.used : l.state === 'full' ? 'Мест не осталось · ' + lim : lim + ' · ' + l.time + (l.req ? ' · по заявкам' : '');
+      return {
+        name: l.name, icon, sub, live: !dead, d: (i * 0.04) + 's',
+        op: l.state === 'revoked' ? '.55' : '1',
+        ibg: dead ? 'rgba(255,255,255,.06)' : 'rgba(143,211,172,.14)', iink: l.state === 'revoked' ? '#FF8A80' : l.state === 'full' ? '#E8B04A' : '#8FD3AC',
+        subInk: l.state === 'revoked' ? '#FF8A80' : l.state === 'full' ? '#E8B04A' : '#8A958F',
+        hasLimit: !!l.limit && l.state !== 'revoked', pct: (l.limit ? Math.min(100, l.used / l.limit * 100) : 0) + '%',
+        bar: l.state === 'full' ? '#E8B04A' : 'linear-gradient(90deg, #6FC497, #3F9A6C)',
+        copy: () => this.showToast('Ссылка скопирована', 'content_copy'),
+        revoke: () => { this.setState({ links: s.links.map((x, k) => k === i ? { ...x, state: 'revoked', time: 'отозвана' } : x) }); this.showToast('Ссылка отозвана', 'link_off'); }
+      };
+    }),
+    draftName: s.draftName, onName: e => this.setState({ draftName: e.target.value }),
+    timeChips: TIMES.map((t, i) => chip(s.time === i, t, () => this.setState({ time: i }))),
+    userChips: USERS.map(([t], i) => chip(s.users === i, t, () => this.setState({ users: i, req: i ? false : s.req }))),
+    toggleReq: () => this.setState({ req: !s.req, users: !s.req ? 0 : s.users }),
+    reqTrack: s.req ? '#3F9A6C' : 'rgba(255,255,255,.14)', reqKnob: s.req ? '23px' : '3px', reqKnobBg: s.req ? '#EEF3EF' : '#9AA59F',
+    create: () => {
+      const n = { name: s.draftName.trim() || 'Ссылка ' + (s.links.length + 1), time: s.time ? 'ещё ' + TIMES[s.time] : 'без срока', limit: USERS[s.users][1], used: 0, req: s.req, state: 'live' };
+      this.setState({ links: [n, ...s.links], creating: false });
+      this.showToast('Ссылка создана и скопирована', 'add_link');
+    },
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Незнакомцы</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxOutR{0%{opacity:1;transform:none;max-height:260px}60%{opacity:0;transform:translateX(80px)}100%{opacity:0;max-height:0;margin:0;padding:0}}
+@keyframes kxOutL{0%{opacity:1;transform:none;max-height:260px}60%{opacity:0;transform:translateX(-80px)}100%{opacity:0;max-height:0;margin:0;padding:0}}
+@keyframes kxShield{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1"><h1 style="margin: 0; font-size: 20px; font-weight: 800">Сообщения от незнакомых</h1><div style="font-size: 12px; color: #9AA59F">{{countText}}</div></div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 6px 16px 30px">
+    <div style="padding: 12px 14px; border-radius: 18px; background: rgba(143,211,172,.08); border: 1px solid rgba(143,211,172,.2); display: flex; gap: 12px; align-items: center">
+      <span class="ms fill" style="color: #8FD3AC; font-size: 30px; animation: kxShield 3s ease-in-out 2" aria-hidden="true">shield</span>
+      <span style="font-size: 12px; line-height: 1.45; color: #C9D2CC">Они не знают, прочитали ли вы сообщение. Фото и ссылки скрыты, пока вы не примете переписку.</span>
+    </div>
+
+    <sc-for list="{{items}}" as="r" hint-placeholder-count="3">
+      <div style="margin-top: 12px; padding: 14px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid {{r.bd}}; overflow: hidden; animation: {{r.anim}}">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span style="width: 46px; height: 46px; border-radius: 23px; background: {{r.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0">{{r.l}}</span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 800">{{r.name}}</span><span style="display: block; font-size: 12px; color: #8A958F">{{r.meta}}</span></span>
+          <sc-if value="{{r.risky}}" hint-placeholder-val="{{false}}"><span style="padding: 3px 8px; border-radius: 8px; background: rgba(229,83,75,.16); color: #FF8A80; font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 3px"><span class="ms fill" style="font-size: 14px" aria-hidden="true">warning</span>похоже на спам</span></sc-if>
+          <sc-if value="{{r.mutual}}" hint-placeholder-val="{{false}}"><span style="padding: 3px 8px; border-radius: 8px; background: rgba(143,211,172,.14); color: #8FD3AC; font-size: 11px; font-weight: 800">{{r.mutualText}}</span></sc-if>
+        </div>
+        <div style="margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(0,0,0,.25); font-size: 14px; line-height: 1.4; color: #E2E9E4">{{r.text}}</div>
+        <sc-if value="{{r.hasMedia}}" hint-placeholder-val="{{false}}"><div style="margin-top: 8px; height: 70px; border-radius: 12px; background: repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 10px, rgba(255,255,255,.08) 10px 20px); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: #9AA59F"><span class="ms" style="font-size: 18px" aria-hidden="true">visibility_off</span>{{r.media}}</div></sc-if>
+        <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px">
+          <button onClick="{{r.block}}" style="height: 40px; border-radius: 20px; background: rgba(229,83,75,.12); color: #FF8A80; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 4px"><span class="ms" style="font-size: 17px" aria-hidden="true">block</span>Блок</button>
+          <button onClick="{{r.ignore}}" style="height: 40px; border-radius: 20px; background: rgba(255,255,255,.07); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 4px"><span class="ms" style="font-size: 17px" aria-hidden="true">delete</span>Удалить</button>
+          <button onClick="{{r.accept}}" style="height: 40px; border-radius: 20px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 4px"><span class="ms fill" style="font-size: 17px" aria-hidden="true">check</span>Принять</button>
+        </div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 60px 30px 0; text-align: center; animation: kxIn .3s ease both"><span class="ms fill" style="font-size: 56px; color: #3F9A6C" aria-hidden="true">verified_user</span><div style="margin-top: 10px; font-size: 17px; font-weight: 800">Тут пусто</div><div style="margin-top: 4px; font-size: 13px; color: #8A958F">Новых сообщений от незнакомых нет</div><button onClick="{{restore}}" style="margin-top: 14px; height: 36px; padding: 0 14px; border-radius: 18px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 700; color: #8FD3AC">Показать пример снова</button></div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 30px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const R = [
+  { name: 'Ерлан Сейтов', l: 'Е', c: '#2F6E9E', meta: '@erlan_s · нет фото · 2 общие группы', text: 'Здравствуйте! Я от Олега, по поводу ремонта на Абая. Удобно созвониться завтра?', mutual: 2, risky: false },
+  { name: 'Crypto Bonus', l: 'C', c: '#5C6661', meta: 'нет общих чатов · нет фото', text: 'Вы выиграли 500$! Перейдите по ссылке, чтобы забрать приз 🎁', risky: true, media: 'Ссылка скрыта', hasMedia: true },
+  { name: 'Дана', l: 'Д', c: '#C0443C', meta: '@dana_m · из группы «Kotlin-клуб»', text: 'Привет! Твой доклад на митапе — огонь. Можно пару вопросов про Compose?', mutual: 1, risky: false, media: '1 фото скрыто', hasMedia: true }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { gone: {}, leaving: {}, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tl); clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+act(i, dir, text, icon) {
+  this.setState({ leaving: { ...this.state.leaving, [i]: dir } });
+  clearTimeout(this.tl);
+  this.tl = setTimeout(() => { this.setState({ gone: { ...this.state.gone, [i]: true }, leaving: {} }); this.toastMsg(text, icon); }, 420);
+}
+renderVals() {
+  const s = this.state;
+  const left = R.map((r, i) => ({ r, i })).filter(({ i }) => !s.gone[i]);
+  return {
+    countText: left.length ? left.length + ' ждут ответа' : 'Всё разобрано',
+    items: left.map(({ r, i }) => ({
+      name: r.name, l: r.l, c: r.c, meta: r.meta, text: r.text, risky: r.risky, mutual: !!r.mutual, mutualText: r.mutual === 1 ? '1 общий чат' : r.mutual + ' общих чата',
+      hasMedia: !!r.hasMedia, media: r.media || '',
+      bd: r.risky ? 'rgba(229,83,75,.3)' : 'rgba(255,255,255,.08)',
+      anim: s.leaving[i] === 'r' ? 'kxOutR .42s ease both' : s.leaving[i] === 'l' ? 'kxOutL .42s ease both' : 'kxIn .3s ease both',
+      accept: () => this.act(i, 'r', 'Переписка принята — чат в списке', 'check_circle'),
+      ignore: () => this.act(i, 'l', 'Сообщение удалено', 'delete'),
+      block: () => this.act(i, 'l', 'Контакт заблокирован', 'block')
+    })),
+    empty: left.length === 0, restore: () => this.setState({ gone: {} }),
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

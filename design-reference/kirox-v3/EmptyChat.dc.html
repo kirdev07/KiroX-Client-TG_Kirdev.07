@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Новый чат</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+@keyframes kxWave{0%,100%{transform:rotate(0)}15%{transform:rotate(18deg)}30%{transform:rotate(-10deg)}45%{transform:rotate(16deg)}60%{transform:rotate(-6deg)}75%{transform:rotate(0)}}
+@keyframes kxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes kxFly{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(90px,260px) scale(.55);opacity:0}}
+@keyframes kxIn{from{opacity:0;transform:translateY(14px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes kxCard{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #7FB8E0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #0A0C0B">Д</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Дана</div><div style="font-size: 12px; color: #9AA59F">в сети недавно</div></div>
+  </header>
+
+  <div style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column">
+    <sc-if value="{{empty}}" hint-placeholder-val="{{true}}">
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center">
+        <div style="width: 300px; padding: 22px 18px 18px; border-radius: 28px; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.1); animation: kxCard .4s ease both">
+          <div style="font-size: 17px; font-weight: 800">Здесь пока пусто</div>
+          <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">Отправьте сообщение или нажмите на приветствие</div>
+          <button onClick="{{sendHi}}" aria-label="Отправить стикер-приветствие" style="position: relative; margin: 14px auto 0; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; font-size: 96px; animation: kxFloat 3s ease-in-out 2"><span style="display: inline-block; transform-origin: 70% 80%; animation: {{waveAnim}}">{{hi}}</span></button>
+          <div style="display: flex; gap: 8px; justify-content: center">
+            <sc-for list="{{alts}}" as="a" hint-placeholder-count="4"><button onClick="{{a.tap}}" aria-label="{{a.aria}}" style="width: 48px; height: 48px; border-radius: 16px; background: {{a.bg}}; border: 1.5px solid {{a.bd}}; font-size: 26px; display: flex; align-items: center; justify-content: center">{{a.e}}</button></sc-for>
+          </div>
+        </div>
+        <div style="margin-top: 14px; width: 300px; display: flex; flex-direction: column; gap: 6px">
+          <div style="padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.04); display: flex; align-items: center; gap: 10px; font-size: 13px; color: #C9D2CC; animation: kxCard .4s ease .1s both"><span class="ms" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">groups</span><span style="flex: 1; text-align: left">2 общие группы: «Kotlin-клуб», «Митапы Алматы»</span></div>
+          <div style="padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.04); display: flex; align-items: center; gap: 10px; font-size: 13px; color: #C9D2CC; animation: kxCard .4s ease .18s both"><span class="ms" style="font-size: 20px; color: #9AA59F" aria-hidden="true">contact_phone</span><span style="flex: 1; text-align: left">Нет в ваших контактах · номер скрыт</span></div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{hasMsgs}}" hint-placeholder-val="{{false}}">
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px">
+        <sc-for list="{{msgs}}" as="m" hint-placeholder-count="2"><div style="align-self: {{m.side}}; font-size: {{m.fs}}; padding: {{m.pad}}; border-radius: {{m.rad}}; background: {{m.bg}}; color: {{m.ink}}; max-width: 80%; animation: kxIn .35s cubic-bezier(.2,.8,.2,1) both"><span style="display: inline-block; transform-origin: 70% 80%; animation: {{m.anim}}">{{m.c}}</span></div></sc-for>
+      </div>
+    </sc-if>
+  </div>
+
+  <span style="position: absolute; left: 130px; top: 280px; font-size: 96px; display: {{flyShow}}; animation: {{flyAnim}}; pointer-events: none" aria-hidden="true">{{flyE}}</span>
+
+  <div style="padding: 8px 12px 16px; border-top: 1px solid rgba(255,255,255,.06); display: flex; gap: 8px; align-items: center">
+    <div style="flex: 1; height: 48px; padding: 0 16px; border-radius: 24px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 15px; color: #8A958F">Сообщение</div>
+    <button onClick="{{reset}}" aria-label="Начать заново" style="width: 48px; height: 48px; border-radius: 24px; background: rgba(255,255,255,.07); color: #9AA59F; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">restart_alt</span></button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const ALTS = ['👋', '🤝', '😊', '🎉'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { pick: 0, msgs: [], fly: false, fk: 0 }; }
+componentWillUnmount() { clearTimeout(this.t1); clearTimeout(this.t2); }
+renderVals() {
+  const s = this.state;
+  const e = ALTS[s.pick];
+  const send = () => { clearTimeout(this.t1); clearTimeout(this.t2); this.setState({ fly: true, fk: s.fk + 1 }); this.t1 = setTimeout(() => this.setState({ fly: false, msgs: [{ me: true, c: e, big: true }] }), 550); this.t2 = setTimeout(() => this.setState({ msgs: [...this.state.msgs, { me: false, c: 'Привет! Помню тебя по митапу 🙂' }] }), 2200); };
+  return {
+    empty: !s.msgs.length && !s.fly, hasMsgs: s.msgs.length > 0,
+    hi: e, waveAnim: e === '👋' ? 'kxWave 1.8s ease-in-out infinite' : 'none',
+    alts: ALTS.map((x, i) => { const on = s.pick === i; return { e: x, aria: 'Выбрать ' + x, bg: on ? 'rgba(143,211,172,.16)' : 'rgba(0,0,0,.2)', bd: on ? '#8FD3AC' : 'transparent', tap: () => this.setState({ pick: i }) }; }),
+    sendHi: send,
+    flyShow: s.fly ? 'block' : 'none', flyE: e, flyAnim: 'kxFly .55s cubic-bezier(.4,.1,.6,1) both',
+    msgs: s.msgs.map(m => ({ side: m.me ? 'flex-end' : 'flex-start', c: m.c, fs: m.big ? '96px' : '15px', pad: m.big ? '0' : '8px 12px', rad: m.me ? '18px 18px 6px 18px' : '18px 18px 18px 6px', bg: m.big ? 'transparent' : (m.me ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)'), ink: m.me ? '#06150D' : '#EEF3EF', anim: m.big && m.c === '👋' ? 'kxWave 1.8s ease-in-out 2' : 'none' })),
+    reset: () => this.setState({ msgs: [], fly: false, pick: 0 })
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Встроенный браузер</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxShimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+@keyframes kxToast{0%{opacity:0;transform:translateY(16px)}12%,85%{opacity:1;transform:none}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <!-- Top bar -->
+  <header style="position: relative; padding: 10px 10px 8px; display: flex; align-items: center; gap: 8px; background: #0E1210; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <button aria-label="Закрыть браузер" style="width: 42px; height: 42px; border-radius: 21px; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+    <button onClick="{{copy}}" style="flex: 1; min-width: 0; height: 42px; padding: 0 14px; border-radius: 21px; background: rgba(255,255,255,.06); display: flex; flex-direction: column; justify-content: center">
+      <span style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{pageTitle}}</span>
+      <span style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #8A958F"><span class="ms fill" style="font-size: 12px; color: #8FD3AC" aria-hidden="true">lock</span>{{domain}}</span>
+    </button>
+    <button onClick="{{openMenu}}" aria-label="Меню" style="width: 42px; height: 42px; border-radius: 21px; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">more_vert</span></button>
+    <div aria-hidden="true" style="position: absolute; left: 0; bottom: -1px; height: 2px; width: {{progress}}; background: linear-gradient(90deg, #6FC497, #3F9A6C); box-shadow: 0 0 8px #6FC497; opacity: {{progressOpacity}}; transition: width .25s ease, opacity .4s ease .2s"></div>
+  </header>
+
+  <!-- Page -->
+  <div class="scroll" style="flex: 1; min-height: 0; background: {{pageBg}}; color: {{ink}}; transition: background .3s, color .3s">
+    <sc-if value="{{loading}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 20px">
+        <sc-for list="{{skeleton}}" as="k" hint-placeholder-count="6"><div style="height: {{k.h}}; width: {{k.w}}; margin-bottom: 12px; border-radius: 10px; background: linear-gradient(90deg, #171C19 0, #222924 60px, #171C19 120px); background-size: 400px 100%; animation: kxShimmer 1.2s linear infinite"></div></sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ready}}" hint-placeholder-val="{{true}}">
+      <article style="padding: 0 0 120px; animation: kxIn .35s ease both">
+        <div style="height: 190px; background: {{hero}}; position: relative">
+          <span style="position: absolute; left: 20px; bottom: 14px; height: 24px; padding: 0 10px; border-radius: 12px; background: rgba(0,0,0,.45); font-size: 11px; font-weight: 700; display: flex; align-items: center">{{tag}}</span>
+        </div>
+        <div style="padding: 18px 20px 0">
+          <h1 style="margin: 0; font-size: {{h1}}; line-height: 1.2; font-weight: 800">{{pageTitle}}</h1>
+          <div style="margin-top: 8px; font-size: 12px; color: #8A958F">{{meta}}</div>
+          <sc-for list="{{paras}}" as="p" hint-placeholder-count="3">
+            <p style="margin: 14px 0 0; font-size: {{fs}}; line-height: 1.55; color: {{ink2}}">{{p}}</p>
+          </sc-for>
+          <sc-if value="{{hasLink}}" hint-placeholder-val="{{true}}">
+            <button onClick="{{goNext}}" style="margin-top: 18px; width: 100%; padding: 14px; border-radius: 18px; background: rgba(143,211,172,.08); border: 1px solid rgba(143,211,172,.22); display: flex; align-items: center; gap: 12px">
+              <span style="width: 54px; height: 54px; border-radius: 14px; background: linear-gradient(140deg,#4B3F7A,#2A2240); flex-shrink: 0"></span>
+              <span style="flex: 1"><span style="display: block; font-size: 12px; color: #8FD3AC; font-weight: 700">Читайте также</span><span style="display: block; margin-top: 2px; font-size: 15px; font-weight: 700; line-height: 1.3">Как устроены облачные чаты</span></span>
+              <span class="ms" style="color: #8FD3AC" aria-hidden="true">arrow_forward</span>
+            </button>
+          </sc-if>
+        </div>
+      </article>
+    </sc-if>
+  </div>
+
+  <!-- Bottom toolbar -->
+  <div style="position: absolute; left: 14px; right: 14px; bottom: 22px; height: 60px; padding: 0 8px; border-radius: 30px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 18px 40px rgba(0,0,0,.5); display: flex; align-items: center; justify-content: space-around">
+    <sc-for list="{{tools}}" as="t" hint-placeholder-count="5">
+      <button onClick="{{t.tap}}" aria-label="{{t.label}}" style="width: 52px; height: 46px; border-radius: 23px; display: flex; align-items: center; justify-content: center; color: {{t.ink}}; transition: color .2s"><span class="ms" aria-hidden="true">{{t.icon}}</span></button>
+    </sc-for>
+  </div>
+
+  <!-- Menu sheet -->
+  <sc-if value="{{menu}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeMenu}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 0 4px 14px">
+        <span style="width: 40px; height: 40px; border-radius: 12px; background: {{hero}}; flex-shrink: 0"></span>
+        <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{pageTitle}}</span><span style="display: block; font-size: 12px; color: #8A958F">{{domain}}</span></span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px">
+        <sc-for list="{{quick}}" as="q" hint-placeholder-count="4">
+          <button onClick="{{q.tap}}" style="padding: 12px 0; border-radius: 18px; background: rgba(255,255,255,.05); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center">
+            <span class="ms" style="color: #8FD3AC" aria-hidden="true">{{q.icon}}</span><span style="font-size: 11px; font-weight: 600">{{q.label}}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 12px">
+        <span class="ms" style="color: #8A958F" aria-hidden="true">format_size</span>
+        <span style="flex: 1; font-size: 15px; font-weight: 600">Размер текста</span>
+        <button onClick="{{smaller}}" aria-label="Меньше" style="width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800">A−</button>
+        <span style="width: 42px; text-align: center; font-size: 13px; color: #9AA59F">{{zoom}}</span>
+        <button onClick="{{bigger}}" aria-label="Больше" style="width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800">A+</button>
+      </div>
+      <button onClick="{{toggleDark}}" style="margin-top: 6px; width: 100%; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 12px">
+        <span class="ms" style="color: #8A958F" aria-hidden="true">dark_mode</span>
+        <span style="flex: 1; font-size: 15px; font-weight: 600">Тёмные страницы</span>
+        <span style="width: 50px; height: 30px; border-radius: 15px; background: {{darkTrack}}; position: relative; transition: background .2s"><span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px; background: {{darkKnob}}; transform: translateX({{darkX}}); transition: transform .25s cubic-bezier(.34,1.45,.5,1)"></span></span>
+      </button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 24px; right: 24px; bottom: 96px; height: 46px; border-radius: 16px; background: #1E2622; border: 1px solid rgba(143,211,172,.25); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; animation: kxToast 2.2s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PAGES = [
+  { title: 'Новый мессенджер на Android: первые впечатления', domain: 'news.example.org', tag: 'Технологии', meta: '5 минут чтения · сегодня', hero: 'linear-gradient(150deg,#3F9A6C 0%,#1B2E3A 70%)', link: true,
+    paras: ['Мы неделю пользовались новым клиентом и делимся впечатлениями. Первое, что бросается в глаза, это тёмный интерфейс с мягким зелёным акцентом.', 'Ссылки открываются прямо внутри приложения, не нужно переключаться в отдельный браузер. Страницу можно отправить в чат в одно касание.', 'Отдельно порадовала скорость: даже большие каналы листаются плавно.'] },
+  { title: 'Как устроены облачные чаты', domain: 'news.example.org', tag: 'Разбор', meta: '8 минут чтения · вчера', hero: 'linear-gradient(150deg,#4B3F7A 0%,#14243A 70%)', link: false,
+    paras: ['Облачные чаты хранятся на серверах, поэтому переписка доступна сразу на всех устройствах.', 'Секретные чаты устроены иначе: они живут только на двух устройствах и шифруются сквозным шифрованием.', 'Медиафайлы скачиваются по запросу и кешируются, а размер кеша можно ограничить в настройках.'] }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { stack: [0], pos: 0, prog: 0, menu: false, zoom: 100, dark: true, toast: 0, toastText: '' }; }
+componentDidMount() { this.load(); }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tt); }
+load() {
+  clearInterval(this.iv);
+  this.setState({ prog: 8 });
+  this.iv = setInterval(() => {
+    const p = this.state.prog;
+    if (p >= 100) { clearInterval(this.iv); return; }
+    this.setState({ prog: Math.min(100, p + (p < 70 ? 18 : 10)) });
+  }, 160);
+}
+say(text) { clearTimeout(this.tt); this.setState({ toast: Date.now(), toastText: text, menu: false }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2200); }
+renderVals() {
+  const s = this.state;
+  const pg = PAGES[s.stack[s.pos]];
+  const loading = s.prog < 100;
+  const canBack = s.pos > 0, canFwd = s.pos < s.stack.length - 1;
+  const fs = Math.round(16 * s.zoom / 100) + 'px';
+  const tools = [
+    { icon: 'arrow_back', label: 'Назад', ink: canBack ? '#EEF3EF' : '#4A544F', tap: () => { if (canBack) { this.setState({ pos: s.pos - 1 }); this.load(); } } },
+    { icon: 'arrow_forward', label: 'Вперёд', ink: canFwd ? '#EEF3EF' : '#4A544F', tap: () => { if (canFwd) { this.setState({ pos: s.pos + 1 }); this.load(); } } },
+    { icon: 'send', label: 'Отправить в чат', ink: '#8FD3AC', tap: () => this.say('Ссылка отправлена в «Избранное»') },
+    { icon: 'refresh', label: 'Обновить', ink: '#EEF3EF', tap: () => this.load() },
+    { icon: 'open_in_new', label: 'Открыть во внешнем браузере', ink: '#EEF3EF', tap: () => this.say('Откроется во внешнем браузере') }
+  ];
+  const sw = s.dark;
+  return {
+    pageTitle: pg.title, domain: pg.domain, tag: pg.tag, meta: pg.meta, hero: pg.hero, paras: pg.paras, hasLink: pg.link,
+    h1: Math.round(24 * s.zoom / 100) + 'px', fs,
+    loading, ready: !loading,
+    progress: s.prog + '%', progressOpacity: loading ? '1' : '0',
+    skeleton: [['180px', '100%'], ['28px', '90%'], ['28px', '60%'], ['14px', '100%'], ['14px', '95%'], ['14px', '80%']].map(([h, w]) => ({ h, w })),
+    goNext: () => { const stack = s.stack.slice(0, s.pos + 1).concat([1]); this.setState({ stack, pos: stack.length - 1 }); this.load(); },
+    tools,
+    menu: s.menu, openMenu: () => this.setState({ menu: true }), closeMenu: () => this.setState({ menu: false }),
+    copy: () => this.say('Ссылка скопирована'),
+    quick: [
+      { icon: 'link', label: 'Копировать', tap: () => this.say('Ссылка скопирована') },
+      { icon: 'search', label: 'Найти', tap: () => this.setState({ menu: false }) },
+      { icon: 'bookmark_add', label: 'В избранное', tap: () => this.say('Сохранено в «Избранное»') },
+      { icon: 'share', label: 'Поделиться', tap: () => this.setState({ menu: false }) }
+    ],
+    zoom: s.zoom + '%',
+    smaller: () => this.setState({ zoom: Math.max(80, s.zoom - 10) }), bigger: () => this.setState({ zoom: Math.min(150, s.zoom + 10) }),
+    toggleDark: () => this.setState({ dark: !s.dark }),
+    darkTrack: sw ? '#8FD3AC' : 'rgba(255,255,255,.12)', darkKnob: sw ? '#06150D' : '#8A958F', darkX: sw ? '20px' : '0',
+    pageBg: sw ? '#0F1311' : '#F3F5F4', ink: sw ? '#EEF3EF' : '#16201B', ink2: sw ? '#C9D2CC' : '#3B4741',
+    toast: !!s.toast, toastText: s.toastText
+  };
+}
+}
+</script>
+</body>
+</html>

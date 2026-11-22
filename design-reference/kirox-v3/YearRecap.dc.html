@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Итоги года</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+@keyframes kxProg{from{width:0}to{width:100%}}
+@keyframes kxProg2{from{width:0}to{width:100%}}
+@keyframes kxUp{from{opacity:0;transform:translateY(30px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes kxUp2{from{opacity:0;transform:translateY(30px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes kxFloat{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-10px) rotate(6deg)}}
+@keyframes kxBlob{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-40px) scale(1.2)}}
+@keyframes kxBar{from{width:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: {{bg}}; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; transition: background .6s">
+  <span style="position: absolute; left: -60px; top: 120px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, {{blob}}, transparent 65%); animation: kxBlob 9s ease-in-out 2" aria-hidden="true"></span>
+  <span style="position: absolute; right: -80px; bottom: 120px; width: 280px; height: 280px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.12), transparent 65%); animation: kxBlob 11s ease-in-out -4s 2" aria-hidden="true"></span>
+
+  <div style="position: absolute; left: 14px; right: 14px; top: 14px; display: flex; gap: 4px; z-index: 3">
+    <sc-for list="{{bars}}" as="b" hint-placeholder-count="5"><span style="flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.3); overflow: hidden"><span style="display: block; height: 100%; width: {{b.w}}; background: #fff; animation: {{b.anim}}"></span></span></sc-for>
+  </div>
+  <div style="position: absolute; left: 14px; right: 14px; top: 26px; display: flex; align-items: center; gap: 8px; z-index: 3">
+    <span style="width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center">kX</span>
+    <span style="flex: 1; font-size: 13px; font-weight: 700">Ваш 2026 в kiroX</span>
+    <button aria-label="Закрыть" style="width: 36px; height: 36px; border-radius: 18px; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+  </div>
+
+  <!-- slide content -->
+  <div style="position: absolute; left: 24px; right: 24px; top: 110px; bottom: 120px; display: flex; flex-direction: column; justify-content: center; animation: {{slideAnim}}">
+    <span class="ms fill" style="font-size: 64px; color: rgba(255,255,255,.9); animation: kxFloat 4s ease-in-out 2" aria-hidden="true">{{icon}}</span>
+    <div style="margin-top: 18px; font-size: 16px; font-weight: 700; color: rgba(255,255,255,.8)">{{kicker}}</div>
+    <div style="margin-top: 6px; font-size: {{bigSize}}; font-weight: 900; line-height: 1.05; letter-spacing: -1px">{{big}}</div>
+    <div style="margin-top: 10px; font-size: 16px; line-height: 1.45; color: rgba(255,255,255,.85)">{{text}}</div>
+    <sc-if value="{{hasList}}" hint-placeholder-val="{{false}}">
+      <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 10px">
+        <sc-for list="{{list}}" as="l" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span style="width: 30px; font-size: 18px; font-weight: 900; color: rgba(255,255,255,.7)">{{l.n}}</span>
+            <span style="width: 40px; height: 40px; border-radius: 20px; background: {{l.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: {{l.fs}}">{{l.l}}</span>
+            <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 800">{{l.name}}</span><span style="display: block; height: 6px; margin-top: 4px; border-radius: 3px; background: rgba(255,255,255,.15); overflow: hidden"><span style="display: block; height: 100%; width: {{l.w}}; background: #fff; border-radius: 3px; animation: kxBar .8s cubic-bezier(.2,.8,.2,1) both"></span></span></span>
+            <span style="font-size: 13px; font-weight: 700; color: rgba(255,255,255,.85)">{{l.v}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+
+  <button onClick="{{prev}}" aria-label="Назад" style="position: absolute; left: 0; top: 70px; bottom: 110px; width: 35%"></button>
+  <button onClick="{{next}}" aria-label="Дальше" style="position: absolute; right: 0; top: 70px; bottom: 110px; width: 65%"></button>
+
+  <div style="position: absolute; left: 16px; right: 16px; bottom: 26px; display: flex; gap: 8px">
+    <button onClick="{{share}}" style="flex: 1; height: 54px; border-radius: 27px; background: rgba(255,255,255,.92); color: #06150D; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" style="font-size: 20px" aria-hidden="true">{{shareIcon}}</span>{{shareText}}</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const SL = [
+  { bg: 'linear-gradient(170deg, #3F9A6C 0%, #14301F 60%, #0A0C0B 100%)', blob: 'rgba(143,211,172,.45)', icon: 'auto_awesome', kicker: 'Это был ваш год', big: '24 318', size: '64px', text: 'сообщений вы отправили. Это примерно как книга на 600 страниц.' },
+  { bg: 'linear-gradient(170deg, #2F6E9E 0%, #12283A 60%, #0A0C0B 100%)', blob: 'rgba(111,169,216,.45)', icon: 'favorite', kicker: 'С кем вы были ближе всего', big: 'Ваши люди', size: '44px', text: '', list: [['1', 'М', '#B07A2E', 'Мама', '100%', '4 812', '16px'], ['2', 'А', '#C0443C', 'Анна', '82%', '3 960', '16px'], ['3', 'K', '#3F9A6C', 'Kotlin-клуб', '61%', '2 940', '16px']] },
+  { bg: 'linear-gradient(170deg, #B07A2E 0%, #3A2410 60%, #0A0C0B 100%)', blob: 'rgba(242,184,102,.45)', icon: 'mood', kicker: 'Ваш любимый эмодзи', big: '😂', size: '96px', text: 'Вы поставили его 1 204 раза. Смеяться — полезно.', list: [['2', '❤️', 'rgba(255,255,255,.15)', 'Сердце', '64%', '772', '22px'], ['3', '🔥', 'rgba(255,255,255,.15)', 'Огонь', '41%', '493', '22px']] },
+  { bg: 'linear-gradient(170deg, #6A4C9C 0%, #241938 60%, #0A0C0B 100%)', blob: 'rgba(179,157,219,.45)', icon: 'nightlight', kicker: 'Вы — сова', big: '23:40', size: '72px', text: 'Чаще всего вы писали поздно вечером. Самый болтливый месяц — июль.' },
+  { bg: 'linear-gradient(170deg, #C0443C 0%, #3A1412 60%, #0A0C0B 100%)', blob: 'rgba(242,166,160,.45)', icon: 'graphic_eq', kicker: 'Вы наговорили', big: '41 ч', size: '72px', text: 'голосовых сообщений и 18 часов звонков. Спасибо, что выбрали kiroX 💚' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { i: 0, k: 0 }; }
+componentDidMount() { this.start(); }
+componentWillUnmount() { clearInterval(this.iv); }
+start() { clearInterval(this.iv); this.iv = setInterval(() => { if (this.state.i < SL.length - 1) this.setState({ i: this.state.i + 1, k: this.state.k + 1 }); else clearInterval(this.iv); }, 5000); }
+go(d) { const i = Math.max(0, Math.min(SL.length - 1, this.state.i + d)); this.setState({ i, k: this.state.k + 1 }); this.start(); }
+renderVals() {
+  const s = this.state;
+  const sl = SL[s.i];
+  const alt = s.k % 2 ? '2' : '';
+  const last = s.i === SL.length - 1;
+  return {
+    bg: sl.bg, blob: sl.blob, icon: sl.icon, kicker: sl.kicker, big: sl.big, bigSize: sl.size, text: sl.text,
+    hasList: !!sl.list, list: (sl.list || []).map(([n, l, c, name, w, v, fs]) => ({ n, l, c, name, w, v, fs })),
+    slideAnim: 'kxUp' + alt + ' .5s cubic-bezier(.2,.8,.2,1) both',
+    bars: SL.map((_, k) => ({ w: k < s.i ? '100%' : '0', anim: k === s.i ? 'kxProg' + alt + ' 5s linear both' : 'none' })),
+    prev: () => this.go(-1), next: () => this.go(1),
+    shareIcon: last ? 'ios_share' : 'arrow_forward', shareText: last ? 'Поделиться итогами' : 'Дальше',
+    share: () => last ? null : this.go(1)
+  };
+}
+}
+</script>
+</body>
+</html>

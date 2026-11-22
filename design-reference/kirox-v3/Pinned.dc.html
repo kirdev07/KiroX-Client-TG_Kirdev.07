@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Закреплённые чаты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxMove{0%{transform:scale(1.03);background:rgba(143,211,172,.16)}100%{transform:none;background:rgba(255,255,255,.04)}}
+@keyframes kxMove2{0%{transform:scale(1.03);background:rgba(143,211,172,.16)}100%{transform:none;background:rgba(255,255,255,.04)}}
+@keyframes kxPin{0%{transform:rotate(0) translateY(-10px);opacity:0}60%{transform:rotate(-20deg) translateY(2px);opacity:1}100%{transform:rotate(-12deg)}}
+@keyframes kxShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes kxShake2{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1"><h1 style="margin: 0; font-size: 20px; font-weight: 800">Закреплённые</h1><div style="font-size: 12px; color: #9AA59F">{{countText}}</div></div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 6px 16px 30px">
+    <!-- slots meter -->
+    <div style="display: flex; gap: 6px; padding: 0 2px 12px; animation: {{meterAnim}}">
+      <sc-for list="{{slots}}" as="x" hint-placeholder-count="5"><span style="flex: 1; height: 6px; border-radius: 3px; background: {{x}}; transition: background .3s"></span></sc-for>
+    </div>
+
+    <sc-for list="{{pins}}" as="p" hint-placeholder-count="4">
+      <div style="margin-bottom: 8px; padding: 10px 8px 10px 12px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 10px; animation: {{p.anim}}">
+        <span style="width: 22px; text-align: center; font-size: 14px; font-weight: 800; color: #8FD3AC">{{p.n}}</span>
+        <span style="position: relative; width: 46px; height: 46px; border-radius: 23px; background: {{p.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0">{{p.l}}<span class="ms fill" style="position: absolute; right: -4px; top: -4px; font-size: 16px; color: #8FD3AC; animation: kxPin .4s ease both" aria-hidden="true">push_pin</span></span>
+        <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{p.name}}</span><span style="display: block; font-size: 12px; color: #8A958F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{p.msg}}</span></span>
+        <span style="display: flex; flex-direction: column; gap: 2px">
+          <button onClick="{{p.up}}" aria-label="{{p.upLabel}}" style="width: 32px; height: 24px; border-radius: 8px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; opacity: {{p.upOp}}"><span class="ms" style="font-size: 18px" aria-hidden="true">keyboard_arrow_up</span></button>
+          <button onClick="{{p.down}}" aria-label="{{p.downLabel}}" style="width: 32px; height: 24px; border-radius: 8px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; opacity: {{p.downOp}}"><span class="ms" style="font-size: 18px" aria-hidden="true">keyboard_arrow_down</span></button>
+        </span>
+        <button onClick="{{p.unpin}}" aria-label="{{p.unpinLabel}}" style="width: 36px; height: 36px; border-radius: 18px; color: #9AA59F; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">keep_off</span></button>
+      </div>
+    </sc-for>
+
+    <div style="margin-top: 14px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">Закрепить ещё</div>
+    <sc-for list="{{others}}" as="o" hint-placeholder-count="4">
+      <div style="padding: 8px 4px; display: flex; align-items: center; gap: 12px; animation: kxIn .25s ease both">
+        <span style="width: 42px; height: 42px; border-radius: 21px; background: {{o.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800">{{o.l}}</span>
+        <span style="flex: 1; font-size: 15px; font-weight: 600">{{o.name}}</span>
+        <button onClick="{{o.pin}}" aria-label="{{o.pinLabel}}" style="height: 34px; padding: 0 12px; border-radius: 17px; background: {{o.bg}}; color: {{o.ink}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 16px" aria-hidden="true">push_pin</span>Закрепить</button>
+      </div>
+    </sc-for>
+    <p style="margin: 12px 4px 0; font-size: 12px; line-height: 1.45; color: #8A958F">Сверху списка чатов помещается 5 закреплённых. В папках можно закрепить свои.</p>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 30px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const CH = {
+  mom: ['Мама', 'М', '#B07A2E', 'Купи хлеб по дороге 🙂'], anna: ['Анна', 'А', '#C0443C', 'Фото с дачи 📸'], fav: ['Избранное', 'И', '#3F9A6C', 'Пароль от Wi-Fi: zerno2026'],
+  fam: ['Семья', 'С', '#2F6E9E', 'Папа: в субботу на дачу'], club: ['Kotlin-клуб', 'K', '#6FA9D8', 'Дмитрий: PR готов'], liza: ['Лиза', 'Л', '#6A4C9C', 'Сюрприз готов 🎁'], work: ['Работа', 'Р', '#5C6661', 'Созвон в понедельник']
+};
+const MAX = 5;
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { pins: ['fav', 'mom', 'anna', 'fam'], moved: '', k: 0, shake: 0, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+move(i, d) { const p = [...this.state.pins]; const j = i + d; if (j < 0 || j >= p.length) return; [p[i], p[j]] = [p[j], p[i]]; this.setState({ pins: p, moved: p[j], k: this.state.k + 1 }); }
+renderVals() {
+  const s = this.state;
+  const n = s.pins.length;
+  return {
+    countText: n + ' из ' + MAX + ' мест',
+    slots: Array.from({ length: MAX }, (_, i) => i < n ? (n === MAX ? '#E8B04A' : '#8FD3AC') : 'rgba(255,255,255,.1)'),
+    meterAnim: s.shake ? (s.shake % 2 ? 'kxShake' : 'kxShake2') + ' .35s ease' : 'none',
+    pins: s.pins.map((id, i) => { const c = CH[id]; return {
+      n: String(i + 1), name: c[0], l: c[1], c: c[2], msg: c[3],
+      anim: s.moved === id ? (s.k % 2 ? 'kxMove' : 'kxMove2') + ' .5s ease both' : 'none',
+      up: () => this.move(i, -1), down: () => this.move(i, 1), upOp: i === 0 ? '.3' : '1', downOp: i === n - 1 ? '.3' : '1',
+      upLabel: 'Поднять ' + c[0], downLabel: 'Опустить ' + c[0], unpinLabel: 'Открепить ' + c[0],
+      unpin: () => { this.setState({ pins: s.pins.filter(x => x !== id) }); this.toastMsg('Чат «' + c[0] + '» откреплён', 'keep_off'); }
+    }; }),
+    others: Object.keys(CH).filter(id => !s.pins.includes(id)).map(id => { const c = CH[id]; const full = n >= MAX; return {
+      name: c[0], l: c[1], c: c[2], pinLabel: 'Закрепить ' + c[0],
+      bg: full ? 'rgba(255,255,255,.05)' : 'rgba(143,211,172,.14)', ink: full ? '#8A958F' : '#8FD3AC',
+      pin: () => { if (full) { this.setState({ shake: s.shake + 1 }); this.toastMsg('Мест нет — открепите чат', 'info'); return; } this.setState({ pins: [...s.pins, id], moved: id, k: s.k + 1 }); }
+    }; }),
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

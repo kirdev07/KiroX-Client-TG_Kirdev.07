@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Видеозвонок</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+@keyframes kxRing{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.9);opacity:0}}
+@keyframes kxBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes kxDrift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-8px,6px) scale(1.03)}}
+@keyframes kxIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxBar{0%,100%{height:4px}50%{height:14px}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+
+  <!-- Remote video (placeholder) -->
+  <sc-if value="{{connected}}" hint-placeholder-val="{{true}}">
+    <div style="position: absolute; inset: 0; animation: kxIn .6s ease both">
+      <sc-if value="{{remoteCam}}" hint-placeholder-val="{{true}}">
+        <div aria-hidden="true" style="position: absolute; inset: -20px; background: radial-gradient(60% 40% at 30% 20%, #2C4A3B, transparent 70%), radial-gradient(70% 50% at 80% 90%, #1B2E3A, transparent 70%), linear-gradient(180deg, #16211C, #0D1411); animation: kxDrift 9s ease-in-out 2">
+          <div style="position: absolute; left: 50%; top: 250px; width: 150px; height: 170px; margin-left: -75px; border-radius: 50%; background: radial-gradient(circle at 45% 40%, #6F8C7C, #34483D 70%)"></div>
+          <div style="position: absolute; left: 50%; top: 400px; width: 300px; height: 360px; margin-left: -150px; border-radius: 150px 150px 0 0; background: radial-gradient(80% 60% at 50% 20%, #3F5C4C, #1E2C25 80%)"></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{remoteOff}}" hint-placeholder-val="{{false}}">
+        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: radial-gradient(70% 45% at 50% 40%, rgba(63,154,108,.22), #0A0C0B 70%)">
+          <span style="width: 120px; height: 120px; border-radius: 60px; background: linear-gradient(140deg, #4B3F7A, #2A2240); color: #DCD0FF; font-size: 44px; font-weight: 700; display: flex; align-items: center; justify-content: center; animation: kxBreath 3s ease-in-out 2">А</span>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #9AA59F"><span class="ms" style="font-size: 18px" aria-hidden="true">videocam_off</span>Камера собеседника выключена</span>
+        </div>
+      </sc-if>
+      <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 180px; background: linear-gradient(180deg, rgba(0,0,0,.55), transparent)"></div>
+      <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 260px; background: linear-gradient(0deg, rgba(0,0,0,.7), transparent)"></div>
+    </div>
+  </sc-if>
+
+  <!-- Calling state -->
+  <sc-if value="{{calling}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: radial-gradient(80% 50% at 50% 35%, rgba(63,154,108,.28), #0A0C0B 70%)">
+      <div style="position: absolute; left: 50%; top: 200px; width: 132px; height: 132px; margin-left: -66px">
+        <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8FD3AC; animation: kxRing 2s ease-out infinite"></span>
+        <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8FD3AC; animation: kxRing 2s ease-out 1s infinite"></span>
+        <span style="position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(140deg, #4B3F7A, #2A2240); color: #DCD0FF; font-size: 48px; font-weight: 700; display: flex; align-items: center; justify-content: center">А</span>
+      </div>
+      <div style="position: absolute; left: 0; right: 0; top: 368px; text-align: center">
+        <div style="font-size: 28px; font-weight: 800">Анна</div>
+        <div style="margin-top: 8px; font-size: 14px; color: #9AA59F">{{callingText}}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Self preview (PiP) -->
+  <sc-if value="{{showSelf}}" hint-placeholder-val="{{true}}">
+    <button aria-label="Переместить своё видео" onClick="{{swapCorner}}" style="position: absolute; top: {{pipTop}}; right: 16px; width: 104px; height: 150px; border-radius: 22px; overflow: hidden; border: 1px solid rgba(255,255,255,.22); box-shadow: 0 14px 36px rgba(0,0,0,.55); background: linear-gradient(170deg, #2A2F3A, #15181E); transition: top .45s cubic-bezier(.34,1.45,.5,1); z-index: 3">
+      <span aria-hidden="true" style="position: absolute; left: 50%; top: 34px; width: 50px; height: 56px; margin-left: -25px; border-radius: 50%; background: radial-gradient(circle at 45% 40%, #7C8496, #3E4452 70%); transform: scaleX({{mirror}}); transition: transform .3s"></span>
+      <span aria-hidden="true" style="position: absolute; left: 50%; top: 92px; width: 92px; height: 80px; margin-left: -46px; border-radius: 46px 46px 0 0; background: #353B48"></span>
+      <sc-if value="{{camOff}}" hint-placeholder-val="{{false}}"><span style="position: absolute; inset: 0; background: #121614; display: flex; align-items: center; justify-content: center; color: #8A958F"><span class="ms" aria-hidden="true">videocam_off</span></span></sc-if>
+      <sc-if value="{{muted}}" hint-placeholder-val="{{false}}"><span style="position: absolute; left: 6px; bottom: 6px; width: 24px; height: 24px; border-radius: 12px; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; color: #FF8A80"><span class="ms fill" style="font-size: 15px" aria-hidden="true">mic_off</span></span></sc-if>
+    </button>
+  </sc-if>
+
+  <!-- Top bar -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; padding: 12px 12px 0; display: flex; align-items: center; gap: 8px; opacity: {{uiOpacity}}; transform: translateY({{topShift}}); transition: all .3s ease; z-index: 2">
+    <button aria-label="Свернуть" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(20px) saturate(170%); -webkit-backdrop-filter: blur(20px) saturate(170%); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">keyboard_arrow_down</span></button>
+    <sc-if value="{{connected}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; flex-direction: column">
+        <span style="font-size: 17px; font-weight: 800">Анна</span>
+        <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #C9D2CC"><span style="display: flex; align-items: flex-end; gap: 2px; height: 14px"><span style="width: 3px; border-radius: 2px; background: #8FD3AC; animation: kxBar .9s ease-in-out infinite"></span><span style="width: 3px; border-radius: 2px; background: #8FD3AC; animation: kxBar .9s ease-in-out .2s infinite"></span><span style="width: 3px; border-radius: 2px; background: #8FD3AC; animation: kxBar .9s ease-in-out .4s infinite"></span></span>{{timer}}</span>
+      </div>
+    </sc-if>
+    <span style="flex-grow: 1"></span>
+    <button onClick="{{toggleKey}}" aria-label="Ключ шифрования" style="height: 38px; padding: 0 12px; border-radius: 19px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 16px; letter-spacing: 2px">🐼🌵🎈🔑</button>
+  </div>
+
+  <sc-if value="{{sharing}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 16px; top: 66px; height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(143,211,172,.18); border: 1px solid rgba(143,211,172,.4); display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #8FD3AC; z-index: 2; animation: kxIn .25s ease both"><span class="ms fill" style="font-size: 16px" aria-hidden="true">screen_share</span>Вы показываете экран</div>
+  </sc-if>
+
+  <!-- Encryption key popup -->
+  <sc-if value="{{showKey}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 24px; right: 24px; top: 70px; padding: 18px; border-radius: 24px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 20px 50px rgba(0,0,0,.5); text-align: center; z-index: 5; animation: kxIn .25s ease both">
+      <div style="font-size: 34px; letter-spacing: 6px">🐼🌵🎈🔑</div>
+      <div style="margin-top: 10px; font-size: 15px; font-weight: 800">Звонок защищён</div>
+      <div style="margin-top: 4px; font-size: 13px; line-height: 1.4; color: #C9D2CC">Если у собеседника те же эмодзи, звонок зашифрован сквозным шифрованием</div>
+      <button onClick="{{toggleKey}}" style="margin-top: 12px; height: 38px; padding: 0 20px; border-radius: 19px; background: #8FD3AC; color: #06150D; font-size: 14px; font-weight: 700">Понятно</button>
+    </div>
+  </sc-if>
+
+  <!-- Tap area to hide controls -->
+  <sc-if value="{{connected}}" hint-placeholder-val="{{true}}">
+    <button aria-label="Показать или скрыть кнопки" onClick="{{toggleUi}}" style="position: absolute; left: 0; right: 0; top: 70px; bottom: 210px; z-index: 1"></button>
+  </sc-if>
+
+  <!-- Controls -->
+  <div style="position: absolute; left: 14px; right: 14px; bottom: 26px; opacity: {{uiOpacity}}; transform: translateY({{botShift}}); transition: all .3s ease; z-index: 2">
+    <sc-if value="{{connected}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 14px">
+        <sc-for list="{{chips}}" as="c" hint-placeholder-count="2"><button onClick="{{c.tap}}" style="height: 34px; padding: 0 14px; border-radius: 17px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><span class="ms" style="font-size: 18px" aria-hidden="true">{{c.icon}}</span>{{c.label}}</button></sc-for>
+      </div>
+    </sc-if>
+    <div style="padding: 14px 10px; border-radius: 34px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); display: flex; justify-content: space-around; align-items: flex-start">
+      <sc-for list="{{btns}}" as="b" hint-placeholder-count="5">
+        <button onClick="{{b.tap}}" aria-label="{{b.label}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 62px">
+          <span style="width: 56px; height: 56px; border-radius: 28px; background: {{b.bg}}; color: {{b.ink}}; display: flex; align-items: center; justify-content: center; transition: background .2s, color .2s"><span class="ms fill" style="font-size: 26px; transform: rotate({{b.rot}}); transition: transform .3s" aria-hidden="true">{{b.icon}}</span></span>
+          <span style="font-size: 11px; color: #C9D2CC; white-space: nowrap">{{b.label}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Audio output sheet -->
+  <sc-if value="{{showOut}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeOut}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.45); z-index: 6"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 28px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); z-index: 7; animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px 10px; font-size: 17px; font-weight: 800">Вывод звука</div>
+      <sc-for list="{{outs}}" as="o" hint-placeholder-count="3">
+        <button onClick="{{o.tap}}" style="width: 100%; height: 56px; padding: 0 12px; border-radius: 18px; background: {{o.bg}}; display: flex; align-items: center; gap: 14px; text-align: left; margin-bottom: 6px">
+          <span class="ms" style="color: #8FD3AC" aria-hidden="true">{{o.icon}}</span>
+          <span style="flex-grow: 1; font-size: 15px; font-weight: 600">{{o.label}}</span>
+          <sc-if value="{{o.on}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="color: #8FD3AC" aria-hidden="true">check_circle</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- Ended -->
+  <sc-if value="{{ended}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: radial-gradient(70% 45% at 50% 42%, rgba(63,154,108,.18), #0A0C0B 70%); animation: kxIn .4s ease both">
+      <span style="width: 96px; height: 96px; border-radius: 48px; background: linear-gradient(140deg, #4B3F7A, #2A2240); color: #DCD0FF; font-size: 38px; font-weight: 700; display: flex; align-items: center; justify-content: center">А</span>
+      <span style="margin-top: 6px; font-size: 22px; font-weight: 800">Звонок завершён</span>
+      <span style="font-size: 14px; color: #9AA59F">{{endText}}</span>
+      <div style="margin-top: 18px; display: flex; gap: 10px">
+        <button onClick="{{restart}}" style="height: 46px; padding: 0 20px; border-radius: 23px; background: #8FD3AC; color: #06150D; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px"><span class="ms fill" style="font-size: 20px" aria-hidden="true">videocam</span>Позвонить снова</button>
+        <button style="height: 46px; padding: 0 20px; border-radius: 23px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px"><span class="ms" style="font-size: 20px" aria-hidden="true">chat</span>Написать</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { phase: 'calling', sec: 0, muted: false, cam: true, front: true, out: 'speaker', ui: true, pipLow: false, key: false, outSheet: false, remoteCam: true, dots: 0 };
+}
+componentDidMount() { this.start(); }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.t); }
+start() {
+  clearInterval(this.iv); clearTimeout(this.t);
+  this.iv = setInterval(() => {
+    const s = this.state;
+    if (s.phase === 'calling') this.setState({ dots: (s.dots + 1) % 4 });
+    else if (s.phase === 'live') this.setState({ sec: s.sec + 1 });
+  }, 1000);
+  this.t = setTimeout(() => this.setState({ phase: 'live', sec: 0 }), 3200);
+}
+renderVals() {
+  const s = this.state;
+  const live = s.phase === 'live';
+  const mm = String(Math.floor(s.sec / 60)).padStart(2, '0'), ss = String(s.sec % 60).padStart(2, '0');
+  const outIcon = { speaker: 'volume_up', phone: 'phone_in_talk', bt: 'bluetooth_audio' }[s.out];
+  const outLabel = { speaker: 'Динамик', phone: 'Телефон', bt: 'Наушники' }[s.out];
+  const glass = 'rgba(255,255,255,.12)', on = '#EEF3EF';
+  const btns = [
+    { icon: outIcon, label: outLabel, bg: s.out === 'speaker' ? on : glass, ink: s.out === 'speaker' ? '#0A0C0B' : '#EEF3EF', rot: '0deg', tap: () => this.setState({ outSheet: true }) },
+    { icon: s.cam ? 'videocam' : 'videocam_off', label: s.cam ? 'Камера' : 'Камера выкл.', bg: s.cam ? glass : on, ink: s.cam ? '#EEF3EF' : '#0A0C0B', rot: '0deg', tap: () => this.setState({ cam: !s.cam }) },
+    { icon: 'cameraswitch', label: 'Повернуть', bg: glass, ink: s.cam ? '#EEF3EF' : '#5C6661', rot: s.front ? '0deg' : '180deg', tap: () => s.cam && this.setState({ front: !s.front }) },
+    { icon: s.muted ? 'mic_off' : 'mic', label: s.muted ? 'Без звука' : 'Микрофон', bg: s.muted ? on : glass, ink: s.muted ? '#0A0C0B' : '#EEF3EF', rot: '0deg', tap: () => this.setState({ muted: !s.muted }) },
+    { icon: 'call_end', label: 'Завершить', bg: '#E5534B', ink: '#FFFFFF', rot: '0deg', tap: () => { clearInterval(this.iv); clearTimeout(this.t); this.setState({ phase: 'ended', outSheet: false, key: false }); } }
+  ];
+  const chips = [
+    { icon: 'person_add', label: 'Добавить', tap: () => {} },
+    { icon: s.share ? 'stop_screen_share' : 'screen_share', label: s.share ? 'Остановить показ' : 'Показать экран', tap: () => this.setState({ share: !s.share }) }
+  ];
+  const outs = [['speaker', 'volume_up', 'Динамик'], ['phone', 'phone_in_talk', 'Телефон'], ['bt', 'bluetooth_audio', 'Наушники Bluetooth']].map(([id, icon, label]) => ({
+    icon, label, on: s.out === id, bg: s.out === id ? 'rgba(143,211,172,.1)' : 'rgba(255,255,255,.04)', tap: () => this.setState({ out: id, outSheet: false })
+  }));
+  const uiShown = !live || s.ui;
+  return {
+    calling: s.phase === 'calling', connected: live, ended: s.phase === 'ended',
+    remoteCam: s.remoteCam, remoteOff: !s.remoteCam,
+    callingText: 'Видеозвонок' + '.'.repeat(s.dots),
+    timer: mm + ':' + ss,
+    showSelf: s.phase !== 'ended', camOff: !s.cam, muted: s.muted, mirror: s.front ? '1' : '-1',
+    pipTop: s.pipLow ? '470px' : (live && s.ui ? '74px' : '24px'),
+    swapCorner: () => this.setState({ pipLow: !s.pipLow }),
+    uiOpacity: uiShown ? '1' : '0', topShift: uiShown ? '0' : '-20px', botShift: uiShown ? '0' : '30px',
+    toggleUi: () => this.setState({ ui: !s.ui, key: false }),
+    sharing: live && !!s.share,
+    showKey: s.key, toggleKey: () => this.setState({ key: !s.key }),
+    btns, chips, outs, showOut: s.outSheet, closeOut: () => this.setState({ outSheet: false }),
+    endText: 'Видеозвонок · ' + mm + ':' + ss,
+    restart: () => { this.setState({ phase: 'calling', sec: 0, dots: 0, ui: true }); this.start(); }
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Напоминания</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxBell{0%,100%{transform:rotate(0)}10%{transform:rotate(14deg)}20%{transform:rotate(-12deg)}30%{transform:rotate(9deg)}40%{transform:rotate(-6deg)}50%{transform:rotate(0)}}
+@keyframes kxDone{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Напоминания</h1>
+    <button onClick="{{openNew}}" aria-label="Новое напоминание" style="width: 44px; height: 44px; border-radius: 22px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">add_alarm</span></button>
+  </header>
+
+  <!-- Next up -->
+  <div style="margin: 4px 16px 0; padding: 16px; border-radius: 24px; background: linear-gradient(150deg, rgba(63,154,108,.24), rgba(255,255,255,.03)); border: 1px solid rgba(143,211,172,.24); display: flex; align-items: center; gap: 14px">
+    <span style="width: 54px; height: 54px; border-radius: 18px; background: rgba(143,211,172,.16); color: #8FD3AC; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 30px; animation: kxBell 2.4s ease-in-out 2; transform-origin: 50% 10%" aria-hidden="true">notifications_active</span></span>
+    <span style="flex: 1; min-width: 0">
+      <span style="display: block; font-size: 12px; font-weight: 700; color: #8FD3AC">{{nextLabel}}</span>
+      <span style="display: block; margin-top: 2px; font-size: 16px; font-weight: 800; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{nextTitle}}</span>
+      <span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F">{{nextSub}}</span>
+    </span>
+  </div>
+
+  <div style="padding: 14px 16px 6px; display: flex; gap: 6px">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button onClick="{{t.tap}}" style="height: 34px; padding: 0 14px; border-radius: 17px; background: {{t.bg}}; color: {{t.ink}}; font-size: 13px; font-weight: 700; transition: all .2s">{{t.label}}</button></sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 30px">
+    <sc-for list="{{items}}" as="r" hint-placeholder-count="4">
+          <sc-if value="{{r.hdr}}" hint-placeholder-val="{{false}}"><div style="padding: 10px 4px 6px; font-size: 12px; font-weight: 700; color: #8A958F; text-transform: uppercase; letter-spacing: .6px">{{r.hdrText}}</div></sc-if>
+          <div style="margin-bottom: 8px; padding: 12px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); display: flex; gap: 12px; opacity: {{r.op}}; animation: kxIn .25s ease {{r.d}} both; transition: opacity .3s">
+            <button onClick="{{r.toggle}}" aria-label="{{r.doneLabel}}" style="width: 28px; height: 28px; margin-top: 2px; border-radius: 14px; border: 2px solid {{r.ring}}; background: {{r.fillBg}}; color: #06150D; display: flex; align-items: center; justify-content: center; flex-shrink: 0; animation: {{r.pop}}; transition: all .2s"><span class="ms" style="font-size: 18px; opacity: {{r.chk}}" aria-hidden="true">check</span></button>
+            <div style="flex: 1; min-width: 0">
+              <div style="font-size: 15px; font-weight: 700; text-decoration: {{r.strike}}">{{r.title}}</div>
+              <div style="margin-top: 6px; padding: 7px 10px; border-radius: 10px; background: rgba(255,255,255,.04); border-left: 3px solid {{r.c}}">
+                <div style="font-size: 12px; font-weight: 700; color: {{r.c}}">{{r.from}}</div>
+                <div style="font-size: 13px; color: #C9D2CC; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{r.quote}}</div>
+              </div>
+              <div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+                <span style="height: 26px; padding: 0 10px; border-radius: 13px; background: {{r.whenBg}}; color: {{r.whenInk}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 15px" aria-hidden="true">{{r.whenIcon}}</span>{{r.when}}</span>
+                <sc-if value="{{r.repeat}}" hint-placeholder-val="{{false}}"><span style="height: 26px; padding: 0 10px; border-radius: 13px; background: rgba(255,255,255,.05); color: #9AA59F; font-size: 12px; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 15px" aria-hidden="true">repeat</span>{{r.repeatText}}</span></sc-if>
+              </div>
+            </div>
+            <sc-if value="{{r.canSnooze}}" hint-placeholder-val="{{true}}">
+              <button onClick="{{r.snooze}}" aria-label="Отложить на час" style="width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,.06); color: #C9D2CC; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms" style="font-size: 19px" aria-hidden="true">snooze</span></button>
+            </sc-if>
+          </div>
+    </sc-for>
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 60px 30px 0; text-align: center; animation: kxIn .3s ease both"><span class="ms" style="font-size: 54px; color: #3A4540" aria-hidden="true">alarm_off</span><div style="margin-top: 10px; font-size: 16px; font-weight: 700">{{emptyText}}</div><div style="margin-top: 6px; font-size: 13px; color: #8A958F">Нажмите на сообщение и выберите «Напомнить»</div></div>
+    </sc-if>
+  </div>
+
+  <!-- New reminder sheet -->
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{closeNew}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 22px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+      <div style="font-size: 19px; font-weight: 800">Напомнить о сообщении</div>
+      <div style="margin-top: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,.05); border-left: 3px solid #E8B04A">
+        <div style="font-size: 12px; font-weight: 700; color: #E8B04A">Мама</div>
+        <div style="font-size: 13px; color: #C9D2CC">Не забудь записать бабушку к врачу на четверг</div>
+      </div>
+      <div style="margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+        <sc-for list="{{whens}}" as="w" hint-placeholder-count="4">
+          <button onClick="{{w.tap}}" aria-pressed="{{w.on}}" style="padding: 12px; border-radius: 18px; background: {{w.bg}}; border: 1px solid {{w.bd}}; transition: all .2s">
+            <span class="ms" style="color: {{w.ic}}; font-variation-settings: {{w.fill}}" aria-hidden="true">{{w.icon}}</span>
+            <span style="display: block; margin-top: 6px; font-size: 14px; font-weight: 700">{{w.label}}</span>
+            <span style="display: block; font-size: 12px; color: #8A958F">{{w.sub}}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="margin-top: 12px; display: flex; gap: 6px">
+        <sc-for list="{{reps}}" as="p" hint-placeholder-count="3"><button onClick="{{p.tap}}" style="flex: 1; height: 36px; border-radius: 18px; background: {{p.bg}}; color: {{p.ink}}; font-size: 13px; font-weight: 700; text-align: center; transition: all .2s">{{p.label}}</button></sc-for>
+      </div>
+      <button onClick="{{create}}" style="margin-top: 14px; width: 100%; height: 52px; border-radius: 26px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" aria-hidden="true">alarm_add</span>{{createText}}</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 34px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const SEED = [
+  { id: 1, title: 'Скинуть Анне фото с дачи', from: 'Анна', c: '#C0443C', quote: 'Пришлёшь фотки, когда вернёшься?', day: 0, time: '19:00', rep: '', done: false },
+  { id: 2, title: 'Оплатить интернет', from: 'Избранное', c: '#8FD3AC', quote: 'Счёт до 25-го, лицевой 4471…', day: 0, time: '21:30', rep: 'Каждый месяц', done: false },
+  { id: 3, title: 'Посмотреть лекцию 8', from: 'Kotlin-клуб', c: '#6FA9D8', quote: 'Запись лекции про корутины здесь', day: 1, time: '10:00', rep: '', done: false },
+  { id: 4, title: 'Ответить Дмитрию про митап', from: 'Дмитрий', c: '#2F6E9E', quote: 'Ты с нами в субботу?', day: 1, time: '12:00', rep: '', done: false },
+  { id: 5, title: 'Позвонить в сервис', from: 'Сервис-центр', c: '#B07A2E', quote: 'Ваш ноутбук готов к выдаче', day: -1, time: '15:00', rep: '', done: true }
+];
+const WHENS = [['Через час', '20:15', 'schedule', 0, '20:15'], ['Вечером', 'Сегодня в 21:00', 'nights_stay', 0, '21:00'], ['Завтра утром', 'В 9:00', 'wb_sunny', 1, '09:00'], ['В выходные', 'Суббота в 10:00', 'weekend', 2, '10:00']];
+const REPS = ['Один раз', 'Каждый день', 'Каждую неделю'];
+const DAY = d => d === 0 ? 'Сегодня' : d === 1 ? 'Завтра' : d === 2 ? 'В субботу' : 'Вчера';
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { list: SEED, tab: 0, sheet: false, w: 2, rep: 0, pop: 0, next: 10, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+renderVals() {
+  const s = this.state;
+  const active = s.list.filter(r => !r.done).sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
+  const done = s.list.filter(r => r.done);
+  const shown = s.tab === 0 ? active : done;
+  const days = [...new Set(shown.map(r => r.day))];
+  const nx = active[0];
+  const upd = (id, patch) => this.setState({ list: s.list.map(r => r.id === id ? { ...r, ...patch } : r) });
+  const card = (r, k) => ({
+    title: r.title, from: r.from, c: r.c, quote: r.quote, d: (k * 0.04) + 's',
+    op: r.done ? '.6' : '1', strike: r.done ? 'line-through' : 'none',
+    ring: r.done ? '#8FD3AC' : 'rgba(255,255,255,.3)', fillBg: r.done ? '#8FD3AC' : 'transparent', chk: r.done ? '1' : '0',
+    pop: s.pop === r.id ? 'kxDone .3s ease' : 'none',
+    doneLabel: r.done ? 'Вернуть напоминание' : 'Отметить выполненным',
+    toggle: () => { upd(r.id, { done: !r.done }); this.setState({ pop: r.id }); },
+    when: DAY(r.day) + ', ' + r.time, whenIcon: r.day === 0 ? 'alarm' : 'event',
+    whenBg: r.day === 0 && !r.done ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', whenInk: r.day === 0 && !r.done ? '#8FD3AC' : '#9AA59F',
+    repeat: !!r.rep, repeatText: r.rep, canSnooze: !r.done,
+    snooze: () => { const h = +r.time.slice(0, 2) + 1; upd(r.id, { time: String(Math.min(h, 23)).padStart(2, '0') + r.time.slice(2) }); this.toastMsg('Отложено на час', 'snooze'); }
+  });
+  let k = 0;
+  return {
+    nextLabel: nx ? 'Следующее · ' + DAY(nx.day).toLowerCase() + ' в ' + nx.time : 'Всё сделано',
+    nextTitle: nx ? nx.title : 'Напоминаний нет',
+    nextSub: nx ? 'Из чата «' + nx.from + '»' : 'Можно отдохнуть 🙂',
+    tabs: [['Активные · ' + active.length, 0], ['Выполненные · ' + done.length, 1]].map(([label, i]) => ({ label, bg: s.tab === i ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.tab === i ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ tab: i }) })),
+    items: days.flatMap(d => shown.filter(r => r.day === d).map((r, j) => ({ ...card(r, k++), hdr: j === 0 && (s.tab === 0 || k === 1), hdrText: s.tab === 1 ? 'Выполнено' : DAY(d) }))),
+    empty: shown.length === 0, emptyText: s.tab === 0 ? 'Активных напоминаний нет' : 'Пока ничего не выполнено',
+    openNew: () => this.setState({ sheet: true }), closeNew: () => this.setState({ sheet: false }), sheet: s.sheet,
+    whens: WHENS.map(([label, sub, icon], i) => {
+      const on = s.w === i;
+      return { label, sub, icon, on, bg: on ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.04)', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', ic: on ? '#8FD3AC' : '#9AA59F', fill: on ? "'FILL' 1" : "'FILL' 0", tap: () => this.setState({ w: i }) };
+    }),
+    reps: REPS.map((label, i) => ({ label, bg: s.rep === i ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.rep === i ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ rep: i }) })),
+    createText: 'Напомнить · ' + WHENS[s.w][0].toLowerCase(),
+    create: () => {
+      const w = WHENS[s.w];
+      const n = { id: s.next, title: 'Записать бабушку к врачу', from: 'Мама', c: '#E8B04A', quote: 'Не забудь записать бабушку к врачу на четверг', day: w[3], time: w[4], rep: s.rep ? REPS[s.rep] : '', done: false };
+      this.setState({ list: [n, ...s.list], sheet: false, tab: 0, next: s.next + 1 });
+      this.toastMsg('Напомню ' + (w[3] === 0 ? 'сегодня' : w[3] === 1 ? 'завтра' : 'в субботу') + ' в ' + w[4], 'alarm_on');
+    },
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

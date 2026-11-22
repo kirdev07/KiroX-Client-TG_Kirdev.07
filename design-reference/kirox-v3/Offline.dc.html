@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Нет сети</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+input{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxBanner{from{transform:translateY(-100%)}to{transform:none}}
+@keyframes kxClock{to{transform:rotate(360deg)}}
+@keyframes kxDots{0%,80%,100%{opacity:.25}40%{opacity:1}}
+@keyframes kxSent{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.3);opacity:1}100%{transform:scale(1)}}
+@keyframes kxWave{0%{transform:scale(.6);opacity:.8}100%{transform:scale(2.4);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06); position: relative; z-index: 2; background: #0A0C0B">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: linear-gradient(135deg, #C0443C, #6A4C9C); display: flex; align-items: center; justify-content: center; font-weight: 800">А</span>
+    <div style="flex: 1; min-width: 0"><div style="font-size: 16px; font-weight: 800">Анна</div><div style="font-size: 12px; color: {{subInk}}; display: flex; align-items: center; gap: 4px">{{sub}}<sc-if value="{{connecting}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; gap: 2px"><span style="animation: kxDots 1.2s infinite">•</span><span style="animation: kxDots 1.2s .2s infinite">•</span><span style="animation: kxDots 1.2s .4s infinite">•</span></span></sc-if></div></div>
+  </header>
+
+  <!-- Banner -->
+  <sc-if value="{{offline}}" hint-placeholder-val="{{true}}">
+    <div style="padding: 10px 14px; background: linear-gradient(90deg, rgba(232,176,74,.18), rgba(232,176,74,.06)); border-bottom: 1px solid rgba(232,176,74,.25); display: flex; align-items: center; gap: 10px; animation: kxBanner .3s ease both">
+      <span style="position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 22px; color: #E8B04A" aria-hidden="true">wifi_off</span></span>
+      <span style="flex: 1; font-size: 13px; color: #E4D3B0"><b style="color: #E8B04A">Нет сети.</b> {{queueText}}</span>
+      <button onClick="{{reconnect}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(232,176,74,.18); color: #E8B04A; font-size: 12px; font-weight: 800">Включить сеть</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{back}}" hint-placeholder-val="{{false}}">
+    <div style="padding: 10px 14px; background: linear-gradient(90deg, rgba(143,211,172,.18), rgba(143,211,172,.05)); border-bottom: 1px solid rgba(143,211,172,.25); display: flex; align-items: center; gap: 10px; animation: kxBanner .3s ease both">
+      <span style="position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center"><span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8FD3AC; animation: kxWave 1.4s ease-out infinite"></span><span class="ms" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">wifi</span></span>
+      <span style="flex: 1; font-size: 13px; color: #C9E8D5">{{backText}}</span>
+      <button onClick="{{goOffline}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(255,255,255,.08); font-size: 12px; font-weight: 700">Выключить</button>
+    </div>
+  </sc-if>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 8px; justify-content: flex-end">
+    <div style="align-self: flex-start; max-width: 80%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">Ты где? Мы уже на месте 🙂 <span style="font-size: 11px; color: #8A958F">18:40</span></div>
+    <sc-for list="{{msgs}}" as="m" hint-placeholder-count="3">
+      <div style="align-self: flex-end; max-width: 82%; display: flex; align-items: flex-end; gap: 6px; animation: kxIn .3s ease both">
+        <sc-if value="{{m.failed}}" hint-placeholder-val="{{false}}"><button onClick="{{m.retry}}" aria-label="Отправить снова" style="width: 28px; height: 28px; border-radius: 14px; background: rgba(229,83,75,.16); color: #FF8A80; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 18px" aria-hidden="true">error</span></button></sc-if>
+        <div style="padding: 8px 12px 6px; border-radius: 18px 18px 6px 18px; background: {{m.bg}}; color: {{m.ink}}; border: 1px dashed {{m.bd}}; transition: all .3s">
+          <div style="font-size: 15px">{{m.text}}</div>
+          <div style="margin-top: 2px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 11px; opacity: .75">
+            {{m.time}}
+            <sc-if value="{{m.waiting}}" hint-placeholder-val="{{true}}"><span class="ms" style="font-size: 14px; animation: kxClock 2s linear infinite" aria-hidden="true">schedule</span></sc-if>
+            <sc-if value="{{m.sent}}" hint-placeholder-val="{{false}}"><span class="ms" style="font-size: 15px; animation: kxSent .35s ease both" aria-hidden="true">done_all</span></sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="padding: 8px 12px 16px; border-top: 1px solid rgba(255,255,255,.06)">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <label style="flex: 1; height: 50px; padding: 0 16px; border-radius: 25px; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center">
+        <input value="{{draft}}" onInput="{{onDraft}}" placeholder="{{ph}}" aria-label="Сообщение" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 15px">
+      </label>
+      <button onClick="{{send}}" aria-label="Отправить" style="width: 50px; height: 50px; border-radius: 25px; background: {{sendBg}}; color: {{sendInk}}; display: flex; align-items: center; justify-content: center; transition: all .2s"><span class="ms fill" aria-hidden="true">{{sendIcon}}</span></button>
+    </div>
+    <div style="margin: 8px 6px 0; font-size: 11px; color: #8A958F; text-align: center">{{hint}}</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { net: 'off', draft: '', next: 4, msgs: [
+    { id: 1, text: 'Еду, пробка на Абая', time: '18:42', st: 'wait' },
+    { id: 2, text: 'Буду минут через 15', time: '18:43', st: 'wait' },
+    { id: 3, text: 'Возьмите мне чай 🙏', time: '18:43', st: 'failed' }
+  ] };
+}
+componentWillUnmount() { clearTimeout(this.t1); clearInterval(this.iv); }
+flush() {
+  clearInterval(this.iv);
+  this.iv = setInterval(() => {
+    const m = this.state.msgs.find(x => x.st === 'wait');
+    if (!m) { clearInterval(this.iv); return; }
+    this.setState({ msgs: this.state.msgs.map(x => x.id === m.id ? { ...x, st: 'sent' } : x) });
+  }, 550);
+}
+renderVals() {
+  const s = this.state;
+  const off = s.net === 'off', connecting = s.net === 'connecting', on = s.net === 'on';
+  const waiting = s.msgs.filter(m => m.st === 'wait').length, failed = s.msgs.filter(m => m.st === 'failed').length;
+  const sentNow = s.msgs.filter(m => m.st === 'sent').length;
+  const can = s.draft.trim().length > 0;
+  return {
+    sub: off ? 'ожидание сети' : connecting ? 'подключение' : 'в сети', subInk: off ? '#E8B04A' : connecting ? '#9AA59F' : '#8FD3AC', connecting,
+    offline: off, back: !off,
+    queueText: waiting ? waiting + ' ' + (waiting === 1 ? 'сообщение ждёт' : 'сообщения ждут') + ' отправки' : 'Сообщения уйдут, когда сеть появится',
+    backText: connecting ? 'Подключаемся…' : waiting ? 'Отправляем очередь…' : 'Сеть есть, всё отправлено',
+    reconnect: () => { this.setState({ net: 'connecting' }); clearTimeout(this.t1); this.t1 = setTimeout(() => { this.setState({ net: 'on' }); this.flush(); }, 1200); },
+    goOffline: () => { clearInterval(this.iv); clearTimeout(this.t1); this.setState({ net: 'off' }); },
+    msgs: s.msgs.map(m => ({
+      text: m.text, time: m.time, waiting: m.st === 'wait', sent: m.st === 'sent', failed: m.st === 'failed',
+      bg: m.st === 'sent' ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(143,211,172,.16)', ink: m.st === 'sent' ? '#06150D' : '#C9E8D5',
+      bd: m.st === 'sent' ? 'transparent' : m.st === 'failed' ? 'rgba(229,83,75,.5)' : 'rgba(143,211,172,.45)',
+      retry: () => { this.setState({ msgs: s.msgs.map(x => x.id === m.id ? { ...x, st: 'wait' } : x) }); if (on) this.flush(); }
+    })),
+    draft: s.draft, onDraft: e => this.setState({ draft: e.target.value }),
+    ph: off ? 'Напишите — отправим позже' : 'Сообщение',
+    sendBg: can ? (off ? 'rgba(232,176,74,.25)' : 'linear-gradient(135deg, #6FC497, #3F9A6C)') : 'rgba(255,255,255,.07)', sendInk: can ? (off ? '#E8B04A' : '#06150D') : '#5C6661',
+    sendIcon: off && can ? 'schedule_send' : 'send',
+    send: () => {
+      if (!can) return;
+      const m = { id: s.next, text: s.draft.trim(), time: '18:4' + Math.min(9, s.next + 1), st: 'wait' };
+      this.setState({ msgs: [...s.msgs, m], draft: '', next: s.next + 1 });
+      if (on) setTimeout(() => this.flush(), 50);
+    },
+    hint: off ? (failed ? 'Нажмите на красный значок, чтобы отправить снова' : 'kiroX сам отправит всё, как только появится сеть') : sentNow ? 'Отправлено: ' + sentNow : ''
+  };
+}
+}
+</script>
+</body>
+</html>

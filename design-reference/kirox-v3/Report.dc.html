@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Пожаловаться</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+textarea{font:inherit;color:inherit}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxStep{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes kxStep2{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes kxShield{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:none}}
+@keyframes kxRing{0%{transform:scale(.8);opacity:.7}100%{transform:scale(1.7);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <!-- Chat behind -->
+  <div style="position: absolute; inset: 0; display: flex; flex-direction: column" aria-hidden="true">
+    <div style="padding: 10px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+      <span class="ms">arrow_back</span>
+      <span style="width: 40px; height: 40px; border-radius: 20px; background: #5C6661; display: flex; align-items: center; justify-content: center; font-weight: 800">?</span>
+      <div><div style="font-size: 16px; font-weight: 800">+7 700 000 00 00</div><div style="font-size: 12px; color: #9AA59F">нет в контактах</div></div>
+    </div>
+    <div style="flex: 1; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+      <div style="align-self: flex-start; max-width: 80%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">Поздравляем! Вы выиграли телефон 🎉</div>
+      <div style="align-self: flex-start; max-width: 80%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">Чтобы забрать приз, перейдите по ссылке и введите код из СМС</div>
+    </div>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(0,0,0,.55)"></div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 18px 24px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.98), rgba(18,22,20,1)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .4s cubic-bezier(.2,.8,.2,1) both">
+    <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+
+    <sc-if value="{{s1}}" hint-placeholder-val="{{true}}">
+      <div style="animation: {{anim}}">
+        <div style="display: flex; align-items: center; gap: 10px"><span class="ms fill" style="color: #FF8A80" aria-hidden="true">flag</span><span style="font-size: 20px; font-weight: 800">Пожаловаться</span></div>
+        <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">На 2 сообщения от этого номера. Что не так?</div>
+        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px">
+          <sc-for list="{{reasons}}" as="r" hint-placeholder-count="6"><button onClick="{{r.tap}}" style="height: 52px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,.05); display: flex; align-items: center; gap: 12px"><span class="ms" style="color: {{r.c}}" aria-hidden="true">{{r.i}}</span><span style="flex: 1; font-size: 15px; font-weight: 700">{{r.t}}</span><span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">chevron_right</span></button></sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{s2}}" hint-placeholder-val="{{false}}">
+      <div style="animation: {{anim}}">
+        <div style="display: flex; align-items: center; gap: 8px"><button onClick="{{back}}" aria-label="Назад" style="width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button><span style="font-size: 18px; font-weight: 800">{{reasonTitle}}</span></div>
+        <div style="margin-top: 12px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08)">
+          <div style="font-size: 12px; color: #8A958F; font-weight: 700">Что уйдёт модераторам</div>
+          <div style="margin-top: 6px; font-size: 13px; color: #C9D2CC; line-height: 1.4">2 выбранных сообщения, номер отправителя и ваш комментарий. Остальная переписка не отправляется.</div>
+        </div>
+        <textarea onInput="{{onNote}}" placeholder="Комментарий (необязательно)" aria-label="Комментарий" style="margin-top: 10px; width: 100%; box-sizing: border-box; height: 72px; padding: 10px 12px; border-radius: 14px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.1); outline: none; resize: none; font-size: 14px"></textarea>
+        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px">
+          <sc-for list="{{opts}}" as="o" hint-placeholder-count="2"><button onClick="{{o.tap}}" role="switch" aria-checked="{{o.on}}" style="min-height: 52px; padding: 6px 4px; display: flex; align-items: center; gap: 12px"><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">{{o.t}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{o.s}}</span></span><span style="width: 46px; height: 28px; border-radius: 14px; background: {{o.tr}}; position: relative; transition: background .2s"><span style="position: absolute; top: 3px; left: {{o.x}}; width: 22px; height: 22px; border-radius: 11px; background: {{o.kn}}; transition: left .2s"></span></span></button></sc-for>
+        </div>
+        <button onClick="{{send}}" style="margin-top: 12px; width: 100%; height: 54px; border-radius: 27px; background: #E5534B; color: #fff; font-size: 16px; font-weight: 800; text-align: center">Отправить жалобу</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{s3}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 8px 0 4px">
+        <span style="position: relative; width: 84px; height: 84px; display: flex; align-items: center; justify-content: center">
+          <span style="position: absolute; inset: 0; border-radius: 42px; border: 2px solid #8FD3AC; animation: kxRing 1.6s ease-out infinite"></span>
+          <span style="width: 84px; height: 84px; border-radius: 42px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; animation: kxShield .5s ease both"><span class="ms fill" style="font-size: 44px" aria-hidden="true">verified_user</span></span>
+        </span>
+        <div style="margin-top: 14px; font-size: 20px; font-weight: 800">Жалоба отправлена</div>
+        <div style="margin-top: 6px; font-size: 14px; color: #9AA59F; line-height: 1.45">{{doneText}}</div>
+        <div style="margin-top: 14px; width: 100%; display: flex; flex-direction: column; gap: 6px">
+          <sc-for list="{{doneRows}}" as="d" hint-placeholder-count="2"><div style="height: 44px; padding: 0 14px; border-radius: 14px; background: rgba(255,255,255,.05); display: flex; align-items: center; gap: 10px"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">check_circle</span><span style="font-size: 14px; font-weight: 700">{{d.t}}</span></div></sc-for>
+        </div>
+        <button onClick="{{restart}}" style="margin-top: 14px; height: 44px; padding: 0 18px; border-radius: 22px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; color: #8FD3AC">Начать заново</button>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const R = [['report', 'Спам', '#E8B04A'], ['phishing', 'Мошенничество', '#FF8A80'], ['sentiment_extremely_dissatisfied', 'Оскорбления', '#FF8A80'], ['no_adult_content', 'Неприемлемое содержимое', '#E8B04A'], ['copyright', 'Нарушение авторских прав', '#9AA59F'], ['more_horiz', 'Другое', '#9AA59F']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { step: 1, r: 0, k: 0, block: true, del: true }; }
+renderVals() {
+  const s = this.state;
+  const go = (step, extra) => this.setState({ step, k: s.k + 1, ...(extra || {}) });
+  const sw = (on) => ({ tr: on ? '#3F9A6C' : 'rgba(255,255,255,.14)', kn: on ? '#EEF3EF' : '#9AA59F', x: on ? '21px' : '3px', on: on ? 'true' : 'false' });
+  const rows = [];
+  if (s.block) rows.push({ t: 'Номер заблокирован' });
+  if (s.del) rows.push({ t: 'Чат удалён у вас' });
+  if (!rows.length) rows.push({ t: 'Чат остался как был' });
+  return {
+    s1: s.step === 1, s2: s.step === 2, s3: s.step === 3,
+    anim: (s.k % 2 ? 'kxStep2' : 'kxStep') + ' .3s ease both',
+    reasons: R.map(([i, t, c], idx) => ({ i, t, c, tap: () => go(2, { r: idx }) })),
+    reasonTitle: R[s.r][1],
+    back: () => go(1), onNote: () => {},
+    opts: [
+      { t: 'Заблокировать номер', s: 'Больше не сможет писать и звонить', ...sw(s.block), tap: () => this.setState({ block: !s.block }) },
+      { t: 'Удалить чат', s: 'Только у вас', ...sw(s.del), tap: () => this.setState({ del: !s.del }) }
+    ],
+    send: () => go(3),
+    doneText: 'Модераторы проверят сообщения. Отправитель не узнает, кто пожаловался.',
+    doneRows: rows,
+    restart: () => this.setState({ step: 1, block: true, del: true, k: s.k + 1 })
+  };
+}
+}
+</script>
+</body>
+</html>

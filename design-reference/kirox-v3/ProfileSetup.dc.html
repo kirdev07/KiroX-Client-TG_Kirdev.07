@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Заполнить профиль</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:none}}
+@keyframes kxPop2{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:none}}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxConf{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(300px) rotate(360deg);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="flex: 1; font-size: 26px; font-weight: 800; padding-left: 4px">Настройки</span>
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">search</span></span>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 0 16px 20px">
+    <!-- Profile preview -->
+    <div style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6px 0 12px">
+      <span style="width: 96px; height: 96px; border-radius: 48px; background: {{avBg}}; display: flex; align-items: center; justify-content: center; font-size: {{avFs}}; font-weight: 800; color: {{avInk}}; animation: {{avAnim}}; border: {{avBd}}">{{avText}}</span>
+      <div style="margin-top: 10px; font-size: 22px; font-weight: 800">Алекс</div>
+      <div style="margin-top: 2px; font-size: 13px; color: {{userInk}}; animation: {{userAnim}}">{{user}}</div>
+      <div style="margin-top: 6px; max-width: 280px; font-size: 13px; color: {{bioInk}}; line-height: 1.4; animation: {{bioAnim}}">{{bio}}</div>
+    </div>
+
+    <!-- Checklist card -->
+    <sc-if value="{{card}}" hint-placeholder-val="{{true}}">
+      <div style="position: relative; padding: 14px; border-radius: 24px; background: linear-gradient(180deg, rgba(143,211,172,.12), rgba(143,211,172,.03)); border: 1px solid rgba(143,211,172,.3); overflow: hidden">
+        <sc-for list="{{conf}}" as="c" hint-placeholder-count="0"><span style="position: absolute; left: {{c.x}}; top: -10px; width: 7px; height: 11px; border-radius: 2px; background: {{c.col}}; animation: kxConf 1.4s ease-in {{c.d}} both"></span></sc-for>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">{{cardTitle}}</div><div style="font-size: 12px; color: #9AA59F">{{cardSub}}</div></div>
+          <button onClick="{{hide}}" aria-label="Скрыть" style="width: 32px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #9AA59F"><span class="ms" style="font-size: 18px" aria-hidden="true">close</span></button>
+        </div>
+        <div style="margin-top: 10px; display: flex; gap: 4px"><sc-for list="{{segs}}" as="g" hint-placeholder-count="4"><span style="flex: 1; height: 6px; border-radius: 3px; background: {{g.c}}; transition: background .3s"></span></sc-for></div>
+        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px">
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="4"><button onClick="{{s.tap}}" style="padding: 10px 12px; border-radius: 16px; background: {{s.bg}}; display: flex; align-items: center; gap: 12px; animation: kxIn .25s ease {{s.d}} both"><span style="width: 34px; height: 34px; border-radius: 12px; background: {{s.ibg}}; color: {{s.ic}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 19px" aria-hidden="true">{{s.icon}}</span></span><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 700; text-decoration: {{s.dec}}; color: {{s.tink}}">{{s.t}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{s.sub}}</span></span><span class="ms" style="font-size: 20px; color: {{s.ic}}" aria-hidden="true">{{s.end}}</span></button></sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="margin-top: 14px; border-radius: 20px; background: rgba(255,255,255,.04); overflow: hidden" aria-hidden="true">
+      <div style="min-height: 52px; padding: 0 14px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05)"><span class="ms" style="color: #9AA59F">notifications</span><span style="flex: 1; font-size: 15px">Уведомления</span></div>
+      <div style="min-height: 52px; padding: 0 14px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05)"><span class="ms" style="color: #9AA59F">lock</span><span style="flex: 1; font-size: 15px">Конфиденциальность</span></div>
+      <div style="min-height: 52px; padding: 0 14px; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: #9AA59F">palette</span><span style="flex: 1; font-size: 15px">Кастомизация</span></div>
+    </div>
+    <sc-if value="{{hidden}}" hint-placeholder-val="{{false}}"><button onClick="{{unhide}}" style="margin-top: 12px; width: 100%; height: 44px; border-radius: 22px; background: rgba(255,255,255,.05); font-size: 13px; font-weight: 700; color: #8FD3AC; text-align: center">Вернуть подсказку про профиль</button></sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const ST = [
+  { k: 'photo', icon: 'add_a_photo', t: 'Добавить фото', sub: 'Так вас проще узнать', done: 'Фото добавлено' },
+  { k: 'user', icon: 'alternate_email', t: 'Придумать имя пользователя', sub: 'Чтобы находили без номера', done: '@alex_codes' },
+  { k: 'bio', icon: 'edit_note', t: 'Написать пару слов о себе', sub: 'Видно в профиле', done: 'Добавлено' },
+  { k: 'bday', icon: 'cake', t: 'Указать день рождения', sub: 'Друзья не забудут поздравить', done: '14 марта · только контактам' }
+];
+const COLS = ['#8FD3AC', '#E8B04A', '#7FB8E0', '#C9A0E0', '#FF8A80'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { ok: {}, k: 0, hide: false, last: '' }; }
+renderVals() {
+  const s = this.state;
+  const n = ST.filter(x => s.ok[x.k]).length;
+  const all = n === ST.length;
+  const anim = (key) => s.last === key ? (s.k % 2 ? 'kxPop2' : 'kxPop') + ' .4s ease both' : 'none';
+  return {
+    avBg: s.ok.photo ? 'linear-gradient(135deg, #3F9A6C, #2F6E9E)' : 'rgba(255,255,255,.05)', avInk: s.ok.photo ? '#fff' : '#8A958F', avFs: s.ok.photo ? '40px' : '34px', avText: s.ok.photo ? '🧑‍💻' : 'А', avBd: s.ok.photo ? 'none' : '2px dashed rgba(255,255,255,.2)', avAnim: anim('photo'),
+    user: s.ok.user ? '@alex_codes' : 'имя пользователя не задано', userInk: s.ok.user ? '#8FD3AC' : '#8A958F', userAnim: anim('user'),
+    bio: s.ok.bio ? 'Пишу приложения на Kotlin, люблю горы и кофе ☕' : '', bioInk: '#C9D2CC', bioAnim: anim('bio'),
+    card: !s.hide, hidden: s.hide, hide: () => this.setState({ hide: true }), unhide: () => this.setState({ hide: false }),
+    cardTitle: all ? 'Профиль готов! 🎉' : 'Заполните профиль · ' + n + ' из ' + ST.length,
+    cardSub: all ? 'Карточку можно скрыть' : 'Займёт пару минут',
+    segs: ST.map(x => ({ c: s.ok[x.k] ? '#8FD3AC' : 'rgba(255,255,255,.1)' })),
+    steps: ST.map((x, i) => { const ok = !!s.ok[x.k]; return { icon: ok ? 'check_circle' : x.icon, t: x.t, sub: ok ? x.done : x.sub, d: (i * 0.05) + 's',
+      bg: ok ? 'rgba(143,211,172,.06)' : 'rgba(0,0,0,.18)', ibg: ok ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.06)', ic: ok ? '#8FD3AC' : '#C9D2CC',
+      dec: ok ? 'line-through' : 'none', tink: ok ? '#9AA59F' : '#EEF3EF', end: ok ? 'done' : 'chevron_right',
+      tap: () => !ok && this.setState({ ok: { ...s.ok, [x.k]: true }, last: x.k, k: s.k + 1 }) }; }),
+    conf: all && s.last ? Array.from({ length: 16 }, (_, i) => ({ x: ((i * 41) % 94 + 3) + '%', col: COLS[i % COLS.length], d: ((i % 6) * 0.07) + 's' })) : []
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Статистика канала</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxDraw{from{stroke-dashoffset:900}to{stroke-dashoffset:0}}
+@keyframes kxDraw2{from{stroke-dashoffset:900}to{stroke-dashoffset:0}}
+@keyframes kxFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxBar{from{width:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1; min-width: 0"><h1 style="margin: 0; font-size: 20px; font-weight: 800">Статистика</h1><div style="font-size: 12px; color: #9AA59F">Android Weekly</div></div>
+  </header>
+
+  <!-- Period filter -->
+  <div style="padding: 4px 16px 0; display: flex; gap: 6px">
+    <sc-for list="{{periods}}" as="p" hint-placeholder-count="3"><button onClick="{{p.tap}}" style="flex: 1; height: 34px; border-radius: 17px; background: {{p.bg}}; color: {{p.ink}}; font-size: 13px; font-weight: 700; text-align: center; transition: all .2s">{{p.label}}</button></sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 12px 16px 30px">
+    <!-- Stat tiles -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+      <sc-for list="{{tiles}}" as="t" hint-placeholder-count="4">
+        <div style="padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); animation: kxFadeUp .3s ease {{t.d}} both">
+          <div style="font-size: 12px; color: #9AA59F">{{t.label}}</div>
+          <div style="margin-top: 4px; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums">{{t.value}}</div>
+          <div style="margin-top: 2px; font-size: 12px; font-weight: 700; color: {{t.dInk}}; display: flex; align-items: center; gap: 2px"><span class="ms" style="font-size: 15px" aria-hidden="true">{{t.dIcon}}</span>{{t.delta}}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- Line chart: subscribers -->
+    <div style="margin-top: 12px; padding: 14px 14px 10px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08)">
+      <div style="display: flex; align-items: baseline"><span style="flex: 1; font-size: 15px; font-weight: 800">Подписчики</span><span style="font-size: 12px; color: #9AA59F">{{rangeText}}</span></div>
+      <div style="position: relative; margin-top: 10px; height: 170px">
+        <svg width="330" height="170" viewBox="0 0 330 170" aria-hidden="true" style="position: absolute; inset: 0">
+          <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FD3AC" stop-opacity=".28"></stop><stop offset="1" stop-color="#8FD3AC" stop-opacity="0"></stop></linearGradient></defs>
+          <line x1="0" y1="20" x2="330" y2="20" stroke="rgba(255,255,255,.06)"></line>
+          <line x1="0" y1="80" x2="330" y2="80" stroke="rgba(255,255,255,.06)"></line>
+          <line x1="0" y1="140" x2="330" y2="140" stroke="rgba(255,255,255,.12)"></line>
+          <path d="{{area}}" fill="url(#ga)"></path>
+          <path d="{{line}}" fill="none" stroke="#8FD3AC" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" style="stroke-dasharray: 900; animation: {{drawAnim}}"></path>
+          <sc-if value="{{hasHover}}" hint-placeholder-val="{{false}}">
+            <line x1="{{hx}}" y1="12" x2="{{hx}}" y2="140" stroke="rgba(238,243,239,.35)" stroke-dasharray="3 3"></line>
+            <circle cx="{{hx}}" cy="{{hy}}" r="6" fill="#8FD3AC" stroke="#0A0C0B" stroke-width="2"></circle>
+          </sc-if>
+          <text x="0" y="16" fill="#8A958F" font-size="10" font-family="Roboto Flex, sans-serif">{{yMax}}</text>
+          <text x="0" y="136" fill="#8A958F" font-size="10" font-family="Roboto Flex, sans-serif">{{yMin}}</text>
+          <text x="0" y="160" fill="#8A958F" font-size="10" font-family="Roboto Flex, sans-serif">{{xFirst}}</text>
+          <text x="330" y="160" text-anchor="end" fill="#8A958F" font-size="10" font-family="Roboto Flex, sans-serif">{{xLast}}</text>
+        </svg>
+        <div style="position: absolute; inset: 0 0 24px; display: flex">
+          <sc-for list="{{hits}}" as="h" hint-placeholder-count="12"><button onClick="{{h.tap}}" aria-label="{{h.label}}" style="flex: 1; height: 100%"></button></sc-for>
+        </div>
+        <sc-if value="{{hasHover}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; top: -4px; left: {{tipX}}; padding: 6px 10px; border-radius: 12px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.16); font-size: 12px; white-space: nowrap; pointer-events: none">
+            <div style="color: #9AA59F">{{tipDate}}</div>
+            <div style="font-weight: 800; font-variant-numeric: tabular-nums">{{tipVal}} подписчиков</div>
+            <div style="font-weight: 700; color: {{tipDInk}}">{{tipDelta}}</div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="font-size: 11px; color: #8A958F">Нажмите на график, чтобы увидеть день</div>
+    </div>
+
+    <!-- Sources: horizontal bars -->
+    <div style="margin-top: 12px; padding: 14px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08)">
+      <div style="font-size: 15px; font-weight: 800">Откуда приходят</div>
+      <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px">
+        <sc-for list="{{sources}}" as="r" hint-placeholder-count="5">
+          <div>
+            <div style="display: flex; align-items: baseline; font-size: 13px"><span style="flex: 1; color: #C9D2CC">{{r.label}}</span><span style="font-weight: 800; font-variant-numeric: tabular-nums">{{r.value}}</span><span style="width: 44px; text-align: right; color: #8A958F; font-size: 12px">{{r.pct}}</span></div>
+            <div style="margin-top: 4px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.06)"><div style="height: 100%; width: {{r.w}}; border-radius: 0 4px 4px 0; background: #8FD3AC; animation: kxBar .6s cubic-bezier(.2,.8,.2,1) both"></div></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Top posts -->
+    <div style="margin-top: 12px; padding: 14px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08)">
+      <div style="font-size: 15px; font-weight: 800">Лучшие посты</div>
+      <sc-for list="{{posts}}" as="p" hint-placeholder-count="3">
+        <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px">
+          <span style="width: 26px; height: 26px; border-radius: 13px; background: rgba(143,211,172,.12); color: #8FD3AC; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{p.n}}</span>
+          <span style="flex: 1; min-width: 0; font-size: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{p.t}}</span>
+          <span style="font-size: 12px; color: #9AA59F; display: flex; align-items: center; gap: 2px"><span class="ms" style="font-size: 14px" aria-hidden="true">visibility</span>{{p.v}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PER = [['7 дней', 7], ['30 дней', 30], ['90 дней', 90]];
+const fmt = n => n.toLocaleString('ru-RU');
+const kfmt = n => n >= 1000 ? (n / 1000).toFixed(1).replace('.', ',') + 'K' : String(n);
+const MON = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const series = days => {
+  const out = []; let v = 18400 - days * 22;
+  for (let i = 0; i <= days; i++) { v += Math.round(18 + Math.sin(i * 0.9) * 26 + (i === Math.floor(days * 0.6) ? 140 : 0)); out.push(v); }
+  return out;
+};
+const dateAt = (days, i) => { const d = new Date(2026, 10, 22); d.setDate(d.getDate() - (days - i)); return d.getDate() + ' ' + MON[d.getMonth()]; };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { per: 1, hover: -1, draw: 0 }; }
+renderVals() {
+  const s = this.state;
+  const days = PER[s.per][1];
+  const data = series(days);
+  const min = Math.min(...data), max = Math.max(...data);
+  const pad = (max - min) * 0.1 || 1;
+  const lo = min - pad, hi = max + pad;
+  const X = i => (i / days) * 330, Y = v => 140 - ((v - lo) / (hi - lo)) * 120;
+  const pts = data.map((v, i) => [X(i), Y(v)]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const area = line + ' L330 140 L0 140 Z';
+  const N = 12;
+  const idxOf = k => Math.round((k + 0.5) / N * days);
+  const h = s.hover;
+  const gained = data[data.length - 1] - data[0];
+  const views = Math.round(days * 1840);
+  return {
+    periods: PER.map(([label], i) => ({ label, bg: s.per === i ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.per === i ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ per: i, hover: -1, draw: s.draw + 1 }) })),
+    tiles: [
+      { label: 'Подписчики', value: fmt(data[data.length - 1]), delta: '+' + fmt(gained), dIcon: 'trending_up', dInk: '#8FD3AC' },
+      { label: 'Просмотры', value: kfmt(views), delta: '+12%', dIcon: 'trending_up', dInk: '#8FD3AC' },
+      { label: 'Охват поста', value: kfmt(Math.round(data[data.length - 1] * 0.64)), delta: '+4%', dIcon: 'trending_up', dInk: '#8FD3AC' },
+      { label: 'Отписались', value: fmt(Math.round(days * 6.2)), delta: '−3%', dIcon: 'trending_down', dInk: '#9AA59F' }
+    ].map((t, k) => ({ ...t, d: (k * 0.05) + 's' })),
+    rangeText: dateAt(days, 0) + ' — ' + dateAt(days, days),
+    line, area, drawAnim: (s.draw % 2 ? 'kxDraw2' : 'kxDraw') + ' 1s ease both',
+    yMax: kfmt(Math.round(hi)), yMin: kfmt(Math.round(lo)), xFirst: dateAt(days, 0), xLast: dateAt(days, days),
+    hits: Array.from({ length: N }, (_, k) => ({ label: dateAt(days, idxOf(k)) + ': ' + fmt(data[idxOf(k)]), tap: () => this.setState({ hover: s.hover === k ? -1 : k }) })),
+    hasHover: h >= 0,
+    hx: h >= 0 ? pts[idxOf(h)][0].toFixed(1) : '0', hy: h >= 0 ? pts[idxOf(h)][1].toFixed(1) : '0',
+    tipX: h >= 0 ? Math.min(220, Math.max(0, pts[idxOf(h)][0] - 60)) + 'px' : '0',
+    tipDate: h >= 0 ? dateAt(days, idxOf(h)) : '', tipVal: h >= 0 ? fmt(data[idxOf(h)]) : '',
+    tipDelta: h >= 0 ? (d => (d >= 0 ? '+' : '−') + Math.abs(d) + ' за день')(data[idxOf(h)] - data[Math.max(0, idxOf(h) - 1)]) : '',
+    tipDInk: h >= 0 && data[idxOf(h)] >= data[Math.max(0, idxOf(h) - 1)] ? '#8FD3AC' : '#9AA59F',
+    sources: [['Поиск', 0.38], ['Ссылки в других каналах', 0.27], ['Пересылки постов', 0.18], ['Приглашения', 0.11], ['Другое', 0.06]].map(([label, f]) => ({ label, value: fmt(Math.round(gained * f)), pct: Math.round(f * 100) + '%', w: Math.round(f / 0.38 * 100) + '%' })),
+    posts: [['Вышел Kotlin 2.3 — разбираем', 24800], ['Compose 1.9: общие переходы', 21300], ['10 плагинов для Android Studio', 17900]].map(([t, v], i) => ({ n: String(i + 1), t, v: kfmt(v) }))
+  };
+}
+}
+</script>
+</body>
+</html>

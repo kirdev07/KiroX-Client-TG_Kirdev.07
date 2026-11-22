@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Мало места</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+@keyframes kxDrop{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxDim{from{opacity:0}to{opacity:1}}
+@keyframes kxBroom{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}}
+@keyframes kxPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="padding: 14px 16px 8px; display: flex; align-items: center"><span style="flex: 1; font-size: 26px; font-weight: 800">Чаты</span><span class="ms" style="color: #9AA59F" aria-hidden="true">search</span></div>
+
+  <sc-if value="{{warnBar}}" hint-placeholder-val="{{true}}">
+    <button onClick="{{openSheet}}" style="margin: 0 12px 6px; padding: 12px 14px; border-radius: 20px; background: rgba(232,176,74,.1); border: 1px solid rgba(232,176,74,.35); display: flex; align-items: center; gap: 12px; animation: kxDrop .35s ease both">
+      <span class="ms fill" style="color: #E8B04A" aria-hidden="true">storage</span>
+      <span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 800">На телефоне осталось 1,1 ГБ</span><span style="display: block; font-size: 12px; color: #E8D2A0">kiroX может освободить {{canFree}} — чаты не пострадают</span></span>
+      <span class="ms" style="color: #E8B04A" aria-hidden="true">chevron_right</span>
+    </button>
+  </sc-if>
+  <sc-if value="{{okBar}}" hint-placeholder-val="{{false}}">
+    <div style="margin: 0 12px 6px; padding: 12px 14px; border-radius: 20px; background: rgba(143,211,172,.08); border: 1px solid rgba(143,211,172,.3); display: flex; align-items: center; gap: 12px; animation: kxDrop .35s ease both">
+      <span class="ms fill" style="color: #8FD3AC" aria-hidden="true">check_circle</span>
+      <span style="flex: 1; font-size: 14px; font-weight: 700">{{freedText}}</span>
+      <button onClick="{{reset}}" style="height: 30px; padding: 0 10px; border-radius: 15px; font-size: 12px; font-weight: 700; color: #8FD3AC">Ещё раз</button>
+    </div>
+  </sc-if>
+
+  <div style="flex: 1; padding: 0 12px; opacity: .55" aria-hidden="true">
+    <sc-for list="{{chats}}" as="c" hint-placeholder-count="6"><div style="display: flex; align-items: center; gap: 12px; padding: 10px 4px"><span style="width: 48px; height: 48px; border-radius: 24px; background: {{c.c}}"></span><span style="flex: 1"><span style="display: block; width: {{c.w1}}; height: 12px; border-radius: 6px; background: rgba(255,255,255,.16)"></span><span style="display: block; margin-top: 8px; width: {{c.w2}}; height: 10px; border-radius: 5px; background: rgba(255,255,255,.08)"></span></span></div></sc-for>
+  </div>
+
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{close}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxDim .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 18px 24px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.99), rgba(18,22,20,1)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .35s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="width: 48px; height: 48px; border-radius: 16px; background: rgba(143,211,172,.14); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 26px; animation: {{broom}}" aria-hidden="true">cleaning_services</span></span>
+        <div style="flex: 1"><div style="font-size: 18px; font-weight: 800">Быстрая чистка</div><div style="font-size: 12px; color: #9AA59F">Удаляем только копии на телефоне — в облаке всё останется</div></div>
+      </div>
+      <div style="margin-top: 14px; height: 14px; border-radius: 7px; background: rgba(255,255,255,.06); overflow: hidden; display: flex">
+        <sc-for list="{{bar}}" as="b" hint-placeholder-count="4"><span style="height: 100%; width: {{b.w}}; background: {{b.c}}; transition: width .5s ease; border-right: 2px solid #161B18"></span></sc-for>
+      </div>
+      <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 4px">
+        <sc-for list="{{cats}}" as="c" hint-placeholder-count="4"><button onClick="{{c.tap}}" role="checkbox" aria-checked="{{c.on}}" style="width: 100%; min-height: 50px; padding: 0 4px; display: flex; align-items: center; gap: 12px"><span style="width: 12px; height: 12px; border-radius: 4px; background: {{c.c}}"></span><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">{{c.t}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{c.s}}</span></span><span style="font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums">{{c.size}}</span><span style="width: 24px; height: 24px; border-radius: 7px; border: 2px solid {{c.cb}}; background: {{c.cf}}; color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 17px; font-weight: 700; display: {{c.tick}}" aria-hidden="true">check</span></span></button></sc-for>
+      </div>
+      <div style="margin-top: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.04); font-size: 12px; color: #9AA59F; display: flex; gap: 8px"><span class="ms" style="font-size: 17px" aria-hidden="true">lock</span>Секретные чаты не трогаем — их нет в облаке.</div>
+      <button onClick="{{clean}}" style="margin-top: 12px; width: 100%; height: 54px; border-radius: 27px; background: {{cBg}}; color: {{cInk}}; font-size: 16px; font-weight: 800; text-align: center; position: relative; overflow: hidden"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{prog}}; background: rgba(6,21,13,.18); transition: width .1s linear"></span><span style="position: relative">{{cText}}</span></button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const CATS = [['video', 'Видео', 'смотрели больше месяца назад', 1.6, '#C9A0E0'], ['photo', 'Фото', 'из каналов и больших групп', 0.7, '#7FB8E0'], ['files', 'Файлы', 'скачанные документы и архивы', 0.4, '#E8B04A'], ['other', 'Стикеры и прочее', 'временные файлы', 0.2, '#8FD3AC']];
+const fmt = (gb) => gb >= 1 ? gb.toFixed(1).replace('.', ',') + ' ГБ' : Math.round(gb * 1024) + ' МБ';
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { sheet: false, on: { video: true, photo: true, files: false, other: true }, p: -1, freed: 0 }; }
+componentWillUnmount() { clearInterval(this.iv); }
+renderVals() {
+  const s = this.state;
+  const total = CATS.reduce((a, c) => a + c[3], 0);
+  const sel = CATS.filter(c => s.on[c[0]]).reduce((a, c) => a + c[3], 0);
+  const running = s.p >= 0;
+  return {
+    warnBar: !s.freed, okBar: !!s.freed, canFree: fmt(total),
+    freedText: 'Освобождено ' + fmt(s.freed) + ' · теперь свободно ' + fmt(1.1 + s.freed),
+    openSheet: () => this.setState({ sheet: true }), close: () => !running && this.setState({ sheet: false }), sheet: s.sheet,
+    broom: running ? 'kxBroom .4s ease-in-out 2' : 'none',
+    bar: CATS.map(c => ({ w: (s.on[c[0]] ? c[3] / total * 100 : 0) + '%', c: c[4] })),
+    cats: CATS.map(([k, t, sub, gb, c]) => { const on = !!s.on[k]; return { t, s: sub, size: fmt(gb), c, on: on ? 'true' : 'false', cb: on ? '#8FD3AC' : 'rgba(255,255,255,.3)', cf: on ? '#8FD3AC' : 'transparent', tick: on ? 'inline-block' : 'none', tap: () => !running && this.setState({ on: { ...s.on, [k]: !on } }) }; }),
+    cText: running ? 'Чистим… ' + s.p + '%' : sel ? 'Освободить ' + fmt(sel) : 'Выберите, что удалить',
+    cBg: sel ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', cInk: sel ? '#06150D' : '#8A958F',
+    prog: running ? s.p + '%' : '0%',
+    clean: () => { if (!sel || running) return; this.setState({ p: 0 }); clearInterval(this.iv); this.iv = setInterval(() => { const p = this.state.p + 5; if (p >= 100) { clearInterval(this.iv); this.setState({ p: -1, sheet: false, freed: sel }); } else this.setState({ p }); }, 70); },
+    reset: () => this.setState({ freed: 0 }),
+    chats: ['#C0443C', '#2F6E9E', '#3F9A6C', '#6A4C9C', '#B07A2E', '#5C6661'].map((c, i) => ({ c, w1: (40 + (i * 13) % 30) + '%', w2: (60 + (i * 17) % 30) + '%' }))
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Заявки на вступление</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxOk{to{opacity:0;transform:translateX(120px);max-height:0;margin:0;padding:0}}
+@keyframes kxNo{to{opacity:0;transform:translateX(-120px);max-height:0;margin:0;padding:0}}
+@keyframes kxEmpty{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:none}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">Заявки · {{count}}</div><div style="font-size: 12px; color: #9AA59F">Настолки по пятницам</div></div>
+  </header>
+
+  <div style="margin: 0 16px; padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.04); display: flex; gap: 8px; font-size: 12px; color: #9AA59F; line-height: 1.4"><span class="ms" style="font-size: 18px" aria-hidden="true">info</span>Человек узнает о решении. Отклонённый сможет подать заявку снова.</div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 10px 12px 100px">
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+      <div style="margin-bottom: 8px; padding: 12px; border-radius: 20px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07); overflow: hidden; max-height: 220px; animation: {{r.anim}}">
+        <div style="display: flex; gap: 12px; align-items: center">
+          <span style="width: 46px; height: 46px; border-radius: 23px; background: {{r.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0">{{r.l}}</span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 800">{{r.n}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{r.meta}}</span></span>
+          <span style="display: {{r.flagShow}}; height: 22px; padding: 0 8px; border-radius: 11px; background: rgba(232,176,74,.14); color: #E8B04A; font-size: 11px; font-weight: 800; line-height: 22px">{{r.flag}}</span>
+        </div>
+        <div style="display: {{r.noteShow}}; margin-top: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(0,0,0,.2); font-size: 13px; color: #DDE5E0; line-height: 1.4">«{{r.note}}»</div>
+        <div style="margin-top: 6px; display: {{r.mutualShow}}; align-items: center; gap: 6px; font-size: 12px; color: #8FD3AC"><span class="ms" style="font-size: 16px" aria-hidden="true">group</span>{{r.mutual}}</div>
+        <div style="margin-top: 10px; display: flex; gap: 8px">
+          <button onClick="{{r.no}}" style="flex: 1; height: 40px; border-radius: 20px; background: rgba(255,255,255,.07); font-size: 13px; font-weight: 700; text-align: center">Отклонить</button>
+          <button onClick="{{r.ok}}" style="flex: 1.4; height: 40px; border-radius: 20px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 13px; font-weight: 800; text-align: center">Принять</button>
+        </div>
+      </div>
+    </sc-for>
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 80px 20px; text-align: center"><span style="display: inline-flex; width: 76px; height: 76px; border-radius: 26px; background: rgba(143,211,172,.14); color: #8FD3AC; align-items: center; justify-content: center; animation: kxEmpty .5s ease both"><span class="ms fill" style="font-size: 40px" aria-hidden="true">inbox</span></span><div style="margin-top: 12px; font-size: 17px; font-weight: 800">Заявок нет</div><div style="margin-top: 4px; font-size: 13px; color: #9AA59F">{{summary}}</div><button onClick="{{reset}}" style="outline: 1px dashed rgba(143,211,172,.5); outline-offset: 2px; margin-top: 16px; height: 40px; padding: 0 16px; border-radius: 20px; background: rgba(255,255,255,.08); font-size: 13px; font-weight: 700; color: #8FD3AC">Макет: показать снова</button></div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{bulk}}" hint-placeholder-val="{{true}}">
+    <div style="position: absolute; left: 12px; right: 12px; bottom: 16px; padding: 8px; border-radius: 26px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); display: flex; gap: 8px">
+      <button onClick="{{noAll}}" style="flex: 1; height: 46px; border-radius: 23px; background: rgba(229,83,75,.12); color: #FF8A80; font-size: 13px; font-weight: 800; text-align: center">Отклонить всех</button>
+      <button onClick="{{okAll}}" style="flex: 1.3; height: 46px; border-radius: 23px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 13px; font-weight: 800; text-align: center">Принять всех · {{count}}</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 90px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: {{tIc}}" aria-hidden="true">{{tIcon}}</span>{{toastText}}</div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const R = [
+  { id: 1, n: 'Ерлан', l: 'Е', c: '#C0443C', meta: 'заявка 2 часа назад · по ссылке Анны', note: 'Играю в «Каркассон», хочу в пятницу прийти', mutual: 'Знакомые в группе: Анна, Дана' },
+  { id: 2, n: 'Мадина', l: 'М', c: '#C9A0E0', meta: 'заявка вчера · по общей ссылке', note: '', mutual: 'Общая группа: «Митапы Алматы»' },
+  { id: 3, n: 'free_money_bot2', l: 'F', c: '#5C6661', meta: 'аккаунту 2 дня · по общей ссылке', note: 'Заработок онлайн, пишите', mutual: '', flag: 'Новый аккаунт' },
+  { id: 4, n: 'Тимур', l: 'Т', c: '#2F6E9E', meta: 'заявка 3 дня назад · по ссылке Дмитрия', note: 'Новичок, но очень хочу научиться', mutual: '' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { done: {}, leaving: {}, okN: 0, noN: 0, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const left = R.filter(r => !s.done[r.id]);
+  const say = (t, ok) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1, tOk: ok }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2000); };
+  const decide = (r, ok) => { this.setState({ leaving: { ...s.leaving, [r.id]: ok ? 'ok' : 'no' } }); setTimeout(() => { const st = this.state; this.setState({ done: { ...st.done, [r.id]: true }, okN: st.okN + (ok ? 1 : 0), noN: st.noN + (ok ? 0 : 1) }); }, 350); say(ok ? r.n + ' в группе' : 'Заявка отклонена: ' + r.n, ok); };
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    count: left.length,
+    rows: left.map(r => ({ ...r, noteShow: r.note ? 'block' : 'none', mutualShow: r.mutual ? 'flex' : 'none', flagShow: r.flag ? 'inline-block' : 'none', flag: r.flag || '',
+      anim: s.leaving[r.id] === 'ok' ? 'kxOk .35s ease both' : s.leaving[r.id] === 'no' ? 'kxNo .35s ease both' : 'kxIn .3s ease both',
+      ok: () => decide(r, true), no: () => decide(r, false) })),
+    empty: !left.length, bulk: left.length > 1,
+    summary: 'Принято: ' + s.okN + ' · отклонено: ' + s.noN,
+    okAll: () => { const d = { ...s.done }; left.forEach(r => d[r.id] = true); this.setState({ done: d, okN: s.okN + left.length }); say('Приняты все: ' + left.length, true); },
+    noAll: () => this.ask('Отклонить все заявки?', 'Все люди из списка получат отказ.', 'Отклонить всех', () => { const d = { ...s.done }; left.forEach(r => d[r.id] = true); this.setState({ done: d, noN: s.noN + left.length }); say('Отклонены все: ' + left.length, false); }),
+    reset: () => this.setState({ done: {}, leaving: {}, okN: 0, noN: 0 }),
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2s ease both',
+    tIcon: s.tOk ? 'check_circle' : 'block', tIc: s.tOk ? '#8FD3AC' : '#FF8A80'
+  };
+}
+}
+</script>
+</body>
+</html>

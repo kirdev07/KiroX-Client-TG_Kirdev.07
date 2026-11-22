@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Второй звонок</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+@keyframes kxIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:none}}
+@keyframes kxRing{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.7);opacity:0}}
+@keyframes kxShake{0%,100%{transform:rotate(0)}10%,30%{transform:rotate(-12deg)}20%,40%{transform:rotate(12deg)}50%{transform:rotate(0)}}
+@keyframes kxBlob{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(20px,-30px) scale(1.15)}}
+@keyframes kxSwap{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes kxWave{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #070908; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="position: absolute; left: -80px; top: 80px; width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, {{blob1}}, transparent 65%); animation: kxBlob 10s ease-in-out 2; transition: background .6s" aria-hidden="true"></div>
+  <div style="position: absolute; right: -90px; top: 300px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(47,110,158,.3), transparent 65%); animation: kxBlob 12s ease-in-out -5s 2" aria-hidden="true"></div>
+
+  <!-- On-hold strip -->
+  <sc-if value="{{hasHold}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{swap}}" style="position: relative; margin: 12px 16px 0; padding: 10px 14px; border-radius: 18px; background: rgba(232,176,74,.14); border: 1px solid rgba(232,176,74,.35); display: flex; align-items: center; gap: 10px; animation: kxIn .3s ease both">
+      <span style="width: 34px; height: 34px; border-radius: 17px; background: {{holdC}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px">{{holdL}}</span>
+      <span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 700">{{holdName}} · на удержании</span><span style="display: block; font-size: 12px; color: #E4D3B0; font-variant-numeric: tabular-nums">{{holdTime}}</span></span>
+      <span style="height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(232,176,74,.22); color: #E8B04A; font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 16px" aria-hidden="true">swap_calls</span>Переключить</span>
+    </button>
+  </sc-if>
+
+  <!-- Active call -->
+  <div style="position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 50px; animation: kxSwap .35s ease both" data-k="{{activeKey}}">
+    <div style="position: relative; width: 130px; height: 130px">
+      <span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(143,211,172,.45); animation: kxRing 2.4s ease-out infinite" aria-hidden="true"></span>
+      <span style="position: absolute; inset: 0; border-radius: 50%; background: {{actC}}; display: flex; align-items: center; justify-content: center; font-size: 50px; font-weight: 800">{{actL}}</span>
+    </div>
+    <div style="margin-top: 16px; font-size: 26px; font-weight: 800">{{actName}}</div>
+    <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px; font-size: 15px; color: #C9D2CC; font-variant-numeric: tabular-nums">
+      <span style="display: flex; align-items: center; gap: 2px; height: 14px" aria-hidden="true"><span style="width: 3px; height: 14px; border-radius: 2px; background: #8FD3AC; animation: kxWave .8s ease-in-out infinite"></span><span style="width: 3px; height: 14px; border-radius: 2px; background: #8FD3AC; animation: kxWave .8s ease-in-out .15s infinite"></span><span style="width: 3px; height: 14px; border-radius: 2px; background: #8FD3AC; animation: kxWave .8s ease-in-out .3s infinite"></span></span>
+      {{actTime}}
+    </div>
+  </div>
+
+  <!-- Incoming second call card -->
+  <sc-if value="{{incoming}}" hint-placeholder-val="{{true}}">
+    <div style="position: absolute; left: 12px; right: 12px; top: 14px; padding: 14px; border-radius: 26px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 1px solid rgba(255,255,255,.18); box-shadow: 0 20px 50px rgba(0,0,0,.5); animation: kxIn .4s cubic-bezier(.2,.8,.2,1) both">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="position: relative; width: 48px; height: 48px">
+          <span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8FD3AC; animation: kxRing 1.2s ease-out infinite" aria-hidden="true"></span>
+          <span style="position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(135deg, #B07A2E, #6A4C9C); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 19px">М</span>
+        </span>
+        <span style="flex: 1"><span style="display: block; font-size: 16px; font-weight: 800">Мама</span><span style="display: block; font-size: 13px; color: #C9D2CC">звонит вам · kiroX</span></span>
+        <span class="ms fill" style="color: #8FD3AC; animation: kxShake 1.2s ease-in-out 2" aria-hidden="true">ring_volume</span>
+      </div>
+      <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px">
+        <button onClick="{{decline}}" style="height: 58px; border-radius: 18px; background: rgba(229,83,75,.2); color: #FF8A80; font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px"><span class="ms fill" style="font-size: 22px" aria-hidden="true">call_end</span>Отклонить</button>
+        <button onClick="{{endAnswer}}" style="height: 58px; border-radius: 18px; background: rgba(255,255,255,.1); font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px"><span class="ms fill" style="font-size: 22px" aria-hidden="true">phone_forwarded</span>Завершить и ответить</button>
+      </div>
+      <button onClick="{{msgDecline}}" style="margin-top: 8px; width: 100%; height: 36px; border-radius: 18px; font-size: 12px; font-weight: 700; color: #C9D2CC; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms" style="font-size: 16px" aria-hidden="true">sms</span>Отклонить и написать «Перезвоню через 5 минут»</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{note}}" hint-placeholder-val="{{false}}"><div style="position: absolute; left: 16px; right: 16px; top: 20px; padding: 10px 14px; border-radius: 16px; background: rgba(255,255,255,.08); font-size: 13px; color: #C9D2CC; text-align: center; animation: kxIn .3s ease both">{{noteText}}</div></sc-if>
+
+  <!-- Controls -->
+  <div style="position: relative; padding: 0 24px 34px">
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; justify-items: center">
+      <sc-for list="{{ctrls}}" as="c" hint-placeholder-count="4">
+        <button onClick="{{c.tap}}" aria-label="{{c.label}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: #C9D2CC; opacity: {{c.op}}">
+          <span style="width: 58px; height: 58px; border-radius: 29px; background: {{c.bg}}; color: {{c.ink}}; display: flex; align-items: center; justify-content: center; transition: all .2s"><span class="ms fill" aria-hidden="true">{{c.icon}}</span></span>{{c.label}}
+        </button>
+      </sc-for>
+    </div>
+    <div style="margin-top: 22px; display: flex; justify-content: center">
+      <button onClick="{{hangup}}" aria-label="Завершить звонок" style="width: 72px; height: 72px; border-radius: 36px; background: #E5534B; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(229,83,75,.4)"><span class="ms fill" style="font-size: 34px" aria-hidden="true">call_end</span></button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const P = { a: ['Анна', 'А', 'linear-gradient(135deg, #C0443C, #6A4C9C)'], m: ['Мама', 'М', 'linear-gradient(135deg, #B07A2E, #6A4C9C)'] };
+const mmss = t => Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { active: 'a', hold: '', incoming: true, t: { a: 312, m: 0 }, mute: false, merged: false, note: '' }; }
+componentDidMount() { this.iv = setInterval(() => { const s = this.state; const t = { ...s.t }; if (s.active) t[s.active]++; if (s.hold) t[s.hold]++; this.setState({ t }); }, 1000); }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tn); }
+flash(note) { clearTimeout(this.tn); this.setState({ note }); this.tn = setTimeout(() => this.setState({ note: '' }), 2400); }
+renderVals() {
+  const s = this.state;
+  const a = s.active ? P[s.active] : P.a, h = s.hold ? P[s.hold] : null;
+  return {
+    blob1: s.hold ? 'rgba(232,176,74,.25)' : 'rgba(63,154,108,.4)',
+    hasHold: !!h && !s.incoming, holdName: h ? h[0] : '', holdL: h ? h[1] : '', holdC: h ? h[2] : '', holdTime: h ? mmss(s.t[s.hold]) : '',
+    swap: () => this.setState({ active: s.hold, hold: s.active }),
+    activeKey: s.active, actName: s.merged ? 'Анна и Мама' : a[0], actL: s.merged ? '2' : a[1], actC: a[2], actTime: s.active ? mmss(s.t[s.active]) : '',
+    incoming: s.incoming,
+    decline: () => { this.setState({ incoming: false }); this.flash('Отклонён звонок · Мама'); },
+    msgDecline: () => { this.setState({ incoming: false }); this.flash('Отправлено · Мама: «Перезвоню через 5 минут»'); },
+    holdAnswer: () => this.setState({ incoming: false, hold: 'a', active: 'm' }),
+    endAnswer: () => { this.setState({ incoming: false, active: 'm', hold: '' }); this.flash('Звонок завершён · Анна'); },
+    note: !!s.note, noteText: s.note,
+    ctrls: [
+      { icon: s.mute ? 'mic_off' : 'mic', label: s.mute ? 'Звук выкл' : 'Микрофон', on: s.mute, tap: () => this.setState({ mute: !s.mute }) },
+      { icon: 'volume_up', label: 'Динамик', on: false, tap: () => {} },
+      { icon: 'call_merge', label: 'Объединить', on: s.merged, op: s.hold ? '1' : '.35', tap: () => { if (s.hold) { this.setState({ merged: true, hold: '' }); this.flash('Теперь это общий звонок на троих'); } } },
+      { icon: 'add_call', label: 'Добавить', on: false, tap: () => this.setState({ incoming: true }) }
+    ].map(c => ({ ...c, op: c.op || '1', bg: c.on ? '#EEF3EF' : 'rgba(255,255,255,.1)', ink: c.on ? '#06150D' : '#EEF3EF' })),
+    hangup: () => { if (s.hold) { this.setState({ active: s.hold, hold: '', merged: false }); this.flash('Вернулись к звонку с ' + (s.hold === 'a' ? 'Анной' : 'Мамой')); } else this.setState({ active: 'a', hold: '', incoming: true, merged: false, t: { a: 312, m: 0 } }); }
+  };
+}
+}
+</script>
+</body>
+</html>

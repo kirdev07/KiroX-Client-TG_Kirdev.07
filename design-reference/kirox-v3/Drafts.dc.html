@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Черновики</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxSend{0%{opacity:1;transform:none;max-height:200px}50%{opacity:0;transform:translate(60px,-30px) rotate(-6deg)}100%{opacity:0;max-height:0;margin:0;padding:0}}
+@keyframes kxDel{0%{opacity:1;transform:none;max-height:200px}50%{opacity:0;transform:scale(.9)}100%{opacity:0;max-height:0;margin:0;padding:0}}
+@keyframes kxPen{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg) translateX(3px)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1"><h1 style="margin: 0; font-size: 20px; font-weight: 800">Черновики</h1><div style="font-size: 12px; color: #9AA59F">{{countText}}</div></div>
+    <sc-if value="{{has}}" hint-placeholder-val="{{true}}"><button onClick="{{clearAll}}" style="height: 36px; padding: 0 12px; border-radius: 18px; background: rgba(229,83,75,.1); color: #FF8A80; font-size: 13px; font-weight: 700">Удалить все</button></sc-if>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 6px 16px 30px">
+    <div style="margin-bottom: 12px; padding: 12px 14px; border-radius: 18px; background: rgba(143,211,172,.08); border: 1px solid rgba(143,211,172,.2); display: flex; gap: 10px; align-items: center"><span class="ms fill" style="color: #8FD3AC; animation: kxPen 2s ease-in-out 2" aria-hidden="true">edit_note</span><span style="font-size: 12px; color: #C9D2CC; line-height: 1.4">Недописанные сообщения из всех чатов. Они синхронизируются с другими вашими устройствами.</span></div>
+
+    <sc-for list="{{items}}" as="d" hint-placeholder-count="5">
+      <div style="margin-bottom: 10px; padding: 14px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden; animation: {{d.anim}}">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="width: 36px; height: 36px; border-radius: 18px; background: {{d.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; flex-shrink: 0">{{d.l}}</span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 800">{{d.chat}}</span><span style="display: block; font-size: 11px; color: #8A958F">{{d.time}}</span></span>
+          <sc-if value="{{d.hasReply}}" hint-placeholder-val="{{false}}"><span style="height: 24px; padding: 0 8px; border-radius: 12px; background: rgba(255,255,255,.06); font-size: 11px; color: #9AA59F; display: flex; align-items: center; gap: 3px"><span class="ms" style="font-size: 14px" aria-hidden="true">reply</span>ответ</span></sc-if>
+        </div>
+        <sc-if value="{{d.hasReply}}" hint-placeholder-val="{{false}}"><div style="margin-top: 10px; padding: 6px 10px; border-radius: 10px; border-left: 3px solid #8FD3AC; background: rgba(143,211,172,.06); font-size: 12px; color: #9AA59F">{{d.reply}}</div></sc-if>
+        <div style="margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(0,0,0,.25); font-size: 15px; line-height: 1.4; color: #E2E9E4">{{d.text}}<span style="display: inline-block; width: 2px; height: 16px; background: #8FD3AC; margin-left: 2px; vertical-align: -2px; opacity: .7"></span></div>
+        <sc-if value="{{d.hasFile}}" hint-placeholder-val="{{false}}"><div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #9AA59F"><span class="ms" style="font-size: 18px; color: #6FA9D8" aria-hidden="true">image</span>{{d.file}}</div></sc-if>
+        <div style="margin-top: 10px; display: flex; gap: 6px">
+          <button onClick="{{d.del}}" aria-label="Удалить черновик" style="width: 38px; height: 38px; border-radius: 19px; background: rgba(229,83,75,.1); color: #FF8A80; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 19px" aria-hidden="true">delete</span></button>
+          <button onClick="{{d.open}}" style="flex: 1; height: 38px; border-radius: 19px; background: rgba(255,255,255,.07); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">edit</span>Дописать</button>
+          <button onClick="{{d.send}}" style="flex: 1; height: 38px; border-radius: 19px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms fill" style="font-size: 18px" aria-hidden="true">send</span>Отправить</button>
+        </div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 70px 30px 0; text-align: center; animation: kxIn .3s ease both"><span class="ms" style="font-size: 56px; color: #3A4540" aria-hidden="true">edit_off</span><div style="margin-top: 10px; font-size: 17px; font-weight: 800">Черновиков нет</div><div style="margin-top: 4px; font-size: 13px; color: #8A958F">Всё, что вы начали писать, отправлено</div><button onClick="{{restore}}" style="margin-top: 16px; height: 38px; padding: 0 16px; border-radius: 19px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 700; color: #8FD3AC">Показать пример снова</button></div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 30px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PL = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
+
+const D = [
+  { chat: 'Работа', l: 'Р', c: '#5C6661', time: 'Сегодня, 17:40', text: 'Добрый день! По поводу отпуска в декабре хочу уточнить', reply: '' },
+  { chat: 'Анна', l: 'А', c: '#C0443C', time: 'Сегодня, 12:15', text: 'Слушай, а давай в субботу на каток, а потом', reply: 'Анна: Есть планы на выходные?' },
+  { chat: 'Kotlin-клуб', l: 'K', c: '#2F6E9E', time: 'Вчера', text: 'По PR: кэш лучше чистить при выходе из аккаунта, иначе', reply: 'Дмитрий: глянешь PR?' },
+  { chat: 'Мама', l: 'М', c: '#B07A2E', time: '20 ноября', text: 'Мам, вот фото с дачи', reply: '', file: '3 фото прикреплено' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { gone: {}, leaving: {}, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tl); clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+remove(ids, kind) {
+  const leaving = { ...this.state.leaving }; ids.forEach(i => leaving[i] = kind);
+  this.setState({ leaving });
+  clearTimeout(this.tl);
+  this.tl = setTimeout(() => { const gone = { ...this.state.gone }; ids.forEach(i => gone[i] = true); this.setState({ gone, leaving: {} }); }, 450);
+}
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const left = D.map((d, i) => ({ d, i })).filter(({ i }) => !s.gone[i]);
+  const n = left.length;
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    countText: n ? n + ' ' + (PL(n, 'черновик', 'черновика', 'черновиков')) : 'Пусто',
+    has: n > 0, empty: n === 0,
+    clearAll: () => this.ask('Удалить все черновики?', 'Недописанные сообщения пропадут во всех чатах и на других устройствах.', 'Удалить все', () => { this.remove(left.map(({ i }) => i), 'del'); this.toastMsg('Черновики удалены', 'delete'); }),
+    items: left.map(({ d, i }) => ({
+      chat: d.chat, l: d.l, c: d.c, time: d.time, text: d.text, reply: d.reply, hasReply: !!d.reply, file: d.file || '', hasFile: !!d.file,
+      anim: s.leaving[i] === 'send' ? 'kxSend .45s ease both' : s.leaving[i] === 'del' ? 'kxDel .45s ease both' : 'kxIn .3s ease both',
+      del: () => { this.remove([i], 'del'); this.toastMsg('Черновик удалён', 'delete'); },
+      send: () => this.ask('Отправить черновик?', 'Текст уйдёт как есть, даже если он не дописан.', 'Отправить', () => { this.remove([i], 'send'); this.toastMsg('Отправлено в «' + d.chat + '»', 'send'); }),
+      open: () => this.toastMsg('Откроется чат «' + d.chat + '»', 'edit')
+    })),
+    restore: () => this.setState({ gone: {} }),
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

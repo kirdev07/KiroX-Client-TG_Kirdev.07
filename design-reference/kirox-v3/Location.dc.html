@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Геопозиция</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxPulse{0%{transform:scale(.6);opacity:.7}100%{transform:scale(2.4);opacity:0}}
+@keyframes kxDrop{0%{transform:translateY(-30px)}60%{transform:translateY(4px)}100%{transform:translateY(0)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxSend{from{opacity:0;transform:translateY(40px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+
+  <sc-if value="{{picking}}" hint-placeholder-val="{{true}}">
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column">
+      <!-- Map -->
+      <div style="position: relative; height: 430px; overflow: hidden; background: #0F1513">
+        <div aria-hidden="true" style="position: absolute; inset: -40px; transform: translate({{mapX}}, {{mapY}}) scale({{mapZoom}}); transition: transform .6s cubic-bezier(.2,.9,.3,1)">
+          <div style="position: absolute; left: 40px; top: 60px; width: 160px; height: 120px; border-radius: 30px; background: #15251C"></div>
+          <div style="position: absolute; right: 30px; top: 300px; width: 200px; height: 150px; border-radius: 60px; background: #15251C"></div>
+          <div style="position: absolute; left: -20px; top: 380px; width: 520px; height: 46px; background: #10202A; transform: rotate(-8deg)"></div>
+          <div style="position: absolute; left: 0; right: 0; top: 230px; height: 14px; background: #262E2B"></div>
+          <div style="position: absolute; left: 0; right: 0; top: 140px; height: 8px; background: #1F2624"></div>
+          <div style="position: absolute; top: 0; bottom: 0; left: 210px; width: 14px; background: #262E2B"></div>
+          <div style="position: absolute; top: 0; bottom: 0; left: 90px; width: 8px; background: #1F2624"></div>
+          <div style="position: absolute; top: 0; bottom: 0; left: 330px; width: 8px; background: #1F2624; transform: rotate(12deg)"></div>
+          <sc-for list="{{pois}}" as="p" hint-placeholder-count="4"><span style="position: absolute; left: {{p.x}}; top: {{p.y}}; width: 26px; height: 26px; border-radius: 13px; background: #1E2622; border: 1px solid rgba(255,255,255,.12); color: {{p.ink}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 15px">{{p.icon}}</span></span></sc-for>
+        </div>
+        <!-- me -->
+        <div style="position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px">
+          <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; background: rgba(143,211,172,.5); animation: kxPulse 2s ease-out infinite"></span>
+          <span style="position: absolute; inset: 3px; border-radius: 50%; background: #8FD3AC; border: 3px solid #0A0C0B; box-shadow: 0 0 0 2px #8FD3AC"></span>
+        </div>
+        <!-- picked pin -->
+        <sc-if value="{{hasPin}}" hint-placeholder-val="{{false}}">
+          <div style="position: absolute; left: {{pinX}}; top: {{pinY}}; margin: -46px 0 0 -18px; display: flex; flex-direction: column; align-items: center; animation: kxDrop .4s cubic-bezier(.34,1.45,.5,1) both">
+            <span style="width: 36px; height: 36px; border-radius: 18px 18px 18px 4px; transform: rotate(-45deg); background: linear-gradient(140deg, #6FC497, #3F9A6C); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,.5)"><span class="ms fill" style="font-size: 18px; color: #06150D; transform: rotate(45deg)" aria-hidden="true">{{pinIcon}}</span></span>
+          </div>
+        </sc-if>
+
+        <div style="position: absolute; left: 0; right: 0; top: 0; padding: 12px; display: flex; align-items: center; gap: 8px; background: linear-gradient(180deg, rgba(10,12,11,.85), transparent)">
+          <button aria-label="Закрыть" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+          <div style="flex: 1; height: 44px; border-radius: 22px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); display: flex; align-items: center; gap: 8px; padding: 0 14px; color: #9AA59F; font-size: 14px"><span class="ms" style="font-size: 20px" aria-hidden="true">search</span>Поиск места</div>
+        </div>
+        <div style="position: absolute; right: 12px; bottom: 16px; display: flex; flex-direction: column; gap: 8px">
+          <button onClick="{{toggleLayer}}" aria-label="Слой карты" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">layers</span></button>
+          <button onClick="{{recenter}}" aria-label="Моё местоположение" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">my_location</span></button>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div class="scroll" style="flex: 1; min-height: 0; margin-top: -24px; position: relative; border-radius: 28px 28px 0 0; background: #111513; border-top: 1px solid rgba(255,255,255,.08); padding: 12px 12px 20px">
+        <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 12px"></div>
+        <button onClick="{{sendMine}}" style="width: 100%; padding: 12px; border-radius: 20px; background: rgba(143,211,172,.08); border: 1px solid rgba(143,211,172,.22); display: flex; align-items: center; gap: 12px">
+          <span style="width: 44px; height: 44px; border-radius: 22px; background: linear-gradient(140deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" aria-hidden="true">near_me</span></span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">Отправить мою геопозицию</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F">Точность 12 м</span></span>
+        </button>
+        <button onClick="{{openLive}}" style="width: 100%; margin-top: 8px; padding: 12px; border-radius: 20px; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 12px">
+          <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(143,211,172,.14); color: #8FD3AC; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms" aria-hidden="true">share_location</span></span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">Транслировать геопозицию</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F">Обновляется, пока вы двигаетесь</span></span>
+        </button>
+        <div style="padding: 14px 6px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Места рядом</div>
+        <sc-for list="{{places}}" as="p" hint-placeholder-count="4">
+          <button onClick="{{p.tap}}" style="width: 100%; padding: 9px 8px; border-radius: 16px; background: {{p.bg}}; display: flex; align-items: center; gap: 12px; transition: background .2s">
+            <span style="width: 40px; height: 40px; border-radius: 14px; background: rgba(255,255,255,.06); color: {{p.ink}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 21px" aria-hidden="true">{{p.icon}}</span></span>
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">{{p.name}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{p.sub}}</span></span>
+            <sc-if value="{{p.sel}}" hint-placeholder-val="{{false}}"><span style="height: 32px; padding: 0 12px; border-radius: 16px; background: #8FD3AC; color: #06150D; font-size: 13px; font-weight: 800; display: flex; align-items: center">Отправить</span></sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Live duration sheet -->
+  <sc-if value="{{liveSheet}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeLive}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px; font-size: 19px; font-weight: 800">Транслировать геопозицию</div>
+      <div style="padding: 6px 4px 14px; font-size: 13px; line-height: 19px; color: #9AA59F">Анна будет видеть, где вы, в течение выбранного времени. Остановить можно в любой момент.</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{durs}}" as="d" hint-placeholder-count="4"><button onClick="{{d.tap}}" style="height: 56px; border-radius: 18px; background: {{d.bg}}; border: 1px solid {{d.border}}; color: {{d.ink}}; font-size: 15px; font-weight: 700; text-align: center; transition: all .2s">{{d.label}}</button></sc-for>
+      </div>
+      <button onClick="{{startLive}}" style="margin-top: 14px; width: 100%; height: 52px; border-radius: 16px; background: linear-gradient(100deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px; font-weight: 700; text-align: center">Начать трансляцию</button>
+    </div>
+  </sc-if>
+
+  <!-- Sent message -->
+  <sc-if value="{{sent}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; background: radial-gradient(120% 60% at 100% 0%, rgba(63,154,108,.18), #0A0C0B 60%)">
+      <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px">
+        <button onClick="{{back}}" aria-label="Назад" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+        <span style="width: 38px; height: 38px; border-radius: 19px; background: linear-gradient(140deg,#4B3F7A,#2A2240); color: #DCD0FF; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center">А</span>
+        <div><div style="font-size: 16px; font-weight: 800">Анна</div><div style="font-size: 12px; color: #8FD3AC">в сети</div></div>
+      </header>
+      <sc-if value="{{isLive}}" hint-placeholder-val="{{false}}">
+        <div style="margin: 0 12px; height: 44px; padding: 0 8px 0 14px; border-radius: 16px; background: rgba(143,211,172,.1); border: 1px solid rgba(143,211,172,.25); display: flex; align-items: center; gap: 10px; animation: kxIn .3s ease both">
+          <span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">share_location</span>
+          <span style="flex: 1; font-size: 13px; font-weight: 600">Вы транслируете геопозицию · {{liveLeft}}</span>
+          <button onClick="{{stopLive}}" style="height: 30px; padding: 0 10px; border-radius: 15px; color: #FF8A80; font-size: 13px; font-weight: 700">Остановить</button>
+        </div>
+      </sc-if>
+      <div style="flex: 1; min-height: 0; padding: 10px 12px 30px; display: flex; flex-direction: column; justify-content: flex-end">
+        <div style="align-self: flex-end; width: 270px; border-radius: 22px 22px 6px 22px; overflow: hidden; background: linear-gradient(160deg, #23523B, #183A2A); animation: kxSend .45s cubic-bezier(.2,.9,.3,1) both">
+          <div style="position: relative; height: 150px; background: #0F1513; overflow: hidden">
+            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 70px; height: 10px; background: #262E2B"></div>
+            <div aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 120px; width: 10px; background: #262E2B"></div>
+            <div aria-hidden="true" style="position: absolute; left: 20px; top: 14px; width: 80px; height: 46px; border-radius: 16px; background: #15251C"></div>
+            <div aria-hidden="true" style="position: absolute; right: 18px; bottom: 12px; width: 100px; height: 50px; border-radius: 20px; background: #15251C"></div>
+            <div style="position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px">
+              <sc-if value="{{isLive}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; background: rgba(143,211,172,.5); animation: kxPulse 2s ease-out infinite"></span></sc-if>
+              <span style="position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(140deg, #6FC497, #3F9A6C); border: 3px solid #0F1513; color: #06150D; display: flex; align-items: center; justify-content: center"></span>
+            </div>
+          </div>
+          <div style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{msgTitle}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #A9D9BF">{{msgSub}}</span></span>
+            <sc-if value="{{isLive}}" hint-placeholder-val="{{false}}">
+              <span style="position: relative; width: 34px; height: 34px; flex-shrink: 0">
+                <span style="position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#8FD3AC {{ring}}, rgba(255,255,255,.15) 0)"></span>
+                <span style="position: absolute; inset: 3px; border-radius: 50%; background: #1C4231; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800">{{ringText}}</span>
+              </span>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PLACES = [
+  { name: 'Кофейня «Зерно»', sub: 'Кафе · 120 м', icon: 'local_cafe', ink: '#E8B04A', x: '250px', y: '170px' },
+  { name: 'Центральный парк', sub: 'Парк · 350 м', icon: 'park', ink: '#8FD3AC', x: '110px', y: '100px' },
+  { name: 'Станция метро', sub: 'Транспорт · 400 м', icon: 'subway', ink: '#9FB7FF', x: '300px', y: '330px' },
+  { name: 'Книжный магазин', sub: 'Магазин · 520 м', icon: 'menu_book', ink: '#FF8A80', x: '160px', y: '280px' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { mode: 'pick', place: -1, live: false, dur: 1, liveSheet: false, left: 3600, zoom: false }; }
+componentDidMount() { this.iv = setInterval(() => { if (this.state.live && this.state.mode === 'sent') this.setState({ left: Math.max(0, this.state.left - 60) }); }, 1000); }
+componentWillUnmount() { clearInterval(this.iv); }
+renderVals() {
+  const s = this.state;
+  const D = [['15 минут', 900], ['1 час', 3600], ['8 часов', 28800], ['Пока не остановлю', 0]];
+  const sel = s.place >= 0 ? PLACES[s.place] : null;
+  const total = D[s.dur][1];
+  const fmt = sec => sec >= 3600 ? Math.round(sec / 3600) + ' ч' : Math.max(1, Math.round(sec / 60)) + ' мин';
+  return {
+    picking: s.mode === 'pick', sent: s.mode === 'sent',
+    pois: PLACES.map(p => ({ x: p.x, y: p.y, icon: p.icon, ink: p.ink })),
+    mapX: sel ? (195 - parseInt(sel.x) - 13 + 40) * 0.6 + 'px' : '0px', mapY: sel ? (215 - parseInt(sel.y) - 13 + 40) * 0.6 + 'px' : '0px',
+    mapZoom: s.zoom ? '1.25' : '1',
+    hasPin: !!sel, pinX: '50%', pinY: '50%', pinIcon: sel ? sel.icon : 'place',
+    toggleLayer: () => this.setState({ zoom: !s.zoom }),
+    recenter: () => this.setState({ place: -1 }),
+    places: PLACES.map((p, i) => ({ ...p, sel: s.place === i, bg: s.place === i ? 'rgba(143,211,172,.08)' : 'transparent', tap: () => s.place === i ? this.setState({ mode: 'sent', live: false }) : this.setState({ place: i }) })),
+    sendMine: () => this.setState({ mode: 'sent', live: false, place: -1 }),
+    liveSheet: s.liveSheet, openLive: () => this.setState({ liveSheet: true }), closeLive: () => this.setState({ liveSheet: false }),
+    durs: D.map(([label], i) => ({ label, bg: i === s.dur ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.045)', border: i === s.dur ? 'rgba(143,211,172,.5)' : 'transparent', ink: i === s.dur ? '#8FD3AC' : '#EEF3EF', tap: () => this.setState({ dur: i }) })),
+    startLive: () => this.setState({ liveSheet: false, mode: 'sent', live: true, place: -1, left: total || 3600 }),
+    isLive: s.live,
+    liveLeft: total ? 'ещё ' + fmt(s.left) : 'без ограничения',
+    ring: total ? Math.round(s.left / total * 360) + 'deg' : '360deg',
+    ringText: total ? fmt(s.left).replace(' мин', 'м').replace(' ч', 'ч') : '∞',
+    stopLive: () => this.setState({ live: false }),
+    msgTitle: s.live ? 'Геопозиция в реальном времени' : sel ? sel.name : 'Моя геопозиция',
+    msgSub: s.live ? 'обновлено только что' : sel ? sel.sub : 'Точность 12 м',
+    back: () => this.setState({ mode: 'pick' })
+  };
+}
+}
+</script>
+</body>
+</html>

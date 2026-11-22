@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Скрытые чаты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+@keyframes kxDot{0%{transform:scale(.4)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes kxShackle{0%{transform:translateY(0) rotate(0)}50%{transform:translateY(-8px) rotate(0)}100%{transform:translateY(-8px) rotate(-30deg)}}
+@keyframes kxVault{0%{transform:scale(1);opacity:1}100%{transform:scale(1.6);opacity:0}}
+@keyframes kxRing{0%{transform:scale(.8);opacity:.6}100%{transform:scale(1.8);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <!-- LOCKED -->
+  <sc-if value="{{locked}}" hint-placeholder-val="{{true}}">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 70px 24px 24px; background: radial-gradient(80% 50% at 50% 20%, rgba(63,154,108,.18), transparent 70%); animation: {{vaultAnim}}">
+      <div style="position: relative; width: 90px; height: 100px">
+        <span style="position: absolute; inset: 6px 0 0; border-radius: 50%; border: 2px solid rgba(143,211,172,.4); animation: kxRing 2.4s ease-out infinite" aria-hidden="true"></span>
+        <svg width="90" height="100" viewBox="0 0 90 100" aria-hidden="true" style="position: relative">
+          <g style="transform-origin: 62px 40px; animation: {{shackleAnim}}"><path d="M28 46 V32 a17 17 0 0 1 34 0 V46" fill="none" stroke="#8FD3AC" stroke-width="7" stroke-linecap="round"></path></g>
+          <rect x="16" y="44" width="58" height="46" rx="14" fill="url(#g1)"></rect>
+          <circle cx="45" cy="63" r="6" fill="#06150D"></circle><rect x="42.5" y="64" width="5" height="12" rx="2.5" fill="#06150D"></rect>
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6FC497"></stop><stop offset="1" stop-color="#3F9A6C"></stop></linearGradient></defs>
+        </svg>
+      </div>
+      <div style="margin-top: 18px; font-size: 22px; font-weight: 800">Скрытые чаты</div>
+      <div style="margin-top: 6px; font-size: 14px; color: {{lockInk}}">{{lockText}}</div>
+      <div style="margin-top: 26px; display: flex; gap: 16px; animation: {{shake}}">
+        <sc-for list="{{dots}}" as="d" hint-placeholder-count="4"><span style="width: 16px; height: 16px; border-radius: 8px; background: {{d.bg}}; border: 2px solid {{d.bd}}; animation: {{d.anim}}; transition: background .15s"></span></sc-for>
+      </div>
+      <div style="margin-top: auto; width: 290px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 18px">
+        <sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+          <button onClick="{{k.tap}}" aria-label="{{k.label}}" style="height: 70px; border-radius: 35px; background: {{k.bg}}; border: 1px solid {{k.bd}}; display: flex; flex-direction: column; align-items: center; justify-content: center; color: {{k.ink}}">
+            <span style="font-size: 28px; font-weight: 500; line-height: 1">{{k.t}}</span>
+            <span style="font-size: 11px; letter-spacing: 1.6px; color: #8A958F; margin-top: 2px">{{k.sub}}</span>
+            <span class="ms" style="font-size: {{k.isz}}" aria-hidden="true">{{k.icon}}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="margin-top: 14px; font-size: 12px; color: #8A958F">Для примера код 1 9 9 0</div>
+    </div>
+  </sc-if>
+
+  <!-- UNLOCKED -->
+  <sc-if value="{{open}}" hint-placeholder-val="{{false}}">
+    <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px; animation: kxIn .3s ease both">
+      <button onClick="{{lock}}" aria-label="Закрыть и заблокировать" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+      <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Скрытые чаты</h1>
+      <button onClick="{{lock}}" aria-label="Заблокировать" style="height: 38px; padding: 0 14px; border-radius: 19px; background: rgba(143,211,172,.12); color: #8FD3AC; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px"><span class="ms fill" style="font-size: 18px" aria-hidden="true">lock</span>Закрыть</button>
+    </header>
+    <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 12px 30px">
+      <div style="margin: 0 4px 10px; padding: 10px 14px; border-radius: 16px; background: rgba(143,211,172,.08); border: 1px solid rgba(143,211,172,.2); display: flex; align-items: center; gap: 10px; font-size: 12px; color: #C9D2CC; animation: kxIn .3s ease .05s both"><span class="ms" style="color: #8FD3AC; font-size: 20px" aria-hidden="true">timer</span>{{autoText}}</div>
+      <sc-for list="{{chats}}" as="c" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 6px; animation: kxIn .3s ease {{c.d}} both">
+          <span style="width: 52px; height: 52px; border-radius: 26px; background: {{c.c}}; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 800; flex-shrink: 0">{{c.l}}</span>
+          <span style="flex: 1; min-width: 0">
+            <span style="display: flex; align-items: baseline"><span style="flex: 1; font-size: 15px; font-weight: 700">{{c.name}}</span><span style="font-size: 12px; color: #8A958F">{{c.time}}</span></span>
+            <span style="display: flex; align-items: center; margin-top: 3px"><span style="flex: 1; min-width: 0; font-size: 14px; color: #9AA59F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{c.msg}}</span>
+              <sc-if value="{{c.unread}}" hint-placeholder-val="{{false}}"><span style="min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 10px; background: #8FD3AC; color: #06150D; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{c.n}}</span></sc-if>
+            </span>
+          </span>
+          <button onClick="{{c.unhide}}" aria-label="{{c.unhideLabel}}" style="width: 38px; height: 38px; border-radius: 19px; background: rgba(255,255,255,.06); color: #9AA59F; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">visibility</span></button>
+        </div>
+      </sc-for>
+      <div style="margin-top: 14px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+        <sc-for list="{{opts}}" as="o" hint-placeholder-count="3">
+          <button onClick="{{o.tap}}" style="width: 100%; padding: 13px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05)">
+            <span class="ms" style="color: #9AA59F" aria-hidden="true">{{o.icon}}</span>
+            <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{o.label}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{o.sub}}</span></span>
+            <span style="width: 48px; height: 28px; border-radius: 14px; background: {{o.track}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{o.knob}}; width: 22px; height: 22px; border-radius: 11px; background: {{o.knobBg}}; transition: left .2s"></span></span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PIN = '1990';
+const SUBS = { 2: 'ABC', 3: 'DEF', 4: 'GHI', 5: 'JKL', 6: 'MNO', 7: 'PQRS', 8: 'TUV', 9: 'WXYZ' };
+const CHATS = [['Лиза', 'Л', '#C0443C', '21:40', 'Сюрприз для мамы готов 🎁', 2], ['Банк — поддержка', 'Б', '#2F6E9E', 'вчера', 'Ваша заявка рассмотрена', 0], ['Подарок на ДР', 'П', '#B07A2E', 'пн', 'Скинулись уже 8 человек', 5]];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { code: '', state: 'locked', bad: 0, tries: 0, hidden: [0, 1, 2], fake: true, search: true, finger: false }; }
+componentWillUnmount() { clearTimeout(this.t1); clearTimeout(this.t2); }
+press(k) {
+  const s = this.state;
+  if (s.state !== 'locked') return;
+  if (k === 'del') { this.setState({ code: s.code.slice(0, -1), bad: 0 }); return; }
+  if (k === 'fp') { this.unlock(); return; }
+  if (s.code.length >= 4) return;
+  const code = s.code + k;
+  this.setState({ code, bad: 0 });
+  if (code.length === 4) {
+    clearTimeout(this.t1);
+    this.t1 = setTimeout(() => {
+      if (code === PIN) this.unlock();
+      else this.setState({ bad: this.state.bad + 1, tries: this.state.tries + 1, code: '' });
+    }, 250);
+  }
+}
+unlock() { this.setState({ state: 'opening' }); clearTimeout(this.t2); this.t2 = setTimeout(() => this.setState({ state: 'open', code: '', tries: 0 }), 650); }
+renderVals() {
+  const s = this.state;
+  const sw = v => ({ track: v ? '#3F9A6C' : 'rgba(255,255,255,.14)', knob: v ? '23px' : '3px', knobBg: v ? '#EEF3EF' : '#9AA59F' });
+  const opening = s.state === 'opening';
+  return {
+    locked: s.state !== 'open', open: s.state === 'open',
+    vaultAnim: opening ? 'kxVault .45s ease-in .25s both' : 'none',
+    shackleAnim: opening ? 'kxShackle .35s ease-out both' : 'none',
+    lockText: opening ? 'Открываем…' : s.bad ? (s.tries >= 3 ? 'Неверно. Подсказка: год рождения' : 'Неверный код') : 'Введите код, чтобы открыть',
+    lockInk: s.bad ? '#FF8A80' : opening ? '#8FD3AC' : '#9AA59F',
+    shake: s.bad ? 'kxShake .4s ease' : 'none',
+    dots: [0, 1, 2, 3].map(i => { const f = i < s.code.length || opening; return { bg: s.bad ? 'transparent' : f ? '#8FD3AC' : 'transparent', bd: s.bad ? '#FF8A80' : f ? '#8FD3AC' : 'rgba(255,255,255,.3)', anim: f && !opening && i === s.code.length - 1 ? 'kxDot .25s ease both' : 'none' }; }),
+    keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'fp', '0', 'del'].map(k => {
+      const ico = k === 'fp' ? 'fingerprint' : k === 'del' ? 'backspace' : '';
+      const showFp = k === 'fp' && s.finger;
+      return {
+        t: ico ? '' : k, sub: SUBS[k] || '', icon: k === 'fp' ? (s.finger ? ico : '') : ico, isz: ico ? (k === 'fp' ? '34px' : '26px') : '0px',
+        label: k === 'fp' ? (s.finger ? 'Открыть по отпечатку' : 'Пусто') : k === 'del' ? 'Стереть' : k,
+        bg: ico ? 'transparent' : 'rgba(255,255,255,.06)', bd: ico ? 'transparent' : 'rgba(255,255,255,.08)', ink: showFp ? '#8FD3AC' : '#EEF3EF',
+        tap: () => (k !== 'fp' || s.finger) && this.press(k)
+      };
+    }),
+    lock: () => this.setState({ state: 'locked', code: '', bad: 0 }),
+    autoText: 'Закроются сами через 1 минуту после выхода из kiroX',
+    chats: s.hidden.map((i, k) => { const [name, l, c, time, msg, n] = CHATS[i]; return { name, l, c, time, msg, n: String(n), unread: n > 0, d: (0.08 + k * 0.05) + 's', unhideLabel: 'Вернуть ' + name + ' в общий список', unhide: () => this.setState({ hidden: s.hidden.filter(x => x !== i) }) }; }),
+    opts: [
+      { icon: 'search_off', label: 'Не показывать в поиске', sub: 'Скрытые чаты не найдутся в общем поиске', k: 'search' },
+      { icon: 'notifications_paused', label: 'Тихие уведомления', sub: 'Без имени и текста: «Новое сообщение»', k: 'fake' },
+      { icon: 'fingerprint', label: 'Открывать отпечатком', sub: 'Кнопка появится на клавиатуре кода', k: 'finger' }
+    ].map(o => { const w = sw(s[o.k]); return { ...o, track: w.track, knob: w.knob, knobBg: w.knobBg, tap: () => this.setState({ [o.k]: !s[o.k] }) }; })
+  };
+}
+}
+</script>
+</body>
+</html>

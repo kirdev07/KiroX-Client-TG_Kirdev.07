@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Архив историй</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxPin{0%{transform:scale(.5) rotate(-30deg);opacity:0}60%{transform:scale(1.2) rotate(8deg);opacity:1}100%{transform:none}}
+@keyframes kxBar{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">{{title}}</div><div style="font-size: 12px; color: #9AA59F">{{sub}}</div></div>
+    <button onClick="{{toggleSelect}}" style="height: 36px; padding: 0 12px; border-radius: 18px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 700; color: #8FD3AC">{{selBtn}}</button>
+  </header>
+
+  <!-- Pinned on profile -->
+  <div style="padding: 4px 16px 0">
+    <div style="font-size: 13px; font-weight: 700; color: #8FD3AC">Закреплено в профиле · {{pinCount}} из 3</div>
+    <div style="margin-top: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px">
+      <sc-for list="{{pins}}" as="p" hint-placeholder-count="3"><div style="position: relative; aspect-ratio: .62; border-radius: 16px; background: {{p.bg}}; border: 1.5px {{p.bs}} {{p.bd}}; display: flex; align-items: center; justify-content: center; overflow: hidden"><span style="font-size: 28px; display: {{p.eShow}}; animation: {{p.anim}}">{{p.e}}</span><span class="ms" style="font-size: 26px; color: #8A958F; display: {{p.emptyShow}}" aria-hidden="true">add</span><span class="ms fill" style="position: absolute; top: 6px; right: 6px; font-size: 16px; color: #fff; display: {{p.eShow}}; text-shadow: 0 1px 4px rgba(0,0,0,.6)" aria-hidden="true">push_pin</span><span style="position: absolute; left: 8px; bottom: 6px; font-size: 11px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.6)">{{p.cap}}</span></div></sc-for>
+    </div>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 16px 90px">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px">
+      <sc-for list="{{cells}}" as="c" hint-placeholder-count="14"><button onClick="{{c.tap}}" aria-label="{{c.aria}}" aria-pressed="{{c.on}}" style="grid-column: {{c.span}}; position: relative; aspect-ratio: {{c.ar}}; border-radius: {{c.rad}}; background: {{c.bg}}; padding: {{c.pad}}; display: flex; align-items: {{c.align}}; justify-content: {{c.justify}}; overflow: hidden; transform: {{c.tf}}; transition: transform .15s">
+        <span style="font-size: {{c.fs}}; font-weight: {{c.fw}}; color: {{c.ink}}">{{c.e}}</span>
+        <span style="position: absolute; left: 7px; bottom: 6px; font-size: 11px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.6); display: {{c.dShow}}">{{c.d}}</span>
+        <span style="position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 11px; border: 2px solid #fff; background: {{c.chk}}; display: {{c.chkShow}}; align-items: center; justify-content: center; color: #06150D"><span class="ms" style="font-size: 16px; font-weight: 700; display: {{c.tickShow}}" aria-hidden="true">check</span></span>
+        <span class="ms fill" style="position: absolute; top: 6px; left: 6px; font-size: 15px; color: #8FD3AC; display: {{c.pinnedShow}}" aria-hidden="true">push_pin</span>
+      </button></sc-for>
+    </div>
+
+    <div style="margin-top: 12px; padding: 14px; border-radius: 20px; background: rgba(255,255,255,.04); display: flex; gap: 12px; align-items: center"><span class="ms" style="color: #8FD3AC" aria-hidden="true">inventory_2</span><span style="font-size: 13px; line-height: 18px; color: #C9D2CC">Ваши истории сами попадают в архив через 24 часа. Архив видите только вы</span></div>
+  </div>
+
+  <sc-if value="{{selecting}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 12px; right: 12px; bottom: 16px; padding: 8px; border-radius: 26px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); display: flex; gap: 8px; animation: kxBar .25s cubic-bezier(.2,.8,.2,1) both">
+      <button onClick="{{del}}" aria-label="Удалить выбранные" style="width: 48px; height: 48px; border-radius: 24px; background: rgba(229,83,75,.14); color: #FF8A80; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">delete</span></button>
+      <button onClick="{{pinSel}}" style="flex: 1; height: 48px; border-radius: 24px; background: {{pinBg}}; color: {{pinInk}}; font-size: 15px; font-weight: 800; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms fill" style="font-size: 20px" aria-hidden="true">push_pin</span>{{pinText}}</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 90px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const GEN = { 'Ноябрь': 'ноября', 'Октябрь': 'октября', 'Сентябрь': 'сентября' };
+const ST = [
+  { id: 1, m: 'Ноябрь', e: '🏔', d: '18', bg: 'linear-gradient(160deg, #7FB8E0, #2F6E9E 60%, #1B2A3A)' },
+  { id: 2, m: 'Ноябрь', e: '☕', d: '12', bg: 'linear-gradient(160deg, #C9A27A, #6B4A2E)' },
+  { id: 3, m: 'Ноябрь', e: '🎂', d: '3', bg: 'linear-gradient(160deg, #F2B866, #C0443C)' },
+  { id: 4, m: 'Октябрь', e: '🍂', d: '27', bg: 'linear-gradient(160deg, #E8B04A, #8E4A1E)' },
+  { id: 5, m: 'Октябрь', e: '🎸', d: '19', bg: 'linear-gradient(160deg, #6A4C9C, #1A1033)' },
+  { id: 6, m: 'Октябрь', e: '🐱', d: '8', bg: 'linear-gradient(160deg, #9AA59F, #3A403D)' },
+  { id: 7, m: 'Октябрь', e: '💻', d: '2', bg: 'linear-gradient(160deg, #3F9A6C, #0F3D2A)' },
+  { id: 8, m: 'Сентябрь', e: '🌊', d: '21', bg: 'linear-gradient(180deg, #7FC4E8, #2F6E9E 60%, #E8D7A8)' },
+  { id: 9, m: 'Сентябрь', e: '🏕', d: '14', bg: 'linear-gradient(160deg, #3F9A6C, #1B3A2C)' },
+  { id: 10, m: 'Сентябрь', e: '🎓', d: '1', bg: 'linear-gradient(160deg, #2F6E9E, #0B1F2E)' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { sel: false, picked: {}, pinned: [3], gone: {}, save: true, pk: 0, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2200); };
+  const list = ST.filter(x => !s.gone[x.id]);
+  const cells = []; let m = '';
+  list.forEach(x => {
+    if (x.m !== m) { m = x.m; cells.push({ span: '1 / -1', ar: 'auto', rad: '0', bg: 'transparent', pad: '8px 2px 2px', align: 'center', justify: 'flex-start', e: x.m + ' · ' + list.filter(y => y.m === x.m).length, fs: '13px', fw: 700, ink: '#9AA59F', d: '', dShow: 'none', chk: 'transparent', chkShow: 'none', tickShow: 'none', pinnedShow: 'none', tf: 'none', on: 'false', aria: x.m, tap: () => {} }); }
+    const on = !!s.picked[x.id]; const pin = s.pinned.includes(x.id);
+    cells.push({ span: 'auto', ar: '.62', rad: '14px', bg: x.bg, pad: '0', align: 'center', justify: 'center', e: x.e, fs: '30px', fw: 400, ink: '#fff', d: x.d + ' ' + GEN[x.m].slice(0, 3), dShow: 'block',
+      chk: on ? '#8FD3AC' : 'rgba(0,0,0,.25)', chkShow: s.sel ? 'flex' : 'none', tickShow: on ? 'inline-block' : 'none', pinnedShow: pin ? 'inline-block' : 'none',
+      tf: on ? 'scale(.92)' : 'none', on: on ? 'true' : 'false', aria: 'История ' + x.d + ' ' + GEN[x.m],
+      tap: () => s.sel ? this.setState({ picked: { ...s.picked, [x.id]: !on } }) : say('Открываем историю от ' + x.d + ' ' + GEN[x.m]) });
+  });
+  const pickedIds = Object.keys(s.picked).filter(k => s.picked[k]).map(Number);
+  const free = 3 - s.pinned.length;
+  const canPin = pickedIds.length > 0 && pickedIds.filter(id => !s.pinned.includes(id)).length <= free;
+  const pinObjs = s.pinned.map(id => ST.find(x => x.id === id)).filter(Boolean);
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    title: s.sel ? (pickedIds.length ? 'Выбрано: ' + pickedIds.length : 'Выберите истории') : 'Архив историй',
+    sub: list.length + ' ' + (list.length % 10 === 1 && list.length % 100 !== 11 ? 'история' : (list.length % 10 >= 2 && list.length % 10 <= 4 && (list.length % 100 < 10 || list.length % 100 >= 20)) ? 'истории' : 'историй') + ' · видны только вам',
+    selBtn: s.sel ? 'Готово' : 'Выбрать',
+    toggleSelect: () => this.setState({ sel: !s.sel, picked: {} }),
+    pinCount: s.pinned.length,
+    pins: [0, 1, 2].map(i => { const x = pinObjs[i]; return x ? { bg: x.bg, bs: 'solid', bd: 'rgba(143,211,172,.5)', e: x.e, eShow: 'inline-block', emptyShow: 'none', cap: x.d + ' ' + GEN[x.m].slice(0, 3), anim: (s.pk % 2 ? 'kxPin' : 'kxPin') + ' .4s ease both' } : { bg: 'rgba(255,255,255,.03)', bs: 'dashed', bd: 'rgba(255,255,255,.18)', e: '', eShow: 'none', emptyShow: 'inline-block', cap: '', anim: 'none' }; }),
+    cells,
+    selecting: s.sel,
+    pinText: !pickedIds.length ? 'Выберите истории' : canPin ? 'Закрепить в профиле' : 'Закрепить можно только 3',
+    pinBg: canPin ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.08)', pinInk: canPin ? '#06150D' : '#8A958F',
+    pinSel: () => { if (!canPin) return; const add = pickedIds.filter(id => !s.pinned.includes(id)); this.setState({ pinned: [...s.pinned, ...add], sel: false, picked: {}, pk: s.pk + 1 }); say(add.length ? 'Закреплено в профиле: ' + add.length : 'Уже в профиле'); },
+    del: () => this.ask('Удалить истории?', 'Выбранные истории удалятся навсегда, вернуть их нельзя.', 'Удалить', () => { if (!pickedIds.length) return; const gone = { ...s.gone }; pickedIds.forEach(id => gone[id] = true); this.setState({ gone, pinned: s.pinned.filter(id => !gone[id]), sel: false, picked: {} }); say('Удалено: ' + pickedIds.length); }),
+    toggleSave: () => this.setState({ save: !s.save }), saveOn: s.save ? 'true' : 'false',
+    trk: s.save ? '#3F9A6C' : 'rgba(255,255,255,.14)', knc: s.save ? '#EEF3EF' : '#9AA59F', knx: s.save ? '21px' : '3px',
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2.2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

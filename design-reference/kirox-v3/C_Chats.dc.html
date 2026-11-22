@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Вариант C, чаты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #050706; color: #E5EBE7; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <div style="flex-grow: 1"><div style="font-size: 13px; color: #8A958F">Добрый вечер</div><div style="font-size: 24px; font-weight: 700">Сообщения</div></div>
+      <button aria-label="Поиск" style="width: 46px; height: 46px; border-radius: 16px; background: #111613; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">search</span></button>
+      <button aria-label="Новое сообщение" style="width: 46px; height: 46px; border-radius: 16px; background: #94CBA9; color: #08190F; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">add</span></button>
+    </div>
+    <div style="display: flex; gap: 14px">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 58px"><span style="width: 58px; height: 58px; border-radius: 20px; border: 2px dashed #3A4540; box-sizing: border-box; display: flex; align-items: center; justify-content: center; color: #8A958F"><span class="ms" aria-hidden="true">add</span></span><span style="font-size: 11px; color: #8A958F">Моя</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 58px"><span style="width: 58px; height: 58px; border-radius: 20px; padding: 3px; box-sizing: border-box; background: linear-gradient(140deg, #94CBA9, #3E7A5A)"><span style="width: 100%; height: 100%; border-radius: 17px; background: #241F33; color: #CFC2F2; border: 2px solid #050706; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-weight: 700">А</span></span><span style="font-size: 11px">Анна</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 58px"><span style="width: 58px; height: 58px; border-radius: 20px; padding: 3px; box-sizing: border-box; background: linear-gradient(140deg, #94CBA9, #3E7A5A)"><span style="width: 100%; height: 100%; border-radius: 17px; background: #182230; color: #B9CDE8; border: 2px solid #050706; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-weight: 700">М</span></span><span style="font-size: 11px">Максим</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 58px"><span style="width: 58px; height: 58px; border-radius: 20px; padding: 3px; box-sizing: border-box; background: #2A322E"><span style="width: 100%; height: 100%; border-radius: 17px; background: #2A251C; color: #E3D3B4; border: 2px solid #050706; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-weight: 700">С</span></span><span style="font-size: 11px; color: #8A958F">Света</span></div>
+    </div>
+  </header>
+  <section style="flex-grow: 1; border-radius: 32px 32px 0 0; background: #0E1310; padding: 14px 8px 0; display: flex; flex-direction: column; gap: 6px">
+    <div role="group" aria-label="Папки" style="margin: 0 8px 4px; height: 40px; border-radius: 20px; background: #070A08; display: flex; padding: 4px; box-sizing: border-box">
+      <button style="flex: 1; border-radius: 16px; background: #1F3528; color: #C2E9D0; font-size: 13px; font-weight: 600">Все</button>
+      <button style="flex: 1; border-radius: 16px; color: #8A958F; font-size: 13px; font-weight: 500">Личные</button>
+      <button style="flex: 1; border-radius: 16px; color: #8A958F; font-size: 13px; font-weight: 500">Группы</button>
+      <button style="flex: 1; border-radius: 16px; color: #8A958F; font-size: 13px; font-weight: 500">Каналы</button>
+    </div>
+    <div style="padding: 10px 10px; border-radius: 22px; background: #151B17; display: flex; align-items: center; gap: 12px">
+      <span style="width: 50px; height: 50px; border-radius: 18px; background: #241F33; color: #CFC2F2; font-size: 19px; font-weight: 700; display: flex; align-items: center; justify-content: center">А</span>
+      <div style="flex-grow: 1; min-width: 0"><div style="display: flex"><span style="flex-grow: 1; font-size: 16px; font-weight: 700">Анна</span><span style="font-size: 12px; color: #94CBA9; font-weight: 600">21:58</span></div><div style="display: flex; align-items: center; gap: 8px"><span style="flex-grow: 1; font-size: 14px; color: #C9D2CC">Увидимся в 7, я возьму билеты</span><span style="min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 8px; background: #94CBA9; color: #08190F; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">2</span></div></div>
+    </div>
+    <div style="padding: 10px 10px; border-radius: 22px; display: flex; align-items: center; gap: 12px">
+      <span style="width: 50px; height: 50px; border-radius: 18px; background: #12201A; color: #94CBA9; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">bookmark</span></span>
+      <div style="flex-grow: 1; min-width: 0"><div style="display: flex"><span style="flex-grow: 1; font-size: 16px; font-weight: 600">Избранное</span><span style="font-size: 12px; color: #8A958F">22:26</span></div><div style="font-size: 14px; color: #8A958F">Список дел на завтра</div></div>
+    </div>
+    <div style="padding: 10px 10px; border-radius: 22px; background: #151B17; display: flex; align-items: center; gap: 12px">
+      <span style="width: 50px; height: 50px; border-radius: 18px; background: #142424; color: #9FD4D0; font-size: 19px; font-weight: 700; display: flex; align-items: center; justify-content: center">K</span>
+      <div style="flex-grow: 1; min-width: 0"><div style="display: flex"><span style="flex-grow: 1; font-size: 16px; font-weight: 700">Команда kiroX</span><span style="font-size: 12px; color: #94CBA9; font-weight: 600">21:29</span></div><div style="display: flex; align-items: center; gap: 8px"><span style="flex-grow: 1; min-width: 0; font-size: 14px; color: #C9D2CC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Максим: сборка прошла</span><span style="min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 8px; background: #94CBA9; color: #08190F; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">14</span></div></div>
+    </div>
+    <div style="padding: 10px 10px; border-radius: 22px; display: flex; align-items: center; gap: 12px">
+      <span style="width: 50px; height: 50px; border-radius: 18px; background: #2A251C; color: #E3D3B4; font-size: 19px; font-weight: 700; display: flex; align-items: center; justify-content: center">М</span>
+      <div style="flex-grow: 1; min-width: 0"><div style="display: flex; align-items: center; gap: 3px"><span style="flex-grow: 1; font-size: 16px; font-weight: 600">Мама</span><span class="ms" style="font-size: 15px; color: #94CBA9" aria-hidden="true">done_all</span><span style="font-size: 12px; color: #8A958F">21:01</span></div><div style="font-size: 14px; color: #8A958F">Позвони, когда будешь дома</div></div>
+    </div>
+    <div style="padding: 10px 10px; border-radius: 22px; display: flex; align-items: center; gap: 12px">
+      <span style="width: 50px; height: 50px; border-radius: 18px; background: #182230; color: #B9CDE8; font-size: 19px; font-weight: 700; display: flex; align-items: center; justify-content: center">И</span>
+      <div style="flex-grow: 1; min-width: 0"><div style="display: flex"><span style="flex-grow: 1; font-size: 16px; font-weight: 600">Илья</span><span style="font-size: 12px; color: #8A958F">19:36</span></div><div style="font-size: 14px; color: #8A958F">Ок, тогда до завтра</div></div>
+    </div>
+  </section>
+  <nav aria-label="Разделы" style="position: absolute; left: 16px; right: 16px; bottom: 18px; height: 66px; border-radius: 24px; background: #1A211D; display: flex; align-items: center; padding: 0 6px; box-shadow: 0 10px 30px rgba(0,0,0,.6)">
+    <button style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 700; color: #C2E9D0"><span style="width: 44px; height: 28px; border-radius: 14px; background: #1F3528; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 22px" aria-hidden="true">chat</span></span>Чаты</button>
+    <button style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 500; color: #8A958F"><span style="height: 28px; display: flex; align-items: center"><span class="ms" style="font-size: 22px" aria-hidden="true">group</span></span>Контакты</button>
+    <button style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 500; color: #8A958F"><span style="height: 28px; display: flex; align-items: center"><span class="ms" style="font-size: 22px" aria-hidden="true">call</span></span>Звонки</button>
+    <button style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 500; color: #8A958F"><span style="height: 28px; display: flex; align-items: center"><span class="ms" style="font-size: 22px" aria-hidden="true">auto_stories</span></span>Истории</button>
+    <button style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 500; color: #8A958F"><span style="height: 28px; display: flex; align-items: center"><span class="ms" style="font-size: 22px" aria-hidden="true">settings</span></span>Настройки</button>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

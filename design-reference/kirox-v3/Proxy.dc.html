@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Прокси</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+input{font:inherit;color:inherit;background:none;border:0;outline:0}
+input::placeholder{color:#8A958F}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxPing{0%{transform:scale(.6);opacity:.8}100%{transform:scale(2.2);opacity:0}}
+@keyframes kxFlow{0%{left:-20%}100%{left:100%}}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxToast{0%{opacity:0;transform:translateY(16px)}12%,85%{opacity:1;transform:none}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 22px; font-weight: 800">Прокси</h1>
+    <button onClick="{{recheck}}" aria-label="Проверить все" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" style="animation: {{spin}}" aria-hidden="true">refresh</span></button>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 110px">
+    <!-- Connection diagram -->
+    <div style="padding: 16px; border-radius: 24px; background: linear-gradient(150deg, {{heroA}}, rgba(255,255,255,.03)); border: 1px solid {{heroB}}; transition: all .4s">
+      <div style="display: flex; align-items: center; gap: 0">
+        <span style="width: 44px; height: 44px; border-radius: 15px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms" aria-hidden="true">smartphone</span></span>
+        <span style="position: relative; flex: 1; height: 3px; margin: 0 6px; border-radius: 2px; background: rgba(255,255,255,.1); overflow: hidden"><sc-if value="{{flowing}}" hint-placeholder-val="{{true}}"><span style="position: absolute; top: 0; width: 20%; height: 100%; background: {{lineInk}}; animation: kxFlow 1.2s linear infinite"></span></sc-if></span>
+        <sc-if value="{{viaProxy}}" hint-placeholder-val="{{true}}">
+          <span style="position: relative; width: 44px; height: 44px; border-radius: 15px; background: rgba(143,211,172,.14); color: #8FD3AC; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" aria-hidden="true">shield</span></span>
+          <span style="position: relative; flex: 1; height: 3px; margin: 0 6px; border-radius: 2px; background: rgba(255,255,255,.1); overflow: hidden"><sc-if value="{{flowing}}" hint-placeholder-val="{{true}}"><span style="position: absolute; top: 0; width: 20%; height: 100%; background: {{lineInk}}; animation: kxFlow 1.2s linear .3s infinite"></span></sc-if></span>
+        </sc-if>
+        <span style="position: relative; width: 44px; height: 44px; border-radius: 15px; background: linear-gradient(140deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" aria-hidden="true">cloud</span></span>
+      </div>
+      <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px">
+        <span style="position: relative; width: 10px; height: 10px"><span style="position: absolute; inset: 0; border-radius: 5px; background: {{dot}}"></span><span style="position: absolute; inset: 0; border-radius: 5px; background: {{dot}}; animation: kxPing 1.6s ease-out infinite"></span></span>
+        <span style="font-size: 15px; font-weight: 800">{{statusTitle}}</span>
+      </div>
+      <div style="margin-top: 3px; font-size: 12px; color: #9AA59F">{{statusSub}}</div>
+    </div>
+
+    <div style="margin-top: 12px; border-radius: 22px; background: rgba(255,255,255,.045); overflow: hidden">
+      <sc-for list="{{toggles}}" as="t" hint-placeholder-count="2">
+        <button onClick="{{t.tap}}" style="width: 100%; padding: 13px 16px; display: flex; align-items: center; gap: 12px; border-top: {{t.line}}">
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{t.label}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F">{{t.sub}}</span></span>
+          <span style="width: 50px; height: 30px; border-radius: 15px; background: {{t.track}}; position: relative; flex-shrink: 0; transition: background .2s"><span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px; background: {{t.knob}}; transform: translateX({{t.x}}); transition: transform .25s cubic-bezier(.34,1.45,.5,1)"></span></span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="padding: 16px 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Мои прокси</div>
+    <div style="border-radius: 22px; background: rgba(255,255,255,.045); overflow: hidden; opacity: {{listOp}}; transition: opacity .3s">
+      <sc-for list="{{proxies}}" as="p" hint-placeholder-count="3">
+        <button onClick="{{p.pick}}" style="width: 100%; padding: 12px 14px; display: flex; align-items: center; gap: 12px; border-top: {{p.line}}; animation: kxIn .3s ease both">
+          <span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{p.ring}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{p.dotIn}}; transition: background .2s"></span></span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{p.host}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{p.type}} · порт {{p.port}}</span></span>
+          <sc-if value="{{p.checking}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(143,211,172,.25); border-top-color: #8FD3AC; animation: kxSpin .8s linear infinite"></span></sc-if>
+          <sc-if value="{{p.done}}" hint-placeholder-val="{{true}}"><span style="height: 26px; padding: 0 8px; border-radius: 13px; background: {{p.pingBg}}; color: {{p.pingInk}}; font-size: 12px; font-weight: 800; display: flex; align-items: center">{{p.ping}}</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+    <div style="padding: 8px 6px 0; font-size: 12px; line-height: 17px; color: #8A958F">Прокси помогает подключиться, если Telegram работает медленно или недоступен в вашей сети.</div>
+  </div>
+
+  <button onClick="{{openAdd}}" style="position: absolute; left: 16px; right: 16px; bottom: 26px; height: 56px; border-radius: 18px; background: linear-gradient(100deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 28px rgba(63,154,108,.35)"><span class="ms" aria-hidden="true">add</span>Добавить прокси</button>
+
+  <!-- Add sheet -->
+  <sc-if value="{{add}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeAdd}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px 12px; font-size: 18px; font-weight: 800">Новый прокси</div>
+      <div style="display: flex; padding: 4px; border-radius: 16px; background: rgba(255,255,255,.05); margin-bottom: 12px">
+        <sc-for list="{{types}}" as="t" hint-placeholder-count="2"><button onClick="{{t.pick}}" style="flex: 1; height: 38px; border-radius: 12px; background: {{t.bg}}; color: {{t.ink}}; font-size: 14px; font-weight: 700; text-align: center; transition: all .2s">{{t.label}}</button></sc-for>
+      </div>
+      <div style="border-radius: 18px; background: rgba(255,255,255,.05); overflow: hidden">
+        <label style="display: flex; align-items: center; height: 52px; padding: 0 14px; border-bottom: 1px solid rgba(255,255,255,.06)"><input aria-label="Сервер" placeholder="Сервер" value="{{nh}}" onInput="{{onNh}}" style="flex: 1; font-size: 15px"></label>
+        <label style="display: flex; align-items: center; height: 52px; padding: 0 14px; border-bottom: 1px solid rgba(255,255,255,.06)"><input aria-label="Порт" placeholder="Порт" value="{{np}}" onInput="{{onNp}}" style="flex: 1; font-size: 15px"></label>
+        <label style="display: flex; align-items: center; height: 52px; padding: 0 14px"><input aria-label="{{thirdLabel}}" placeholder="{{thirdLabel}}" style="flex: 1; font-size: 15px"></label>
+      </div>
+      <button style="margin-top: 10px; width: 100%; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 6px; color: #8FD3AC; font-size: 14px; font-weight: 700"><span class="ms" style="font-size: 18px" aria-hidden="true">content_paste</span>Вставить ссылку на прокси</button>
+      <button onClick="{{save}}" style="margin-top: 6px; width: 100%; height: 52px; border-radius: 16px; background: {{saveBg}}; color: {{saveInk}}; font-size: 15px; font-weight: 800; text-align: center; transition: all .2s">Сохранить и проверить</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 24px; right: 24px; bottom: 96px; height: 46px; border-radius: 16px; background: #1E2622; border: 1px solid rgba(143,211,172,.25); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; animation: kxToast 2.2s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { use: true, auto: true, cur: 0, list: [{ host: 'proxy-one.example.net', port: '443', type: 'MTProto', ping: 84 }, { host: 'fast.example.org', port: '8443', type: 'MTProto', ping: 162 }, { host: 'socks.example.com', port: '1080', type: 'SOCKS5', ping: -1 }], checking: [], add: false, nt: 0, nh: '', np: '', toast: 0, toastText: '' };
+}
+componentWillUnmount() { (this.ts || []).forEach(clearTimeout); clearTimeout(this.tt); }
+say(t) { clearTimeout(this.tt); this.setState({ toast: Date.now(), toastText: t }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2200); }
+check(idxs) {
+  this.ts = this.ts || [];
+  this.setState({ checking: idxs });
+  idxs.forEach((i, k) => this.ts.push(setTimeout(() => {
+    const list = this.state.list.slice();
+    const p = list[i];
+    list[i] = { ...p, ping: p.type === 'SOCKS5' && p.host.startsWith('socks') ? -1 : 50 + Math.round(Math.random() * 180) };
+    this.setState({ list, checking: this.state.checking.filter(x => x !== i) });
+  }, 700 + k * 400)));
+}
+renderVals() {
+  const s = this.state;
+  const cur = s.list[s.cur];
+  const ok = !s.use || (cur && cur.ping > 0);
+  const status = !s.use ? ['Напрямую', 'Подключено без прокси'] : ok ? ['Через прокси', cur.host + ' · ' + cur.ping + ' мс'] : ['Прокси недоступен', s.auto ? 'Ищем рабочий прокси…' : 'Выберите другой прокси'];
+  const pingStyle = ms => ms < 0 ? ['Нет связи', 'rgba(255,138,128,.12)', '#FF8A80'] : ms < 120 ? [ms + ' мс', 'rgba(143,211,172,.14)', '#8FD3AC'] : [ms + ' мс', 'rgba(232,176,74,.14)', '#E8B04A'];
+  const sw = on => ({ track: on ? '#8FD3AC' : 'rgba(255,255,255,.12)', knob: on ? '#06150D' : '#8A958F', x: on ? '20px' : '0' });
+  const canSave = s.nh.trim() && /^\d+$/.test(s.np.trim());
+  return {
+    viaProxy: s.use, flowing: ok, lineInk: ok ? '#8FD3AC' : '#FF8A80',
+    heroA: ok ? 'rgba(63,154,108,.18)' : 'rgba(255,138,128,.12)', heroB: ok ? 'rgba(143,211,172,.22)' : 'rgba(255,138,128,.3)',
+    dot: ok ? '#8FD3AC' : '#FF8A80', statusTitle: status[0], statusSub: status[1],
+    spin: s.checking.length ? 'kxSpin .8s linear infinite' : 'none',
+    recheck: () => this.check(s.list.map((_, i) => i)),
+    toggles: [
+      { label: 'Использовать прокси', sub: 'Весь трафик kiroX пойдёт через выбранный сервер', ...sw(s.use), tap: () => this.setState({ use: !s.use }) },
+      { label: 'Переключать автоматически', sub: 'Если прокси упал, взять самый быстрый из списка', ...sw(s.auto), tap: () => this.setState({ auto: !s.auto }) }
+    ].map((t, i) => ({ ...t, line: i ? '1px solid rgba(255,255,255,.06)' : '0' })),
+    listOp: s.use ? '1' : '.5',
+    proxies: s.list.map((p, i) => {
+      const [ping, pingBg, pingInk] = pingStyle(p.ping);
+      const on = i === s.cur;
+      return { ...p, ping, pingBg, pingInk, checking: s.checking.includes(i), done: !s.checking.includes(i),
+        ring: on ? '#8FD3AC' : '#3A4540', dotIn: on ? '#8FD3AC' : 'transparent', line: i ? '1px solid rgba(255,255,255,.06)' : '0',
+        pick: () => { this.setState({ cur: i, use: true }); this.check([i]); } };
+    }),
+    add: s.add, openAdd: () => this.setState({ add: true, nh: '', np: '' }), closeAdd: () => this.setState({ add: false }),
+    types: ['MTProto', 'SOCKS5'].map((label, i) => ({ label, bg: i === s.nt ? 'rgba(143,211,172,.16)' : 'transparent', ink: i === s.nt ? '#8FD3AC' : '#9AA59F', pick: () => this.setState({ nt: i }) })),
+    thirdLabel: s.nt === 0 ? 'Секретный ключ' : 'Логин и пароль (если нужны)',
+    nh: s.nh, np: s.np, onNh: e => this.setState({ nh: e.target.value }), onNp: e => this.setState({ np: e.target.value }),
+    saveBg: canSave ? 'linear-gradient(100deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', saveInk: canSave ? '#06150D' : '#5C6661',
+    save: () => { if (!canSave) return; const list = [...s.list, { host: s.nh.trim(), port: s.np.trim(), type: s.nt ? 'SOCKS5' : 'MTProto', ping: 0 }]; this.setState({ list, add: false }); this.check([list.length - 1]); this.say('Прокси добавлен'); },
+    toast: !!s.toast, toastText: s.toastText
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Энергосбережение</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--c) 0,var(--c) var(--p),rgba(255,255,255,.1) var(--p))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:13px;background:#EEF3EF;margin-top:-9px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:rgba(255,255,255,.1)}
+input[type=range]::-moz-range-progress{height:8px;border-radius:4px;background:var(--c)}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border:0;border-radius:13px;background:#EEF3EF}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxWave{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes kxBubble{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1}100%{transform:translateY(-70px) scale(1);opacity:0}}
+@keyframes kxPulse{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes kxHalo{0%,100%{box-shadow:0 0 0 0 var(--h)}50%{box-shadow:0 0 28px 4px var(--h)}}
+@keyframes kxBolt{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 22px; font-weight: 800">Энергосбережение</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 30px">
+    <!-- Battery hero -->
+    <div style="padding: 18px; border-radius: 26px; background: linear-gradient(150deg, {{heroA}}, rgba(255,255,255,.03)); border: 1px solid {{heroBorder}}; display: flex; align-items: center; gap: 18px; transition: all .4s">
+      <div style="position: relative; width: 62px; height: 104px; flex-shrink: 0">
+        <span style="position: absolute; left: 21px; top: 0; width: 20px; height: 8px; border-radius: 3px 3px 0 0; background: #3A4540"></span>
+        <span style="position: absolute; left: 0; right: 0; top: 7px; bottom: 0; border-radius: 14px; border: 3px solid #3A4540; overflow: hidden; --h: {{battGlow}}; animation: kxHalo 2.4s ease-in-out 2">
+          <span style="position: absolute; left: 0; right: 0; bottom: 0; height: {{batt}}; background: {{battColor}}; overflow: hidden; transition: height .5s cubic-bezier(.2,.9,.3,1), background .4s">
+            <span aria-hidden="true" style="position: absolute; left: -42px; top: -132px; width: 140px; height: 140px; border-radius: 42%; background: #141917; opacity: .5; animation: kxWave 5s linear infinite"></span>
+            <span aria-hidden="true" style="position: absolute; left: -46px; top: -144px; width: 150px; height: 150px; border-radius: 38%; background: #141917; animation: kxWave 7s linear infinite reverse"></span>
+            <span aria-hidden="true" style="position: absolute; left: 12px; bottom: 4px; width: 6px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.55); animation: kxBubble 2.6s ease-in 2"></span>
+            <span aria-hidden="true" style="position: absolute; left: 30px; bottom: 4px; width: 4px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.5); animation: kxBubble 3.2s ease-in .9s 2"></span>
+            <span aria-hidden="true" style="position: absolute; left: 22px; bottom: 4px; width: 5px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.45); animation: kxBubble 2.9s ease-in 1.7s 2"></span>
+          </span>
+          <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 11px; box-shadow: inset 0 0 18px {{battGlow}}; animation: kxPulse 2.4s ease-in-out infinite"></span>
+          <sc-if value="{{saving}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="position: absolute; left: 50%; top: 50%; margin: -14px 0 0 -14px; font-size: 28px; color: #0A0C0B; animation: kxBolt 1.6s ease-in-out 2" aria-hidden="true">eco</span></sc-if>
+        </span>
+      </div>
+      <div style="flex: 1">
+        <div style="font-size: 34px; font-weight: 800; line-height: 1">{{battText}}</div>
+        <div style="margin-top: 6px; font-size: 14px; font-weight: 700; color: {{stateInk}}">{{stateText}}</div>
+        <div style="margin-top: 4px; font-size: 12px; line-height: 17px; color: #9AA59F">{{stateSub}}</div>
+      </div>
+    </div>
+    <div style="padding: 10px 4px 0">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: #8A958F"><span>Макет: заряд телефона</span><span>{{battText}}</span></div>
+      <input type="range" min="1" max="100" value="{{battVal}}" onInput="{{onBatt}}" aria-label="Заряд телефона" style="--c: {{battColor}}; --p: {{batt}}">
+    </div>
+
+    <!-- Threshold -->
+    <div style="padding: 16px 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Включать при заряде ниже</div>
+    <div style="padding: 14px 16px; border-radius: 22px; background: rgba(255,255,255,.045)">
+      <div style="display: flex; align-items: baseline"><span style="flex: 1; font-size: 15px; font-weight: 600">{{thrLabel}}</span><span style="font-size: 22px; font-weight: 800; color: #8FD3AC">{{thrText}}</span></div>
+      <input type="range" min="0" max="100" step="5" value="{{thrVal}}" onInput="{{onThr}}" aria-label="Порог энергосбережения" style="margin-top: 8px; --c: #8FD3AC; --p: {{thrPct}}">
+      <div style="display: flex; justify-content: space-between; font-size: 11px; color: #8A958F"><span>Выкл.</span><span>Всегда</span></div>
+    </div>
+
+    <!-- What to turn off -->
+    <div style="padding: 16px 4px 6px; display: flex; align-items: baseline"><span style="flex: 1; font-size: 13px; font-weight: 800; color: #8FD3AC">Что отключать</span><span style="font-size: 12px; color: #8A958F">{{offCount}}</span></div>
+    <div style="border-radius: 22px; background: rgba(255,255,255,.045); overflow: hidden">
+      <sc-for list="{{opts}}" as="o" hint-placeholder-count="6">
+        <button onClick="{{o.tap}}" style="width: 100%; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-top: {{o.line}}">
+          <span style="width: 36px; height: 36px; border-radius: 12px; background: {{o.iconBg}}; color: {{o.iconInk}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .25s"><span class="ms" style="font-size: 20px" aria-hidden="true">{{o.icon}}</span></span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">{{o.label}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: {{o.subInk}}">{{o.sub}}</span></span>
+          <span style="width: 50px; height: 30px; border-radius: 15px; background: {{o.track}}; position: relative; flex-shrink: 0; transition: background .2s"><span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px; background: {{o.knob}}; transform: translateX({{o.x}}); transition: transform .25s cubic-bezier(.34,1.45,.5,1)"></span></span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="padding: 8px 6px 0; font-size: 12px; line-height: 17px; color: #8A958F">Сообщения и уведомления продолжают приходить. Отключается только то, что тратит заряд впустую.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PL = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
+
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { batt: 62, thr: 15, off: [true, true, true, false, true, false] }; }
+renderVals() {
+  const s = this.state;
+  const saving = s.thr >= 100 || (s.thr > 0 && s.batt <= s.thr);
+  const low = s.batt <= 20;
+  const battColor = saving ? '#E8B04A' : low ? '#FF8A80' : '#8FD3AC';
+  const O = [
+    ['animation', 'Анимации интерфейса', 'Переходы, лупа в нижней панели'],
+    ['auto_awesome', 'Эффекты реакций', 'Вспышки при отправке реакций'],
+    ['play_circle', 'Автозапуск видео и GIF', 'Будут играть по нажатию'],
+    ['blur_on', 'Стекло и размытие', 'Панели станут плотнее'],
+    ['emoji_emotions', 'Анимированные стикеры', 'Покажутся первым кадром'],
+    ['sync', 'Фоновое обновление', 'Чаты обновятся при открытии']
+  ];
+  const opts = O.map(([icon, label, sub], i) => {
+    const on = s.off[i];
+    const active = on && saving;
+    return { icon, label, sub: active ? 'Сейчас отключено' : sub, subInk: active ? '#E8B04A' : '#9AA59F',
+      iconBg: active ? 'rgba(232,176,74,.14)' : 'rgba(143,211,172,.1)', iconInk: active ? '#E8B04A' : '#8FD3AC',
+      track: on ? '#8FD3AC' : 'rgba(255,255,255,.12)', knob: on ? '#06150D' : '#8A958F', x: on ? '20px' : '0',
+      line: i ? '1px solid rgba(255,255,255,.06)' : '0',
+      tap: () => { const off = s.off.slice(); off[i] = !on; this.setState({ off }); } };
+  });
+  const cnt = s.off.filter(Boolean).length;
+  return {
+    battGlow: saving ? 'rgba(232,176,74,.45)' : low ? 'rgba(255,138,128,.45)' : 'rgba(143,211,172,.4)',
+    batt: s.batt + '%', battVal: String(s.batt), battText: s.batt + '%', battColor, saving,
+    onBatt: e => this.setState({ batt: +e.target.value }),
+    heroA: saving ? 'rgba(232,176,74,.18)' : 'rgba(63,154,108,.18)', heroBorder: saving ? 'rgba(232,176,74,.3)' : 'rgba(143,211,172,.2)',
+    stateText: saving ? 'Энергосбережение включено' : 'Обычный режим',
+    stateInk: saving ? '#E8B04A' : '#8FD3AC',
+    stateSub: saving ? cnt + ' ' + PL(cnt, 'функция отключена', 'функции отключены', 'функций отключено') + ', чтобы телефон дольше работал' : (s.thr === 0 ? 'Автоматически не включается' : 'Включится при ' + s.thr + '% и ниже'),
+    thrVal: String(s.thr), thrPct: s.thr + '%', thrText: s.thr === 0 ? 'Выкл.' : s.thr >= 100 ? 'Всегда' : s.thr + '%',
+    thrLabel: s.thr === 0 ? 'Не включать' : s.thr >= 100 ? 'Включено всегда' : 'Порог заряда',
+    onThr: e => this.setState({ thr: +e.target.value }),
+    opts, offCount: cnt + ' из ' + O.length
+  };
+}
+}
+</script>
+</body>
+</html>

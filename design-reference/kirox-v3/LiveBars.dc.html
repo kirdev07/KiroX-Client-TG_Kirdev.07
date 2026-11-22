@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Фоновые плашки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxDrop{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:none}}
+@keyframes kxEq{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes kxPulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <!-- Bars stack -->
+  <div style="padding: 8px 10px 0; display: flex; flex-direction: column; gap: 6px">
+    <sc-if value="{{call}}" hint-placeholder-val="{{true}}">
+      <div style="height: 44px; padding: 0 6px 0 14px; border-radius: 22px; background: linear-gradient(90deg, #3F9A6C, #2F7A55); color: #fff; display: flex; align-items: center; gap: 10px; animation: kxDrop .3s ease both">
+        <span style="width: 8px; height: 8px; border-radius: 4px; background: #fff; animation: kxPulse 1.2s ease-in-out infinite"></span>
+        <button onClick="{{openCall}}" style="flex: 1; font-size: 13px; font-weight: 800">Анна · звонок · <span style="font-variant-numeric: tabular-nums">{{callTime}}</span></button>
+        <button onClick="{{toggleMute}}" aria-label="{{muteLabel}}" style="width: 34px; height: 34px; border-radius: 17px; background: rgba(0,0,0,.2); display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 18px" aria-hidden="true">{{muteIcon}}</span></button>
+        <button onClick="{{endCall}}" aria-label="Завершить звонок" style="width: 34px; height: 34px; border-radius: 17px; background: #E5534B; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 18px" aria-hidden="true">call_end</span></button>
+      </div>
+    </sc-if>
+    <sc-if value="{{music}}" hint-placeholder-val="{{true}}">
+      <div style="height: 50px; padding: 0 6px 0 6px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 10px; position: relative; overflow: hidden; animation: kxDrop .3s ease .05s both">
+        <span style="position: absolute; left: 0; bottom: 0; height: 2px; width: {{musicPct}}; background: #8FD3AC; transition: width 1s linear"></span>
+        <span style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #F2B866, #C0443C); display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px; color: #fff" aria-hidden="true">music_note</span></span>
+        <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 800; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">Летний вечер</span><span style="display: block; font-size: 11px; color: #9AA59F">Лунный кот · из «Семья»</span></span>
+        <span style="display: flex; align-items: flex-end; gap: 2px; height: 16px" aria-hidden="true"><sc-for list="{{eq}}" as="e" hint-placeholder-count="3"><span style="width: 3px; height: 16px; border-radius: 2px; background: #8FD3AC; transform-origin: bottom; animation: kxEq .8s ease-in-out {{e.d}} infinite; animation-play-state: {{e.st}}"></span></sc-for></span>
+        <button onClick="{{toggleMusic}}" aria-label="{{musicLabel}}" style="width: 38px; height: 38px; border-radius: 19px; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">{{musicIcon}}</span></button>
+        <button onClick="{{closeMusic}}" aria-label="Закрыть плеер" style="width: 32px; height: 32px; border-radius: 16px; color: #9AA59F; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">close</span></button>
+      </div>
+    </sc-if>
+    <sc-if value="{{upload}}" hint-placeholder-val="{{true}}">
+      <div style="height: 40px; padding: 0 12px; border-radius: 14px; background: rgba(255,255,255,.05); display: flex; align-items: center; gap: 10px; position: relative; overflow: hidden; animation: kxDrop .3s ease .1s both">
+        <span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{upPct}}; background: rgba(143,211,172,.12); transition: width .3s linear"></span>
+        <sc-if value="{{upRunning}}" hint-placeholder-val="{{true}}"><span style="position: relative; width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(143,211,172,.25); border-top-color: #8FD3AC; animation: kxSpin .8s linear infinite"></span></sc-if>
+        <sc-if value="{{upDone}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="position: relative; font-size: 20px; color: #8FD3AC" aria-hidden="true">check_circle</span></sc-if>
+        <span style="position: relative; flex: 1; font-size: 12px; font-weight: 700">{{upText}}</span>
+        <span style="position: relative; font-size: 12px; color: #9AA59F; font-variant-numeric: tabular-nums">{{upPctText}}</span>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- Chat list -->
+  <div style="padding: 12px 16px 6px; display: flex; align-items: center"><span style="flex: 1; font-size: 26px; font-weight: 800">Чаты</span><span class="ms" style="color: #9AA59F" aria-hidden="true">search</span></div>
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 0 12px">
+    <sc-for list="{{chats}}" as="c" hint-placeholder-count="7">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 4px">
+        <span style="width: 50px; height: 50px; border-radius: 25px; background: {{c.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px">{{c.l}}</span>
+        <span style="flex: 1; min-width: 0"><span style="display: flex"><span style="flex: 1; font-size: 15px; font-weight: 700">{{c.name}}</span><span style="font-size: 12px; color: #8A958F">{{c.t}}</span></span><span style="display: block; font-size: 13px; color: #9AA59F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{c.msg}}</span></span>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="padding: 10px 16px 18px; display: flex; gap: 6px; justify-content: center">
+    <button onClick="{{reset}}" style="height: 36px; padding: 0 14px; border-radius: 18px; background: rgba(255,255,255,.06); font-size: 12px; font-weight: 700; color: #8FD3AC">Вернуть все плашки</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const CH = [['Анна', 'А', '#C0443C', 'Звонок идёт…', 'сейчас'], ['Семья', 'С', '#2F6E9E', 'Папа: музыка огонь 🔥', '18:20'], ['Мама', 'М', '#B07A2E', 'Купи хлеб по дороге 🙂', '18:02'], ['Kotlin-клуб', 'K', '#3F9A6C', 'Дмитрий: PR готов', '17:40'], ['Лиза', 'Л', '#6A4C9C', 'Сюрприз готов 🎁', '15:30'], ['Работа', 'Р', '#5C6661', 'Созвон в понедельник', 'вчера'], ['Олег', 'О', '#9AA59F', 'Ок', 'вчера']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { call: true, music: true, upload: true, sec: 312, mute: false, playing: true, m: 74, up: 12 }; }
+componentDidMount() { this.iv = setInterval(() => { const s = this.state; this.setState({ sec: s.sec + 1, m: s.playing ? (s.m + 1) % 214 : s.m }); }, 1000); this.iu = setInterval(() => { const s = this.state; if (s.up < 100) this.setState({ up: Math.min(100, s.up + 3 + Math.random() * 4) }); }, 250); }
+componentWillUnmount() { clearInterval(this.iv); clearInterval(this.iu); }
+renderVals() {
+  const s = this.state;
+  return {
+    call: s.call, music: s.music, upload: s.upload,
+    callTime: Math.floor(s.sec / 60) + ':' + String(s.sec % 60).padStart(2, '0'),
+    openCall: () => {}, toggleMute: () => this.setState({ mute: !s.mute }), muteIcon: s.mute ? 'mic_off' : 'mic', muteLabel: s.mute ? 'Включить микрофон' : 'Выключить микрофон',
+    endCall: () => this.setState({ call: false }),
+    musicPct: (s.m / 214 * 100) + '%', eq: ['0s', '.2s', '.4s'].map(d => ({ d, st: s.playing ? 'running' : 'paused' })),
+    toggleMusic: () => this.setState({ playing: !s.playing }), musicIcon: s.playing ? 'pause' : 'play_arrow', musicLabel: s.playing ? 'Пауза' : 'Играть',
+    closeMusic: () => this.setState({ music: false }),
+    upPct: s.up + '%', upPctText: Math.round(s.up) + '%', upRunning: s.up < 100, upDone: s.up >= 100,
+    upText: s.up < 100 ? 'Отправляем 12 фото в «Семья»' : 'Фото отправлены в «Семья»',
+    chats: CH.map(([name, l, c, msg, t]) => ({ name, l, c, msg, t })),
+    reset: () => this.setState({ call: true, music: true, upload: true, up: 12, sec: 312, playing: true })
+  };
+}
+}
+</script>
+</body>
+</html>

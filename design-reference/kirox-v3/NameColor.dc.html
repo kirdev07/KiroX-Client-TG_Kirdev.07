@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Цвет имени и профиля</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.93)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Мой цвет</h1><span style="height: 20px; padding: 0 8px; border-radius: 10px; background: rgba(201,160,224,.18); color: #C9A0E0; font-size: 11px; font-weight: 800; line-height: 20px; flex: none">PREMIUM</span>
+  </header>
+
+  <!-- Segmented -->
+  <div style="margin: 4px 16px 0; padding: 4px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); display: grid; grid-template-columns: 1fr 1fr; position: relative">
+    <span style="position: absolute; top: 4px; bottom: 4px; left: {{segLeft}}; width: calc(50% - 4px); border-radius: 18px; background: linear-gradient(180deg, rgba(143,211,172,.24), rgba(143,211,172,.12)); border: 1px solid rgba(143,211,172,.4); transition: left .3s cubic-bezier(.2,.8,.2,1)" aria-hidden="true"></span>
+    <sc-for list="{{segs}}" as="g" hint-placeholder-count="2"><button onClick="{{g.tap}}" aria-pressed="{{g.on}}" style="position: relative; height: 40px; border-radius: 18px; font-size: 14px; font-weight: 700; color: {{g.ink}}; text-align: center; transition: color .2s">{{g.label}}</button></sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 16px 110px">
+    <!-- Preview: name in chat -->
+    <sc-if value="{{tabName}}" hint-placeholder-val="{{true}}">
+      <div style="border-radius: 24px; padding: 16px 14px; background: radial-gradient(90% 70% at 85% 0%, rgba(63,154,108,.2), transparent 60%), #111614; border: 1px solid rgba(255,255,255,.08); animation: kxIn .25s ease both">
+        <div style="font-size: 12px; color: #8A958F; text-align: center; margin-bottom: 10px">Так вас увидят в группах</div>
+        <div style="display: flex; gap: 8px; align-items: flex-end">
+          <span style="width: 32px; height: 32px; border-radius: 16px; background: {{c1}}; color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .3s">А</span>
+          <div style="max-width: 78%; padding: 8px 12px 8px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.08)">
+            <div style="font-size: 13px; font-weight: 800; color: {{c1}}; transition: color .3s">Алекс</div>
+            <div style="margin-top: 4px; padding: 6px 10px; border-radius: 8px; background: {{quoteBg}}; border-left: 3px solid {{c1}}; position: relative; overflow: hidden; transition: all .3s">
+              <div style="font-size: 12px; font-weight: 700; color: {{c1}}; transition: color .3s">Анна</div>
+              <div style="font-size: 12px; color: #C9D2CC">Кто идёт на митап?</div>
+              <sc-if value="{{hasIcon}}" hint-placeholder-val="{{true}}"><span class="ms fill" style="position: absolute; right: 6px; top: 4px; font-size: 16px; color: {{c1}}; opacity: .35" aria-hidden="true">{{icon}}</span><span class="ms fill" style="position: absolute; right: 28px; bottom: 2px; font-size: 12px; color: {{c1}}; opacity: .25" aria-hidden="true">{{icon}}</span></sc-if>
+            </div>
+            <div style="margin-top: 4px; font-size: 14px">Я иду, возьму ноутбук 💻</div>
+            <div style="margin-top: 2px; text-align: right; font-size: 11px; color: #8A958F">10:24</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Preview: profile -->
+    <sc-if value="{{tabProfile}}" hint-placeholder-val="{{false}}">
+      <div style="position: relative; height: 210px; border-radius: 26px; overflow: hidden; background: {{coverBg}}; transition: background .4s; animation: kxIn .25s ease both">
+        <sc-for list="{{pattern}}" as="p" hint-placeholder-count="10"><span class="ms fill" style="position: absolute; left: {{p.x}}; top: {{p.y}}; font-size: {{p.s}}; color: {{p.o}}; animation: kxFloat {{p.d}} ease-in-out 2" aria-hidden="true">{{p.icon}}</span></sc-for>
+        <div style="position: absolute; left: 0; right: 0; bottom: 18px; display: flex; flex-direction: column; align-items: center">
+          <span style="width: 78px; height: 78px; border-radius: 39px; background: rgba(0,0,0,.25); border: 3px solid rgba(255,255,255,.7); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 800">А</span>
+          <div style="margin-top: 8px; font-size: 20px; font-weight: 800; text-shadow: 0 1px 8px rgba(0,0,0,.3)">Алекс</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,.8)">в сети</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Colors -->
+    <div style="margin-top: 18px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 10px">Цвет</div>
+    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; padding: 0 4px">
+      <sc-for list="{{colors}}" as="c" hint-placeholder-count="12">
+        <button onClick="{{c.tap}}" aria-label="{{c.label}}" aria-pressed="{{c.on}}" style="aspect-ratio: 1; border-radius: 50%; background: {{c.bg}}; box-shadow: {{c.ring}}; display: flex; align-items: center; justify-content: center; color: #fff; transition: box-shadow .2s, transform .2s; transform: {{c.tf}}">
+          <sc-if value="{{c.on}}" hint-placeholder-val="{{false}}"><span class="ms" style="font-size: 20px; text-shadow: 0 1px 4px rgba(0,0,0,.4)" aria-hidden="true">check</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+
+    <!-- Icon pattern -->
+    <div style="margin-top: 20px; display: flex; align-items: center; padding: 0 4px 10px"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">{{iconTitle}}</span><span style="font-size: 12px; color: #8A958F">{{iconSub}}</span></div>
+    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px">
+      <sc-for list="{{icons}}" as="i" hint-placeholder-count="12">
+        <button onClick="{{i.tap}}" aria-label="{{i.label}}" aria-pressed="{{i.on}}" style="aspect-ratio: 1; border-radius: 16px; background: {{i.bg}}; border: 1.5px solid {{i.bd}}; color: {{i.ink}}; display: flex; align-items: center; justify-content: center; transition: all .2s"><span class="ms" style="font-size: 24px; font-variation-settings: {{i.fill}}" aria-hidden="true">{{i.icon}}</span></button>
+      </sc-for>
+    </div>
+    <p style="margin: 14px 4px 0; font-size: 12px; line-height: 1.45; color: #8A958F">{{note}}</p>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; background: linear-gradient(180deg, rgba(10,12,11,0), #0A0C0B 40%); display: flex; gap: 8px">
+    <button onClick="{{reset}}" style="height: 54px; padding: 0 18px; border-radius: 27px; background: rgba(255,255,255,.07); font-size: 15px; font-weight: 700">Сбросить</button>
+    <button onClick="{{apply}}" style="flex: 1; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 30px rgba(63,154,108,.35)"><span class="ms fill" aria-hidden="true">palette</span>Применить</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">done</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const COLORS = [
+  ['Мятный', '#5FC08F', '#2E7A57'], ['Изумрудный', '#3BB39A', '#1F6B5D'], ['Морской', '#4A9FD8', '#24577E'], ['Синий', '#6C8CF0', '#34479A'],
+  ['Сиреневый', '#A88BEB', '#5B4596'], ['Розовый', '#E57FB4', '#8E3D68'], ['Красный', '#EF7468', '#94352D'], ['Оранжевый', '#F0975A', '#93522A'],
+  ['Янтарный', '#E8B04A', '#8A6420'], ['Оливковый', '#A6BF5A', '#5D6E2B'], ['Графит', '#9AA59F', '#4A524E'], ['Песочный', '#CDB08C', '#6E5A41']
+];
+const ICONS = ['', 'favorite', 'star', 'bolt', 'pets', 'eco', 'rocket_launch', 'music_note', 'sports_esports', 'local_cafe', 'nightlight', 'code'];
+const NAMES = ['Без значков', 'Сердце', 'Звезда', 'Молния', 'Лапка', 'Лист', 'Ракета', 'Нота', 'Игры', 'Кофе', 'Луна', 'Код'];
+const SPOTS = [[8, 10, 22], [26, 30, 16], [70, 8, 26], [86, 34, 18], [50, 18, 14], [14, 52, 14], [84, 60, 14], [38, 6, 18], [62, 40, 12], [4, 30, 12]];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { tab: 0, name: { c: 0, i: 1 }, prof: { c: 2, i: 6 }, toast: 0, toastText: '' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const cur = s.tab === 0 ? s.name : s.prof;
+  const key = s.tab === 0 ? 'name' : 'prof';
+  const set = patch => this.setState({ [key]: { ...cur, ...patch } });
+  const [, lite, dark] = COLORS[cur.c];
+  const icon = ICONS[cur.i];
+  return {
+    segLeft: s.tab === 0 ? '4px' : '50%',
+    segs: [['Имя в чатах', 0], ['Шапка профиля', 1]].map(([label, i]) => ({ label, on: s.tab === i, ink: s.tab === i ? '#EEF3EF' : '#9AA59F', tap: () => this.setState({ tab: i }) })),
+    tabName: s.tab === 0, tabProfile: s.tab === 1,
+    c1: lite, quoteBg: lite + '22', hasIcon: !!icon, icon: icon || 'circle',
+    coverBg: 'radial-gradient(90% 80% at 20% 10%, ' + lite + ', transparent 70%), linear-gradient(160deg, ' + dark + ', #0E1311)',
+    pattern: icon ? SPOTS.map(([x, y, sz], k) => ({ x: x + '%', y: y + '%', s: sz + 'px', o: 'rgba(255,255,255,' + (0.18 + (k % 3) * 0.07).toFixed(2) + ')', d: (3 + (k % 4) * 0.7) + 's', icon })) : [],
+    colors: COLORS.map(([label, lt, dk], i) => {
+      const on = cur.c === i;
+      return { label, on, bg: 'linear-gradient(135deg, ' + lt + ', ' + dk + ')', ring: on ? '0 0 0 3px #0A0C0B, 0 0 0 5px ' + lt : 'none', tf: on ? 'scale(1.05)' : 'none', tap: () => set({ c: i }) };
+    }),
+    iconTitle: s.tab === 0 ? 'Значки в цитатах' : 'Узор в шапке', iconSub: NAMES[cur.i],
+    icons: ICONS.map((ic, i) => {
+      const on = cur.i === i;
+      return { icon: ic || 'block', label: NAMES[i], on, bg: on ? lite + '26' : 'rgba(255,255,255,.04)', bd: on ? lite : 'rgba(255,255,255,.08)', ink: on ? lite : (ic ? '#C9D2CC' : '#8A958F'), fill: on ? "'FILL' 1" : "'FILL' 0", tap: () => set({ i }) };
+    }),
+    note: s.tab === 0 ? 'Цвет имени виден в группах, в ответах на ваши сообщения и в ссылках, которыми вы делитесь.' : 'Шапку видят все, кто открывает ваш профиль. Если фото профиля нет, цвет будет и на аватаре.',
+    reset: () => set(s.tab === 0 ? { c: 0, i: 0 } : { c: 10, i: 0 }),
+    apply: () => {
+      clearTimeout(this.tt);
+      this.setState({ toast: s.toast + 1, toastText: (s.tab === 0 ? 'Цвет имени' : 'Шапка профиля') + ': ' + COLORS[cur.c][0].toLowerCase() });
+      this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400);
+    },
+    toast: s.toast > 0, toastText: s.toastText
+  };
+}
+}
+</script>
+</body>
+</html>

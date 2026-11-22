@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Новый контакт</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+input{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Закрыть" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Новый контакт</h1>
+    <button onClick="{{scan}}" aria-label="Сканировать QR-код" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; color: #8FD3AC"><span class="ms" aria-hidden="true">qr_code_scanner</span></button>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 6px 16px 110px">
+    <!-- Avatar -->
+    <div style="display: flex; flex-direction: column; align-items: center; padding: 6px 0 16px">
+      <div style="position: relative; width: 96px; height: 96px">
+        <span style="position: absolute; inset: 0; border-radius: 50%; background: {{avBg}}; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 800; color: #fff; transition: background .4s">{{initials}}</span>
+        <sc-if value="{{found}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: -2px; bottom: -2px; width: 30px; height: 30px; border-radius: 15px; background: #8FD3AC; color: #06150D; border: 3px solid #0A0C0B; display: flex; align-items: center; justify-content: center; animation: kxPop .4s ease both"><span class="ms fill" style="font-size: 18px" aria-hidden="true">send</span></span></sc-if>
+      </div>
+      <div style="margin-top: 10px; font-size: 13px; color: #9AA59F">{{avHint}}</div>
+    </div>
+
+    <!-- Name -->
+    <div style="border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <label style="height: 56px; padding: 0 16px; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: #9AA59F" aria-hidden="true">person</span><input value="{{first}}" onInput="{{onFirst}}" placeholder="Имя" aria-label="Имя" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 16px"></label>
+      <div style="height: 1px; background: rgba(255,255,255,.06); margin-left: 52px"></div>
+      <label style="height: 56px; padding: 0 16px; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: transparent" aria-hidden="true">person</span><input value="{{last}}" onInput="{{onLast}}" placeholder="Фамилия (необязательно)" aria-label="Фамилия" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 16px"></label>
+    </div>
+
+    <!-- Phone -->
+    <div style="margin-top: 12px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid {{phoneBd}}; overflow: hidden; transition: border-color .3s">
+      <div style="height: 58px; padding: 0 12px 0 8px; display: flex; align-items: center; gap: 8px">
+        <button onClick="{{openCountry}}" style="height: 42px; padding: 0 10px; border-radius: 14px; background: rgba(255,255,255,.06); display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700"><span style="font-size: 18px">{{flag}}</span>{{code}}<span class="ms" style="font-size: 18px; color: #9AA59F" aria-hidden="true">expand_more</span></button>
+        <input value="{{phone}}" onInput="{{onPhone}}" placeholder="000 000 00 00" inputmode="tel" aria-label="Номер телефона" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 17px; letter-spacing: .5px">
+        <sc-if value="{{checking}}" hint-placeholder-val="{{false}}"><span style="width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid rgba(143,211,172,.25); border-top-color: #8FD3AC; animation: kxSpin .8s linear infinite" aria-hidden="true"></span></sc-if>
+        <sc-if value="{{found}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="color: #8FD3AC; animation: kxPop .3s ease both" aria-hidden="true">check_circle</span></sc-if>
+      </div>
+      <sc-if value="{{statusOn}}" hint-placeholder-val="{{true}}">
+        <div style="padding: 0 16px 12px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: {{statusInk}}; animation: kxIn .2s ease both"><span class="ms" style="font-size: 18px" aria-hidden="true">{{statusIcon}}</span>{{statusText}}</div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{notFound}}" hint-placeholder-val="{{false}}">
+      <button onClick="{{invite}}" style="margin-top: 10px; width: 100%; padding: 14px 16px; border-radius: 20px; background: linear-gradient(150deg, rgba(63,154,108,.16), rgba(255,255,255,.03)); border: 1px solid rgba(143,211,172,.22); display: flex; align-items: center; gap: 12px; animation: kxIn .25s ease both">
+        <span class="ms" style="color: #8FD3AC" aria-hidden="true">forward_to_inbox</span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">Пригласить в kiroX</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F">Вы выберете, чем отправить ссылку</span></span>
+        <span class="ms" style="color: #9AA59F" aria-hidden="true">chevron_right</span>
+      </button>
+    </sc-if>
+
+    <!-- Options -->
+    <div style="margin-top: 12px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <button onClick="{{toggleShare}}" style="width: 100%; padding: 14px 16px; display: flex; align-items: center; gap: 12px">
+        <span class="ms" style="color: #9AA59F" aria-hidden="true">contact_phone</span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">Показать мой номер</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{shareSub}}</span></span>
+        <span style="width: 48px; height: 28px; border-radius: 14px; background: {{shTrack}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{shKnob}}; width: 22px; height: 22px; border-radius: 11px; background: {{shKnobBg}}; transition: left .2s"></span></span>
+      </button>
+      <div style="height: 1px; background: rgba(255,255,255,.06); margin-left: 52px"></div>
+      <label style="min-height: 56px; padding: 0 16px; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: #9AA59F" aria-hidden="true">sticky_note_2</span><input value="{{note}}" onInput="{{onNote}}" placeholder="Заметка — видна только вам" aria-label="Заметка" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 15px"></label>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; background: linear-gradient(180deg, rgba(10,12,11,0), #0A0C0B 40%)">
+    <button onClick="{{save}}" aria-disabled="{{cantSave}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{saveBg}}; color: {{saveInk}}; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .25s"><span class="ms fill" aria-hidden="true">person_add</span>{{saveText}}</button>
+  </div>
+
+  <!-- Country sheet -->
+  <sc-if value="{{country}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{closeCountry}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px 20px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 12px"></div>
+      <div style="padding: 0 8px 8px; font-size: 18px; font-weight: 800">Страна</div>
+      <sc-for list="{{countries}}" as="c" hint-placeholder-count="6">
+        <button onClick="{{c.tap}}" style="width: 100%; height: 52px; padding: 0 12px; border-radius: 16px; background: {{c.bg}}; display: flex; align-items: center; gap: 12px">
+          <span style="font-size: 22px">{{c.flag}}</span><span style="flex: 1; font-size: 15px; font-weight: 600">{{c.name}}</span><span style="font-size: 14px; color: #9AA59F">{{c.code}}</span>
+          <sc-if value="{{c.on}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">check_circle</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const COUNTRIES = [['🇰🇿', 'Казахстан', '+7'], ['🇷🇺', 'Россия', '+7'], ['🇺🇿', 'Узбекистан', '+998'], ['🇰🇬', 'Кыргызстан', '+996'], ['🇧🇾', 'Беларусь', '+375'], ['🇩🇪', 'Германия', '+49']];
+const fmtPhone = d => { const p = [d.slice(0, 3), d.slice(3, 6), d.slice(6, 8), d.slice(8, 10)].filter(Boolean); return p.join(' '); };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { first: 'Мария', last: '', digits: '', cc: 0, country: false, share: true, note: '', check: 'idle', toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tc); clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+onPhone(v) {
+  const d = v.replace(/\D/g, '').slice(0, 10);
+  clearTimeout(this.tc);
+  if (d.length === 10) {
+    this.setState({ digits: d, check: 'checking' });
+    this.tc = setTimeout(() => this.setState({ check: d.endsWith('0') ? 'none' : 'found' }), 1100);
+  } else this.setState({ digits: d, check: 'idle' });
+}
+renderVals() {
+  const s = this.state;
+  const name = (s.first + ' ' + s.last).trim();
+  const ini = ((s.first[0] || '') + (s.last[0] || '')).toUpperCase() || '?';
+  const found = s.check === 'found', none = s.check === 'none';
+  const can = s.first.trim() && s.digits.length === 10;
+  const sw = v => ({ track: v ? '#3F9A6C' : 'rgba(255,255,255,.14)', knob: v ? '23px' : '3px', knobBg: v ? '#EEF3EF' : '#9AA59F' });
+  const sh = sw(s.share);
+  const c = COUNTRIES[s.cc];
+  return {
+    avBg: found ? 'linear-gradient(135deg, #6FC497, #2F6E9E)' : s.first ? 'linear-gradient(135deg, #B07A2E, #6A4C9C)' : 'rgba(255,255,255,.08)',
+    initials: ini,
+    avHint: found ? name + ' уже в Telegram' : 'Фото подтянется из профиля, если человек в Telegram',
+    first: s.first, last: s.last, onFirst: e => this.setState({ first: e.target.value }), onLast: e => this.setState({ last: e.target.value }),
+    flag: c[0], code: c[2],
+    phone: fmtPhone(s.digits), onPhone: e => this.onPhone(e.target.value),
+    phoneBd: found ? 'rgba(143,211,172,.5)' : none ? 'rgba(232,176,74,.45)' : 'rgba(255,255,255,.08)',
+    checking: s.check === 'checking', found, notFound: none,
+    statusOn: s.check !== 'idle' || s.digits.length > 0,
+    statusIcon: found ? 'verified' : none ? 'person_off' : s.check === 'checking' ? 'travel_explore' : 'dialpad',
+    statusText: found ? 'Есть в Telegram · в сети недавно' : none ? 'Этого номера пока нет в Telegram' : s.check === 'checking' ? 'Ищем в Telegram…' : (k => 'Ещё ' + k + (k === 1 ? ' цифра' : k < 5 ? ' цифры' : ' цифр'))(10 - s.digits.length),
+    statusInk: found ? '#8FD3AC' : none ? '#E8B04A' : '#8A958F',
+    invite: () => this.toastMsg('Откроется меню «Поделиться»', 'share'),
+    openCountry: () => this.setState({ country: true }), closeCountry: () => this.setState({ country: false }), country: s.country,
+    countries: COUNTRIES.map(([flag, nm, code], i) => ({ flag, name: nm, code, on: s.cc === i, bg: s.cc === i ? 'rgba(143,211,172,.1)' : 'transparent', tap: () => this.setState({ cc: i, country: false }) })),
+    toggleShare: () => this.setState({ share: !s.share }), shTrack: sh.track, shKnob: sh.knob, shKnobBg: sh.knobBg,
+    shareSub: s.share ? (s.first ? s.first + ' увидит ваш номер' : 'Контакт увидит ваш номер') : 'Номер останется скрытым',
+    note: s.note, onNote: e => this.setState({ note: e.target.value }),
+    cantSave: !can,
+    saveBg: can ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', saveInk: can ? '#06150D' : '#5C6661',
+    saveText: found ? 'Добавить и написать' : 'Сохранить контакт',
+    save: () => can ? this.toastMsg(name + ' в контактах', 'person_add') : this.toastMsg(s.first.trim() ? 'Введите номер целиком' : 'Введите имя', 'info'),
+    scan: () => this.toastMsg('Откроется сканер QR-кода', 'qr_code_scanner'),
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

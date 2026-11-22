@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Перенос переписки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+@keyframes kxIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes kxFly{0%{transform:translateX(0) scale(.8);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateX(150px) scale(.8);opacity:0}}
+@keyframes kxPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+@keyframes kxBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button onClick="{{back}}" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Перенос переписки</h1>
+  </header>
+  <div style="padding: 4px 20px 0; display: flex; gap: 6px">
+    <sc-for list="{{bars}}" as="b" hint-placeholder-count="4"><span style="flex: 1; height: 4px; border-radius: 2px; background: {{b}}; transition: background .3s"></span></sc-for>
+  </div>
+
+  <!-- Animated scene -->
+  <div style="margin: 18px 16px 0; height: 130px; position: relative; border-radius: 24px; background: radial-gradient(80% 90% at 50% 0%, rgba(63,154,108,.2), transparent 70%), rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); overflow: hidden" aria-hidden="true">
+    <span style="position: absolute; left: 34px; top: 33px; width: 64px; height: 64px; border-radius: 20px; background: {{srcBg}}; display: flex; align-items: center; justify-content: center; animation: kxBob 3s ease-in-out 2"><span class="ms fill" style="font-size: 32px; color: #fff">{{srcIcon}}</span></span>
+    <span style="position: absolute; right: 34px; top: 33px; width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, #6FC497, #3F9A6C); display: flex; align-items: center; justify-content: center; color: #06150D; font-size: 22px; font-weight: 900; animation: kxBob 3s ease-in-out -1.5s 2">kX</span>
+    <sc-if value="{{flying}}" hint-placeholder-val="{{false}}">
+      <sc-for list="{{fly}}" as="f" hint-placeholder-count="4"><span class="ms fill" style="position: absolute; left: 110px; top: {{f.y}}; font-size: 20px; color: {{f.c}}; animation: kxFly 1.4s linear {{f.d}} 2">{{f.i}}</span></sc-for>
+    </sc-if>
+    <sc-if value="{{idle}}" hint-placeholder-val="{{true}}"><span class="ms" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size: 30px; color: #8A958F">arrow_forward</span></sc-if>
+  </div>
+
+  <!-- Step 0: choose app -->
+  <sc-if value="{{s0}}" hint-placeholder-val="{{true}}">
+    <div style="flex: 1; min-height: 0; padding: 18px 16px 0; animation: kxIn .3s ease both">
+      <div style="font-size: 20px; font-weight: 800">Откуда переносим?</div>
+      <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">Сообщения и фото окажутся в чате kiroX с той же датой</div>
+      <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{apps}}" as="a" hint-placeholder-count="3">
+          <button onClick="{{a.tap}}" aria-pressed="{{a.on}}" style="padding: 12px 14px; border-radius: 18px; background: {{a.bg}}; border: 1px solid {{a.bd}}; display: flex; align-items: center; gap: 12px; transition: all .2s">
+            <span style="width: 42px; height: 42px; border-radius: 13px; background: {{a.c}}; display: flex; align-items: center; justify-content: center; color: #fff"><span class="ms fill" aria-hidden="true">{{a.icon}}</span></span>
+            <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">{{a.label}}</span><span style="display: block; font-size: 12px; color: #8A958F">{{a.sub}}</span></span>
+            <span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{a.ring}}; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{a.dot}}"></span></span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Step 1: how to export -->
+  <sc-if value="{{s1}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; min-height: 0; padding: 18px 16px 0; animation: kxIn .3s ease both">
+      <div style="font-size: 20px; font-weight: 800">Как выгрузить чат</div>
+      <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{howto}}" as="h" hint-placeholder-count="3"><div style="display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.04)"><span style="width: 30px; height: 30px; border-radius: 15px; background: rgba(143,211,172,.14); color: #8FD3AC; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{h.n}}</span><span style="font-size: 14px; color: #C9D2CC; line-height: 1.4">{{h.t}}</span></div></sc-for>
+      </div>
+      <div style="margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: rgba(143,211,172,.08); border: 1px solid rgba(143,211,172,.2); font-size: 12px; color: #C9D2CC; display: flex; gap: 8px"><span class="ms" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">info</span>Можно и проще: просто нажмите «Поделиться» в том приложении и выберите kiroX.</div>
+    </div>
+  </sc-if>
+
+  <!-- Step 2: target chat -->
+  <sc-if value="{{s2}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; min-height: 0; padding: 18px 16px 0; animation: kxIn .3s ease both">
+      <div style="font-size: 20px; font-weight: 800">Файл найден</div>
+      <div style="margin-top: 10px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 12px"><span class="ms fill" style="color: #8FD3AC; font-size: 30px" aria-hidden="true">folder_zip</span><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 700">Чат с Мамой.zip</span><span style="display: block; font-size: 12px; color: #8A958F">4 812 сообщений · 312 фото · 2019–2026</span></span></div>
+      <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">В какой чат kiroX</div>
+      <sc-for list="{{targets}}" as="t" hint-placeholder-count="3">
+        <button onClick="{{t.tap}}" aria-pressed="{{t.on}}" style="width: 100%; margin-bottom: 6px; padding: 10px 12px; border-radius: 16px; background: {{t.bg}}; border: 1px solid {{t.bd}}; display: flex; align-items: center; gap: 12px">
+          <span style="width: 40px; height: 40px; border-radius: 20px; background: {{t.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800">{{t.l}}</span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">{{t.name}}</span><span style="display: block; font-size: 12px; color: #8A958F">{{t.sub}}</span></span>
+          <sc-if value="{{t.on}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="color: #8FD3AC; animation: kxPop .25s ease both" aria-hidden="true">check_circle</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- Step 3: progress / done -->
+  <sc-if value="{{s3}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; min-height: 0; padding: 26px 24px 0; display: flex; flex-direction: column; align-items: center; text-align: center; animation: kxIn .3s ease both">
+      <sc-if value="{{done}}" hint-placeholder-val="{{false}}"><span style="width: 76px; height: 76px; border-radius: 38px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; animation: kxPop .45s ease both"><span class="ms fill" style="font-size: 42px" aria-hidden="true">check</span></span></sc-if>
+      <div style="margin-top: 14px; font-size: 22px; font-weight: 800">{{runTitle}}</div>
+      <div style="margin-top: 6px; font-size: 14px; color: #9AA59F">{{runSub}}</div>
+      <div style="margin-top: 20px; width: 100%; height: 10px; border-radius: 5px; background: rgba(255,255,255,.08); overflow: hidden"><div style="height: 100%; width: {{pct}}; border-radius: 5px; background: linear-gradient(90deg, #6FC497, #3F9A6C); transition: width .3s linear"></div></div>
+      <div style="margin-top: 8px; width: 100%; display: flex; font-size: 12px; color: #8A958F; font-variant-numeric: tabular-nums"><span style="flex: 1; text-align: left">{{countText}}</span><span>{{pctText}}</span></div>
+      <div style="margin-top: 14px; font-size: 12px; color: #8A958F">Перенесённые сообщения помечены значком «импорт» и видны обоим</div>
+    </div>
+  </sc-if>
+
+  <div style="padding: 14px 16px 22px">
+    <button onClick="{{next}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{nextBg}}; color: {{nextInk}}; font-size: 16px; font-weight: 800; text-align: center; transition: all .25s">{{nextText}}</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const APPS = [['WhatsApp', 'Файл .zip из «Экспорт чата»', 'chat', '#2E8B57'], ['LINE', 'Файл .txt из «Экспорт истории чата»', 'chat_bubble', '#06A04B'], ['Другое приложение', 'Текстовый файл .txt', 'description', '#5C6661']];
+const TARGETS = [['Мама', 'М', '#B07A2E', 'Последнее сообщение вчера'], ['Семья', 'С', '#2F6E9E', 'Группа · 5 участников'], ['Новый чат', '+', '#3F9A6C', 'Создать отдельный']];
+const TOTAL = 4812;
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { step: 0, app: 0, target: 0, prog: 0 }; }
+componentWillUnmount() { clearInterval(this.iv); }
+run() {
+  this.setState({ step: 3, prog: 0 });
+  clearInterval(this.iv);
+  this.iv = setInterval(() => { const p = Math.min(100, this.state.prog + 2 + Math.random() * 5); this.setState({ prog: p }); if (p >= 100) clearInterval(this.iv); }, 120);
+}
+renderVals() {
+  const s = this.state;
+  const done = s.step === 3 && s.prog >= 100;
+  const running = s.step === 3 && !done;
+  const app = APPS[s.app];
+  const how = s.app === 0 ? ['Откройте чат в WhatsApp и нажмите ⋮ → «Ещё»', 'Выберите «Экспорт чата» и «С медиафайлами»', 'В списке приложений выберите kiroX'] : s.app === 1 ? ['Откройте чат в LINE и нажмите ≡ → «Настройки»', 'Выберите «Экспорт истории чата»', 'В списке приложений выберите kiroX'] : ['Сохраните переписку в текстовый файл', 'Положите его в «Загрузки»', 'Вернитесь сюда и выберите файл'];
+  return {
+    bars: [0, 1, 2, 3].map(i => i <= s.step ? '#8FD3AC' : 'rgba(255,255,255,.1)'),
+    back: () => s.step > 0 && !running && this.setState({ step: done ? 0 : s.step - 1 }),
+    srcBg: app[3], srcIcon: app[2],
+    flying: running, idle: !running,
+    fly: [['chat_bubble', '#8FD3AC', '30px', '0s'], ['image', '#6FA9D8', '62px', '.35s'], ['mic', '#E8B04A', '44px', '.7s'], ['chat_bubble', '#EEF3EF', '78px', '1.05s']].map(([i, c, y, d]) => ({ i, c, y, d })),
+    s0: s.step === 0, s1: s.step === 1, s2: s.step === 2, s3: s.step === 3, done,
+    apps: APPS.map(([label, sub, icon, c], i) => { const on = s.app === i; return { label, sub, icon, c, on, bg: on ? 'rgba(143,211,172,.1)' : 'rgba(255,255,255,.04)', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', ring: on ? '#8FD3AC' : 'rgba(255,255,255,.3)', dot: on ? '#8FD3AC' : 'transparent', tap: () => this.setState({ app: i }) }; }),
+    howto: how.map((t, i) => ({ n: String(i + 1), t })),
+    targets: TARGETS.map(([name, l, c, sub], i) => { const on = s.target === i; return { name, l, c, sub, on, bg: on ? 'rgba(143,211,172,.1)' : 'rgba(255,255,255,.04)', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', tap: () => this.setState({ target: i }) }; }),
+    runTitle: done ? 'Готово!' : 'Переносим…', runSub: done ? 'Переписка теперь в чате «' + TARGETS[s.target][0] + '»' : 'Можно свернуть kiroX, перенос продолжится',
+    pct: s.prog + '%', pctText: Math.round(s.prog) + '%', countText: Math.round(TOTAL * s.prog / 100).toLocaleString('ru-RU') + ' из ' + TOTAL.toLocaleString('ru-RU') + ' сообщений',
+    nextText: s.step === 0 ? 'Дальше' : s.step === 1 ? 'Файл готов' : s.step === 2 ? 'Перенести' : done ? 'Открыть чат' : 'Переносим…',
+    nextBg: running ? 'rgba(255,255,255,.07)' : 'linear-gradient(135deg, #6FC497, #3F9A6C)', nextInk: running ? '#5C6661' : '#06150D',
+    next: () => { if (s.step < 2) this.setState({ step: s.step + 1 }); else if (s.step === 2) this.run(); else if (done) this.setState({ step: 0, prog: 0 }); }
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Музыка</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+@keyframes kxRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kxEq{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes kxUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+@keyframes kxHeart{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 320px; background: radial-gradient(90% 70% at 30% 0%, {{homeGlow}}, rgba(0,0,0,0) 70%); transition: background .8s ease"></div>
+
+  <header style="position: relative; padding: 10px 12px 2px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <span style="flex-grow: 1"><span style="display: block; font-size: 12px; color: #8A958F">Добрый вечер</span><span style="display: block; font-size: 22px; font-weight: 800">Музыка</span></span>
+    <button aria-label="Поиск" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" aria-hidden="true">search</span></button>
+    <button aria-label="Новый плейлист" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" aria-hidden="true">playlist_add</span></button>
+  </header>
+
+  <div style="position: relative; padding: 10px 16px 0; display: flex; gap: 8px">
+    <button style="height: 34px; padding: 0 14px; border-radius: 17px; background: #8FD3AC; color: #06150D; font-size: 13px; font-weight: 700">Все</button>
+    <button style="height: 34px; padding: 0 14px; border-radius: 17px; background: rgba(255,255,255,.06); color: #C9D2CC; font-size: 13px; font-weight: 600">Любимое</button>
+    <button style="height: 34px; padding: 0 14px; border-radius: 17px; background: rgba(255,255,255,.06); color: #C9D2CC; font-size: 13px; font-weight: 600">Плейлисты</button>
+    <button style="height: 34px; padding: 0 14px; border-radius: 17px; background: rgba(255,255,255,.06); color: #C9D2CC; font-size: 13px; font-weight: 600">Чаты</button>
+  </div>
+
+  <div style="position: relative; padding: 16px 16px 0">
+    <div style="font-size: 16px; font-weight: 800; margin-bottom: 10px">Для вас</div>
+    <div style="display: flex; gap: 10px">
+      <button onClick="{{shuffleAll}}" style="position: relative; flex: 1.3; height: 150px; border-radius: 26px; overflow: hidden; background: linear-gradient(150deg, #3E7A5A, #10241A 75%); padding: 14px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; animation: kxRise .5s ease both">
+        <span class="ms fill" style="position: absolute; right: 12px; top: 12px; font-size: 40px; color: rgba(200,240,216,.35)" aria-hidden="true">graphic_eq</span>
+        <span style="font-size: 17px; font-weight: 800">Вся музыка</span>
+        <span style="font-size: 12px; color: #BFDCCB">48 треков · Перемешать</span>
+        <span style="position: absolute; right: 12px; bottom: 12px; width: 40px; height: 40px; border-radius: 20px; background: #8FD3AC; color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">shuffle</span></span>
+      </button>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 10px">
+        <button style="flex: 1; border-radius: 20px; background: linear-gradient(150deg, #A24B5B, #3A1820); padding: 10px 12px; display: flex; flex-direction: column; justify-content: flex-end; animation: kxRise .5s ease .05s both"><span style="font-size: 14px; font-weight: 700">Любимое</span><span style="font-size: 11px; color: #FFD6DE">12 треков</span></button>
+        <button style="flex: 1; border-radius: 20px; background: linear-gradient(150deg, #4B3F7A, #1E1830); padding: 10px 12px; display: flex; flex-direction: column; justify-content: flex-end; animation: kxRise .5s ease .1s both"><span style="font-size: 14px; font-weight: 700">Из чатов</span><span style="font-size: 11px; color: #DCD0FF">3 чата</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: relative; padding: 16px 16px 0">
+    <div style="display: flex; align-items: center; margin-bottom: 6px"><span style="flex-grow: 1; font-size: 16px; font-weight: 800">Все треки</span><span style="font-size: 12px; color: #8A958F">Сначала новые</span></div>
+    <sc-for list="{{tracks}}" as="t" hint-placeholder-count="5">
+      <button onClick="{{t.play}}" style="width: 100%; height: 60px; padding: 0 6px; border-radius: 16px; display: flex; align-items: center; gap: 12px; background: {{t.rowBg}}; transition: background .3s">
+        <span style="position: relative; width: 46px; height: 46px; border-radius: 12px; background: {{t.cover}}; flex-shrink: 0; display: flex; align-items: center; justify-content: center">
+          <sc-if value="{{t.active}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="height: 18px; display: flex; align-items: flex-end; gap: 2px"><span style="width: 3px; height: 100%; background: #FFFFFF; transform-origin: bottom; animation: kxEq .8s ease-in-out infinite; animation-play-state: {{eqState}}"></span><span style="width: 3px; height: 100%; background: #FFFFFF; transform-origin: bottom; animation: kxEq .8s ease-in-out .2s infinite; animation-play-state: {{eqState}}"></span><span style="width: 3px; height: 100%; background: #FFFFFF; transform-origin: bottom; animation: kxEq .8s ease-in-out .4s infinite; animation-play-state: {{eqState}}"></span></span></sc-if>
+        </span>
+        <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600; color: {{t.titleColor}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.title}}</span><span style="display: block; font-size: 12px; color: #8A958F">{{t.artist}} · {{t.dur}}</span></span>
+        <span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">more_vert</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{showMini}}" hint-placeholder-val="{{true}}">
+    <button aria-label="Открыть плеер" onClick="{{expand}}" style="position: absolute; left: 10px; right: 10px; bottom: 20px; height: 66px; border-radius: 24px; padding: 0 8px; display: flex; align-items: center; gap: 12px; overflow: hidden; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 14px 34px rgba(0,0,0,.55)">
+      <span style="width: 50px; height: 50px; border-radius: 14px; background: {{curCover}}; flex-shrink: 0; animation: kxBreath 3s ease-in-out 2; animation-play-state: {{eqState}}"></span>
+      <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{curTitle}}</span><span style="display: block; font-size: 12px; color: #A6B5AC">{{curArtist}}</span></span>
+      <span role="button" aria-label="{{playLabel}}" onClick="{{togglePlay}}" style="width: 44px; height: 44px; border-radius: 22px; background: #8FD3AC; color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">{{playIcon}}</span></span>
+      <span role="button" aria-label="Следующий трек" onClick="{{nextTrack}}" style="width: 40px; height: 44px; display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms fill" aria-hidden="true">skip_next</span></span>
+      <span aria-hidden="true" style="position: absolute; left: 0; bottom: 0; height: 3px; width: {{progressPct}}; background: #8FD3AC; transition: width .5s linear"></span>
+    </button>
+  </sc-if>
+
+  <sc-if value="{{expanded}}" hint-placeholder-val="{{false}}">
+    <div role="dialog" aria-label="Сейчас играет" style="position: absolute; inset: 0; background: {{fullBg}}; display: flex; flex-direction: column; padding: 12px 22px 22px; box-sizing: border-box; animation: kxUp .45s cubic-bezier(.2,.9,.25,1) both">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button aria-label="Свернуть" onClick="{{collapse}}" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">keyboard_arrow_down</span></button>
+        <span style="flex-grow: 1; text-align: center"><span style="display: block; font-size: 11px; letter-spacing: 1px; color: rgba(255,255,255,.65)">ИГРАЕТ ИЗ</span><span style="display: block; font-size: 14px; font-weight: 700">Вся музыка</span></span>
+        <button aria-label="Ещё" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">more_horiz</span></button>
+      </div>
+      <div style="margin: 30px auto 0; width: 300px; height: 300px; border-radius: 34px; background: {{curCover}}; box-shadow: 0 30px 60px rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; transition: transform .5s cubic-bezier(.34,1.4,.5,1); transform: {{coverScale}}">
+        <span class="ms fill" style="font-size: 90px; color: rgba(255,255,255,.25)" aria-hidden="true">album</span>
+      </div>
+      <div style="margin-top: 30px; display: flex; align-items: center; gap: 10px">
+        <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 22px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{curTitle}}</span><span style="display: block; font-size: 15px; color: rgba(255,255,255,.7)">{{curArtist}}</span></span>
+        <button aria-label="В любимое" onClick="{{toggleLike}}" style="width: 46px; height: 46px; border-radius: 23px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center; color: {{likeColor}}"><span class="ms {{likeFill}}" style="animation: {{likeAnim}}" aria-hidden="true">favorite</span></button>
+      </div>
+      <div style="margin-top: 20px">
+        <div style="height: 6px; border-radius: 3px; background: rgba(255,255,255,.18); position: relative"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{progressPct}}; border-radius: 3px; background: #FFFFFF; transition: width .5s linear"></span><span style="position: absolute; top: 50%; left: {{progressPct}}; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 7px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,.4); transition: left .5s linear"></span></div>
+        <div style="margin-top: 6px; display: flex; font-size: 12px; color: rgba(255,255,255,.7)"><span style="flex-grow: 1">{{elapsed}}</span><span>{{curDur}}</span></div>
+      </div>
+      <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between">
+        <button aria-label="Перемешать" onClick="{{toggleShuffle}}" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: {{shuffleColor}}"><span class="ms" aria-hidden="true">shuffle</span></button>
+        <button aria-label="Предыдущий трек" onClick="{{prevTrack}}" style="width: 52px; height: 52px; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 36px" aria-hidden="true">skip_previous</span></button>
+        <button aria-label="{{playLabel}}" onClick="{{togglePlay}}" style="width: 78px; height: 78px; border-radius: 39px; background: #FFFFFF; color: #0A0C0B; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 30px rgba(0,0,0,.4); transition: transform .25s cubic-bezier(.34,1.5,.5,1); transform: {{playScale}}"><span class="ms fill" style="font-size: 40px" aria-hidden="true">{{playIcon}}</span></button>
+        <button aria-label="Следующий трек" onClick="{{nextTrack}}" style="width: 52px; height: 52px; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 36px" aria-hidden="true">skip_next</span></button>
+        <button aria-label="Повтор" onClick="{{toggleRepeat}}" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: {{repeatColor}}"><span class="ms" aria-hidden="true">{{repeatIcon}}</span></button>
+      </div>
+      <div style="flex-grow: 1"></div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button style="height: 40px; padding: 0 14px; border-radius: 20px; background: rgba(255,255,255,.10); display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600"><span class="ms" style="font-size: 18px" aria-hidden="true">phone_android</span>Слушаете на: Телефон</button>
+        <span style="flex-grow: 1"></span>
+        <button aria-label="Таймер сна" style="width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.10); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">bedtime</span></button>
+        <button aria-label="Очередь" style="width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.10); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">queue_music</span></button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { cur: 0, playing: true, pos: 52, expanded: false, liked: {}, likePop: 0, shuffle: false, repeat: 0 }; }
+componentDidMount() { this.tick = setInterval(() => { if (!this.state.playing) return; const d = this.list()[this.state.cur].secs; if (this.state.pos + 1 >= d) this.go(1); else this.setState({ pos: this.state.pos + 1 }); }, 1000); }
+componentWillUnmount() { clearInterval(this.tick); }
+list() {
+  return [
+    { title: 'Ночные огни', artist: 'Лето', secs: 222, cover: 'linear-gradient(150deg,#3E7A5A,#0F1A14)', glow: 'rgba(70,160,110,.35)', full: 'linear-gradient(180deg,#2C5A42 0%,#0A0C0B 75%)' },
+    { title: 'Северный ветер', artist: 'Полярная', secs: 245, cover: 'linear-gradient(150deg,#2D4E73,#0F1A2A)', glow: 'rgba(70,120,200,.35)', full: 'linear-gradient(180deg,#24456A 0%,#0A0C0B 75%)' },
+    { title: 'Город спит', artist: 'Неон', secs: 178, cover: 'linear-gradient(150deg,#6E58C9,#1E1830)', glow: 'rgba(130,100,220,.35)', full: 'linear-gradient(180deg,#4A3A8A 0%,#0A0C0B 75%)' },
+    { title: 'Тёплый вечер', artist: 'Солнце', secs: 201, cover: 'linear-gradient(150deg,#D08A3C,#3A220A)', glow: 'rgba(220,150,70,.30)', full: 'linear-gradient(180deg,#7A4E20 0%,#0A0C0B 75%)' },
+    { title: 'Дождь за окном', artist: 'Тихо', secs: 233, cover: 'linear-gradient(150deg,#A24B5B,#3A1820)', glow: 'rgba(200,80,100,.30)', full: 'linear-gradient(180deg,#6A2A36 0%,#0A0C0B 75%)' }
+  ];
+}
+go(dir) { const n = this.list().length; this.setState({ cur: (this.state.cur + dir + n) % n, pos: 0, playing: true }); }
+fmt(s) { return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+renderVals() {
+  const s = this.state, L = this.list(), c = L[s.cur];
+  const liked = !!s.liked[s.cur];
+  const tracks = L.map((t, i) => ({
+    title: t.title, artist: t.artist, dur: this.fmt(t.secs), cover: t.cover, active: i === s.cur,
+    titleColor: i === s.cur ? '#8FD3AC' : '#EEF3EF', rowBg: i === s.cur ? 'rgba(143,211,172,.08)' : 'transparent',
+    play: () => this.setState({ cur: i, pos: 0, playing: true })
+  }));
+  const repeatIcons = ['repeat', 'repeat', 'repeat_one'];
+  return {
+    tracks, homeGlow: c.glow, eqState: s.playing ? 'running' : 'paused',
+    showMini: !s.expanded, expanded: s.expanded,
+    curTitle: c.title, curArtist: c.artist, curCover: c.cover, curDur: this.fmt(c.secs), fullBg: c.full,
+    elapsed: this.fmt(s.pos), progressPct: (s.pos / c.secs * 100).toFixed(1) + '%',
+    playIcon: s.playing ? 'pause' : 'play_arrow', playLabel: s.playing ? 'Пауза' : 'Играть',
+    playScale: s.playing ? 'scale(1)' : 'scale(.94)', coverScale: s.playing ? 'scale(1)' : 'scale(.9)',
+    likeColor: liked ? '#FF8A9A' : '#FFFFFF', likeFill: liked ? 'fill' : '', likeAnim: liked ? 'kxHeart .4s ease' : 'none',
+    shuffleColor: s.shuffle ? '#8FD3AC' : 'rgba(255,255,255,.7)',
+    repeatColor: s.repeat ? '#8FD3AC' : 'rgba(255,255,255,.7)', repeatIcon: repeatIcons[s.repeat],
+    expand: () => this.setState({ expanded: true }),
+    collapse: () => this.setState({ expanded: false }),
+    togglePlay: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ playing: !s.playing }); },
+    nextTrack: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.go(1); },
+    prevTrack: () => { if (s.pos > 3) this.setState({ pos: 0 }); else this.go(-1); },
+    toggleLike: () => this.setState({ liked: Object.assign({}, s.liked, { [s.cur]: !liked }) }),
+    toggleShuffle: () => this.setState({ shuffle: !s.shuffle }),
+    toggleRepeat: () => this.setState({ repeat: (s.repeat + 1) % 3 }),
+    shuffleAll: () => this.setState({ cur: Math.floor(Math.random() * L.length), pos: 0, playing: true, shuffle: true })
+  };
+}
+}
+</script>
+</body>
+</html>

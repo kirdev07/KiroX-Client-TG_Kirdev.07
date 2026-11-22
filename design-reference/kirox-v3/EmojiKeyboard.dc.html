@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Панель эмодзи</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.88)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxPop{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes kxDrop{0%{transform:scale(1.6);opacity:0}100%{transform:none;opacity:1}}
+@keyframes kxDrop2{0%{transform:scale(1.6);opacity:0}100%{transform:none;opacity:1}}
+@keyframes kxIn{from{opacity:0}to{opacity:1}}
+@keyframes kxIn2{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #B07A2E; display: flex; align-items: center; justify-content: center; font-weight: 800">М</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Мама</div><div style="font-size: 12px; color: #8FD3AC">в сети</div></div>
+  </header>
+  <div style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px">
+    <div style="align-self: flex-start; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">Испекла пирог, приходи вечером 🥧</div>
+  </div>
+
+  <!-- composer -->
+  <div style="padding: 8px 12px; border-top: 1px solid rgba(255,255,255,.06); display: flex; gap: 8px; align-items: center">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(143,211,172,.14); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">mood</span></span>
+    <div style="flex: 1; min-height: 46px; padding: 0 14px; border-radius: 23px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 17px; overflow: hidden; white-space: nowrap">{{draftPre}}<span style="display: inline-block; animation: {{lastAnim}}">{{draftLast}}</span><span style="color: #8A958F; font-size: 15px">{{ph}}</span></div>
+    <button onClick="{{backspace}}" aria-label="Стереть" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; color: #9AA59F"><span class="ms" aria-hidden="true">backspace</span></button>
+  </div>
+
+  <!-- keyboard -->
+  <div style="height: 380px; background: #111614; border-top: 1px solid rgba(255,255,255,.06); display: flex; flex-direction: column; position: relative">
+    <div style="padding: 8px 10px 4px; display: flex; gap: 6px; align-items: center">
+      <div style="flex: 1; height: 38px; padding: 0 12px; border-radius: 19px; background: rgba(255,255,255,.06); display: flex; align-items: center; gap: 6px; font-size: 14px; color: #8A958F"><span class="ms" style="font-size: 18px" aria-hidden="true">search</span>Поиск эмодзи</div>
+      <button onClick="{{openTone}}" aria-label="Тон кожи по умолчанию" style="height: 38px; padding: 0 10px; border-radius: 19px; background: rgba(255,255,255,.06); font-size: 18px; display: flex; align-items: center; gap: 4px">{{toneBtn}}<span class="ms" style="font-size: 16px; color: #9AA59F" aria-hidden="true">expand_more</span></button>
+    </div>
+    <div style="padding: 4px 14px 2px; font-size: 12px; font-weight: 700; color: #8A958F">{{catName}}</div>
+    <div class="scroll" style="flex: 1; min-height: 0; padding: 0 8px; animation: {{gridAnim}}">
+      <div style="display: grid; grid-template-columns: repeat(8, 1fr)">
+        <sc-for list="{{grid}}" as="g" hint-placeholder-count="32"><button onClick="{{g.tap}}" aria-label="{{g.aria}}" style="position: relative; height: 44px; font-size: 28px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: {{g.bg}}">{{g.e}}<span style="position: absolute; right: 5px; bottom: 5px; width: 0; height: 0; border-left: 5px solid transparent; border-bottom: 5px solid rgba(255,255,255,.35); display: {{g.mark}}"></span></button></sc-for>
+      </div>
+    </div>
+    <div style="height: 50px; display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid rgba(255,255,255,.06)">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="7"><button onClick="{{c.tap}}" aria-label="{{c.name}}" aria-pressed="{{c.on}}" style="display: flex; align-items: center; justify-content: center; color: {{c.ink}}; position: relative"><span class="{{c.cls}}" aria-hidden="true">{{c.i}}</span><span style="position: absolute; bottom: 6px; width: 18px; height: 3px; border-radius: 2px; background: {{c.bar}}"></span></button></sc-for>
+    </div>
+
+    <sc-if value="{{tone}}" hint-placeholder-val="{{false}}">
+      <button onClick="{{closeTone}}" aria-label="Закрыть выбор тона" style="position: absolute; inset: 0; background: rgba(0,0,0,.35); animation: kxIn .15s ease both"></button>
+      <div style="position: absolute; left: 16px; right: 16px; top: 56px; padding: 10px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.08)); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.18); box-shadow: 0 14px 34px rgba(0,0,0,.5); animation: kxPop .2s ease both">
+        <div style="font-size: 12px; font-weight: 700; color: #C9D2CC; padding: 0 4px 8px">{{toneTitle}}</div>
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px">
+          <sc-for list="{{tones}}" as="t" hint-placeholder-count="6"><button onClick="{{t.tap}}" aria-label="{{t.aria}}" aria-pressed="{{t.on}}" style="height: 50px; border-radius: 14px; background: {{t.bg}}; border: 1.5px solid {{t.bd}}; font-size: 30px; display: flex; align-items: center; justify-content: center">{{t.e}}</button></sc-for>
+        </div>
+        <div style="margin-top: 8px; padding: 0 4px; font-size: 11px; color: #9AA59F">{{toneNote}}</div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const TONES = ['', '\u{1F3FB}', '\u{1F3FC}', '\u{1F3FD}', '\u{1F3FE}', '\u{1F3FF}'];
+const TONE_NAMES = ['Жёлтый', 'Светлый', 'Светло-средний', 'Средний', 'Средне-тёмный', 'Тёмный'];
+const CATS = [
+  ['schedule', 'Недавние', ['😂', '❤️', '🥰', '👍', '🙏', '😘', '🔥', '🥧', '👋', '😊', '🎉', '👏']],
+  ['mood', 'Смайлики', ['😀', '😃', '😄', '😁', '😆', '🥹', '😅', '😂', '🤣', '🥲', '😊', '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😋', '😛', '🤪', '🤨', '🧐', '🤓', '😎', '🥳', '😏', '😒', '😔', '😢', '😭', '😤']],
+  ['waving_hand', 'Люди и жесты', ['👋', '🤚', '✋', '🖖', '👌', '🤌', '✌️', '🤞', '🤟', '🤘', '👈', '👉', '👆', '👇', '👍', '👎', '✊', '👊', '👏', '🙌', '🫶', '👐', '🤲', '🙏', '💪', '🧑', '👶', '🧓', '🙋', '🤷', '🙆', '🧑‍💻']],
+  ['pets', 'Животные', ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦉', '🐴', '🦄', '🐝', '🦋', '🐢', '🐍', '🐙', '🐬', '🐳', '🦈', '🐘', '🦒']],
+  ['restaurant', 'Еда', ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🥑', '🥦', '🌽', '🥕', '🥐', '🍞', '🧀', '🍕', '🍔', '🌮', '🍣', '🍰', '🥧', '☕', '🍵']],
+  ['sports_soccer', 'Занятия', ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏓', '🏸', '🥊', '🎣', '⛸', '🎿', '🏂', '🏋️', '🤸', '🚴', '🎯', '🎳', '🎮', '🎲', '🧩', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎸', '🎻', '🏆', '🥇']],
+  ['favorite', 'Символы', ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '✨', '⭐', '🌟', '💫', '🔥', '💯', '✅', '❌', '❓', '❗', '💤', '🎵', '➕', '♻️']]
+];
+const TONABLE = new Set(['👋', '🤚', '✋', '🖖', '👌', '🤌', '✌️', '🤞', '🤟', '🤘', '👈', '👉', '👆', '👇', '👍', '👎', '✊', '👊', '👏', '🙌', '🫶', '👐', '🤲', '🙏', '💪', '🧑', '👶', '🧓', '🙋', '🤷', '🙆', '🧑‍💻']);
+const withTone = (e, t) => { if (!TONABLE.has(e) || !t) return e; const base = e.replace('️', ''); if (base === '🧑‍💻') return '🧑' + t + '‍💻'; return base + t; };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { cat: 2, draft: [], tone: 0, picker: null, gk: 0, dk: 0 }; }
+renderVals() {
+  const s = this.state;
+  const cat = CATS[s.cat];
+  const add = (e) => this.setState({ draft: [...s.draft, e].slice(-14), dk: s.dk + 1, picker: null });
+  const pk = s.picker;
+  return {
+    draftPre: s.draft.slice(0, -1).join(''), draftLast: s.draft.length ? s.draft[s.draft.length - 1] : '', ph: s.draft.length ? '' : 'Сообщение',
+    lastAnim: s.dk ? (s.dk % 2 ? 'kxDrop2' : 'kxDrop') + ' .25s ease both' : 'none',
+    backspace: () => this.setState({ draft: s.draft.slice(0, -1) }),
+    catName: cat[1] + (s.cat === 2 ? ' · нажмите на жест с уголком, чтобы выбрать тон' : ''),
+    gridAnim: (s.gk % 2 ? 'kxIn2' : 'kxIn') + ' .2s ease both',
+    grid: cat[2].map(e => { const t = TONABLE.has(e); const shown = withTone(e, TONES[s.tone]); return { e: shown, aria: e, mark: t ? 'block' : 'none', bg: pk === e ? 'rgba(143,211,172,.16)' : 'transparent', tap: () => t ? this.setState({ picker: e }) : add(e) }; }),
+    cats: CATS.map(([i, name], k) => { const on = s.cat === k; return { i, name, on: on ? 'true' : 'false', ink: on ? '#8FD3AC' : '#8A958F', bar: on ? '#8FD3AC' : 'transparent', cls: on ? 'ms fill' : 'ms', tap: () => this.setState({ cat: k, gk: s.gk + 1, picker: null }) }; }),
+    toneBtn: withTone('👋', TONES[s.tone]),
+    openTone: () => this.setState({ picker: '__default' }),
+    tone: !!pk, closeTone: () => this.setState({ picker: null }),
+    toneTitle: pk === '__default' ? 'Тон кожи по умолчанию' : 'Выберите тон для ' + pk,
+    tones: TONES.map((t, i) => { const base = pk && pk !== '__default' ? pk : '👋'; const on = pk === '__default' ? s.tone === i : false; return { e: withTone(base, t), aria: TONE_NAMES[i], on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.18)' : 'rgba(0,0,0,.18)', bd: on ? '#8FD3AC' : 'transparent', tap: () => pk === '__default' ? this.setState({ tone: i, picker: null, gk: s.gk + 1 }) : add(withTone(pk, t)) }; }),
+    toneNote: pk === '__default' ? 'Применится ко всем жестам и людям в панели' : 'Нажмите на вариант, чтобы вставить. Тон по умолчанию — кнопкой ' + withTone('👋', TONES[s.tone]) + ' сверху'
+  };
+}
+}
+</script>
+</body>
+</html>

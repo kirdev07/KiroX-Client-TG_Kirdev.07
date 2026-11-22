@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Сообщение из другого чата</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+@keyframes kxDrop{0%{transform:translateY(-120%)}70%{transform:translateY(6px)}100%{transform:none}}
+@keyframes kxDrop2{0%{transform:translateY(-120%)}70%{transform:translateY(6px)}100%{transform:none}}
+@keyframes kxLife{from{width:100%}to{width:0%}}
+@keyframes kxLife2{from{width:100%}to{width:0%}}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxCaret{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #3F9A6C; display: flex; align-items: center; justify-content: center; font-weight: 800">K</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Kotlin-клуб</div><div style="font-size: 12px; color: #9AA59F">1 284 участника</div></div>
+  </header>
+  <div style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px">
+    <div style="align-self: flex-start; max-width: 80%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px"><span style="display: block; font-size: 12px; font-weight: 800; color: #8FD3AC">Дмитрий</span>Кто разбирался с корутинами в тестах?</div>
+    <div style="align-self: flex-end; max-width: 80%; padding: 8px 12px; border-radius: 18px 18px 6px 18px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px">Я, через runTest — сейчас скину пример</div>
+  </div>
+  <div style="padding: 8px 12px 12px; border-top: 1px solid rgba(255,255,255,.06)"><div style="height: 48px; padding: 0 16px; border-radius: 24px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 15px; color: #8A958F">Сообщение</div></div>
+
+  <div style="padding: 0 12px 16px; display: flex; gap: 6px; justify-content: center">
+    <sc-for list="{{demo}}" as="d" hint-placeholder-count="3"><button onClick="{{d.tap}}" style="height: 36px; padding: 0 12px; border-radius: 18px; background: rgba(255,255,255,.06); font-size: 12px; font-weight: 700; color: #C9D2CC; display: flex; align-items: center; gap: 4px"><span style="font-size: 14px">{{d.e}}</span>{{d.t}}</button></sc-for>
+  </div>
+
+  <!-- Banner -->
+  <sc-if value="{{banner}}" hint-placeholder-val="{{true}}">
+    <div style="position: absolute; left: 10px; right: 10px; top: 10px; border-radius: 24px; background: linear-gradient(180deg, rgba(56,66,61,.97), rgba(30,36,33,.97)); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: 0 16px 40px rgba(0,0,0,.55); overflow: hidden; animation: {{dropAnim}}">
+      <button onClick="{{openChat}}" aria-label="Открыть чат" style="width: 100%; padding: 12px 12px 10px; display: flex; gap: 10px; align-items: center">
+        <span style="position: relative; width: 44px; height: 44px; border-radius: 22px; background: {{c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0">{{l}}<span style="position: absolute; right: -4px; bottom: -4px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; background: #8FD3AC; color: #06150D; font-size: 11px; font-weight: 800; display: {{cntShow}}; align-items: center; justify-content: center; border: 2px solid #2A322E">{{cnt}}</span></span>
+        <span style="flex: 1; min-width: 0"><span style="display: flex; align-items: center; gap: 6px"><span style="font-size: 14px; font-weight: 800">{{name}}</span><span style="font-size: 11px; color: #9AA59F">сейчас</span></span><span style="display: block; font-size: 14px; color: #DDE5E0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{text}}</span></span>
+      </button>
+      <sc-if value="{{replying}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 0 12px 12px; display: flex; gap: 8px; align-items: center; animation: kxIn .2s ease both">
+          <div style="flex: 1; height: 42px; padding: 0 14px; border-radius: 21px; background: rgba(0,0,0,.3); display: flex; align-items: center; font-size: 14px">{{draft}}<span style="display: inline-block; width: 2px; height: 16px; margin-left: 1px; background: #8FD3AC; animation: kxCaret 1s step-end infinite"></span></div>
+          <button onClick="{{sendReply}}" aria-label="Отправить" style="width: 42px; height: 42px; border-radius: 21px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">send</span></button>
+        </div>
+      </sc-if>
+      <sc-if value="{{actions}}" hint-placeholder-val="{{true}}">
+        <div style="padding: 0 12px 12px; display: flex; gap: 6px">
+          <button onClick="{{reply}}" style="flex: 1; height: 36px; border-radius: 18px; background: rgba(143,211,172,.14); color: #8FD3AC; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 4px"><span class="ms" style="font-size: 17px" aria-hidden="true">reply</span>Ответить</button>
+          <button onClick="{{react}}" aria-label="Поставить ❤️" style="width: 44px; height: 36px; border-radius: 18px; background: rgba(255,255,255,.08); font-size: 16px; display: flex; align-items: center; justify-content: center">{{heart}}</button>
+          <button onClick="{{mute}}" style="height: 36px; padding: 0 12px; border-radius: 18px; background: rgba(255,255,255,.08); font-size: 12px; font-weight: 700; color: #C9D2CC; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 16px" aria-hidden="true">notifications_off</span>На час</button>
+        </div>
+      </sc-if>
+      <div style="height: 3px; background: rgba(255,255,255,.06)"><span style="display: {{lifeShow}}; height: 100%; background: #8FD3AC; animation: {{lifeAnim}}"></span></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 140px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2s ease both"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const M = [
+  { e: '👩', t: 'От Анны', name: 'Анна', l: 'А', c: '#C0443C', text: 'Ты уже в пути? Я у входа в кино 🍿', reply: 'Буду через 5 минут!' },
+  { e: '👪', t: 'Из «Семья»', name: 'Семья · Мама', l: 'С', c: '#2F6E9E', text: 'Не забудь купить хлеб по дороге', reply: 'Хорошо, куплю 👍', cnt: 3 },
+  { e: '🤖', t: 'От бота', name: 'Доставка 24', l: 'Д', c: '#B07A2E', text: 'Курьер будет через 10 минут', reply: 'Спасибо!' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { i: 0, show: true, replying: false, chars: 0, hearted: false, bk: 0, toast: '', tk: 0 }; this.arm(); }
+arm() { clearTimeout(this.ta); this.ta = setTimeout(() => { if (!this.state.replying) this.setState({ show: false }); }, 5000); }
+componentWillUnmount() { clearTimeout(this.ta); clearInterval(this.iv); clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const m = M[s.i];
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1, show: false, replying: false }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2000); };
+  return {
+    banner: s.show, dropAnim: (s.bk % 2 ? 'kxDrop2' : 'kxDrop') + ' .45s cubic-bezier(.2,.8,.2,1) both',
+    name: m.name, l: m.l, c: m.c, text: m.text, cnt: m.cnt || 0, cntShow: m.cnt ? 'flex' : 'none',
+    openChat: () => say('Открываем «' + m.name.split(' · ')[0] + '»'),
+    replying: s.replying, actions: !s.replying,
+    reply: () => { clearTimeout(this.ta); clearInterval(this.iv); this.setState({ replying: true, chars: 0 }); this.iv = setInterval(() => { const c = this.state.chars + 1; if (c >= m.reply.length) { clearInterval(this.iv); this.setState({ chars: m.reply.length }); } else this.setState({ chars: c }); }, 50); },
+    draft: m.reply.slice(0, s.chars),
+    sendReply: () => say('Ответ отправлен — вы остались в «Kotlin-клуб»'),
+    react: () => { this.setState({ hearted: true }); this.arm(); }, heart: s.hearted ? '❤️' : '🤍',
+    mute: () => say('«' + m.name.split(' · ')[0] + '» без звука на час'),
+    lifeShow: s.replying ? 'none' : 'block', lifeAnim: (s.bk % 2 ? 'kxLife2' : 'kxLife') + ' 5s linear both',
+    demo: M.map((x, k) => ({ e: x.e, t: x.t, tap: () => { this.setState({ i: k, show: true, replying: false, hearted: false, bk: s.bk + 1 }); this.arm(); } })),
+    toast: !!s.toast, toastText: s.toast
+  };
+}
+}
+</script>
+</body>
+</html>

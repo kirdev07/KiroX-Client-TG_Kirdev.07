@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Подсмотреть чат</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxDim{from{opacity:0;backdrop-filter:blur(0)}to{opacity:1;backdrop-filter:blur(14px)}}
+@keyframes kxPeek{from{opacity:0;transform:scale(.85) translateY(20px)}to{opacity:1;transform:none}}
+@keyframes kxMenu{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="padding: 14px 16px 4px; display: flex; align-items: center"><span style="flex: 1; font-size: 26px; font-weight: 800">Чаты</span><span class="ms" style="color: #9AA59F" aria-hidden="true">search</span></div>
+  <div style="padding: 0 16px 8px; font-size: 12px; color: #8A958F">Удерживайте чат, чтобы подсмотреть, не открывая его</div>
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 0 8px">
+    <sc-for list="{{chats}}" as="c" hint-placeholder-count="7">
+      <button onPointerDown="{{c.down}}" onPointerUp="{{c.up}}" onPointerLeave="{{c.leave}}" aria-label="{{c.aria}}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 18px">
+        <span style="position: relative; width: 50px; height: 50px; border-radius: 25px; background: {{c.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0">{{c.l}}<span class="ms fill" style="position: absolute; right: -4px; top: -4px; font-size: 16px; color: #8FD3AC; display: {{c.pinShow}}" aria-hidden="true">push_pin</span></span>
+        <span style="flex: 1; min-width: 0"><span style="display: flex; align-items: center; gap: 4px"><span style="flex: 1; font-size: 15px; font-weight: 700">{{c.name}}</span><span class="ms fill" style="font-size: 15px; color: #8A958F; display: {{c.muteShow}}" aria-hidden="true">notifications_off</span><span style="font-size: 12px; color: #8A958F">{{c.t}}</span></span><span style="display: flex; align-items: center; gap: 6px"><span style="flex: 1; font-size: 13px; color: #9AA59F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{c.msg}}</span><span style="min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px; background: {{c.badgeBg}}; color: #06150D; font-size: 12px; font-weight: 800; display: {{c.badgeShow}}; align-items: center; justify-content: center">{{c.unread}}</span></span></span>
+      </button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{peek}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{close}}" aria-label="Закрыть предпросмотр" style="position: absolute; inset: 0; background: rgba(5,7,6,.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); animation: kxDim .25s ease both"></button>
+    <div style="position: absolute; left: 20px; right: 20px; top: 70px; height: 420px; border-radius: 28px; overflow: hidden; background: #0F1311; border: 1px solid rgba(255,255,255,.14); box-shadow: 0 24px 60px rgba(0,0,0,.6); display: flex; flex-direction: column; animation: kxPeek .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="padding: 12px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+        <span style="width: 38px; height: 38px; border-radius: 19px; background: {{pc}}; display: flex; align-items: center; justify-content: center; font-weight: 800">{{pl}}</span>
+        <div style="flex: 1"><div style="font-size: 15px; font-weight: 800">{{pname}}</div><div style="font-size: 12px; color: #8FD3AC">{{pstatus}}</div></div>
+        <span style="height: 24px; padding: 0 8px; border-radius: 12px; background: rgba(143,211,172,.12); color: #8FD3AC; font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 14px" aria-hidden="true">visibility_off</span>Не отмечаем прочитанным</span>
+      </div>
+      <div style="flex: 1; min-height: 0; padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px">
+        <sc-for list="{{pmsgs}}" as="m" hint-placeholder-count="4"><div style="align-self: {{m.side}}; max-width: 82%; padding: 7px 11px; border-radius: {{m.rad}}; background: {{m.bg}}; color: {{m.ink}}; font-size: 14px; line-height: 1.4">{{m.text}}<span style="font-size: 11px; opacity: .6; margin-left: 6px">{{m.t}}</span></div></sc-for>
+      </div>
+    </div>
+    <div style="position: absolute; left: 20px; right: 20px; top: 504px; padding: 6px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); animation: kxMenu .3s ease .08s both">
+      <sc-for list="{{acts}}" as="a" hint-placeholder-count="5"><button onClick="{{a.tap}}" style="width: 100%; height: 48px; padding: 0 12px; border-radius: 16px; display: flex; align-items: center; gap: 12px; color: {{a.ink}}"><span class="ms" style="font-size: 22px" aria-hidden="true">{{a.i}}</span><span style="flex: 1; font-size: 15px; font-weight: 700">{{a.t}}</span></button></sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 26px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const CH = [
+  { name: 'Анна', l: 'А', c: '#C0443C', t: '19:40', status: 'в сети', msgs: [['Новый трейлер вышел, смотрим?', 0, '19:31'], ['Ещё нет, скинь', 1, '19:33'], ['Вот, смотри 🍿', 0, '19:38'], ['Завтра вместе в кино?', 0, '19:40']] },
+  { name: 'Семья', l: 'С', c: '#2F6E9E', t: '18:20', status: '5 участников', msgs: [['Мама: Все приедут в субботу?', 0, '18:02'], ['Папа: Я буду к обеду', 0, '18:10'], ['Мама: Фото с дачи 🌻', 0, '18:20']] },
+  { name: 'Kotlin-клуб', l: 'K', c: '#3F9A6C', t: '17:40', status: '1 284 участника', msgs: [['Дмитрий: PR готов, гляньте', 0, '17:31'], ['Сергей: Смотрю', 0, '17:35'], ['Айгерим: Пара замечаний в ревью', 0, '17:40']] },
+  { name: 'Лиза', l: 'Л', c: '#6A4C9C', t: '15:30', status: 'в сети час назад', msgs: [['Сюрприз готов 🎁', 0, '15:30']] },
+  { name: 'Работа', l: 'Р', c: '#5C6661', t: 'вчера', status: '12 участников', msgs: [['Созвон в понедельник в 10:00', 0, 'вчера']] },
+  { name: 'Олег', l: 'О', c: '#9AA59F', t: 'вчера', status: 'в сети недавно', msgs: [['Ок', 1, 'вчера']] }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { open: -1, unread: { 0: 3, 1: 2, 2: 5, 3: 1 }, muted: { 4: true }, pinned: { 0: true }, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+lp(tap, long) { return { down: () => { clearTimeout(this._lp); this._lpDone = false; this._lp = setTimeout(() => { this._lpDone = true; long(); }, 450); }, up: () => { clearTimeout(this._lp); if (!this._lpDone) tap(); this._lpDone = true; }, leave: () => { clearTimeout(this._lp); this._lpDone = true; } }; }
+renderVals() {
+  const s = this.state;
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2000); };
+  const c = s.open >= 0 ? CH[s.open] : null;
+  const i = s.open;
+  const un = c ? (s.unread[i] || 0) : 0;
+  return {
+    chats: CH.map((x, k) => { const u = s.unread[k] || 0; return { name: x.name, l: x.l, c: x.c, t: x.t, msg: x.msgs[x.msgs.length - 1][0], aria: 'Подсмотреть чат ' + x.name,
+      unread: u, badgeShow: u ? 'flex' : 'none', badgeBg: s.muted[k] ? '#8A958F' : '#8FD3AC', muteShow: s.muted[k] ? 'inline-block' : 'none', pinShow: s.pinned[k] ? 'inline-block' : 'none',
+      ...this.lp(() => say('Открываем «' + x.name + '»'), () => this.setState({ open: k })) }; }),
+    peek: !!c,
+    pc: c ? c.c : '#333', pl: c ? c.l : '', pname: c ? c.name : '', pstatus: c ? c.status : '',
+    pmsgs: c ? c.msgs.map(([text, me, t]) => ({ text, t, side: me ? 'flex-end' : 'flex-start', rad: me ? '16px 16px 5px 16px' : '16px 16px 16px 5px', bg: me ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', ink: me ? '#06150D' : '#EEF3EF' })) : [],
+    acts: c ? [
+      { i: 'open_in_full', t: 'Открыть чат', ink: '#EEF3EF', tap: () => { const u = { ...s.unread }; delete u[i]; this.setState({ open: -1, unread: u }); say('Открываем «' + c.name + '»'); } },
+      { i: un ? 'mark_chat_read' : 'mark_chat_unread', t: un ? 'Отметить прочитанным' : 'Отметить непрочитанным', ink: '#EEF3EF', tap: () => { const u = { ...s.unread }; if (un) delete u[i]; else u[i] = 1; this.setState({ open: -1, unread: u }); say(un ? 'Прочитано' : 'Отмечено непрочитанным'); } },
+      { i: s.pinned[i] ? 'keep_off' : 'push_pin', t: s.pinned[i] ? 'Открепить' : 'Закрепить', ink: '#EEF3EF', tap: () => { this.setState({ open: -1, pinned: { ...s.pinned, [i]: !s.pinned[i] } }); say(s.pinned[i] ? 'Откреплено' : 'Закреплено'); } },
+      { i: s.muted[i] ? 'notifications' : 'notifications_off', t: s.muted[i] ? 'Включить звук' : 'Без звука', ink: '#EEF3EF', tap: () => { this.setState({ open: -1, muted: { ...s.muted, [i]: !s.muted[i] } }); say(s.muted[i] ? 'Звук включён' : 'Без звука'); } },
+      { i: 'archive', t: 'В архив', ink: '#FF8A80', tap: () => { this.setState({ open: -1 }); say('«' + c.name + '» в архиве (демо)'); } }
+    ] : [],
+    close: () => this.setState({ open: -1 }),
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

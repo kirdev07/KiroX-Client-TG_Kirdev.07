@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Стикеры группы</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-4deg)}}
+@keyframes kxIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+@keyframes kxIn2{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">Стикеры группы</div><div style="font-size: 12px; color: #9AA59F">Kotlin-клуб · уровень бустов 4</div></div>
+  </header>
+
+  <div style="padding: 0 16px 6px; font-size: 13px; color: #9AA59F; line-height: 1.4">Набор появится у всех участников в панели стикеров, пока они в этой группе.</div>
+
+  <div style="margin: 6px 16px 0; height: 48px; padding: 0 14px; border-radius: 24px; background: rgba(255,255,255,.07); display: flex; align-items: center; gap: 8px">
+    <span class="ms" style="color: #9AA59F" aria-hidden="true">search</span>
+    <span style="flex: 1; font-size: 14px; color: #8A958F">Название или ссылка t.me/addstickers/…</span>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 12px 16px 0">
+    <div style="font-size: 13px; font-weight: 700; color: #8FD3AC">Ваши наборы</div>
+    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{sets}}" as="p" hint-placeholder-count="5"><button onClick="{{p.tap}}" role="radio" aria-checked="{{p.on}}" style="padding: 10px 12px; border-radius: 18px; background: {{p.bg}}; border: 1.5px solid {{p.bd}}; display: flex; align-items: center; gap: 12px; transition: all .2s"><span style="width: 48px; height: 48px; border-radius: 14px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; font-size: 30px"><span style="display: inline-block; animation: {{p.bob}}">{{p.cover}}</span></span><span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 800">{{p.name}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{p.meta}}</span></span><span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{p.rb}}; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{p.dot}}"></span></span></button></sc-for>
+    </div>
+
+    <div style="margin-top: 16px; display: flex; align-items: center"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">Внутри «{{selName}}»</span><span style="font-size: 12px; color: #9AA59F">{{selCount}}</span></div>
+    <div style="margin-top: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px">
+      <sc-for list="{{stickers}}" as="st" hint-placeholder-count="10"><span style="aspect-ratio: 1; border-radius: 14px; background: rgba(255,255,255,.04); display: flex; align-items: center; justify-content: center; font-size: 34px; animation: {{st.anim}}">{{st.e}}</span></sc-for>
+    </div>
+
+    <div style="margin-top: 14px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.04); display: flex; gap: 8px; font-size: 12px; color: #9AA59F; line-height: 1.4"><span class="ms" style="font-size: 18px" aria-hidden="true">brush</span><span>Своего набора нет? Сделайте его в «Стикер из фото» — он появится в этом списке.</span></div>
+    <div style="height: 14px"></div>
+  </div>
+
+  <div style="padding: 10px 16px 20px; display: flex; gap: 8px">
+    <button onClick="{{remove}}" aria-label="Убрать набор группы" style="width: 54px; height: 54px; border-radius: 27px; background: rgba(229,83,75,.1); color: #FF8A80; display: {{rmShow}}; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">delete</span></button>
+    <button onClick="{{apply}}" style="flex: 1; height: 54px; border-radius: 27px; background: {{aBg}}; color: {{aInk}}; font-size: 16px; font-weight: 800; text-align: center; transition: all .2s">{{aText}}</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 92px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PL = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
+
+const SETS = [
+  { name: 'Котлин-кот', cover: '🐱', mine: true, st: ['🐱', '😺', '😹', '😻', '🙀', '😿', '😾', '😼', '😽', '🐈'] },
+  { name: 'Баги и фичи', cover: '🐛', mine: true, st: ['🐛', '🐞', '🦋', '🐜', '🪲', '🕷', '🦗', '🐝', '🪳', '🦟'] },
+  { name: 'Кофе и код', cover: '☕', mine: false, st: ['☕', '💻', '⌨️', '🖱', '🧑‍💻', '📦', '🚀', '✅', '❌', '🔥'] },
+  { name: 'Дедлайн', cover: '⏰', mine: false, st: ['⏰', '😰', '😤', '🥵', '😵', '🫠', '😴', '🎉', '🏁', '🙏'] },
+  { name: 'Добрые слова', cover: '💚', mine: false, st: ['💚', '👏', '🤝', '🙌', '🌟', '💡', '👍', '🫶', '😊', '🎊'] }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { sel: 0, cur: -1, k: 0, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const set = SETS[s.sel];
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2200); };
+  const isCur = s.cur === s.sel;
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    sets: SETS.map((p, i) => { const on = s.sel === i; return { name: p.name + (s.cur === i ? ' · сейчас в группе' : ''), cover: p.cover,
+      meta: (p.mine ? 'Ваш набор · ' : 'Добавлен · ') + p.st.length + ' ' + PL(p.st.length, 'стикер', 'стикера', 'стикеров'),
+      on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.10)' : 'rgba(255,255,255,.04)', bd: on ? 'rgba(143,211,172,.55)' : 'transparent',
+      rb: on ? '#8FD3AC' : 'rgba(255,255,255,.3)', dot: on ? '#8FD3AC' : 'transparent', bob: on ? 'kxBob 1.6s ease-in-out 2' : 'none',
+      tap: () => this.setState({ sel: i, k: s.k + 1 }) }; }),
+    selName: set.name, selCount: set.st.length + ' шт.',
+    stickers: set.st.map((e, i) => ({ e, anim: (s.k % 2 ? 'kxIn2' : 'kxIn') + ' .25s ease ' + (i * 0.025) + 's both' })),
+    aText: isCur ? 'Этот набор уже в группе' : 'Сделать набором группы',
+    aBg: isCur ? 'rgba(255,255,255,.07)' : 'linear-gradient(135deg, #6FC497, #3F9A6C)', aInk: isCur ? '#8A958F' : '#06150D',
+    apply: () => { if (isCur) return; this.setState({ cur: s.sel }); say('«' + set.name + '» — набор группы'); },
+    rmShow: s.cur >= 0 ? 'flex' : 'none',
+    remove: () => this.ask('Убрать набор группы?', 'Набор пропадёт из панели стикеров у всех участников.', 'Убрать', () => { this.setState({ cur: -1 }); say('Набор группы убран'); }),
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2.2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

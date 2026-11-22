@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Реакции в канале</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.92)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxPop{0%{transform:scale(.4)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes kxPop2{0%{transform:scale(.4)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">Реакции</div><div style="font-size: 12px; color: #9AA59F">Канал «Kotlin по-русски»</div></div>
+  </header>
+
+  <!-- Live preview -->
+  <div style="margin: 0 16px; padding: 14px; border-radius: 22px; background: radial-gradient(circle at 20% 0%, rgba(143,211,172,.10), transparent 60%), rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08)">
+    <div style="font-size: 11px; font-weight: 700; color: #8A958F; margin-bottom: 8px">ТАК УВИДЯТ ПОДПИСЧИКИ</div>
+    <div style="max-width: 86%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.08); font-size: 14px"><span style="display: block; font-size: 12px; font-weight: 800; color: #8FD3AC">Kotlin по-русски</span>Релиз Kotlin вышел, обновляемся! 🚀</div>
+    <div style="margin-top: 6px; min-height: 30px; display: flex; flex-wrap: wrap; gap: 4px">
+      <sc-for list="{{prev}}" as="p" hint-placeholder-count="4"><span style="height: 28px; padding: 0 9px; border-radius: 14px; background: rgba(143,211,172,.12); border: 1px solid rgba(143,211,172,.25); display: flex; align-items: center; gap: 4px; font-size: 13px; animation: {{p.anim}}">{{p.e}}<span style="font-weight: 800; font-size: 12px">{{p.n}}</span></span></sc-for>
+      <sc-if value="{{noneMsg}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: #8A958F; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 16px" aria-hidden="true">block</span>Реакции выключены</span></sc-if>
+    </div>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 16px 0">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 18px; background: rgba(255,255,255,.05)">
+      <sc-for list="{{modes}}" as="m" hint-placeholder-count="3"><button onClick="{{m.tap}}" aria-pressed="{{m.on}}" style="height: 40px; border-radius: 14px; background: {{m.bg}}; color: {{m.ink}}; font-size: 13px; font-weight: 700; text-align: center; transition: all .2s">{{m.t}}</button></sc-for>
+    </div>
+    <div style="margin-top: 8px; padding: 0 4px; font-size: 12px; color: #9AA59F; line-height: 1.4">{{modeHint}}</div>
+
+    <sc-if value="{{some}}" hint-placeholder-val="{{true}}">
+      <div style="margin-top: 14px; display: flex; align-items: center"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">Выбрано {{count}} из {{total}}</span><button onClick="{{clearAll}}" style="height: 30px; padding: 0 10px; border-radius: 15px; font-size: 12px; font-weight: 700; color: #9AA59F">Снять все</button></div>
+      <div style="margin-top: 8px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px">
+        <sc-for list="{{emojis}}" as="e" hint-placeholder-count="24"><button onClick="{{e.tap}}" aria-label="{{e.e}}" aria-pressed="{{e.on}}" style="aspect-ratio: 1; border-radius: 16px; background: {{e.bg}}; border: 1.5px solid {{e.bd}}; display: flex; align-items: center; justify-content: center; font-size: 24px; filter: {{e.f}}; transition: background .15s, border-color .15s, filter .15s"><span style="display: inline-block; animation: {{e.anim}}">{{e.e}}</span></button></sc-for>
+      </div>
+    </sc-if>
+
+    <div style="margin-top: 14px; padding: 4px 14px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07)">
+      <div style="min-height: 58px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.06)">
+        <span class="ms" style="color: #9AA59F" aria-hidden="true">filter_9_plus</span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">Разных реакций на сообщение</span><span style="display: block; font-size: 12px; color: #9AA59F">Не больше, чтобы под постом не было каши</span></span>
+        <button onClick="{{dec}}" aria-label="Меньше" style="width: 32px; height: 32px; border-radius: 16px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">remove</span></button>
+        <span style="width: 22px; text-align: center; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums">{{max}}</span>
+        <button onClick="{{inc}}" aria-label="Больше" style="width: 32px; height: 32px; border-radius: 16px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">add</span></button>
+      </div>
+      <button onClick="{{togglePaid}}" role="switch" aria-checked="{{paidOn}}" style="width: 100%; min-height: 58px; display: flex; align-items: center; gap: 12px"><span style="width: 24px; text-align: center; font-size: 18px; color: #E8B04A" aria-hidden="true">★</span><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">Платные реакции звёздами</span><span style="display: block; font-size: 12px; color: #9AA59F">Подписчики смогут поддержать канал</span></span><span style="width: 46px; height: 28px; border-radius: 14px; background: {{trk}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{knx}}; width: 22px; height: 22px; border-radius: 11px; background: {{knc}}; transition: left .2s"></span></span></button>
+    </div>
+    <div style="height: 16px"></div>
+  </div>
+
+  <div style="padding: 10px 16px 20px">
+    <button onClick="{{save}}" style="width: 100%; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; text-align: center">Сохранить</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 92px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const E = ['👍', '👎', '❤️', '🔥', '🥰', '👏', '😁', '🤔', '🤯', '😱', '🤬', '😢', '🎉', '🤩', '🤮', '💩', '🙏', '👌', '🕊', '🤡', '🥱', '😍', '🐳', '🚀'];
+const COUNTS = { '🚀': 24, '🔥': 18, '👍': 15, '❤️': 9, '🎉': 7, '👏': 5, '🤯': 3, '😁': 2 };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { mode: 1, on: { '👍': 1, '❤️': 1, '🔥': 1, '🎉': 1, '🚀': 1, '👏': 1, '🤯': 1, '🙏': 1 }, max: 5, paid: false, pk: 0, last: '', toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2000); };
+  const allowed = (e) => s.mode === 0 || (s.mode === 1 && !!s.on[e]);
+  let prev = Object.keys(COUNTS).filter(allowed).sort((a, b) => COUNTS[b] - COUNTS[a]).slice(0, s.max).map(e => ({ e, n: COUNTS[e], anim: (s.pk % 2 ? 'kxPop2' : 'kxPop') + ' .3s ease both' }));
+  if (s.paid && s.mode !== 2) prev = [{ e: '⭐', n: 12, anim: (s.pk % 2 ? 'kxPop2' : 'kxPop') + ' .3s ease both' }, ...prev];
+  const count = Object.keys(s.on).filter(k => s.on[k]).length;
+  return {
+    prev, noneMsg: s.mode === 2,
+    modes: [['Все', 0], ['Выбранные', 1], ['Нет', 2]].map(([t, i]) => { const on = s.mode === i; return { t, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.18)' : 'transparent', ink: on ? '#8FD3AC' : '#9AA59F', tap: () => this.setState({ mode: i, pk: s.pk + 1 }) }; }),
+    modeHint: s.mode === 0 ? 'Подписчики могут ставить любые реакции, включая свои эмодзи.' : s.mode === 1 ? 'Только реакции, отмеченные ниже. Остальные пропадут из меню.' : 'Реакции под сообщениями будут выключены.',
+    some: s.mode === 1, count, total: E.length,
+    emojis: E.map(e => { const on = !!s.on[e]; return { e, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.04)', bd: on ? 'rgba(143,211,172,.55)' : 'transparent', f: on ? 'none' : 'grayscale(1) opacity(.45)', anim: s.last === e ? (s.pk % 2 ? 'kxPop2' : 'kxPop') + ' .3s ease both' : 'none', tap: () => this.setState({ on: { ...s.on, [e]: !on }, last: e, pk: s.pk + 1 }) }; }),
+    clearAll: () => this.setState({ on: {}, pk: s.pk + 1 }),
+    max: s.max,
+    dec: () => this.setState({ max: Math.max(1, s.max - 1), pk: s.pk + 1 }),
+    inc: () => this.setState({ max: Math.min(11, s.max + 1), pk: s.pk + 1 }),
+    togglePaid: () => this.setState({ paid: !s.paid, pk: s.pk + 1 }), paidOn: s.paid ? 'true' : 'false',
+    trk: s.paid ? '#3F9A6C' : 'rgba(255,255,255,.14)', knc: s.paid ? '#EEF3EF' : '#9AA59F', knx: s.paid ? '21px' : '3px',
+    save: () => say('Реакции канала обновлены'),
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

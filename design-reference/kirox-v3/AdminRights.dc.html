@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Права администратора</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+input{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxBadge{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Права администратора</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 110px">
+    <!-- Person -->
+    <div style="padding: 14px; border-radius: 24px; background: linear-gradient(150deg, rgba(63,154,108,.2), rgba(255,255,255,.03)); border: 1px solid rgba(143,211,172,.22); display: flex; align-items: center; gap: 12px">
+      <span style="width: 54px; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #B07A2E, #6A4C9C); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; flex-shrink: 0">М</span>
+      <div style="flex: 1; min-width: 0">
+        <div style="display: flex; align-items: center; gap: 6px"><span style="font-size: 17px; font-weight: 800">Мария</span><span style="padding: 2px 8px; border-radius: 8px; background: rgba(143,211,172,.16); color: #8FD3AC; font-size: 11px; font-weight: 800; animation: kxBadge .25s ease both">{{badge}}</span></div>
+        <div style="margin-top: 2px; font-size: 12px; color: #9AA59F">в сети · в группе с марта</div>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <label style="margin-top: 12px; height: 54px; padding: 0 16px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 12px">
+      <span class="ms" style="color: #9AA59F" aria-hidden="true">badge</span>
+      <input value="{{title}}" onInput="{{onTitle}}" maxlength="16" placeholder="Должность (видна в группе)" aria-label="Должность" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 15px">
+      <span style="font-size: 12px; color: #8A958F">{{titleLeft}}</span>
+    </label>
+
+    <!-- Roles -->
+    <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">Быстро выбрать</div>
+    <div style="display: flex; gap: 6px">
+      <sc-for list="{{roles}}" as="r" hint-placeholder-count="3"><button onClick="{{r.tap}}" style="flex: 1; padding: 10px 6px; border-radius: 18px; background: {{r.bg}}; border: 1px solid {{r.bd}}; text-align: center; transition: all .2s"><span class="ms" style="color: {{r.ic}}; font-variation-settings: {{r.fill}}" aria-hidden="true">{{r.icon}}</span><span style="display: block; margin-top: 4px; font-size: 13px; font-weight: 700">{{r.label}}</span></button></sc-for>
+    </div>
+
+    <!-- Rights -->
+    <div style="margin-top: 16px; display: flex; align-items: center; padding: 0 4px 8px"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">Что может делать</span><span style="font-size: 12px; color: #8A958F">{{countText}}</span></div>
+    <div style="border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <sc-for list="{{rights}}" as="x" hint-placeholder-count="8">
+        <button onClick="{{x.tap}}" aria-pressed="{{x.on}}" style="width: 100%; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05)">
+          <span class="ms" style="color: {{x.ic}}; transition: color .2s" aria-hidden="true">{{x.icon}}</span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">{{x.label}}</span><sc-if value="{{x.hasSub}}" hint-placeholder-val="{{false}}"><span style="display: block; margin-top: 2px; font-size: 12px; color: {{x.subInk}}">{{x.sub}}</span></sc-if></span>
+          <span style="width: 48px; height: 28px; border-radius: 14px; background: {{x.track}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{x.knob}}; width: 22px; height: 22px; border-radius: 11px; background: {{x.knobBg}}; transition: left .2s"></span></span>
+        </button>
+      </sc-for>
+    </div>
+
+    <button onClick="{{askRemove}}" style="margin-top: 14px; width: 100%; height: 52px; padding: 0 16px; border-radius: 20px; background: rgba(229,83,75,.1); border: 1px solid rgba(229,83,75,.25); color: #FF8A80; display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 700"><span class="ms" aria-hidden="true">person_remove</span>Снять с админов</button>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; background: linear-gradient(180deg, rgba(10,12,11,0), #0A0C0B 40%)">
+    <button onClick="{{save}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{saveBg}}; color: {{saveInk}}; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .25s"><span class="ms fill" aria-hidden="true">shield_person</span>{{saveText}}</button>
+  </div>
+
+  <sc-if value="{{confirm}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{cancelRemove}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 22px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 16px"></div>
+      <div style="font-size: 19px; font-weight: 800">Снять с админов: Мария?</div>
+      <div style="margin-top: 6px; font-size: 14px; line-height: 1.45; color: #9AA59F">Мария останется в группе как обычный участник. Сообщения, которые были закреплены или удалены от имени этого админа, не вернутся.</div>
+      <div style="margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+        <button onClick="{{cancelRemove}}" style="height: 50px; border-radius: 25px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button>
+        <button onClick="{{doRemove}}" style="height: 50px; border-radius: 25px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">Снять</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const RIGHTS = [
+  ['info', 'Менять название и фото'],
+  ['delete_sweep', 'Удалять чужие сообщения'],
+  ['block', 'Блокировать участников'],
+  ['person_add', 'Приглашать по ссылке'],
+  ['push_pin', 'Закреплять сообщения'],
+  ['forum', 'Управлять темами'],
+  ['video_call', 'Начинать звонки'],
+  ['visibility_off', 'Анонимность', 'Сообщения будут подписаны названием группы'],
+  ['add_moderator', 'Назначать админов', 'Сможет выдавать только те права, что есть у этого админа']
+];
+const ROLES = [['Модератор', 'gavel', [1, 2, 4]], ['Помощник', 'support_agent', [3, 4, 5, 6]], ['Всё', 'verified_user', [0, 1, 2, 3, 4, 5, 6, 8]]];
+class Component extends DCLogic {
+constructor(props) { super(props); const on = {}; [1, 2, 4].forEach(i => on[i] = true); this.state = { on, init: JSON.stringify(on), title: 'модератор', initTitle: 'модератор', confirm: false, removed: false, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+renderVals() {
+  const s = this.state;
+  const n = Object.values(s.on).filter(Boolean).length;
+  const changed = JSON.stringify(s.on) !== s.init || s.title !== s.initTitle;
+  const sameAs = arr => arr.length === n && arr.every(i => s.on[i]);
+  const promoteOff = !s.on[8];
+  return {
+    badge: s.removed ? 'участник' : (s.title.trim() || 'админ'),
+    title: s.title, onTitle: e => this.setState({ title: e.target.value.slice(0, 16) }), titleLeft: String(16 - s.title.length),
+    roles: ROLES.map(([label, icon, arr]) => { const on = sameAs(arr); return { label, icon, bg: on ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.04)', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', ic: on ? '#8FD3AC' : '#9AA59F', fill: on ? "'FILL' 1" : "'FILL' 0", tap: () => { const o = {}; arr.forEach(i => o[i] = true); this.setState({ on: o, title: label === 'Всё' ? 'заместитель' : label.toLowerCase(), removed: false }); } }; }),
+    countText: n + ' из ' + RIGHTS.length,
+    rights: RIGHTS.map(([icon, label, sub], i) => {
+      const on = !!s.on[i];
+      return {
+        icon, label, on, hasSub: !!sub || (i === 8 && on), sub: i === 8 && on ? 'Осторожно: сможет назначать новых админов' : (sub || ''),
+        subInk: i === 8 && on ? '#E8B04A' : '#8A958F',
+        ic: on ? '#8FD3AC' : '#8A958F',
+        track: on ? (i === 8 ? '#B07A2E' : '#3F9A6C') : 'rgba(255,255,255,.14)', knob: on ? '23px' : '3px', knobBg: on ? '#EEF3EF' : '#9AA59F',
+        tap: () => this.setState({ on: { ...s.on, [i]: !on }, removed: false })
+      };
+    }),
+    saveBg: changed ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', saveInk: changed ? '#06150D' : '#5C6661',
+    saveText: changed ? 'Сохранить права' : 'Изменений нет',
+    save: () => { if (!changed) return; this.setState({ init: JSON.stringify(s.on), initTitle: s.title }); this.toastMsg('Права обновлены · Мария', 'shield_person'); },
+    askRemove: () => this.setState({ confirm: true }), cancelRemove: () => this.setState({ confirm: false }), confirm: s.confirm,
+    doRemove: () => { this.setState({ confirm: false, removed: true, on: {}, title: '' }); this.toastMsg('Мария больше не админ', 'person_remove'); },
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Проверка безопасности</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes kxTick{0%{transform:scale(.4)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes kxTick2{0%{transform:scale(.4)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="flex: 1; font-size: 20px; font-weight: 800">Проверка безопасности</span>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 0 16px 20px">
+    <div style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6px 0 4px">
+      <div style="position: relative; width: 170px; height: 170px; animation: kxPulse 3s ease-in-out infinite">
+        <svg width="170" height="170" viewBox="0 0 170 170" style="transform: rotate(-90deg)" aria-hidden="true">
+          <circle cx="85" cy="85" r="72" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="14"></circle>
+          <circle cx="85" cy="85" r="72" fill="none" stroke="{{ringColor}}" stroke-width="14" stroke-linecap="round" stroke-dasharray="452.4" stroke-dashoffset="{{ringOff}}" style="transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1), stroke .4s"></circle>
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 30px; color: {{ringColor}}" aria-hidden="true">{{shield}}</span><span style="font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums">{{done}}/{{total}}</span><span style="font-size: 12px; color: #9AA59F">шагов выполнено</span></div>
+      </div>
+      <div style="margin-top: 10px; font-size: 19px; font-weight: 800">{{verdict}}</div>
+      <div style="margin-top: 4px; font-size: 13px; color: #9AA59F; line-height: 1.4">{{verdictSub}}</div>
+    </div>
+
+    <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px">
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="6"><div style="padding: 12px 14px; border-radius: 18px; background: {{it.bg}}; border: 1px solid {{it.bd}}; display: flex; align-items: center; gap: 12px; animation: kxIn .3s ease {{it.d}} both">
+        <span style="width: 38px; height: 38px; border-radius: 13px; background: {{it.ibg}}; color: {{it.ic}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 20px; animation: {{it.tickAnim}}" aria-hidden="true">{{it.icon}}</span></span>
+        <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{it.t}}</span><span style="display: block; font-size: 12px; color: {{it.subInk}}">{{it.s}}</span></span>
+        <button onClick="{{it.tap}}" style="display: {{it.btnShow}}; height: 34px; padding: 0 12px; border-radius: 17px; background: {{it.btnBg}}; color: {{it.btnInk}}; font-size: 12px; font-weight: 800">{{it.btn}}</button>
+      </div></sc-for>
+    </div>
+
+    <div style="margin-top: 14px; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,.04); display: flex; gap: 10px; font-size: 12px; color: #9AA59F; line-height: 1.45"><span class="ms" style="font-size: 18px" aria-hidden="true">info</span><span>Проверка идёт на этом телефоне. kiroX не видит ваш пароль и коды — их проверяет Telegram.</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const IT = [
+  { k: 'twofa', t: 'Облачный пароль', todo: 'Без него в аккаунт пускает один код из СМС', ok: 'Включён', btn: 'Включить', icon: 'password', danger: true },
+  { k: 'mail', t: 'Почта для восстановления', todo: 'Поможет, если забудете пароль', ok: 'a•••@mail.com', btn: 'Добавить', icon: 'mail' },
+  { k: 'pass', t: 'Код-пароль на kiroX', todo: 'Закроет приложение от чужих глаз', ok: 'Включён, с отпечатком', btn: 'Включить', icon: 'pin' },
+  { k: 'sess', t: 'Активные сеансы', todo: '1 сеанс не заходил 3 месяца', ok: 'Все сеансы знакомые', btn: 'Проверить', icon: 'devices' },
+  { k: 'phone', t: 'Кто видит номер', ok: 'Только контакты', icon: 'call', done: true }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { ok: { phone: true }, last: '', k: 0 }; }
+renderVals() {
+  const s = this.state;
+  const total = IT.length;
+  const done = IT.filter(x => s.ok[x.k]).length;
+  const pct = done / total;
+  const col = pct >= 1 ? '#8FD3AC' : pct >= .5 ? '#E8B04A' : '#FF8A80';
+  return {
+    done, total, ringColor: col, ringOff: String(452.4 * (1 - pct)),
+    shield: pct >= 1 ? 'verified_user' : pct >= .5 ? 'shield' : 'gpp_maybe',
+    verdict: pct >= 1 ? 'Аккаунт защищён отлично' : pct >= .5 ? 'Неплохо, но можно лучше' : 'Аккаунт защищён слабо',
+    verdictSub: pct >= 1 ? 'Все шаги выполнены. Проверьте снова через пару месяцев.' : 'Выполните оставшиеся шаги — каждый занимает меньше минуты.',
+    items: IT.map((x, i) => { const ok = !!s.ok[x.k]; const warn = !ok && x.danger;
+      return { t: x.t, s: ok ? x.ok : x.todo, icon: ok ? 'check_circle' : x.icon, d: (i * 0.05) + 's',
+        ic: ok ? '#8FD3AC' : warn ? '#FF8A80' : '#E8B04A', ibg: ok ? 'rgba(143,211,172,.14)' : warn ? 'rgba(255,138,128,.14)' : 'rgba(232,176,74,.14)',
+        bg: ok ? 'rgba(143,211,172,.05)' : 'rgba(255,255,255,.04)', bd: warn ? 'rgba(255,138,128,.3)' : 'transparent', subInk: ok ? '#8FD3AC' : '#9AA59F',
+        btnShow: ok ? 'none' : 'inline-block', btn: x.btn || '', btnBg: warn ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.08)', btnInk: warn ? '#06150D' : '#EEF3EF',
+        tickAnim: s.last === x.k ? (s.k % 2 ? 'kxTick2' : 'kxTick') + ' .35s ease both' : 'none',
+        tap: () => this.setState({ ok: { ...s.ok, [x.k]: true }, last: x.k, k: s.k + 1 }) }; })
+  };
+}
+}
+</script>
+</body>
+</html>

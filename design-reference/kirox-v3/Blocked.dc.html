@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Блокировка и жалобы</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+textarea{font:inherit;color:inherit;background:none;border:0;outline:0;resize:none}
+textarea::placeholder{color:#8A958F}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxOut{to{opacity:0;transform:translateX(80px);height:0;padding-top:0;padding-bottom:0}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxSlide{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes kxPop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes kxToast{0%{opacity:0;transform:translateY(16px)}12%,85%{opacity:1;transform:none}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 22px; font-weight: 800">Заблокированные</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 12px 30px">
+    <button onClick="{{openAdd}}" style="width: 100%; padding: 12px; border-radius: 20px; background: rgba(255,138,128,.07); border: 1px solid rgba(255,138,128,.2); display: flex; align-items: center; gap: 12px; color: #FF8A80">
+      <span style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,138,128,.12); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">person_off</span></span>
+      <span style="font-size: 15px; font-weight: 700">Заблокировать пользователя</span>
+    </button>
+    <div style="padding: 10px 6px 12px; font-size: 12px; line-height: 17px; color: #8A958F">Заблокированные не могут писать вам, звонить, видеть ваше фото и время в сети.</div>
+
+    <div style="padding: 0 6px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">{{countTitle}}</div>
+    <div style="border-radius: 22px; background: rgba(255,255,255,.045); overflow: hidden">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-top: {{r.line}}; animation: {{r.anim}}">
+          <span style="position: relative; flex-shrink: 0">
+            <span style="width: 46px; height: 46px; border-radius: 23px; background: {{r.av}}; color: {{r.ink}}; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; filter: grayscale(.7); opacity: .8">{{r.init}}</span>
+            <span style="position: absolute; right: -2px; bottom: -2px; width: 20px; height: 20px; border-radius: 10px; background: #2A1A18; border: 2px solid #121614; color: #FF8A80; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 12px" aria-hidden="true">block</span></span>
+          </span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{r.name}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{r.sub}}</span></span>
+          <button onClick="{{r.unblock}}" style="height: 34px; padding: 0 12px; border-radius: 17px; background: rgba(255,255,255,.07); font-size: 13px; font-weight: 700">Разблокировать</button>
+        </div>
+      </sc-for>
+      <sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><div style="padding: 26px; text-align: center; font-size: 14px; color: #8A958F">Список пуст</div></sc-if>
+    </div>
+
+    <div style="padding: 18px 6px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Подозрительные сообщения</div>
+    <div style="padding: 12px; border-radius: 22px; background: rgba(255,255,255,.045)">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="width: 46px; height: 46px; border-radius: 23px; background: linear-gradient(140deg,#5C6661,#2A302D); color: #E2E8E4; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center">?</span>
+        <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">Crypto Bonus 💰</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #9AA59F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">Вы выиграли 500 USDT! Перейдите…</span></span>
+      </div>
+      <div style="margin-top: 8px; padding: 8px 10px; border-radius: 14px; background: rgba(232,176,74,.08); display: flex; gap: 8px; font-size: 12px; line-height: 17px; color: #E8B04A"><span class="ms fill" style="font-size: 16px" aria-hidden="true">warning</span>Не из ваших контактов. Похоже на мошенничество.</div>
+      <div style="margin-top: 10px; display: flex; gap: 6px">
+        <button onClick="{{openReport}}" style="flex: 1; height: 40px; border-radius: 14px; background: rgba(255,138,128,.12); color: #FF8A80; font-size: 13px; font-weight: 800; text-align: center">Пожаловаться</button>
+        <button onClick="{{blockSpam}}" style="flex: 1; height: 40px; border-radius: 14px; background: rgba(255,255,255,.07); font-size: 13px; font-weight: 700; text-align: center">Заблокировать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add sheet -->
+  <sc-if value="{{addSheet}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeAdd}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px 10px; font-size: 18px; font-weight: 800">Кого заблокировать?</div>
+      <sc-for list="{{candidates}}" as="c" hint-placeholder-count="3">
+        <button onClick="{{c.tap}}" style="width: 100%; padding: 8px 6px; border-radius: 16px; display: flex; align-items: center; gap: 12px">
+          <span style="width: 42px; height: 42px; border-radius: 21px; background: {{c.av}}; color: {{c.ink}}; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{c.init}}</span>
+          <span style="flex: 1; font-size: 15px; font-weight: 600">{{c.name}}</span>
+          <span class="ms" style="color: #FF8A80" aria-hidden="true">block</span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- Report sheet -->
+  <sc-if value="{{report}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeReport}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <sc-if value="{{rStep1}}" hint-placeholder-val="{{true}}">
+        <div>
+          <div style="padding: 0 4px 4px; font-size: 18px; font-weight: 800">Пожаловаться</div>
+          <div style="padding: 0 4px 10px; font-size: 13px; color: #9AA59F">Что не так с этим аккаунтом?</div>
+          <sc-for list="{{reasons}}" as="r" hint-placeholder-count="5">
+            <button onClick="{{r.tap}}" style="width: 100%; height: 50px; padding: 0 12px; border-radius: 16px; display: flex; align-items: center; gap: 12px">
+              <span class="ms" style="color: #8A958F" aria-hidden="true">{{r.icon}}</span><span style="flex: 1; font-size: 15px; font-weight: 600">{{r.label}}</span><span class="ms" style="color: #8A958F" aria-hidden="true">chevron_right</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{rStep2}}" hint-placeholder-val="{{false}}">
+        <div style="animation: kxSlide .3s ease both">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 0 4px 10px"><button onClick="{{rBack}}" aria-label="Назад" style="width: 34px; height: 34px; border-radius: 17px; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button><span style="font-size: 18px; font-weight: 800">{{reasonLabel}}</span></div>
+          <div style="border-radius: 18px; background: rgba(255,255,255,.05); padding: 12px 14px"><textarea aria-label="Комментарий" rows="3" placeholder="Расскажите подробнее (необязательно)" style="width: 100%; font-size: 15px; line-height: 21px"></textarea></div>
+          <button onClick="{{toggleAlsoBlock}}" style="margin-top: 10px; width: 100%; padding: 10px 6px; display: flex; align-items: center; gap: 12px">
+            <span style="width: 24px; height: 24px; border-radius: 7px; border: 2px solid {{abRing}}; background: {{abBg}}; color: #06150D; display: flex; align-items: center; justify-content: center; transition: all .2s"><sc-if value="{{alsoBlock}}" hint-placeholder-val="{{true}}"><span class="ms fill" style="font-size: 16px" aria-hidden="true">check</span></sc-if></span>
+            <span style="font-size: 15px">Также заблокировать и удалить чат</span>
+          </button>
+          <button onClick="{{sendReport}}" style="margin-top: 10px; width: 100%; height: 52px; border-radius: 16px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">Отправить жалобу</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{rDone}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 10px 0 6px; display: flex; flex-direction: column; align-items: center; text-align: center; animation: kxSlide .3s ease both">
+          <span style="width: 72px; height: 72px; border-radius: 24px; background: rgba(143,211,172,.14); color: #8FD3AC; display: flex; align-items: center; justify-content: center; animation: kxPop .4s ease both"><span class="ms fill" style="font-size: 38px" aria-hidden="true">verified_user</span></span>
+          <div style="margin-top: 12px; font-size: 18px; font-weight: 800">Спасибо, жалоба отправлена</div>
+          <div style="margin-top: 6px; font-size: 13px; line-height: 19px; color: #9AA59F; padding: 0 10px">Модераторы Telegram проверят аккаунт. Вы помогаете сделать мессенджер безопаснее.</div>
+          <button onClick="{{closeReport}}" style="margin-top: 16px; width: 100%; height: 50px; border-radius: 16px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Готово</button>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 16px; right: 16px; bottom: 26px; height: 50px; padding: 0 8px 0 16px; border-radius: 18px; background: #1E2622; border: 1px solid rgba(143,211,172,.25); display: flex; align-items: center; gap: 10px; animation: kxToast 3s ease both">
+      <span class="ms fill" style="color: #8FD3AC" aria-hidden="true">check_circle</span>
+      <span style="flex: 1; font-size: 14px">{{toastText}}</span>
+      <sc-if value="{{canUndo}}" hint-placeholder-val="{{false}}"><button onClick="{{undo}}" style="height: 36px; padding: 0 12px; border-radius: 12px; color: #8FD3AC; font-size: 14px; font-weight: 700">Отменить</button></sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const ALL = [
+  { id: 1, name: 'Реклама Окон', sub: 'в чёрном списке 3 дня', av: 'linear-gradient(140deg,#7A5A2E,#3A2A14)', ink: '#FFE2B8' },
+  { id: 2, name: 'Неизвестный', sub: '+7 ••• ••• •• 41 · в октябре', av: 'linear-gradient(140deg,#5C6661,#2A302D)', ink: '#E2E8E4' },
+  { id: 3, name: 'Бот розыгрышей', sub: 'бот · в сентябре', av: 'linear-gradient(140deg,#9E3F5C,#2E1420)', ink: '#FFD0DD' },
+  { id: 4, name: 'Ярослав', sub: 'только что', av: 'linear-gradient(140deg,#2F6E9E,#14243A)', ink: '#CFE6FF' },
+  { id: 5, name: 'Тимур', sub: 'только что', av: 'linear-gradient(140deg,#3F7A5A,#1E3A2A)', ink: '#CFF2DD' },
+  { id: 6, name: 'Crypto Bonus 💰', sub: 'только что · спам', av: 'linear-gradient(140deg,#5C6661,#2A302D)', ink: '#E2E8E4' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { ids: [1, 2, 3], leaving: 0, add: false, report: false, step: 1, reason: '', alsoBlock: true, toast: 0, toastText: '', undoId: 0 }; }
+componentWillUnmount() { clearTimeout(this.t); clearTimeout(this.tt); }
+say(t, undoId) { clearTimeout(this.tt); this.setState({ toast: Date.now(), toastText: t, undoId: undoId || 0 }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 3000); }
+block(id) { if (!this.state.ids.includes(id)) this.setState({ ids: [id, ...this.state.ids] }); }
+renderVals() {
+  const s = this.state;
+  const rows = s.ids.map(id => ALL.find(a => a.id === id)).map((a, i) => ({
+    ...a, init: a.name[0], line: i ? '1px solid rgba(255,255,255,.06)' : '0',
+    anim: s.leaving === a.id ? 'kxOut .3s ease forwards' : 'kxIn .3s ease both',
+    unblock: () => { this.setState({ leaving: a.id }); clearTimeout(this.t); this.t = setTimeout(() => { this.setState({ ids: this.state.ids.filter(x => x !== a.id), leaving: 0 }); this.say(a.name + ' снова может вам писать', a.id); }, 300); }
+  }));
+  const n = s.ids.length;
+  const R = [['campaign', 'Спам'], ['gpp_bad', 'Мошенничество'], ['sentiment_very_dissatisfied', 'Оскорбления или угрозы'], ['no_adult_content', 'Неприемлемый контент'], ['person_alert', 'Выдаёт себя за другого']];
+  return {
+    rows, empty: n === 0, countTitle: n ? 'Список · ' + n : 'Список',
+    addSheet: s.add, openAdd: () => this.setState({ add: true }), closeAdd: () => this.setState({ add: false }),
+    candidates: ALL.filter(a => (a.id === 4 || a.id === 5) && !s.ids.includes(a.id)).map(a => ({ name: a.name, init: a.name[0], av: a.av, ink: a.ink, tap: () => { this.block(a.id); this.setState({ add: false }); this.say(a.name + ' в чёрном списке'); } })),
+    blockSpam: () => { this.block(6); this.say('Crypto Bonus в чёрном списке'); },
+    report: s.report, openReport: () => this.setState({ report: true, step: 1 }), closeReport: () => this.setState({ report: false }),
+    rStep1: s.step === 1, rStep2: s.step === 2, rDone: s.step === 3,
+    reasons: R.map(([icon, label]) => ({ icon, label, tap: () => this.setState({ step: 2, reason: label }) })),
+    reasonLabel: s.reason, rBack: () => this.setState({ step: 1 }),
+    alsoBlock: s.alsoBlock, toggleAlsoBlock: () => this.setState({ alsoBlock: !s.alsoBlock }),
+    abRing: s.alsoBlock ? '#8FD3AC' : '#5C6661', abBg: s.alsoBlock ? '#8FD3AC' : 'transparent',
+    sendReport: () => { if (s.alsoBlock) this.block(6); this.setState({ step: 3 }); },
+    toast: !!s.toast, toastText: s.toastText, canUndo: !!s.undoId,
+    undo: () => { this.block(s.undoId); this.setState({ toast: 0 }); }
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Поиск по фото</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+input{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxScan{0%{top:0}100%{top:100%}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <label style="flex: 1; height: 46px; padding: 0 14px; border-radius: 23px; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; gap: 8px">
+      <span class="ms" style="color: #9AA59F" aria-hidden="true">image_search</span>
+      <input value="{{q}}" onInput="{{onQ}}" placeholder="Что было на фото?" aria-label="Поиск по фото" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 15px">
+      <sc-if value="{{busy}}" hint-placeholder-val="{{false}}"><span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(143,211,172,.25); border-top-color: #8FD3AC; animation: kxSpin .8s linear infinite" aria-hidden="true"></span></sc-if>
+    </label>
+  </header>
+
+  <div style="padding: 8px 16px 0; display: flex; gap: 6px; flex-wrap: wrap">
+    <sc-for list="{{chips}}" as="c" hint-placeholder-count="5"><button onClick="{{c.tap}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: {{c.bg}}; color: {{c.ink}}; border: 1px solid {{c.bd}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 15px" aria-hidden="true">{{c.icon}}</span>{{c.label}}</button></sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 12px 16px 30px">
+    <div style="font-size: 12px; color: #8A958F; padding: 0 2px 8px">{{resText}}</div>
+    <sc-for list="{{results}}" as="r" hint-placeholder-count="4">
+      <div style="margin-bottom: 10px; display: flex; gap: 12px; padding: 10px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); animation: kxIn .3s ease {{r.d}} both">
+        <div style="position: relative; width: 96px; height: 120px; border-radius: 14px; background: {{r.bg}}; overflow: hidden; flex-shrink: 0">
+          <span class="ms fill" style="position: absolute; left: 50%; top: 40%; transform: translate(-50%,-50%); font-size: 34px; color: rgba(255,255,255,.55)" aria-hidden="true">{{r.icon}}</span>
+          <span style="position: absolute; left: {{r.bx}}; top: {{r.by}}; width: {{r.bw}}; height: 16px; border-radius: 4px; border: 2px solid #8FD3AC; background: rgba(143,211,172,.25); box-shadow: 0 0 10px rgba(143,211,172,.5)"></span>
+          <sc-if value="{{r.busy}}" hint-placeholder-val="{{false}}"><span style="position: absolute; left: 0; right: 0; height: 20px; background: linear-gradient(180deg, transparent, rgba(143,211,172,.5), transparent); animation: kxScan .8s linear infinite"></span></sc-if>
+        </div>
+        <div style="flex: 1; min-width: 0">
+          <div style="display: flex; align-items: center; gap: 6px"><span style="width: 22px; height: 22px; border-radius: 11px; background: {{r.c}}; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{r.l}}</span><span style="flex: 1; font-size: 13px; font-weight: 700">{{r.chat}}</span><span style="font-size: 11px; color: #8A958F">{{r.date}}</span></div>
+          <div style="margin-top: 8px; font-size: 12px; color: #8A958F">Найдено на фото:</div>
+          <div style="margin-top: 4px; font-size: 14px; line-height: 1.4; color: #C9D2CC">{{r.pre}}<mark style="background: rgba(143,211,172,.3); color: #EEF3EF; border-radius: 4px; padding: 0 3px">{{r.hit}}</mark>{{r.post}}</div>
+          <div style="margin-top: 10px; display: flex; gap: 6px">
+            <button style="height: 30px; padding: 0 10px; border-radius: 15px; background: rgba(143,211,172,.14); color: #8FD3AC; font-size: 12px; font-weight: 700">В чате</button>
+            <button style="height: 30px; padding: 0 10px; border-radius: 15px; background: rgba(255,255,255,.06); font-size: 12px; font-weight: 700; color: #C9D2CC; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 15px" aria-hidden="true">content_copy</span>Текст</button>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><div style="padding: 50px 30px 0; text-align: center; color: #8A958F; font-size: 14px"><span class="ms" style="font-size: 48px; color: #3A4540; display: block" aria-hidden="true">search_off</span>Ничего не нашли на фото</div></sc-if>
+    <p style="margin: 12px 2px 0; font-size: 12px; line-height: 1.45; color: #8A958F">kiroX читает текст на фото прямо на телефоне. Снимки никуда не отправляются.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PH = [
+  { chat: 'Мама', l: 'М', c: '#B07A2E', date: '3 ноя', icon: 'receipt_long', text: 'Чек · Магазин «Дача» · Итого 12 480 ₸ · гарантия 1 год', bg: 'linear-gradient(180deg, #E9E6DE, #BDB8AC)', box: ['10px', '70px', '76px'] },
+  { chat: 'Анна', l: 'А', c: '#C0443C', date: '18 окт', icon: 'wifi', text: 'Wi-Fi: Cafe_Zerno · пароль zerno2026', bg: 'radial-gradient(60% 50% at 50% 30%, #F4E7C5, transparent 60%), linear-gradient(180deg, #C9925A, #4A2E1E)', box: ['8px', '82px', '80px'] },
+  { chat: 'Kotlin-клуб', l: 'K', c: '#3F9A6C', date: '2 окт', icon: 'slideshow', text: 'Слайд: Корутины и Flow · пароль от Wi-Fi зала kotlin123', bg: 'linear-gradient(160deg, #1E4B36, #0E1C16)', box: ['12px', '20px', '72px'] },
+  { chat: 'Семья', l: 'С', c: '#2F6E9E', date: '15 сен', icon: 'description', text: 'Справка из поликлиники · приём 28 ноября в 10:30', bg: 'linear-gradient(180deg, #F2F5F3, #C9D2CC)', box: ['10px', '58px', '70px'] },
+  { chat: 'Работа', l: 'Р', c: '#5C6661', date: '1 сен', icon: 'calendar_month', text: 'График отпусков · декабрь · Алекс 15–29', bg: 'linear-gradient(180deg, #DCE6EE, #9AB0C2)', box: ['8px', '40px', '80px'] }
+];
+const CHIPS = [['чек', 'receipt_long'], ['пароль', 'key'], ['ноября', 'event'], ['Wi-Fi', 'wifi'], ['отпуск', 'flight']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { q: 'пароль', busy: false }; }
+componentWillUnmount() { clearTimeout(this.tb); }
+setQ(q) { this.setState({ q, busy: true }); clearTimeout(this.tb); this.tb = setTimeout(() => this.setState({ busy: false }), 700); }
+renderVals() {
+  const s = this.state;
+  const q = s.q.trim().toLowerCase();
+  const res = q ? PH.filter(p => p.text.toLowerCase().includes(q)) : [];
+  return {
+    q: s.q, onQ: e => this.setQ(e.target.value), busy: s.busy,
+    chips: CHIPS.map(([label, icon]) => { const on = q === label.toLowerCase(); return { label, icon, bg: on ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: on ? '#8FD3AC' : '#C9D2CC', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', tap: () => this.setQ(label) }; }),
+    resText: !q ? 'Например: чек, пароль, адрес, дата' : s.busy ? 'Ищем текст на фото…' : 'Нашли на ' + res.length + ' фото из 1 248',
+    results: res.map((p, k) => { const i = p.text.toLowerCase().indexOf(q); return { chat: p.chat, l: p.l, c: p.c, date: p.date, icon: p.icon, bg: p.bg, bx: p.box[0], by: p.box[1], bw: p.box[2], pre: p.text.slice(0, i), hit: p.text.slice(i, i + q.length), post: p.text.slice(i + q.length), d: (k * 0.06) + 's', busy: s.busy }; }),
+    empty: !!q && !s.busy && res.length === 0
+  };
+}
+}
+</script>
+</body>
+</html>

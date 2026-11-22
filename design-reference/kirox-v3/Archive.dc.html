@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Архив</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes kxOut{to{opacity:0;transform:translateX(60px);height:0;padding-top:0;padding-bottom:0}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxBar{from{transform:translateY(120%)}to{transform:none}}
+@keyframes kxToast{0%{opacity:0;transform:translateY(16px)}12%,85%{opacity:1;transform:none}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px; min-height: 48px">
+    <sc-if value="{{normal}}" hint-placeholder-val="{{true}}">
+      <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+      <h1 style="flex: 1; margin: 0; font-size: 22px; font-weight: 800">Архив</h1>
+      <button onClick="{{openSettings}}" aria-label="Настройки архива" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">tune</span></button>
+    </sc-if>
+    <sc-if value="{{selecting}}" hint-placeholder-val="{{false}}">
+      <button onClick="{{clearSel}}" aria-label="Отменить выбор" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(143,211,172,.12); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+      <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">{{selTitle}}</h1>
+      <button onClick="{{selectAll}}" style="height: 38px; padding: 0 14px; border-radius: 19px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 700">Все</button>
+    </sc-if>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 12px 120px">
+    <sc-if value="{{showTip}}" hint-placeholder-val="{{true}}">
+      <div style="margin: 4px 0 10px; padding: 14px; border-radius: 22px; background: linear-gradient(150deg, rgba(63,154,108,.18), rgba(255,255,255,.03)); border: 1px solid rgba(143,211,172,.2); display: flex; gap: 12px; animation: kxRise .4s ease both">
+        <span style="width: 40px; height: 40px; border-radius: 14px; background: rgba(143,211,172,.14); color: #8FD3AC; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" aria-hidden="true">inventory_2</span></span>
+        <div style="flex: 1">
+          <div style="font-size: 14px; font-weight: 800">Здесь тихо</div>
+          <div style="margin-top: 3px; font-size: 13px; line-height: 18px; color: #C9D2CC">{{tipText}}</div>
+        </div>
+        <button onClick="{{hideTip}}" aria-label="Скрыть" style="width: 28px; height: 28px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #8A958F"><span class="ms" style="font-size: 18px" aria-hidden="true">close</span></button>
+      </div>
+    </sc-if>
+
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+      <button onPointerDown="{{r.down}}" onPointerUp="{{r.up}}" onPointerLeave="{{r.leave}}" aria-label="{{r.name}}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 8px; border-radius: 20px; background: {{r.bg}}; transition: background .2s; animation: {{r.anim}}">
+        <span style="position: relative; flex-shrink: 0">
+          <span style="width: 52px; height: 52px; border-radius: {{r.shape}}; background: {{r.av}}; color: {{r.avInk}}; font-size: 19px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.init}}</span>
+          <sc-if value="{{r.sel}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 11px; background: #8FD3AC; color: #06150D; border: 2px solid #0A0C0B; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 15px" aria-hidden="true">check</span></span></sc-if>
+        </span>
+        <span style="flex: 1; min-width: 0">
+          <span style="display: flex; align-items: center; gap: 5px">
+            <sc-if value="{{r.isChannel}}" hint-placeholder-val="{{false}}"><span class="ms" style="font-size: 16px; color: #8A958F" aria-hidden="true">campaign</span></sc-if>
+            <sc-if value="{{r.isGroup}}" hint-placeholder-val="{{false}}"><span class="ms" style="font-size: 16px; color: #8A958F" aria-hidden="true">group</span></sc-if>
+            <span style="flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{r.name}}</span>
+            <span class="ms" style="font-size: 15px; color: #8A958F" aria-hidden="true">notifications_off</span>
+            <span style="font-size: 12px; color: #8A958F">{{r.time}}</span>
+          </span>
+          <span style="display: flex; align-items: center; gap: 8px; margin-top: 3px">
+            <span style="flex: 1; font-size: 14px; color: #8A958F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{r.last}}</span>
+            <sc-if value="{{r.hasBadge}}" hint-placeholder-val="{{false}}"><span style="min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; background: #2A322E; color: #C9D2CC; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.badge}}</span></sc-if>
+          </span>
+        </span>
+      </button>
+    </sc-for>
+
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 90px 30px 0; display: flex; flex-direction: column; align-items: center; text-align: center; animation: kxRise .4s ease both">
+        <span style="width: 88px; height: 88px; border-radius: 30px; background: linear-gradient(145deg, #1D2A23, #121714); border: 1px solid #2A3A31; color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 44px" aria-hidden="true">inventory_2</span></span>
+        <div style="margin-top: 18px; font-size: 19px; font-weight: 800">Архив пуст</div>
+        <div style="margin-top: 6px; font-size: 14px; line-height: 20px; color: #9AA59F">Смахните чат влево в списке, чтобы убрать его сюда</div>
+        <button onClick="{{reset}}" style="margin-top: 18px; height: 42px; padding: 0 18px; border-radius: 21px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; text-align: center">Вернуть чаты в макет</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- Selection action bar -->
+  <sc-if value="{{selecting}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 14px; right: 14px; bottom: 22px; padding: 8px; border-radius: 30px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 18px 40px rgba(0,0,0,.5); display: flex; justify-content: space-around; animation: kxBar .35s cubic-bezier(.34,1.45,.5,1) both">
+      <sc-for list="{{actions}}" as="a" hint-placeholder-count="4">
+        <button onClick="{{a.tap}}" style="width: 76px; padding: 6px 0; border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: {{a.ink}}; text-align: center">
+          <span class="ms" aria-hidden="true">{{a.icon}}</span><span style="font-size: 11px; font-weight: 600">{{a.label}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 16px; right: 16px; bottom: 26px; height: 50px; padding: 0 8px 0 16px; border-radius: 18px; background: #1E2622; border: 1px solid rgba(143,211,172,.25); display: flex; align-items: center; gap: 10px; animation: kxToast 3s ease both">
+      <span class="ms" style="color: #8FD3AC" aria-hidden="true">unarchive</span>
+      <span style="flex: 1; font-size: 14px">{{toastText}}</span>
+      <button onClick="{{undo}}" style="height: 36px; padding: 0 12px; border-radius: 12px; color: #8FD3AC; font-size: 14px; font-weight: 700">Отменить</button>
+    </div>
+  </sc-if>
+
+  <!-- Settings sheet -->
+  <sc-if value="{{settings}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeSettings}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 28px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 16px"></div>
+      <div style="padding: 0 4px 12px; font-size: 19px; font-weight: 800">Настройки архива</div>
+      <sc-for list="{{opts}}" as="o" hint-placeholder-count="3">
+        <button onClick="{{o.tap}}" style="width: 100%; padding: 14px; margin-bottom: 6px; border-radius: 18px; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 12px">
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">{{o.label}}</span><span style="display: block; margin-top: 3px; font-size: 13px; line-height: 18px; color: #9AA59F">{{o.sub}}</span></span>
+          <span style="width: 50px; height: 30px; border-radius: 15px; background: {{o.track}}; position: relative; flex-shrink: 0; transition: background .2s"><span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px; background: {{o.knob}}; transform: translateX({{o.x}}); transition: transform .25s cubic-bezier(.34,1.45,.5,1), background .2s"></span></span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const CHATS = [
+  { id: 1, name: 'Новости технологий', type: 'channel', last: 'Вышло большое обновление Android', time: '14:02', badge: 128, av: 'linear-gradient(140deg,#2F6E9E,#14243A)', ink: '#CFE6FF' },
+  { id: 2, name: 'Двор · Соседи', type: 'group', last: 'Ирина: Кто оставил велосипед у подъезда?', time: '12:40', badge: 23, av: 'linear-gradient(140deg,#7A5A2E,#3A2A14)', ink: '#FFE2B8' },
+  { id: 3, name: 'Скидки и акции', type: 'channel', last: 'Только сегодня: −40% на всё', time: 'Вт', badge: 6, av: 'linear-gradient(140deg,#9E3F5C,#2E1420)', ink: '#FFD0DD' },
+  { id: 4, name: 'Сергей', type: 'user', last: 'Ок, тогда до пятницы', time: 'Пн', badge: 0, av: 'linear-gradient(140deg,#3F7A5A,#1E3A2A)', ink: '#CFF2DD' },
+  { id: 5, name: 'Курс английского', type: 'group', last: 'Домашнее задание на неделю', time: 'Вс', badge: 3, av: 'linear-gradient(140deg,#4B3F7A,#2A2240)', ink: '#DCD0FF' },
+  { id: 6, name: 'Погода', type: 'channel', last: 'Завтра снег, −8°', time: 'Сб', badge: 0, av: 'linear-gradient(140deg,#3A6E7A,#14303A)', ink: '#CFF4FF' },
+  { id: 7, name: 'Старый проект', type: 'group', last: 'Вы: Спасибо всем!', time: '12.10', badge: 0, av: 'linear-gradient(140deg,#5C6661,#2A302D)', ink: '#E2E8E4' }
+];
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { ids: CHATS.map(c => c.id), sel: [], leaving: [], tip: true, settings: false, keepMuted: true, folders: false, hideBadge: true, toast: 0, lastOut: [] };
+}
+componentWillUnmount() { clearTimeout(this.t); clearTimeout(this.tt); }
+remove(ids, text) {
+  this.setState({ leaving: ids, sel: [] });
+  clearTimeout(this.t);
+  this.t = setTimeout(() => {
+    this.setState({ ids: this.state.ids.filter(i => !ids.includes(i)), leaving: [], lastOut: ids, toast: Date.now(), toastText: text });
+    clearTimeout(this.tt); this.tt = setTimeout(() => this.setState({ toast: 0 }), 3000);
+  }, 320);
+}
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+lp(tap, long) { return { down: () => { clearTimeout(this._lp); this._lpDone = false; this._lp = setTimeout(() => { this._lpDone = true; long(); }, 450); }, up: () => { clearTimeout(this._lp); if (!this._lpDone) tap(); this._lpDone = true; }, leave: () => { clearTimeout(this._lp); this._lpDone = true; } }; }
+renderVals() {
+  const s = this.state;
+  const selecting = s.sel.length > 0;
+  const toggle = id => this.setState({ sel: s.sel.includes(id) ? s.sel.filter(i => i !== id) : [...s.sel, id] });
+  const rows = CHATS.filter(c => s.ids.includes(c.id)).map(c => {
+    const sel = s.sel.includes(c.id);
+    return {
+
+      name: c.name, last: c.last, time: c.time, badge: c.badge > 99 ? '99+' : String(c.badge), hasBadge: c.badge > 0 && !s.hideBadge,
+      init: c.name[0], av: c.av, avInk: c.ink, shape: c.type === 'channel' ? '16px' : '26px',
+      isChannel: c.type === 'channel', isGroup: c.type === 'group', sel,
+      bg: sel ? 'rgba(143,211,172,.1)' : 'transparent',
+      anim: s.leaving.includes(c.id) ? 'kxOut .32s ease forwards' : 'kxRise .35s ease both',
+      ...this.lp(() => s.sel.length ? toggle(c.id) : this.setState({ toast: Date.now(), toastText: 'Открывается чат · ' + c.name }), () => toggle(c.id))
+    };
+  });
+  const n = s.sel.length;
+  const word = n % 10 === 1 && n % 100 !== 11 ? 'чат' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'чата' : 'чатов';
+  const actions = [
+    { icon: 'unarchive', label: 'Вернуть', ink: '#8FD3AC', tap: () => this.remove(s.sel, n === 1 ? 'Чат возвращён в список' : 'Чаты возвращены в список') },
+    { icon: 'notifications', label: 'Со звуком', ink: '#EEF3EF', tap: () => this.remove(s.sel, 'Звук включён, чат вернулся в список') },
+    { icon: 'done_all', label: 'Прочитано', ink: '#EEF3EF', tap: () => this.setState({ sel: [] }) },
+    { icon: 'delete', label: 'Удалить', ink: '#FF8A80', tap: () => this.ask('Удалить выбранные чаты?', 'Личные чаты удалятся у вас, из групп и каналов вы выйдете.', 'Удалить', () => this.remove(s.sel, n === 1 ? 'Чат удалён' : 'Чаты удалены') )}
+  ];
+  const sw = on => ({ track: on ? '#8FD3AC' : 'rgba(255,255,255,.12)', knob: on ? '#06150D' : '#8A958F', x: on ? '20px' : '0' });
+  const opts = [
+    { label: 'Оставлять в архиве', sub: 'Чаты без звука не возвращаются в список при новых сообщениях', ...sw(s.keepMuted), tap: () => this.setState({ keepMuted: !s.keepMuted }) },
+    { label: 'Скрыть счётчики', sub: 'Не показывать число непрочитанных в архиве', ...sw(s.hideBadge), tap: () => this.setState({ hideBadge: !s.hideBadge }) },
+    { label: 'Папки в архиве', sub: 'Архивировать чаты из папок вместе с ними', ...sw(s.folders), tap: () => this.setState({ folders: !s.folders }) }
+  ];
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    rows, actions, opts,
+    normal: !selecting, selecting, selTitle: n + ' ' + word,
+    clearSel: () => this.setState({ sel: [] }),
+    selectAll: () => this.setState({ sel: s.ids.slice() }),
+    showTip: s.tip && s.ids.length > 0 && !selecting,
+    tipText: s.keepMuted ? 'Чаты без звука остаются тут, даже когда приходят новые сообщения. Удерживайте чат, чтобы выбрать.' : 'Чат вернётся в список, как только придёт новое сообщение. Удерживайте чат, чтобы выбрать.',
+    hideTip: () => this.setState({ tip: false }),
+    empty: s.ids.length === 0,
+    reset: () => this.setState({ ids: CHATS.map(c => c.id), sel: [], tip: true }),
+    toast: !!s.toast && !selecting, toastText: s.toastText || '',
+    undo: () => { clearTimeout(this.tt); this.setState({ ids: CHATS.map(c => c.id).filter(i => s.ids.includes(i) || s.lastOut.includes(i)), toast: 0, lastOut: [] }); },
+    settings: s.settings, openSettings: () => this.setState({ settings: true }), closeSettings: () => this.setState({ settings: false })
+  };
+}
+}
+</script>
+</body>
+</html>

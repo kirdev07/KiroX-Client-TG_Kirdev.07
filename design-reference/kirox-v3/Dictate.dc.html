@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Диктовка</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxWord{from{opacity:0;filter:blur(4px)}to{opacity:1;filter:none}}
+@keyframes kxOrb{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes kxRing{0%{transform:scale(.9);opacity:.6}100%{transform:scale(1.9);opacity:0}}
+@keyframes kxCaret{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes kxFly{0%{opacity:0;transform:translateY(30px) scale(.95)}100%{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: linear-gradient(135deg, #B07A2E, #6A4C9C); display: flex; align-items: center; justify-content: center; font-weight: 800">М</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Мама</div><div style="font-size: 12px; color: #8FD3AC">в сети</div></div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; gap: 8px; justify-content: flex-end">
+    <div style="align-self: flex-start; max-width: 80%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">Ты когда приедешь в субботу? <span style="font-size: 11px; color: #8A958F">17:52</span></div>
+    <sc-for list="{{sent}}" as="m" hint-placeholder-count="1"><div style="align-self: flex-end; max-width: 82%; padding: 8px 12px; border-radius: 18px 18px 6px 18px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px; animation: kxFly .35s ease both">{{m.t}} <span style="font-size: 11px; opacity: .7">18:01 ✓✓</span></div></sc-for>
+  </div>
+
+  <!-- Dictation panel -->
+  <div style="padding: 14px 16px 22px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.9), rgba(18,22,20,.98)); border-top: 1px solid rgba(255,255,255,.14)">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <span style="font-size: 12px; font-weight: 700; color: {{stateInk}}; display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 4px; background: {{stateInk}}"></span>{{stateText}}</span>
+      <span style="flex: 1"></span>
+      <sc-for list="{{langs}}" as="l" hint-placeholder-count="2"><button onClick="{{l.tap}}" style="height: 28px; padding: 0 10px; border-radius: 14px; background: {{l.bg}}; color: {{l.ink}}; font-size: 12px; font-weight: 700">{{l.label}}</button></sc-for>
+    </div>
+    <div style="margin-top: 12px; min-height: 96px; padding: 12px 14px; border-radius: 18px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.08); font-size: 17px; line-height: 1.45">
+      <sc-for list="{{words}}" as="w" hint-placeholder-count="6"><span style="animation: kxWord .3s ease both; color: {{w.ink}}">{{w.t}} </span></sc-for><sc-if value="{{listening}}" hint-placeholder-val="{{true}}"><span style="display: inline-block; width: 2px; height: 20px; background: #8FD3AC; vertical-align: -4px; animation: kxCaret 1s step-end infinite"></span></sc-if>
+      <sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><span style="color: #8A958F">Говорите — текст появится здесь</span></sc-if>
+    </div>
+    <!-- Waveform -->
+    <div style="margin-top: 12px; height: 34px; display: flex; align-items: center; justify-content: center; gap: 3px" aria-hidden="true">
+      <sc-for list="{{wave}}" as="b" hint-placeholder-count="30"><span style="width: 4px; height: {{b}}; border-radius: 2px; background: linear-gradient(180deg, #8FD3AC, #3F9A6C); transition: height .12s"></span></sc-for>
+    </div>
+    <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between">
+      <button onClick="{{clear}}" aria-label="Стереть" style="width: 52px; height: 52px; border-radius: 26px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" aria-hidden="true">backspace</span></button>
+      <div style="position: relative; width: 84px; height: 84px">
+        <sc-if value="{{listening}}" hint-placeholder-val="{{true}}"><span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8FD3AC; animation: kxRing 1.4s ease-out infinite" aria-hidden="true"></span></sc-if>
+        <button onClick="{{toggle}}" aria-label="{{micLabel}}" style="position: absolute; inset: 0; border-radius: 50%; background: {{micBg}}; color: {{micInk}}; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(63,154,108,.4); animation: {{orbAnim}}; transition: background .2s"><span class="ms fill" style="font-size: 38px" aria-hidden="true">{{micIcon}}</span></button>
+      </div>
+      <button onClick="{{send}}" aria-label="Отправить текстом" style="width: 52px; height: 52px; border-radius: 26px; background: {{sendBg}}; color: {{sendInk}}; display: flex; align-items: center; justify-content: center; transition: all .2s"><span class="ms fill" aria-hidden="true">send</span></button>
+    </div>
+    <div style="margin-top: 10px; text-align: center; font-size: 11px; color: #8A958F">Распознаётся на телефоне · скажите «точка» или «вопрос»</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PH = { ru: ['Привет,', 'мам!', 'Приеду', 'в', 'субботу', 'к', 'обеду,', 'часам', 'к', 'двум.', 'Испеки', 'свой', 'пирог,', 'пожалуйста', '🙂'], kk: ['Сәлем,', 'апа!', 'Сенбі', 'күні', 'түсте', 'келемін.', 'Бәлішіңді', 'пісірші', '🙂'] };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { lang: 'ru', n: 0, on: true, t: 0, sent: [] }; }
+componentDidMount() { this.loop(); }
+componentWillUnmount() { clearInterval(this.iv); clearInterval(this.wv); }
+loop() {
+  clearInterval(this.iv); clearInterval(this.wv);
+  this.iv = setInterval(() => { const s = this.state; if (!s.on) return; if (s.n < PH[s.lang].length) this.setState({ n: s.n + 1 }); else this.setState({ on: false }); }, 520);
+  this.wv = setInterval(() => this.setState({ t: this.state.t + 1 }), 120);
+}
+renderVals() {
+  const s = this.state;
+  const words = PH[s.lang].slice(0, s.n);
+  const text = words.join(' ');
+  const can = words.length > 0;
+  return {
+    stateText: s.on ? 'Слушаю' : can ? 'Готово — можно отправить' : 'Пауза', stateInk: s.on ? '#8FD3AC' : '#9AA59F',
+    langs: [['RU', 'ru'], ['KZ', 'kk']].map(([label, k]) => ({ label, bg: s.lang === k ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.05)', ink: s.lang === k ? '#8FD3AC' : '#9AA59F', tap: () => this.setState({ lang: k, n: 0, on: true }) })),
+    words: words.map((t, i) => ({ t, ink: i >= words.length - 2 && s.on ? '#C9E8D5' : '#EEF3EF' })),
+    listening: s.on, empty: !can && !s.on,
+    wave: Array.from({ length: 30 }, (_, i) => s.on ? Math.max(4, Math.round(6 + Math.abs(Math.sin((s.t + i) * 0.7) * Math.cos((s.t - i) * 0.31)) * 28)) + 'px' : '4px'),
+    toggle: () => this.setState({ on: !s.on, n: !s.on && s.n >= PH[s.lang].length ? 0 : s.n }),
+    micLabel: s.on ? 'Пауза' : 'Продолжить диктовку', micIcon: s.on ? 'pause' : 'mic',
+    micBg: s.on ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(143,211,172,.2)', micInk: s.on ? '#06150D' : '#8FD3AC',
+    orbAnim: s.on ? 'kxOrb 1.2s ease-in-out 2' : 'none',
+    clear: () => this.setState({ n: Math.max(0, s.n - 1) }),
+    sendBg: can ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', sendInk: can ? '#06150D' : '#5C6661',
+    send: () => { if (!can) return; this.setState({ sent: [...s.sent, { t: text }], n: 0, on: false }); },
+    sent: s.sent
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Конфиденциальность</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+@keyframes kxRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxShield{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <div aria-hidden="true" style="position: absolute; left: -90px; top: -110px; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(circle, rgba(70,160,110,.18), rgba(70,160,110,0) 65%)"></div>
+
+  <header style="position: relative; padding: 10px 12px 2px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="margin: 0; font-size: 22px; font-weight: 800">Конфиденциальность</h1>
+  </header>
+
+  <div style="position: relative; padding: 10px 16px 0; display: flex; flex-direction: column; gap: 12px">
+    <div style="padding: 14px; border-radius: 24px; background: linear-gradient(150deg, rgba(63,154,108,.24), rgba(255,255,255,.03)); border: 1px solid rgba(143,211,172,.18); display: flex; align-items: center; gap: 14px; animation: kxRise .45s ease both">
+      <span style="width: 52px; height: 52px; border-radius: 18px; background: rgba(143,211,172,.16); color: #8FD3AC; display: flex; align-items: center; justify-content: center; animation: kxShield 3s ease-in-out 2"><span class="ms fill" style="font-size: 30px" aria-hidden="true">{{shieldIcon}}</span></span>
+      <span style="flex-grow: 1"><span style="display: block; font-size: 15px; font-weight: 700">{{scoreTitle}}</span><span style="display: block; font-size: 12px; color: #A6B5AC">{{scoreText}}</span></span>
+    </div>
+
+    <div style="animation: kxRise .45s ease .05s both">
+      <div style="padding: 0 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Безопасность</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <button onClick="{{togglePin}}" style="height: 72px; padding: 12px; box-sizing: border-box; border-radius: 20px; background: rgba(255,255,255,.045); display: flex; flex-direction: column; justify-content: space-between"><span style="display: flex; align-items: center; justify-content: space-between"><span class="ms fill" style="font-size: 22px; color: #8FD3AC" aria-hidden="true">pin</span><span style="font-size: 11px; font-weight: 700; color: {{pinColor}}">{{pinState}}</span></span><span style="font-size: 14px; font-weight: 600">Код-пароль</span></button>
+        <button style="height: 72px; padding: 12px; box-sizing: border-box; border-radius: 20px; background: rgba(255,255,255,.045); display: flex; flex-direction: column; justify-content: space-between"><span style="display: flex; align-items: center; justify-content: space-between"><span class="ms fill" style="font-size: 22px; color: #A9CBF5" aria-hidden="true">key</span><span style="font-size: 11px; font-weight: 700; color: #8FD3AC">Включён</span></span><span style="font-size: 14px; font-weight: 600">Облачный пароль</span></button>
+        <button style="height: 72px; padding: 12px; box-sizing: border-box; border-radius: 20px; background: rgba(255,255,255,.045); display: flex; flex-direction: column; justify-content: space-between"><span style="display: flex; align-items: center; justify-content: space-between"><span class="ms fill" style="font-size: 22px; color: #FFD27A" aria-hidden="true">devices</span><span style="font-size: 11px; font-weight: 700; color: #9AA59F">3</span></span><span style="font-size: 14px; font-weight: 600">Устройства</span></button>
+        <button style="height: 72px; padding: 12px; box-sizing: border-box; border-radius: 20px; background: rgba(255,255,255,.045); display: flex; flex-direction: column; justify-content: space-between"><span style="display: flex; align-items: center; justify-content: space-between"><span class="ms fill" style="font-size: 22px; color: #FF8A80" aria-hidden="true">block</span><span style="font-size: 11px; font-weight: 700; color: #9AA59F">2</span></span><span style="font-size: 14px; font-weight: 600">Чёрный список</span></button>
+      </div>
+    </div>
+
+    <div style="animation: kxRise .45s ease .1s both">
+      <div style="padding: 0 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Кто видит</div>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+          <button onClick="{{r.open}}" style="height: 52px; padding: 0 14px; border-radius: {{r.radius}}; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 12px">
+            <span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">{{r.icon}}</span>
+            <span style="flex-grow: 1; font-size: 15px">{{r.label}}</span>
+            <span style="font-size: 13px; font-weight: 600; color: {{r.valueColor}}; transition: color .3s">{{r.value}}</span>
+            <span class="ms" style="font-size: 18px; color: #8A958F" aria-hidden="true">chevron_right</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px; animation: kxRise .45s ease .15s both">
+      <sc-for list="{{toggles}}" as="g" hint-placeholder-count="2">
+        <button role="switch" aria-checked="{{g.checked}}" onClick="{{g.flip}}" style="height: 54px; padding: 0 14px; border-radius: {{g.radius}}; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 12px">
+          <span style="flex-grow: 1"><span style="display: block; font-size: 15px">{{g.label}}</span><span style="display: block; font-size: 11px; color: #8A958F">{{g.sub}}</span></span>
+          <span style="width: 48px; height: 28px; border-radius: 14px; background: {{g.track}}; position: relative; transition: background .3s ease"><span style="position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 11px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,.4); transition: transform .35s cubic-bezier(.34,1.5,.5,1); transform: {{g.knob}}"></span></span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <sc-if value="{{picking}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closePick}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.55); animation: kxFade .2s ease both"></button>
+    <div role="dialog" aria-label="{{pickTitle}}" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 24px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(34,44,39,.94), rgba(16,20,18,.97)); border-top: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); animation: kxSheet .38s cubic-bezier(.2,.9,.25,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+      <div style="font-size: 20px; font-weight: 800">{{pickTitle}}</div>
+      <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">{{pickHint}}</div>
+      <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{choices}}" as="c" hint-placeholder-count="3">
+          <button role="radio" aria-checked="{{c.checked}}" onClick="{{c.pick}}" style="height: 56px; padding: 0 14px; border-radius: 18px; background: {{c.bg}}; border: 1px solid {{c.border}}; display: flex; align-items: center; gap: 12px; transition: background .25s, border-color .25s">
+            <span class="ms {{c.fill}}" style="font-size: 22px; color: {{c.iconColor}}" aria-hidden="true">{{c.icon}}</span>
+            <span style="flex-grow: 1; font-size: 15px; font-weight: 600">{{c.label}}</span>
+            <span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{c.radioRing}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 5px; background: #8FD3AC; transition: transform .3s cubic-bezier(.34,1.6,.5,1); transform: {{c.dot}}"></span></span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="margin-top: 12px; display: flex; gap: 8px">
+        <button style="flex: 1; height: 46px; border-radius: 16px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 600; text-align: center">Всегда разрешать…</button>
+        <button style="flex: 1; height: 46px; border-radius: 16px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 600; text-align: center">Никогда не разрешать…</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { pin: true, vals: { phone: 2, seen: 1, photo: 0, calls: 1, invites: 1, forward: 0 }, picking: null, readTime: true, archive: false };
+}
+renderVals() {
+  const s = this.state;
+  const opts = ['Все', 'Мои контакты', 'Никто'];
+  const defs = [
+    { key: 'phone', icon: 'call', label: 'Номер телефона', hint: 'Кто видит ваш номер в профиле' },
+    { key: 'seen', icon: 'schedule', label: 'Время захода', hint: 'Скрыв время, вы тоже не увидите его у других' },
+    { key: 'photo', icon: 'account_circle', label: 'Фото профиля', hint: 'Кто видит ваши фотографии' },
+    { key: 'calls', icon: 'phone_in_talk', label: 'Звонки', hint: 'Кто может вам звонить' },
+    { key: 'invites', icon: 'group_add', label: 'Приглашения', hint: 'Кто может добавлять вас в группы' },
+    { key: 'forward', icon: 'forward', label: 'Пересылка', hint: 'Будет ли ссылка на вас в пересланных сообщениях' }
+  ];
+  const n = defs.length;
+  const rows = defs.map((d, i) => ({
+    icon: d.icon, label: d.label, value: opts[s.vals[d.key]],
+    valueColor: s.vals[d.key] === 2 ? '#8FD3AC' : s.vals[d.key] === 1 ? '#C9D2CC' : '#9AA59F',
+    radius: i === 0 ? '20px 20px 6px 6px' : i === n - 1 ? '6px 6px 20px 20px' : '6px',
+    open: () => this.setState({ picking: d.key })
+  }));
+  const strict = Object.values(s.vals).filter(v => v > 0).length + (s.pin ? 1 : 0);
+  const cur = defs.find(d => d.key === s.picking) || {};
+  const icons = ['public', 'contacts', 'lock'];
+  const choices = opts.map((label, i) => {
+    const on = s.picking && s.vals[s.picking] === i;
+    return {
+      label, icon: icons[i], fill: on ? 'fill' : '', checked: on ? 'true' : 'false',
+      bg: on ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.05)', border: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.06)',
+      iconColor: on ? '#8FD3AC' : '#9AA59F', radioRing: on ? '#8FD3AC' : '#5E6964', dot: on ? 'scale(1)' : 'scale(0)',
+      pick: () => this.setState({ vals: Object.assign({}, s.vals, { [s.picking]: i }) })
+    };
+  });
+  const toggles = [
+    { key: 'readTime', label: 'Время прочтения', sub: 'Показывать, когда вы прочитали сообщение', radius: '20px 20px 6px 6px' },
+    { key: 'archive', label: 'Новые чаты — в архив', sub: 'Сообщения от незнакомцев не мешают', radius: '6px 6px 20px 20px' }
+  ].map(g => {
+    const on = s[g.key];
+    return Object.assign({}, g, { checked: on ? 'true' : 'false', track: on ? '#8FD3AC' : '#2A322E', knob: on ? 'translateX(20px)' : 'translateX(0)', flip: () => this.setState({ [g.key]: !on }) });
+  });
+  return {
+    rows, toggles, choices,
+    picking: !!s.picking, pickTitle: cur.label || '', pickHint: cur.hint || '',
+    closePick: () => this.setState({ picking: null }),
+    pinState: s.pin ? 'Включён' : 'Выключен', pinColor: s.pin ? '#8FD3AC' : '#FF8A80',
+    togglePin: () => this.setState({ pin: !s.pin }),
+    shieldIcon: strict >= 5 ? 'verified_user' : 'shield',
+    scoreTitle: strict >= 5 ? 'Аккаунт хорошо защищён' : 'Можно защитить лучше',
+    scoreText: strict >= 5 ? 'Код-пароль и облачный пароль включены' : 'Включите код-пароль и закройте номер'
+  };
+}
+}
+</script>
+</body>
+</html>

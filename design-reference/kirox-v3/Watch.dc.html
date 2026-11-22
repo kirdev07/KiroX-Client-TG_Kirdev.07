@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>kiroX на часах</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes kxBuzz{0%,100%{transform:translateX(0)}10%,30%,50%{transform:translateX(-3px)}20%,40%{transform:translateX(3px)}60%{transform:translateX(0)}}
+@keyframes kxBuzz2{0%,100%{transform:translateX(0)}10%,30%,50%{transform:translateX(-3px)}20%,40%{transform:translateX(3px)}60%{transform:translateX(0)}}
+@keyframes kxSent{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.2);opacity:1}100%{transform:scale(1)}}
+@keyframes kxSec{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: radial-gradient(90% 50% at 50% 30%, rgba(63,154,108,.18), transparent 70%), #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1"><h1 style="margin: 0; font-size: 20px; font-weight: 800">kiroX на часах</h1><div style="font-size: 12px; color: #8FD3AC">Часы подключены · 84%</div></div>
+  </header>
+
+  <!-- Watch -->
+  <div style="display: flex; justify-content: center; padding-top: 18px">
+    <div style="position: relative; width: 270px; height: 330px">
+      <span style="position: absolute; left: 85px; top: 0; width: 100px; height: 50px; border-radius: 16px 16px 0 0; background: linear-gradient(180deg, #1A201D, #2A322E)"></span>
+      <span style="position: absolute; left: 85px; bottom: 0; width: 100px; height: 50px; border-radius: 0 0 16px 16px; background: linear-gradient(0deg, #1A201D, #2A322E)"></span>
+      <span style="position: absolute; right: 4px; top: 140px; width: 12px; height: 40px; border-radius: 4px; background: #3A4540"></span>
+      <div style="position: absolute; left: 20px; top: 40px; width: 230px; height: 250px; border-radius: 50%; background: #2A322E; padding: 10px; box-sizing: border-box; box-shadow: 0 20px 50px rgba(0,0,0,.6); animation: {{buzz}}">
+        <div style="width: 100%; height: 100%; border-radius: 50%; background: #000; overflow: hidden; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center">
+          <!-- Face -->
+          <sc-if value="{{face}}" hint-placeholder-val="{{false}}">
+            <div style="animation: kxIn .3s ease both">
+              <div style="font-size: 46px; font-weight: 300; letter-spacing: -1px">18:04</div>
+              <div style="font-size: 12px; color: #9AA59F">Вс, 22 ноября</div>
+              <div style="margin-top: 10px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; background: rgba(143,211,172,.15); color: #8FD3AC; font-size: 12px; font-weight: 700"><span style="width: 14px; height: 14px; border-radius: 4px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 7px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center">kX</span>{{unread}}</div>
+            </div>
+            <span style="position: absolute; left: 50%; top: 6px; width: 2px; height: 50%; margin-left: -1px; transform-origin: bottom center; animation: kxSec 60s linear infinite" aria-hidden="true"><span style="display: block; width: 6px; height: 6px; margin-left: -2px; border-radius: 3px; background: #8FD3AC"></span></span>
+          </sc-if>
+          <!-- Notification -->
+          <sc-if value="{{notif}}" hint-placeholder-val="{{true}}">
+            <div style="padding: 0 22px; animation: kxIn .3s ease both">
+              <span style="display: inline-flex; width: 40px; height: 40px; border-radius: 20px; background: linear-gradient(135deg, #C0443C, #6A4C9C); align-items: center; justify-content: center; font-weight: 800">А</span>
+              <div style="margin-top: 4px; font-size: 13px; font-weight: 800">Анна</div>
+              <div style="margin-top: 2px; font-size: 13px; color: #C9D2CC; line-height: 1.3">Ты придёшь на ужин в 8? 🍝</div>
+              <div style="margin-top: 8px; display: flex; gap: 6px; justify-content: center">
+                <button onClick="{{openReplies}}" aria-label="Ответить" style="width: 36px; height: 36px; border-radius: 18px; background: #3F9A6C; color: #fff; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">reply</span></button>
+                <button onClick="{{voice}}" aria-label="Ответить голосом" style="width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">mic</span></button>
+                <button onClick="{{dismiss}}" aria-label="Закрыть" style="width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">close</span></button>
+              </div>
+            </div>
+          </sc-if>
+          <!-- Replies -->
+          <sc-if value="{{replies}}" hint-placeholder-val="{{false}}">
+            <div class="scroll" style="width: 100%; height: 100%; padding: 36px 26px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; animation: kxIn .25s ease both">
+              <sc-for list="{{quick}}" as="q" hint-placeholder-count="4"><button onClick="{{q.tap}}" style="flex-shrink: 0; min-height: 34px; padding: 6px 10px; border-radius: 17px; background: rgba(255,255,255,.12); font-size: 13px; font-weight: 600; text-align: center">{{q.t}}</button></sc-for>
+            </div>
+          </sc-if>
+          <!-- Voice -->
+          <sc-if value="{{listening}}" hint-placeholder-val="{{false}}">
+            <div style="animation: kxIn .25s ease both"><span class="ms fill" style="font-size: 40px; color: #8FD3AC" aria-hidden="true">graphic_eq</span><div style="margin-top: 6px; font-size: 13px; color: #C9D2CC">Говорите…</div><div style="margin-top: 4px; font-size: 14px; font-weight: 700">«Буду в восемь»</div><div style="margin-top: 8px; display: flex; gap: 6px; justify-content: center"><button onClick="{{cancelVoice}}" aria-label="Отмена" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button><button onClick="{{sendVoice}}" aria-label="Отправить" style="width: 44px; height: 44px; border-radius: 22px; background: #8FD3AC; color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">send</span></button></div></div>
+          </sc-if>
+          <!-- Sent -->
+          <sc-if value="{{sent}}" hint-placeholder-val="{{false}}">
+            <div><span style="display: inline-flex; width: 54px; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; align-items: center; justify-content: center; animation: kxSent .4s ease both"><span class="ms fill" style="font-size: 32px" aria-hidden="true">done_all</span></span><div style="margin-top: 8px; font-size: 13px; color: #C9D2CC">Отправлено</div><div style="margin-top: 2px; font-size: 12px; color: #8A958F; padding: 0 30px">«{{sentText}}»</div></div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 6px 16px 0; display: flex; justify-content: center">
+    <button onClick="{{replay}}" style="height: 38px; padding: 0 16px; border-radius: 19px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 700; color: #C9D2CC; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">notifications_active</span>Прислать сообщение на часы</button>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 16px 30px">
+    <div style="border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <sc-for list="{{opts}}" as="o" hint-placeholder-count="3">
+        <button onClick="{{o.tap}}" aria-pressed="{{o.on}}" style="width: 100%; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05)">
+          <span class="ms" style="color: #9AA59F" aria-hidden="true">{{o.icon}}</span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{o.label}}</span><span style="display: block; font-size: 12px; color: #8A958F">{{o.sub}}</span></span>
+          <span style="width: 48px; height: 28px; border-radius: 14px; background: {{o.track}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{o.knob}}; width: 22px; height: 22px; border-radius: 11px; background: {{o.knobBg}}; transition: left .2s"></span></span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const QUICK = ['Да, буду 👍', 'Опоздаю на 15 минут', 'Не смогу, прости', '❤️'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { screen: 'notif', sent: '', buzz: 1, vib: true, onlyFav: false, quick: true }; }
+componentWillUnmount() { clearTimeout(this.t1); clearTimeout(this.t2); }
+send(t) { this.setState({ screen: 'sent', sent: t }); clearTimeout(this.t2); this.t2 = setTimeout(() => this.setState({ screen: 'face' }), 2200); }
+renderVals() {
+  const s = this.state;
+  const sw = v => ({ track: v ? '#3F9A6C' : 'rgba(255,255,255,.14)', knob: v ? '23px' : '3px', knobBg: v ? '#EEF3EF' : '#9AA59F' });
+  return {
+    buzz: s.screen === 'notif' && s.vib ? (s.buzz % 2 ? 'kxBuzz' : 'kxBuzz2') + ' .6s ease' : 'none',
+    face: s.screen === 'face', notif: s.screen === 'notif', replies: s.screen === 'replies', listening: s.screen === 'voice', sent: s.screen === 'sent', sentText: s.sent,
+    unread: s.screen === 'face' && s.sent ? '15' : '16',
+    openReplies: () => this.setState({ screen: s.quick ? 'replies' : 'voice' }),
+    voice: () => this.setState({ screen: 'voice' }),
+    sendVoice: () => this.send('Буду в восемь'),
+    cancelVoice: () => this.setState({ screen: 'face' }),
+    dismiss: () => this.setState({ screen: 'face' }),
+    quick: QUICK.map(t => ({ t, tap: () => this.send(t) })),
+    replay: () => this.setState({ screen: 'notif', buzz: s.buzz + 1 }),
+    opts: [
+      { icon: 'vibration', label: 'Вибрация на часах', sub: 'Лёгкий двойной толчок', k: 'vib' },
+      { icon: 'star', label: 'Только избранные чаты', sub: 'Остальные — без уведомлений на часах', k: 'onlyFav' },
+      { icon: 'bolt', label: 'Быстрые ответы', sub: 'Иначе сразу диктовка', k: 'quick' }
+    ].map(o => { const w = sw(s[o.k]); return { ...o, on: s[o.k], track: w.track, knob: w.knob, knobBg: w.knobBg, tap: () => this.setState({ [o.k]: !s[o.k] }) }; })
+  };
+}
+}
+</script>
+</body>
+</html>

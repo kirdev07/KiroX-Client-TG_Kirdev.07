@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Имя пользователя</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+input{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.2);opacity:1}100%{transform:scale(1)}}
+@keyframes kxShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Имя пользователя</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 6px 16px 110px">
+    <!-- Input -->
+    <div style="height: 62px; padding: 0 14px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1.5px solid {{bd}}; display: flex; align-items: center; gap: 4px; transition: border-color .2s; animation: {{shake}}">
+      <span style="font-size: 22px; font-weight: 800; color: #8FD3AC">@</span>
+      <input value="{{name}}" onInput="{{onName}}" maxlength="32" placeholder="username" aria-label="Имя пользователя" autocapitalize="off" spellcheck="false" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 20px; font-weight: 700; letter-spacing: .3px">
+      <sc-if value="{{checking}}" hint-placeholder-val="{{false}}"><span style="width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(143,211,172,.25); border-top-color: #8FD3AC; animation: kxSpin .8s linear infinite" aria-hidden="true"></span></sc-if>
+      <sc-if value="{{showIcon}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="color: {{iconInk}}; animation: kxPop .3s ease both" aria-hidden="true">{{icon}}</span></sc-if>
+    </div>
+    <div style="margin: 8px 6px 0; display: flex; align-items: center; gap: 6px; font-size: 13px; color: {{msgInk}}; min-height: 18px"><span>{{msg}}</span><span style="margin-left: auto; color: #8A958F; font-size: 12px">{{lenText}}</span></div>
+
+    <!-- Rules -->
+    <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px">
+      <sc-for list="{{rules}}" as="r" hint-placeholder-count="3"><span style="height: 30px; padding: 0 10px; border-radius: 15px; background: {{r.bg}}; color: {{r.ink}}; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: all .2s"><span class="ms" style="font-size: 15px" aria-hidden="true">{{r.icon}}</span>{{r.label}}</span></sc-for>
+    </div>
+
+    <!-- Suggestions -->
+    <sc-if value="{{showSug}}" hint-placeholder-val="{{false}}">
+      <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px; animation: kxIn .2s ease both">Свободные варианты</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; animation: kxIn .2s ease both">
+        <sc-for list="{{sug}}" as="g" hint-placeholder-count="4"><button onClick="{{g.tap}}" style="height: 36px; padding: 0 14px; border-radius: 18px; background: rgba(143,211,172,.1); border: 1px solid rgba(143,211,172,.3); color: #8FD3AC; font-size: 14px; font-weight: 700">@{{g.t}}</button></sc-for>
+      </div>
+    </sc-if>
+
+    <!-- Link card -->
+    <div style="margin-top: 18px; padding: 16px; border-radius: 24px; background: radial-gradient(100% 90% at 100% 0%, rgba(63,154,108,.25), transparent 60%), rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); opacity: {{cardOp}}; transition: opacity .3s">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="width: 48px; height: 48px; border-radius: 24px; background: linear-gradient(135deg, #6FC497, #2F6E9E); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: #06150D">А</span>
+        <div style="flex: 1; min-width: 0"><div style="font-size: 16px; font-weight: 800">Алекс</div><div style="font-size: 13px; color: #8FD3AC; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">@{{shown}}</div></div>
+      </div>
+      <div style="margin-top: 12px; height: 46px; padding: 0 6px 0 14px; border-radius: 15px; background: rgba(0,0,0,.3); display: flex; align-items: center; gap: 8px">
+        <span class="ms" style="color: #9AA59F; font-size: 20px" aria-hidden="true">link</span>
+        <span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">t.me/{{shown}}</span>
+        <button onClick="{{copy}}" aria-label="Скопировать ссылку" style="width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">content_copy</span></button>
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; line-height: 1.45; color: #8A958F">По этой ссылке вам смогут написать, не зная номера телефона.</div>
+    </div>
+
+    <button onClick="{{remove}}" style="margin-top: 12px; width: 100%; height: 48px; border-radius: 18px; font-size: 14px; font-weight: 700; color: #FF8A80; text-align: center">Убрать имя пользователя</button>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; background: linear-gradient(180deg, rgba(10,12,11,0), #0A0C0B 40%)">
+    <button onClick="{{save}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{saveBg}}; color: {{saveInk}}; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .25s"><span class="ms fill" aria-hidden="true">alternate_email</span>{{saveText}}</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const TAKEN = ['kirill', 'admin', 'telegram', 'kirox', 'android', 'anna', 'test'];
+const CURRENT = 'kirill_dev';
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { name: CURRENT, saved: CURRENT, check: 'ok', shakeN: 0, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tc); clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+validate(n) {
+  if (!n) return 'empty';
+  if (/[^a-zA-Z0-9_]/.test(n)) return 'chars';
+  if (/^[0-9_]/.test(n)) return 'start';
+  if (n.length < 5) return 'short';
+  if (/_$/.test(n) || /__/.test(n)) return 'under';
+  return '';
+}
+setName(v) {
+  const n = v.replace(/^@/, '').slice(0, 32);
+  clearTimeout(this.tc);
+  const err = this.validate(n);
+  if (err || n === this.state.saved) { this.setState({ name: n, check: err ? 'bad' : 'ok' }); return; }
+  this.setState({ name: n, check: 'checking' });
+  this.tc = setTimeout(() => this.setState({ check: TAKEN.includes(n.toLowerCase()) ? 'taken' : 'free' }), 700);
+}
+renderVals() {
+  const s = this.state;
+  const n = s.name;
+  const err = this.validate(n);
+  const errText = { empty: 'Без имени вас найдут только по номеру', chars: 'Только латиница, цифры и _', start: 'Должно начинаться с буквы', short: 'Минимум 5 символов', under: 'Не может кончаться на _ и содержать __' }[err];
+  const free = s.check === 'free', taken = s.check === 'taken', same = n === s.saved && !err;
+  const clearing = n === '' && s.saved !== '';
+  const can = free || clearing;
+  const base = (n.replace(/[^a-zA-Z0-9]/g, '') || 'kirill').toLowerCase();
+  return {
+    name: n, onName: e => this.setName(e.target.value),
+    bd: err && n ? 'rgba(229,83,75,.5)' : taken ? 'rgba(229,83,75,.5)' : free ? 'rgba(143,211,172,.6)' : 'rgba(255,255,255,.1)',
+    shake: s.shakeN ? 'kxShake .3s ease' : 'none',
+    checking: s.check === 'checking', showIcon: free || taken || same || (!!err && !!n),
+    icon: free || same ? 'check_circle' : 'cancel', iconInk: free || same ? '#8FD3AC' : '#FF8A80',
+    msg: s.check === 'checking' ? 'Проверяем…' : err ? errText : taken ? '@' + n + ' уже занято' : free ? '@' + n + ' свободно!' : same ? 'Это ваше текущее имя' : '',
+    msgInk: err && n ? '#FF8A80' : taken ? '#FF8A80' : free ? '#8FD3AC' : '#9AA59F',
+    lenText: n.length + '/32',
+    rules: [
+      ['Латиница, цифры, _', 'abc', !/[^a-zA-Z0-9_]/.test(n) && n.length > 0],
+      ['От 5 символов', 'straighten', n.length >= 5],
+      ['Начинается с буквы', 'text_fields', /^[a-zA-Z]/.test(n)]
+    ].map(([label, icon, ok]) => ({ label, icon: ok ? 'check' : icon, bg: ok ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.05)', ink: ok ? '#8FD3AC' : '#8A958F' })),
+    showSug: taken, sug: [base + '_kz', base + '2026', 'its_' + base, base + '_x'].filter(t => !TAKEN.includes(t)).map(t => ({ t, tap: () => this.setName(t) })),
+    shown: (err || taken ? s.saved : n) || '—', cardOp: err || taken ? '.5' : '1',
+    copy: () => this.toastMsg('Ссылка скопирована', 'content_copy'),
+    remove: () => this.setState({ name: '', check: 'bad' }),
+    saveBg: can ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', saveInk: can ? '#06150D' : '#5C6661',
+    saveText: clearing ? 'Убрать имя' : can ? 'Сохранить @' + n : same ? 'Без изменений' : 'Сохранить',
+    save: () => { if (!can) { this.setState({ shakeN: s.shakeN + 1 }); setTimeout(() => this.setState({ shakeN: 0 }), 320); return; } this.setState({ saved: n, check: 'ok' }); this.toastMsg(n ? 'Теперь вы @' + n : 'Имя пользователя убрано', 'alternate_email'); },
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

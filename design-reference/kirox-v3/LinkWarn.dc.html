@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Открыть ссылку?</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxDim{from{opacity:0}to{opacity:1}}
+@keyframes kxShake{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #2F6E9E; display: flex; align-items: center; justify-content: center; font-weight: 800">С</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Семья</div><div style="font-size: 12px; color: #9AA59F">5 участников</div></div>
+  </header>
+
+  <div style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px">
+    <div style="align-self: flex-start; max-width: 82%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px; line-height: 1.45"><span style="display: block; font-size: 12px; font-weight: 800; color: #7FB8E0">Папа</span>Расписание электричек на субботу: <button onClick="{{openSafe}}" style="color: #8FD3AC; text-decoration: underline; text-underline-offset: 3px; font-size: 15px">вот тут</button> 🚆</div>
+    <div style="align-self: flex-start; max-width: 82%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px; line-height: 1.45"><span style="display: block; font-size: 12px; font-weight: 800; color: #E8B04A">Незнакомый номер</span>Вам положена выплата! Проверьте в <button onClick="{{openBad}}" style="color: #8FD3AC; text-decoration: underline; text-underline-offset: 3px; font-size: 15px">личном кабинете</button></div>
+  </div>
+  <div style="padding: 8px 12px 16px; border-top: 1px solid rgba(255,255,255,.06)"><div style="height: 48px; padding: 0 16px; border-radius: 24px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 15px; color: #8A958F">Сообщение</div></div>
+
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{true}}">
+    <button onClick="{{close}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxDim .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 18px 24px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.99), rgba(18,22,20,1)); border-top: 1px solid {{topBd}}; animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="width: 48px; height: 48px; border-radius: 16px; background: {{icBg}}; color: {{icInk}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 26px; animation: {{icAnim}}" aria-hidden="true">{{icon}}</span></span>
+        <div style="flex: 1"><div style="font-size: 18px; font-weight: 800">{{title}}</div><div style="font-size: 12px; color: #9AA59F">Текст ссылки: «{{label}}»</div></div>
+      </div>
+      <div style="margin-top: 14px; padding: 12px 14px; border-radius: 16px; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.08); font: 14px/1.5 ui-monospace, monospace; word-break: break-all"><span style="color: #8A958F">https://</span><span style="color: {{domInk}}; font-weight: 800; background: {{domBg}}; border-radius: 4px; padding: 0 2px">{{domain}}</span><span style="color: #9AA59F">{{path}}</span></div>
+      <sc-if value="{{bad}}" hint-placeholder-val="{{false}}">
+        <div style="margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255,138,128,.08); border: 1px solid rgba(255,138,128,.3); display: flex; gap: 8px; font-size: 13px; line-height: 1.4; color: #FFC4BE"><span class="ms" style="font-size: 18px; color: #FF8A80" aria-hidden="true">warning</span><span>Текст ссылки не совпадает с адресом, а в адресе цифры вместо букв. Такие ссылки часто ведут на мошенников. Не вводите там пароли и коды.</span></div>
+      </sc-if>
+      <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px">
+        <button onClick="{{primary}}" style="width: 100%; height: 52px; border-radius: 26px; background: {{pBg}}; color: {{pInk}}; font-size: 15px; font-weight: 800; text-align: center">{{pText}}</button>
+        <div style="display: flex; gap: 8px">
+          <button onClick="{{secondary}}" style="flex: 1; height: 46px; border-radius: 23px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; text-align: center">{{sText}}</button>
+          <button onClick="{{copy}}" style="flex: 1; height: 46px; border-radius: 23px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; text-align: center">Скопировать</button>
+        </div>
+      </div>
+      <button onClick="{{toggleAsk}}" role="switch" aria-checked="{{askOn}}" style="margin-top: 10px; width: 100%; min-height: 48px; display: flex; align-items: center; gap: 12px"><span style="flex: 1; font-size: 13px; color: #C9D2CC">Спрашивать, если текст ссылки не совпадает с адресом</span><span style="width: 42px; height: 26px; border-radius: 13px; background: {{trk}}; position: relative; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{knx}}; width: 20px; height: 20px; border-radius: 10px; background: {{knc}}; transition: left .2s"></span></span></button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 90px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const L = {
+  safe: { label: 'вот тут', domain: 'rasp.example.kz', path: '/trains/saturday', title: 'Открыть ссылку?' },
+  bad: { label: 'личном кабинете', domain: 'kab1net-vyp1ata.top', path: '/login?id=88412', title: 'Осторожно: подозрительная ссылка' }
+};
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { which: 'bad', open: true, ask: true, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const l = L[s.which];
+  const bad = s.which === 'bad';
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1, open: false }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2000); };
+  return {
+    sheet: s.open, close: () => this.setState({ open: false }),
+    openSafe: () => this.setState({ which: 'safe', open: true }), openBad: () => this.setState({ which: 'bad', open: true }),
+    title: l.title, label: l.label, domain: l.domain, path: l.path, bad,
+    icon: bad ? 'gpp_bad' : 'link', icBg: bad ? 'rgba(255,138,128,.14)' : 'rgba(143,211,172,.14)', icInk: bad ? '#FF8A80' : '#8FD3AC', icAnim: bad ? 'kxShake .5s ease 2' : 'none',
+    topBd: bad ? 'rgba(255,138,128,.35)' : 'rgba(255,255,255,.16)',
+    domInk: bad ? '#FF8A80' : '#EEF3EF', domBg: bad ? 'rgba(255,138,128,.12)' : 'rgba(143,211,172,.1)',
+    pText: bad ? 'Не открывать' : 'Открыть во встроенном браузере', pBg: bad ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'linear-gradient(135deg, #6FC497, #3F9A6C)', pInk: '#06150D',
+    primary: () => bad ? say('Ссылка не открыта') : say('Открываем ' + l.domain),
+    sText: bad ? 'Всё равно открыть' : 'В браузере телефона',
+    secondary: () => say(bad ? 'Открываем на свой страх и риск' : 'Открываем в браузере телефона'),
+    copy: () => say('Адрес скопирован'),
+    toggleAsk: () => this.setState({ ask: !s.ask }), askOn: s.ask ? 'true' : 'false',
+    trk: s.ask ? '#3F9A6C' : 'rgba(255,255,255,.14)', knc: s.ask ? '#EEF3EF' : '#9AA59F', knx: s.ask ? '19px' : '3px',
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

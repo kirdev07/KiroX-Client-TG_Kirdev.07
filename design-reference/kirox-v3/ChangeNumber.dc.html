@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Сменить номер</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+input{font:inherit;color:inherit}
+@keyframes kxIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes kxSim{0%{transform:translate(0,14px) scale(.7) rotate(0);opacity:0}8%{transform:translate(0,-4px) scale(1.08) rotate(0);opacity:1}16%{transform:translate(0,-26px) scale(1) rotate(-14deg)}32%{transform:translate(36px,-62px) scale(1.1) rotate(-200deg)}48%{transform:translate(88px,-62px) scale(1.1) rotate(-340deg)}60%{transform:translate(124px,-22px) scale(1) rotate(-360deg)}68%{transform:translate(124px,14px) scale(.92) rotate(-360deg)}72%{transform:translate(124px,8px) scale(.96) rotate(-360deg)}80%{transform:translate(124px,14px) scale(.9) rotate(-360deg);opacity:1}90%,100%{transform:translate(124px,14px) scale(.8) rotate(-360deg);opacity:0}}
+@keyframes kxOld{0%,10%{border-color:rgba(255,255,255,.4);opacity:1}25%,90%{border-color:rgba(255,255,255,.18);opacity:.6}100%{border-color:rgba(255,255,255,.4);opacity:1}}
+@keyframes kxOldScr{0%,10%{opacity:.5}25%,100%{opacity:0}}
+@keyframes kxNew{0%,66%{border-color:rgba(143,211,172,.35);box-shadow:0 0 0 rgba(143,211,172,0);transform:scale(1)}72%{border-color:#8FD3AC;box-shadow:0 0 40px rgba(143,211,172,.55);transform:scale(1.06)}80%{transform:scale(1)}92%{border-color:#8FD3AC;box-shadow:0 0 26px rgba(143,211,172,.35)}100%{border-color:rgba(143,211,172,.35);box-shadow:0 0 0 rgba(143,211,172,0)}}
+@keyframes kxNewScr{0%,68%{opacity:0}76%,92%{opacity:1}100%{opacity:0}}
+@keyframes kxBars{0%,70%{transform:scaleY(0)}80%,92%{transform:scaleY(1)}100%{transform:scaleY(0)}}
+@keyframes kxSpark{0%,68%{transform:scale(0) rotate(0);opacity:0}76%{transform:scale(1.2) rotate(45deg);opacity:1}88%,100%{transform:scale(0) rotate(90deg);opacity:0}}
+@keyframes kxTrail{0%,12%{stroke-dashoffset:200;opacity:0}20%{opacity:.7}60%{stroke-dashoffset:0;opacity:.7}75%,100%{stroke-dashoffset:0;opacity:0}}
+@keyframes kxPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+@keyframes kxShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes kxBlink{0%,100%{opacity:1}50%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button onClick="{{back}}" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Сменить номер</h1>
+  </header>
+  <!-- steps -->
+  <div style="padding: 4px 20px 0; display: flex; gap: 6px">
+    <sc-for list="{{steps}}" as="p" hint-placeholder-count="4"><span style="flex: 1; height: 4px; border-radius: 2px; background: {{p.bg}}; transition: background .3s"></span></sc-for>
+  </div>
+
+  <!-- Step 0: intro -->
+  <sc-if value="{{s0}}" hint-placeholder-val="{{true}}">
+    <div style="flex: 1; min-height: 0; padding: 30px 24px 0; display: flex; flex-direction: column; align-items: center; text-align: center; animation: kxIn .3s ease both">
+      <div style="position: relative; width: 240px; height: 150px" aria-hidden="true">
+        <!-- trail -->
+        <svg width="240" height="150" viewBox="0 0 240 150" style="position: absolute; inset: 0; overflow: visible">
+          <path d="M58 70 C 80 -10, 160 -10, 182 70" fill="none" stroke="#8FD3AC" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 7" style="stroke-dashoffset: 200; animation: kxTrail 3.4s ease-in-out infinite"></path>
+        </svg>
+        <!-- old phone -->
+        <span style="position: absolute; left: 22px; top: 36px; width: 72px; height: 112px; border-radius: 16px; border: 2px solid rgba(255,255,255,.4); background: #121614; animation: kxOld 3.4s ease-in-out infinite">
+          <span style="position: absolute; left: 6px; right: 6px; top: 8px; bottom: 8px; border-radius: 10px; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.04)); animation: kxOldScr 3.4s ease-in-out infinite"></span>
+          <span style="position: absolute; left: 50%; top: 3px; width: 16px; height: 3px; margin-left: -8px; border-radius: 2px; background: rgba(255,255,255,.25)"></span>
+        </span>
+        <!-- new phone -->
+        <span style="position: absolute; right: 22px; top: 36px; width: 72px; height: 112px; border-radius: 16px; border: 2px solid rgba(143,211,172,.35); background: #121614; animation: kxNew 3.4s ease-in-out infinite">
+          <span style="position: absolute; left: 6px; right: 6px; top: 8px; bottom: 8px; border-radius: 10px; background: radial-gradient(90% 70% at 50% 30%, rgba(143,211,172,.45), rgba(63,154,108,.12)); animation: kxNewScr 3.4s ease-in-out infinite; display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding-bottom: 14px; box-sizing: border-box">
+            <span style="width: 5px; height: 8px; border-radius: 2px; background: #EEF3EF; transform-origin: bottom; animation: kxBars 3.4s ease-out infinite"></span>
+            <span style="width: 5px; height: 13px; border-radius: 2px; background: #EEF3EF; transform-origin: bottom; animation: kxBars 3.4s ease-out .06s infinite"></span>
+            <span style="width: 5px; height: 18px; border-radius: 2px; background: #EEF3EF; transform-origin: bottom; animation: kxBars 3.4s ease-out .12s infinite"></span>
+            <span style="width: 5px; height: 23px; border-radius: 2px; background: #EEF3EF; transform-origin: bottom; animation: kxBars 3.4s ease-out .18s infinite"></span>
+          </span>
+          <span style="position: absolute; left: 50%; top: 3px; width: 16px; height: 3px; margin-left: -8px; border-radius: 2px; background: rgba(255,255,255,.25)"></span>
+        </span>
+        <!-- sparkles -->
+        <span class="ms fill" style="position: absolute; right: 8px; top: 24px; font-size: 18px; color: #8FD3AC; animation: kxSpark 3.4s ease-out infinite">auto_awesome</span>
+        <span class="ms fill" style="position: absolute; right: 92px; top: 52px; font-size: 13px; color: #E8B04A; animation: kxSpark 3.4s ease-out .1s infinite">auto_awesome</span>
+        <span class="ms fill" style="position: absolute; right: 30px; top: 140px; font-size: 14px; color: #8FD3AC; animation: kxSpark 3.4s ease-out .18s infinite">auto_awesome</span>
+        <!-- SIM card -->
+        <span style="position: absolute; left: 39px; top: 66px; width: 38px; height: 48px; animation: kxSim 3.4s cubic-bezier(.45,.05,.35,1) infinite; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5))">
+          <span style="position: absolute; inset: 0; clip-path: polygon(0 0, 70% 0, 100% 22%, 100% 100%, 0 100%); border-radius: 5px; background: linear-gradient(145deg, #F4CF7A 0%, #E2A84A 45%, #B9792A 100%)"></span>
+          <span style="position: absolute; inset: 0; clip-path: polygon(0 0, 70% 0, 100% 22%, 100% 100%, 0 100%); border-radius: 5px; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.45) 45%, transparent 60%)"></span>
+          <span style="position: absolute; left: 7px; top: 15px; width: 24px; height: 20px; border-radius: 4px; background: linear-gradient(135deg, #FFE9A8, #D9A84E); border: 1px solid rgba(110,70,20,.55); overflow: hidden">
+            <span style="position: absolute; left: 0; right: 0; top: 6px; height: 1px; background: rgba(110,70,20,.55)"></span>
+            <span style="position: absolute; left: 0; right: 0; top: 12px; height: 1px; background: rgba(110,70,20,.55)"></span>
+            <span style="position: absolute; top: 0; bottom: 0; left: 11px; width: 1px; background: rgba(110,70,20,.55)"></span>
+            <span style="position: absolute; left: 7px; top: 5px; width: 9px; height: 9px; border-radius: 2px; border: 1px solid rgba(110,70,20,.55); background: #F2D07E"></span>
+          </span>
+          <span style="position: absolute; left: 7px; bottom: 5px; font-size: 11px; font-weight: 900; letter-spacing: .5px; color: rgba(80,50,15,.7)">SIM</span>
+        </span>
+      </div>
+      <div style="margin-top: 22px; font-size: 22px; font-weight: 800">Новая SIM-карта?</div>
+      <div style="margin-top: 10px; font-size: 14px; line-height: 1.5; color: #9AA59F">Чаты, контакты, группы и каналы останутся с вами. Поменяется только номер, по которому вас находят.</div>
+      <div style="margin-top: 22px; width: 100%; padding: 14px 16px; box-sizing: border-box; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 12px; text-align: left">
+        <span class="ms" style="color: #9AA59F" aria-hidden="true">sim_card</span>
+        <span style="flex: 1"><span style="display: block; font-size: 12px; color: #8A958F">Сейчас</span><span style="display: block; font-size: 16px; font-weight: 700; letter-spacing: .4px">+7 777 ••• •• 12</span></span>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Step 1: new number -->
+  <sc-if value="{{s1}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; min-height: 0; padding: 30px 20px 0; animation: kxIn .3s ease both">
+      <div style="font-size: 22px; font-weight: 800">Новый номер</div>
+      <div style="margin-top: 6px; font-size: 14px; color: #9AA59F">На него придёт код подтверждения</div>
+      <div style="margin-top: 20px; height: 60px; padding: 0 16px 0 8px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid {{numBd}}; display: flex; align-items: center; gap: 10px; transition: border-color .3s; animation: {{numShake}}">
+        <span style="height: 44px; padding: 0 12px; border-radius: 15px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 16px; font-weight: 700">🇰🇿 +7</span>
+        <input value="{{num}}" onInput="{{onNum}}" placeholder="000 000 00 00" inputmode="tel" aria-label="Новый номер" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 19px; letter-spacing: .6px">
+      </div>
+      <div style="margin: 8px 6px 0; font-size: 12px; color: {{numHintInk}}">{{numHint}}</div>
+      <div style="margin-top: 18px; padding: 14px 16px; border-radius: 20px; background: rgba(232,176,74,.08); border: 1px solid rgba(232,176,74,.25); display: flex; gap: 12px">
+        <span class="ms" style="color: #E8B04A" aria-hidden="true">info</span>
+        <span style="font-size: 13px; line-height: 1.45; color: #E4D3B0">Контакты, у которых есть ваш старый номер, получат новый автоматически. Остальные увидят его по правилам «Конфиденциальности».</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Step 2: code -->
+  <sc-if value="{{s2}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; min-height: 0; padding: 30px 20px 0; animation: kxIn .3s ease both">
+      <div style="font-size: 22px; font-weight: 800">Код подтверждения</div>
+      <div style="margin-top: 6px; font-size: 14px; color: #9AA59F">Отправили на +7 {{numShown}}</div>
+      <div style="margin-top: 24px; display: flex; justify-content: center; gap: 10px; animation: {{codeShake}}">
+        <sc-for list="{{cells}}" as="c" hint-placeholder-count="5"><span style="width: 52px; height: 62px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1.5px solid {{c.bd}}; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; transition: border-color .2s">{{c.v}}<sc-if value="{{c.caret}}" hint-placeholder-val="{{false}}"><span style="width: 2px; height: 26px; background: #8FD3AC; animation: kxBlink 1s step-end infinite"></span></sc-if></span></sc-for>
+      </div>
+      <div style="margin-top: 12px; text-align: center; font-size: 13px; color: {{codeHintInk}}">{{codeHint}}</div>
+      <!-- keypad -->
+      <div style="margin: 22px auto 0; width: 300px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px">
+        <sc-for list="{{keys}}" as="k" hint-placeholder-count="12"><button onClick="{{k.tap}}" aria-label="{{k.label}}" style="height: 56px; border-radius: 20px; background: {{k.bg}}; font-size: 22px; font-weight: 600; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: {{k.isz}}" aria-hidden="true">{{k.icon}}</span>{{k.t}}</button></sc-for>
+      </div>
+      <button onClick="{{resend}}" style="margin: 14px auto 0; display: block; font-size: 13px; font-weight: 700; color: {{resendInk}}; text-align: center">{{resendText}}</button>
+    </div>
+  </sc-if>
+
+  <!-- Step 3: done -->
+  <sc-if value="{{s3}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; min-height: 0; padding: 60px 24px 0; display: flex; flex-direction: column; align-items: center; text-align: center">
+      <span style="width: 96px; height: 96px; border-radius: 48px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 50px rgba(63,154,108,.4); animation: kxPop .5s ease both"><span class="ms fill" style="font-size: 52px" aria-hidden="true">check</span></span>
+      <div style="margin-top: 22px; font-size: 22px; font-weight: 800">Номер изменён</div>
+      <div style="margin-top: 8px; font-size: 15px; font-weight: 700; color: #8FD3AC">+7 {{numShown}}</div>
+      <div style="margin-top: 10px; font-size: 14px; line-height: 1.5; color: #9AA59F">Все чаты на месте. На других устройствах вход сохранится.</div>
+    </div>
+  </sc-if>
+
+  <div style="padding: 14px 16px 22px">
+    <button onClick="{{next}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{nextBg}}; color: {{nextInk}}; font-size: 16px; font-weight: 800; text-align: center; transition: all .25s">{{nextText}}</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const fmt = d => [d.slice(0, 3), d.slice(3, 6), d.slice(6, 8), d.slice(8, 10)].filter(Boolean).join(' ');
+const GOOD = '24680';
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { step: 0, digits: '', code: '', bad: 0, sec: 45, shakeN: 0, shakeC: 0 }; }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tc); }
+startTimer() { clearInterval(this.iv); this.setState({ sec: 45 }); this.iv = setInterval(() => { const v = this.state.sec - 1; this.setState({ sec: Math.max(0, v) }); if (v <= 0) clearInterval(this.iv); }, 1000); }
+typeKey(k) {
+  const s = this.state;
+  if (k === 'del') { this.setState({ code: s.code.slice(0, -1), bad: 0 }); return; }
+  if (s.code.length >= 5) return;
+  const code = s.code + k;
+  this.setState({ code, bad: 0 });
+  if (code.length === 5) {
+    clearTimeout(this.tc);
+    this.tc = setTimeout(() => {
+      if (code === GOOD) { clearInterval(this.iv); this.setState({ step: 3 }); }
+      else this.setState({ bad: 1, code: '', shakeC: this.state.shakeC + 1 });
+    }, 350);
+  }
+}
+renderVals() {
+  const s = this.state;
+  const full = s.digits.length === 10;
+  const same = s.digits === '7770000012';
+  const canNext = s.step === 0 || (s.step === 1 && full && !same) || s.step === 3;
+  return {
+    steps: [0, 1, 2, 3].map(i => ({ bg: i <= s.step ? '#8FD3AC' : 'rgba(255,255,255,.1)' })),
+    s0: s.step === 0, s1: s.step === 1, s2: s.step === 2, s3: s.step === 3,
+    back: () => s.step > 0 && s.step < 3 && this.setState({ step: s.step - 1, code: '', bad: 0 }),
+    num: fmt(s.digits), onNum: e => this.setState({ digits: e.target.value.replace(/\D/g, '').slice(0, 10) }),
+    numBd: same ? 'rgba(229,83,75,.5)' : full ? 'rgba(143,211,172,.5)' : 'rgba(255,255,255,.1)',
+    numShake: s.shakeN ? 'kxShake .35s ease' : 'none',
+    numHint: same ? 'Это ваш текущий номер' : full ? 'Номер введён · проверим после запроса кода' : 'Ещё ' + (10 - s.digits.length) + ' из 10 цифр',
+    numHintInk: same ? '#FF8A80' : full ? '#8FD3AC' : '#8A958F',
+    numShown: fmt(s.digits),
+    cells: [0, 1, 2, 3, 4].map(i => ({ v: s.code[i] || '', caret: i === s.code.length && !s.bad, bd: s.bad ? 'rgba(229,83,75,.6)' : i === s.code.length ? '#8FD3AC' : s.code[i] ? 'rgba(143,211,172,.4)' : 'rgba(255,255,255,.12)' })),
+    codeShake: s.shakeC && s.bad ? 'kxShake .35s ease' : 'none',
+    codeHint: s.bad ? 'Неверный код, попробуйте ещё раз' : 'Для примера подходит 24680',
+    codeHintInk: s.bad ? '#FF8A80' : '#8A958F',
+    keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map(k => ({
+      t: k === 'del' ? '' : k, icon: k === 'del' ? 'backspace' : '', isz: k === 'del' ? '24px' : '0px',
+      label: k === 'del' ? 'Стереть' : k || 'Пусто', bg: k ? 'rgba(255,255,255,.06)' : 'transparent',
+      tap: () => k && this.typeKey(k)
+    })),
+    resendText: s.sec > 0 ? 'Отправить снова через 0:' + String(s.sec).padStart(2, '0') : 'Отправить код снова',
+    resendInk: s.sec > 0 ? '#8A958F' : '#8FD3AC',
+    resend: () => s.sec === 0 && this.startTimer(),
+    nextText: s.step === 0 ? 'Сменить номер' : s.step === 1 ? 'Получить код' : s.step === 2 ? 'Введите код' : 'Готово',
+    nextBg: canNext ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', nextInk: canNext ? '#06150D' : '#5C6661',
+    next: () => {
+      if (s.step === 0) this.setState({ step: 1 });
+      else if (s.step === 1) { if (canNext) { this.setState({ step: 2, code: '' }); this.startTimer(); } else { this.setState({ shakeN: s.shakeN + 1 }); setTimeout(() => this.setState({ shakeN: 0 }), 360); } }
+      else if (s.step === 3) this.setState({ step: 0, digits: '', code: '' });
+    }
+  };
+}
+}
+</script>
+</body>
+</html>

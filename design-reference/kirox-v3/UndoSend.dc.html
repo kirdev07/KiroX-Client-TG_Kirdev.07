@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Отмена отправки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+input{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxFly{0%{opacity:0;transform:translateY(30px) scale(.95)}100%{opacity:1;transform:none}}
+@keyframes kxBack{0%{opacity:1;transform:none}100%{opacity:0;transform:translateY(60px) scale(.9)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #5C6661; display: flex; align-items: center; justify-content: center; font-weight: 800">Р</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Работа</div><div style="font-size: 12px; color: #9AA59F">8 участников</div></div>
+    <button onClick="{{toggleSettings}}" aria-label="Настройки отмены" style="width: 44px; height: 44px; border-radius: 22px; background: {{gearBg}}; display: flex; align-items: center; justify-content: center; color: {{gearInk}}"><span class="ms" aria-hidden="true">undo</span></button>
+  </header>
+
+  <!-- Settings -->
+  <sc-if value="{{settings}}" hint-placeholder-val="{{false}}">
+    <div style="margin: 10px 12px 0; padding: 14px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.12); animation: kxIn .25s ease both">
+      <div style="font-size: 14px; font-weight: 800">Сколько ждать перед отправкой</div>
+      <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px">
+        <sc-for list="{{delays}}" as="d" hint-placeholder-count="4"><button onClick="{{d.tap}}" style="height: 40px; border-radius: 14px; background: {{d.bg}}; color: {{d.ink}}; border: 1px solid {{d.bd}}; font-size: 13px; font-weight: 700; text-align: center">{{d.label}}</button></sc-for>
+      </div>
+      <div style="margin-top: 8px; font-size: 12px; color: #8A958F">{{delayHint}}</div>
+    </div>
+  </sc-if>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; gap: 8px; justify-content: flex-end">
+    <div style="align-self: flex-start; max-width: 80%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 14px"><span style="display: block; font-size: 12px; font-weight: 800; color: #6FA9D8">Начальник</span>Кто сможет подменить Марию в понедельник?</div>
+    <sc-for list="{{sent}}" as="m" hint-placeholder-count="2">
+      <div style="align-self: flex-end; max-width: 82%; padding: 8px 12px; border-radius: 18px 18px 6px 18px; background: {{m.bg}}; color: {{m.ink}}; border: 1px dashed {{m.bd}}; font-size: 15px; animation: {{m.anim}}; transition: background .3s">{{m.t}} <span style="font-size: 11px; opacity: .7; display: inline-flex; align-items: center; gap: 2px">18:4{{m.min}} <span class="ms" style="font-size: 14px" aria-hidden="true">{{m.icon}}</span></span></div>
+    </sc-for>
+  </div>
+
+  <!-- Undo bar -->
+  <sc-if value="{{pending}}" hint-placeholder-val="{{true}}">
+    <div style="margin: 0 12px 8px; padding: 10px 10px 10px 14px; border-radius: 20px; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); border: 1px solid rgba(143,211,172,.3); display: flex; align-items: center; gap: 12px; animation: kxIn .2s ease both">
+      <div style="position: relative; width: 36px; height: 36px; flex-shrink: 0">
+        <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="3"></circle><circle cx="18" cy="18" r="15" fill="none" stroke="#8FD3AC" stroke-width="3" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="{{ring}}" transform="rotate(-90 18 18)" style="transition: stroke-dashoffset .1s linear"></circle></svg>
+        <span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800">{{secs}}</span>
+      </div>
+      <span style="flex: 1; font-size: 14px; color: #C9D2CC">Отправляем…</span>
+      <button onClick="{{undo}}" style="height: 40px; padding: 0 16px; border-radius: 20px; background: rgba(143,211,172,.16); color: #8FD3AC; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">undo</span>Отменить</button>
+    </div>
+  </sc-if>
+
+  <div style="padding: 8px 12px 16px; border-top: 1px solid rgba(255,255,255,.06); display: flex; gap: 8px; align-items: center">
+    <label style="flex: 1; height: 50px; padding: 0 16px; border-radius: 25px; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center">
+      <input value="{{draft}}" onInput="{{onDraft}}" placeholder="Сообщение" aria-label="Сообщение" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 15px">
+    </label>
+    <button onClick="{{send}}" aria-label="Отправить" style="width: 50px; height: 50px; border-radius: 25px; background: {{sendBg}}; color: {{sendInk}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">send</span></button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const DELAYS = [['Выкл', 0], ['3 с', 3], ['5 с', 5], ['10 с', 10]];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { draft: 'Я смогу, но только до обеда', sent: [], pend: -1, left: 0, delay: 5, settings: false, undone: -1, n: 0 }; }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tu); }
+send() {
+  const s = this.state;
+  const t = s.draft.trim(); if (!t) return;
+  const id = s.n;
+  const msg = { id, t, st: s.delay ? 'pending' : 'sent', min: String(1 + id % 9) };
+  const prev = s.sent.map(m => m.st === 'pending' ? { ...m, st: 'sent' } : m);
+  this.setState({ sent: [...prev, msg], draft: '', n: id + 1 });
+  if (!s.delay) return;
+  clearInterval(this.iv);
+  this.setState({ pend: id, left: s.delay * 10 });
+  this.iv = setInterval(() => {
+    const l = this.state.left - 1;
+    if (l <= 0) { clearInterval(this.iv); this.setState({ pend: -1, left: 0, sent: this.state.sent.map(m => m.id === id ? { ...m, st: 'sent' } : m) }); }
+    else this.setState({ left: l });
+  }, 100);
+}
+renderVals() {
+  const s = this.state;
+  const can = s.draft.trim().length > 0;
+  return {
+    toggleSettings: () => this.setState({ settings: !s.settings }), settings: s.settings,
+    gearBg: s.settings ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.06)', gearInk: s.settings ? '#8FD3AC' : '#EEF3EF',
+    delays: DELAYS.map(([label, v]) => ({ label, bg: s.delay === v ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.05)', ink: s.delay === v ? '#8FD3AC' : '#C9D2CC', bd: s.delay === v ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', tap: () => this.setState({ delay: v }) })),
+    delayHint: s.delay ? 'Сообщение уйдёт через ' + s.delay + ' с. Пока идёт отсчёт, его можно забрать.' : 'Сообщения уходят сразу, как обычно',
+    sent: s.sent.map(m => ({ t: m.t, min: m.min, icon: m.st === 'pending' ? 'schedule' : 'done_all', bg: m.st === 'pending' ? 'rgba(143,211,172,.14)' : 'linear-gradient(135deg, #6FC497, #3F9A6C)', ink: m.st === 'pending' ? '#C9E8D5' : '#06150D', bd: m.st === 'pending' ? 'rgba(143,211,172,.5)' : 'transparent', anim: 'kxFly .3s ease both' })),
+    pending: s.pend >= 0, ring: String(94.2 * (1 - s.left / (s.delay * 10 || 1))), secs: String(Math.ceil(s.left / 10)),
+    undo: () => { clearInterval(this.iv); const m = s.sent.find(x => x.id === s.pend); this.setState({ sent: s.sent.filter(x => x.id !== s.pend), pend: -1, draft: m ? m.t : '' }); },
+    draft: s.draft, onDraft: e => this.setState({ draft: e.target.value }),
+    sendBg: can ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', sendInk: can ? '#06150D' : '#5C6661',
+    send: () => this.send()
+  };
+}
+}
+</script>
+</body>
+</html>

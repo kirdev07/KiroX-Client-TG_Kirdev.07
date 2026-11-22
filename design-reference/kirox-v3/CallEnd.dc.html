@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Звонок завершён</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.93)}
+textarea{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.9);opacity:0}}
+@keyframes kxStar{0%{transform:scale(1)}45%{transform:scale(1.35) rotate(-8deg)}100%{transform:scale(1)}}
+@keyframes kxBlob{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-20px) scale(1.15)}}
+@keyframes kxThanks{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <div style="position: absolute; left: -60px; top: -40px; width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle, rgba(63,154,108,.4), transparent 65%); animation: kxBlob 9s ease-in-out 2" aria-hidden="true"></div>
+  <div style="position: absolute; right: -80px; top: 180px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(47,110,158,.3), transparent 65%); animation: kxBlob 11s ease-in-out -4s 2" aria-hidden="true"></div>
+
+  <header style="position: relative; padding: 10px 12px; display: flex; align-items: center">
+    <button aria-label="Закрыть" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+  </header>
+
+  <div class="scroll" style="position: relative; flex: 1; min-height: 0; padding: 0 20px 30px">
+    <div style="display: flex; flex-direction: column; align-items: center; text-align: center">
+      <div style="position: relative; width: 108px; height: 108px; margin-top: 4px">
+        <span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(143,211,172,.5); animation: kxRing 2.4s ease-out infinite" aria-hidden="true"></span>
+        <span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(143,211,172,.5); animation: kxRing 2.4s ease-out 1.2s infinite" aria-hidden="true"></span>
+        <span style="position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(135deg, #C0443C, #6A4C9C); display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 800">А</span>
+      </div>
+      <div style="margin-top: 14px; font-size: 24px; font-weight: 800">Анна</div>
+      <div style="margin-top: 6px; display: flex; align-items: center; gap: 6px; font-size: 14px; color: #C9D2CC"><span class="ms" style="font-size: 18px; color: #FF8A80" aria-hidden="true">call_end</span>Звонок завершён · 12:47</div>
+      <div style="margin-top: 14px; display: flex; gap: 8px">
+        <span style="padding: 6px 12px; border-radius: 14px; background: rgba(255,255,255,.06); font-size: 12px; color: #C9D2CC; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 16px; color: #8FD3AC" aria-hidden="true">lock</span>Защищён</span>
+        <span style="padding: 6px 12px; border-radius: 14px; background: rgba(255,255,255,.06); font-size: 12px; color: #C9D2CC; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 16px" aria-hidden="true">swap_vert</span>14,2 МБ</span>
+        <span style="padding: 6px 12px; border-radius: 14px; background: rgba(255,255,255,.06); font-size: 12px; color: #C9D2CC; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 16px" aria-hidden="true">wifi</span>Wi-Fi</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px">
+      <sc-for list="{{acts}}" as="a" hint-placeholder-count="3">
+        <button onClick="{{a.tap}}" style="height: 76px; border-radius: 22px; background: {{a.bg}}; color: {{a.ink}}; border: 1px solid {{a.bd}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 700"><span class="ms fill" aria-hidden="true">{{a.icon}}</span>{{a.label}}</button>
+      </sc-for>
+    </div>
+
+    <!-- Rating -->
+    <div style="margin-top: 18px; padding: 18px 16px; border-radius: 26px; background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.14)">
+      <sc-if value="{{asking}}" hint-placeholder-val="{{true}}">
+        <div style="text-align: center; font-size: 16px; font-weight: 800">Как было слышно?</div>
+        <div style="margin-top: 4px; text-align: center; font-size: 13px; color: #9AA59F">{{rateHint}}</div>
+        <div style="margin-top: 14px; display: flex; justify-content: center; gap: 6px">
+          <sc-for list="{{stars}}" as="st" hint-placeholder-count="5">
+            <button onClick="{{st.tap}}" aria-label="{{st.label}}" style="width: 50px; height: 50px; border-radius: 25px; display: flex; align-items: center; justify-content: center; color: {{st.ink}}; transition: color .2s"><span class="ms" style="font-size: 40px; font-variation-settings: {{st.fill}}; animation: {{st.anim}}" aria-hidden="true">star</span></button>
+          </sc-for>
+        </div>
+        <sc-if value="{{low}}" hint-placeholder-val="{{false}}">
+          <div style="margin-top: 14px; animation: kxIn .25s ease both">
+            <div style="font-size: 13px; font-weight: 700; color: #8FD3AC">Что пошло не так?</div>
+            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px">
+              <sc-for list="{{issues}}" as="i" hint-placeholder-count="6"><button onClick="{{i.tap}}" aria-pressed="{{i.on}}" style="height: 34px; padding: 0 12px; border-radius: 17px; background: {{i.bg}}; color: {{i.ink}}; border: 1px solid {{i.bd}}; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: all .2s"><span class="ms" style="font-size: 16px" aria-hidden="true">{{i.icon}}</span>{{i.label}}</button></sc-for>
+            </div>
+            <textarea onInput="{{onNote}}" placeholder="Расскажите подробнее (необязательно)" aria-label="Комментарий о качестве звонка" style="margin-top: 10px; width: 100%; box-sizing: border-box; height: 70px; padding: 12px 14px; border-radius: 16px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.1); outline: none; resize: none; font-size: 14px"></textarea>
+            <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #9AA59F"><button onClick="{{toggleLog}}" aria-pressed="{{log}}" aria-label="Приложить технический отчёт" style="width: 22px; height: 22px; border-radius: 7px; background: {{logBg}}; border: 1.5px solid {{logBd}}; color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 16px; font-variation-settings: {{logFill}}" aria-hidden="true">{{logIcon}}</span></button>Приложить технический отчёт о звонке</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{rated}}" hint-placeholder-val="{{false}}">
+          <button onClick="{{submit}}" style="margin-top: 14px; width: 100%; height: 50px; border-radius: 25px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px; font-weight: 800; text-align: center; animation: kxIn .2s ease both">Отправить оценку</button>
+        </sc-if>
+      </sc-if>
+      <sc-if value="{{thanks}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6px 0">
+          <span style="width: 60px; height: 60px; border-radius: 30px; background: rgba(143,211,172,.16); color: #8FD3AC; display: flex; align-items: center; justify-content: center; animation: kxThanks .45s ease both"><span class="ms fill" style="font-size: 34px" aria-hidden="true">favorite</span></span>
+          <div style="margin-top: 10px; font-size: 16px; font-weight: 800">Спасибо за оценку</div>
+          <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">{{thanksText}}</div>
+          <button onClick="{{again}}" style="margin-top: 10px; font-size: 13px; font-weight: 700; color: #8FD3AC">Изменить оценку</button>
+        </div>
+      </sc-if>
+    </div>
+    <button style="margin: 14px auto 0; display: block; font-size: 13px; color: #8A958F; text-align: center">Не спрашивать после звонков</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const HINTS = ['Нажмите на звезду', 'Очень плохо', 'Плохо', 'Нормально', 'Хорошо', 'Отлично!'];
+const ISSUES = [['Эхо', 'graphic_eq'], ['Шум', 'noise_aware'], ['Прерывалось', 'signal_disconnected'], ['Меня не слышали', 'mic_off'], ['Не слышно собеседника', 'hearing_disabled'], ['Задержка', 'timer']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { rate: 0, pop: 0, issues: {}, note: '', log: true, done: false, hit: '' }; }
+renderVals() {
+  const s = this.state;
+  const low = s.rate > 0 && s.rate <= 3;
+  const picked = Object.keys(s.issues).filter(k => s.issues[k]);
+  const act = (icon, label, primary, tap) => ({ icon, label, tap, bg: primary ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.06)', ink: primary ? '#06150D' : '#EEF3EF', bd: primary ? 'transparent' : 'rgba(255,255,255,.1)' });
+  return {
+    acts: [
+      act('call', s.hit === 'call' ? 'Звоним…' : 'Перезвонить', true, () => this.setState({ hit: 'call' })),
+      act('videocam', s.hit === 'video' ? 'Звоним…' : 'Видео', false, () => this.setState({ hit: 'video' })),
+      act('chat', 'Написать', false, () => this.setState({ hit: 'chat' }))
+    ],
+    asking: !s.done, thanks: s.done,
+    rateHint: HINTS[s.rate],
+    stars: [1, 2, 3, 4, 5].map(n => ({
+      label: n + ' из 5',
+      ink: n <= s.rate ? (s.rate <= 2 ? '#FF8A80' : s.rate === 3 ? '#E8B04A' : '#8FD3AC') : 'rgba(255,255,255,.22)',
+      fill: n <= s.rate ? "'FILL' 1" : "'FILL' 0",
+      anim: n <= s.rate && s.pop ? 'kxStar .35s ease ' + ((n - 1) * 0.04) + 's both' : 'none',
+      tap: () => this.setState({ rate: n, pop: s.pop + 1 })
+    })),
+    low,
+    issues: ISSUES.map(([label, icon]) => {
+      const on = !!s.issues[label];
+      return { label, icon, on, bg: on ? 'rgba(229,83,75,.16)' : 'rgba(255,255,255,.05)', ink: on ? '#FF8A80' : '#C9D2CC', bd: on ? 'rgba(229,83,75,.45)' : 'rgba(255,255,255,.08)', tap: () => this.setState({ issues: { ...s.issues, [label]: !on } }) };
+    }),
+    onNote: e => this.setState({ note: e.target.value }),
+    log: s.log, toggleLog: () => this.setState({ log: !s.log }),
+    logBg: s.log ? '#8FD3AC' : 'transparent', logBd: s.log ? '#8FD3AC' : 'rgba(255,255,255,.3)', logIcon: s.log ? 'check' : '', logFill: "'FILL' 1",
+    rated: s.rate > 0,
+    submit: () => this.setState({ done: true }),
+    thanksText: low ? (picked.length ? 'Разберёмся: ' + picked.join(', ').toLowerCase() + '.' : 'Постараемся, чтобы в следующий раз было лучше.') : 'Рады, что всё было хорошо слышно.',
+    again: () => this.setState({ done: false })
+  };
+}
+}
+</script>
+</body>
+</html>

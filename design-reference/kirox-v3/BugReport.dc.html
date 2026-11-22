@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Сообщить об ошибке</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+textarea{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxShake{0%,100%{transform:rotate(0)}20%{transform:rotate(-10deg)}40%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}80%{transform:rotate(6deg)}}
+@keyframes kxMark{from{stroke-dashoffset:300}to{stroke-dashoffset:0}}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:none}}
+@keyframes kxFly{0%{transform:translate(0,0) rotate(0)}100%{transform:translate(160px,-260px) rotate(20deg);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></span>
+    <span style="flex: 1; font-size: 20px; font-weight: 800">Сообщить об ошибке</span>
+    <span class="ms fill" style="color: #E8B04A; animation: kxShake 1.4s ease .3s 2" aria-hidden="true">bug_report</span>
+  </header>
+
+  <sc-if value="{{form}}" hint-placeholder-val="{{true}}">
+    <div class="scroll" style="flex: 1; min-height: 0; padding: 0 16px 16px">
+      <div style="font-size: 13px; font-weight: 700; color: #8FD3AC">Что случилось?</div>
+      <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px">
+        <sc-for list="{{kinds}}" as="k" hint-placeholder-count="5"><button onClick="{{k.tap}}" aria-pressed="{{k.on}}" style="height: 34px; padding: 0 12px; border-radius: 17px; background: {{k.bg}}; color: {{k.ink}}; border: 1px solid {{k.bd}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 16px" aria-hidden="true">{{k.i}}</span>{{k.t}}</button></sc-for>
+      </div>
+      <textarea onInput="{{onNote}}" placeholder="Что вы делали и что пошло не так?" aria-label="Описание" style="margin-top: 12px; width: 100%; box-sizing: border-box; height: 84px; padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); outline: none; resize: none; font-size: 14px"></textarea>
+
+      <div style="margin-top: 12px; display: flex; align-items: center"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">Скриншот</span><button onClick="{{toggleShot}}" style="font-size: 12px; font-weight: 800; color: {{shotBtnInk}}">{{shotBtn}}</button></div>
+      <sc-if value="{{shot}}" hint-placeholder-val="{{true}}">
+        <div style="margin-top: 8px; position: relative; height: 200px; border-radius: 18px; overflow: hidden; background: #111614; border: 1px solid rgba(255,255,255,.1); animation: kxIn .25s ease both">
+          <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px; opacity: .8" aria-hidden="true">
+            <div style="height: 14px; width: 50%; border-radius: 7px; background: rgba(255,255,255,.15)"></div>
+            <div style="align-self: flex-start; width: 60%; height: 34px; border-radius: 12px; background: rgba(255,255,255,.08)"></div>
+            <div style="align-self: flex-end; width: 55%; height: 34px; border-radius: 12px; background: rgba(143,211,172,.35)"></div>
+            <div style="align-self: flex-end; width: 40%; height: 46px; border-radius: 12px; background: rgba(255,138,128,.25); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #FFC4BE">⚠ не отправлено</div>
+          </div>
+          <svg width="358" height="200" viewBox="0 0 358 200" style="position: absolute; inset: 0; display: {{markShow}}" aria-hidden="true"><ellipse cx="270" cy="150" rx="80" ry="34" fill="none" stroke="#E8B04A" stroke-width="4" stroke-linecap="round" stroke-dasharray="300" style="animation: kxMark .7s ease both"></ellipse></svg>
+          <span style="position: absolute; left: 10px; bottom: 10px; height: 26px; padding: 0 10px; border-radius: 13px; background: rgba(0,0,0,.5); font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 14px" aria-hidden="true">blur_on</span>Имена и текст размыты</span>
+          <button onClick="{{toggleMark}}" style="position: absolute; right: 10px; top: 10px; height: 32px; padding: 0 10px; border-radius: 16px; background: rgba(0,0,0,.55); font-size: 12px; font-weight: 800; color: #E8B04A; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 16px" aria-hidden="true">draw</span>{{markBtn}}</button>
+        </div>
+      </sc-if>
+
+      <button onClick="{{toggleLog}}" role="switch" aria-checked="{{logOn}}" style="margin-top: 14px; width: 100%; min-height: 56px; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: #9AA59F" aria-hidden="true">description</span><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">Приложить технический журнал</span><span style="display: block; font-size: 12px; color: #9AA59F">Поможет быстрее найти причину</span></span><span style="width: 46px; height: 28px; border-radius: 14px; background: {{trk}}; position: relative; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{knx}}; width: 22px; height: 22px; border-radius: 11px; background: {{knc}}; transition: left .2s"></span></span></button>
+      <sc-if value="{{log}}" hint-placeholder-val="{{true}}">
+        <div style="padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.04); display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; animation: kxIn .25s ease both">
+          <div style="color: #8FD3AC; font-weight: 800">Есть в журнале</div><div style="color: #FF8A80; font-weight: 800">Нет в журнале</div>
+          <div style="color: #C9D2CC; line-height: 1.6">Версия kiroX 1.0.0-rc.1<br>Модель телефона, Android<br>Коды ошибок и время</div>
+          <div style="color: #C9D2CC; line-height: 1.6">Текст сообщений<br>Номер телефона<br>Ключи и пароли</div>
+        </div>
+      </sc-if>
+    </div>
+    <div style="padding: 10px 16px 20px"><button onClick="{{send}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{sBg}}; color: {{sInk}}; font-size: 16px; font-weight: 800; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" style="font-size: 20px; animation: {{flyAnim}}" aria-hidden="true">send</span>{{sText}}</button></div>
+  </sc-if>
+
+  <sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 30px">
+      <span style="width: 88px; height: 88px; border-radius: 30px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; animation: kxPop .5s ease both"><span class="ms fill" style="font-size: 46px" aria-hidden="true">task_alt</span></span>
+      <div style="margin-top: 14px; font-size: 20px; font-weight: 800">Спасибо, отчёт ушёл</div>
+      <div style="margin-top: 6px; font-size: 14px; color: #9AA59F; line-height: 1.45">Номер отчёта #2611-84. Если понадобятся детали, разработчик напишет в «Помощь».</div>
+      <button onClick="{{reset}}" style="margin-top: 20px; height: 44px; padding: 0 18px; border-radius: 22px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; color: #8FD3AC">Новый отчёт</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const K = [['crash', 'error', 'Вылетает'], ['send', 'send', 'Не отправляется'], ['slow', 'hourglass_bottom', 'Тормозит'], ['look', 'palette', 'Криво выглядит'], ['other', 'more_horiz', 'Другое']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { kind: 'send', shot: true, mark: true, log: true, st: 'form', flying: false }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  return {
+    form: s.st === 'form', done: s.st === 'done',
+    kinds: K.map(([k, i, t]) => { const on = s.kind === k; return { i, t, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.05)', ink: on ? '#8FD3AC' : '#C9D2CC', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', tap: () => this.setState({ kind: k }) }; }),
+    onNote: () => {},
+    shot: s.shot, shotBtn: s.shot ? 'Убрать' : 'Приложить последний', shotBtnInk: s.shot ? '#FF8A80' : '#8FD3AC', toggleShot: () => this.setState({ shot: !s.shot }),
+    markShow: s.mark ? 'block' : 'none', markBtn: s.mark ? 'Стереть отметку' : 'Обвести', toggleMark: () => this.setState({ mark: !s.mark }),
+    log: s.log, logOn: s.log ? 'true' : 'false', toggleLog: () => this.setState({ log: !s.log }),
+    trk: s.log ? '#3F9A6C' : 'rgba(255,255,255,.14)', knc: s.log ? '#EEF3EF' : '#9AA59F', knx: s.log ? '21px' : '3px',
+    sText: 'Отправить разработчику', sBg: 'linear-gradient(135deg, #6FC497, #3F9A6C)', sInk: '#06150D',
+    flyAnim: s.flying ? 'kxFly .5s ease-in both' : 'none',
+    send: () => { clearTimeout(this.tt); this.setState({ flying: true }); this.tt = setTimeout(() => this.setState({ st: 'done', flying: false }), 500); },
+    reset: () => this.setState({ st: 'form', kind: 'send', shot: true, mark: true, log: true })
+  };
+}
+}
+</script>
+</body>
+</html>

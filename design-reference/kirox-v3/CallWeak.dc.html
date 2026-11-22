@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Связь в звонке</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+@keyframes kxPan{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+@keyframes kxRing{0%{transform:scale(.9);opacity:.6}100%{transform:scale(1.5);opacity:0}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxDrop{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+@keyframes kxDrop2{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+@keyframes kxPix{0%,100%{filter:blur(0)}50%{filter:blur(6px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #000; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <!-- Remote video or avatar -->
+  <div style="position: absolute; inset: 0; background: {{videoBg}}; background-size: 300% 100%; animation: kxPan 12s linear infinite alternate, {{pix}}; transition: opacity .4s; opacity: {{videoOp}}"></div>
+  <div style="position: absolute; inset: 0; background: radial-gradient(circle at 50% 35%, rgba(63,154,108,.25), #050706 70%); opacity: {{avatarOp}}; transition: opacity .4s"></div>
+  <div style="position: absolute; left: 0; right: 0; top: 200px; display: flex; flex-direction: column; align-items: center; opacity: {{avatarOp}}; transition: opacity .4s">
+    <span style="position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center"><span style="position: absolute; inset: 0; border-radius: 60px; border: 2px solid rgba(143,211,172,.5); animation: kxRing 2s ease-out infinite"></span><span style="width: 120px; height: 120px; border-radius: 60px; background: #C0443C; display: flex; align-items: center; justify-content: center; font-size: 46px; font-weight: 800">А</span></span>
+    <div style="margin-top: 12px; font-size: 13px; color: #C9D2CC">{{avatarNote}}</div>
+  </div>
+
+  <!-- Top -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; padding: 14px 16px; display: flex; align-items: center; gap: 10px; background: linear-gradient(180deg, rgba(0,0,0,.55), transparent)">
+    <div style="flex: 1"><div style="font-size: 18px; font-weight: 800">Анна</div><div style="font-size: 13px; color: #C9D2CC; font-variant-numeric: tabular-nums">{{time}} · <span class="ms fill" style="font-size: 13px; vertical-align: -2px" aria-hidden="true">lock</span> шифрование</div></div>
+    <div style="height: 32px; padding: 0 10px; border-radius: 16px; background: rgba(0,0,0,.35); backdrop-filter: blur(10px); display: flex; align-items: flex-end; gap: 2px; padding-bottom: 9px; box-sizing: border-box" aria-label="{{sigLabel}}">
+      <span style="width: 4px; height: 5px; border-radius: 1px; background: {{b1}}"></span><span style="width: 4px; height: 9px; border-radius: 1px; background: {{b2}}"></span><span style="width: 4px; height: 12px; border-radius: 1px; background: {{b3}}"></span><span style="width: 4px; height: 15px; border-radius: 1px; background: {{b4}}"></span>
+    </div>
+  </div>
+
+  <!-- Status banner -->
+  <sc-if value="{{banner}}" hint-placeholder-val="{{true}}">
+    <div style="position: absolute; left: 16px; right: 16px; top: 74px; padding: 10px 12px; border-radius: 18px; background: {{banBg}}; backdrop-filter: blur(18px); border: 1px solid {{banBd}}; display: flex; align-items: center; gap: 10px; animation: {{banAnim}}">
+      <span class="ms fill" style="color: {{banIc}}; animation: {{banSpin}}" aria-hidden="true">{{banIcon}}</span>
+      <span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 800">{{banTitle}}</span><span style="display: block; font-size: 12px; color: #C9D2CC">{{banSub}}</span></span>
+      <button onClick="{{banAct}}" style="display: {{banBtnShow}}; height: 32px; padding: 0 10px; border-radius: 16px; background: rgba(255,255,255,.12); font-size: 12px; font-weight: 800">{{banBtn}}</button>
+    </div>
+  </sc-if>
+
+  <!-- Self preview -->
+  <div style="position: absolute; right: 16px; top: 150px; width: 96px; height: 140px; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,.2); background: {{selfBg}}; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 30px; color: rgba(255,255,255,.6); display: {{selfOffShow}}" aria-hidden="true">videocam_off</span></div>
+
+  <!-- Controls -->
+  <div style="position: absolute; left: 12px; right: 12px; bottom: 96px; padding: 12px; border-radius: 30px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); display: flex; justify-content: space-around">
+    <button onClick="{{toggleCam}}" aria-label="Камера" style="width: 56px; height: 56px; border-radius: 28px; background: {{camBg}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">{{camIcon}}</span></button>
+    <span style="width: 56px; height: 56px; border-radius: 28px; background: rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">mic</span></span>
+    <span style="width: 56px; height: 56px; border-radius: 28px; background: rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">volume_up</span></span>
+    <span style="width: 56px; height: 56px; border-radius: 28px; background: #E5534B; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">call_end</span></span>
+  </div>
+
+  <!-- Demo network -->
+  <div style="position: absolute; left: 12px; right: 12px; bottom: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px">
+    <sc-for list="{{nets}}" as="n" hint-placeholder-count="4"><button onClick="{{n.tap}}" aria-pressed="{{n.on}}" style="height: 56px; border-radius: 16px; background: {{n.bg}}; color: {{n.ink}}; border: 1px solid {{n.bd}}; font-size: 11px; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px"><span class="ms" style="font-size: 20px" aria-hidden="true">{{n.i}}</span>{{n.t}}</button></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const N = [['good', 'signal_cellular_alt', 'Хорошо'], ['weak', 'signal_cellular_alt_2_bar', 'Слабо'], ['theirs', 'person_alert', 'У Анны'], ['lost', 'signal_cellular_connected_no_internet_0_bar', 'Пропала']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { net: 'weak', sec: 754, cam: true, audioOnly: false, k: 0 }; }
+componentDidMount() { this.iv = setInterval(() => { if (this.state.net !== 'lost') this.setState({ sec: this.state.sec + 1 }); }, 1000); }
+componentWillUnmount() { clearInterval(this.iv); }
+renderVals() {
+  const s = this.state;
+  const t = Math.floor(s.sec / 60) + ':' + String(s.sec % 60).padStart(2, '0');
+  const bars = { good: 4, weak: 2, theirs: 3, lost: 0 }[s.net];
+  const bc = (i) => i <= bars ? (bars >= 3 ? '#8FD3AC' : bars === 2 ? '#E8B04A' : '#FF8A80') : 'rgba(255,255,255,.25)';
+  const video = s.net !== 'lost' && !s.audioOnly;
+  const B = {
+    good: null,
+    weak: { icon: 'signal_cellular_alt_2_bar', ic: '#E8B04A', title: 'Слабая связь у вас', sub: 'Видео может подтормаживать', btn: s.audioOnly ? 'Вернуть видео' : 'Только голос', bg: 'rgba(60,44,14,.72)', bd: 'rgba(232,176,74,.35)' },
+    theirs: { icon: 'person_alert', ic: '#E8B04A', title: 'Плохая связь у собеседника', sub: 'Мы снизили качество видео, чтобы не прерывалось', btn: '', bg: 'rgba(60,44,14,.72)', bd: 'rgba(232,176,74,.35)' },
+    lost: { icon: 'sync', ic: '#7FB8E0', title: 'Переподключаемся…', sub: 'Звонок продолжится сам, как только вернётся сеть', btn: '', bg: 'rgba(14,34,52,.75)', bd: 'rgba(127,184,224,.35)', spin: true }
+  }[s.net];
+  return {
+    time: s.net === 'lost' ? 'пауза' : t,
+    sigLabel: 'Связь: ' + ['нет', 'очень слабая', 'слабая', 'нормальная', 'отличная'][bars],
+    b1: bc(1), b2: bc(2), b3: bc(3), b4: bc(4),
+    videoBg: 'linear-gradient(110deg, #2A3A33, #4A5A52, #1B2420, #3F9A6C)', videoOp: video ? 1 : 0, avatarOp: video ? 0 : 1,
+    pix: s.net === 'weak' && video ? 'kxPix 2.4s ease-in-out infinite' : 'none',
+    avatarNote: s.net === 'lost' ? 'Ждём сеть…' : 'Только голос — бережём связь',
+    banner: !!B, banAnim: (s.k % 2 ? 'kxDrop2' : 'kxDrop') + ' .3s ease both',
+    banIcon: B ? B.icon : '', banIc: B ? B.ic : '#fff', banTitle: B ? B.title : '', banSub: B ? B.sub : '', banBtn: B ? B.btn : '', banBtnShow: B && B.btn ? 'inline-block' : 'none',
+    banBg: B ? B.bg : 'transparent', banBd: B ? B.bd : 'transparent', banSpin: B && B.spin ? 'kxSpin 1.2s linear infinite' : 'none',
+    banAct: () => this.setState({ audioOnly: !s.audioOnly }),
+    selfBg: s.cam && !s.audioOnly ? 'linear-gradient(160deg, #3A403D, #1B201E)' : '#111', selfOffShow: s.cam && !s.audioOnly ? 'none' : 'block',
+    toggleCam: () => this.setState({ cam: !s.cam }), camIcon: s.cam && !s.audioOnly ? 'videocam' : 'videocam_off', camBg: s.cam && !s.audioOnly ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.28)',
+    nets: N.map(([k, i, tt]) => { const on = s.net === k; return { i, t: tt, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.06)', ink: on ? '#8FD3AC' : '#C9D2CC', bd: on ? 'rgba(143,211,172,.45)' : 'transparent', tap: () => this.setState({ net: k, k: s.k + 1, audioOnly: k === 'weak' ? s.audioOnly : false }) }; })
+  };
+}
+}
+</script>
+</body>
+</html>

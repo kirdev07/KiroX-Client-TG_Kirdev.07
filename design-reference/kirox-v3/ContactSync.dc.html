@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Синхронизация контактов</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxOrbit{to{transform:rotate(360deg)}}
+@keyframes kxOrbitR{to{transform:rotate(-360deg)}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxDim{from{opacity:0}to{opacity:1}}
+@keyframes kxPop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="font-size: 20px; font-weight: 800">Контакты</span>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 0 16px 20px">
+    <!-- Orbit hero -->
+    <div style="position: relative; height: 200px; display: flex; align-items: center; justify-content: center" aria-hidden="true">
+      <span style="position: absolute; width: 170px; height: 170px; border-radius: 50%; border: 1px dashed rgba(143,211,172,.25)"></span>
+      <span style="position: absolute; width: 110px; height: 110px; border-radius: 50%; border: 1px dashed rgba(143,211,172,.2)"></span>
+      <div style="position: absolute; width: 170px; height: 170px; animation: kxOrbit 18s linear 2; animation-play-state: {{orbitState}}">
+        <sc-for list="{{outer}}" as="o" hint-placeholder-count="5"><span style="position: absolute; left: {{o.x}}; top: {{o.y}}; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 15px; background: {{o.c}}; border: 2px solid #0A0C0B; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; opacity: {{o.op}}; transition: opacity .4s"><span style="display: inline-block; animation: kxOrbitR 18s linear 2; animation-play-state: {{o.st}}">{{o.l}}</span></span></sc-for>
+      </div>
+      <span style="position: relative; width: 64px; height: 64px; border-radius: 22px; background: {{coreBg}}; color: {{coreInk}}; display: flex; align-items: center; justify-content: center; transition: background .3s"><span class="ms fill" style="font-size: 32px; animation: {{coreSpin}}">{{coreIcon}}</span></span>
+    </div>
+
+    <div style="text-align: center">
+      <div style="font-size: 20px; font-weight: 800">{{heroTitle}}</div>
+      <div style="margin-top: 4px; font-size: 13px; color: #9AA59F; line-height: 1.4">{{heroSub}}</div>
+    </div>
+
+    <div style="margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px">
+      <sc-for list="{{stats}}" as="st" hint-placeholder-count="3"><div style="padding: 12px 8px; border-radius: 18px; background: rgba(255,255,255,.05); text-align: center"><div style="font-size: 22px; font-weight: 800; color: {{st.c}}; font-variant-numeric: tabular-nums">{{st.v}}</div><div style="margin-top: 2px; font-size: 11px; color: #9AA59F">{{st.t}}</div></div></sc-for>
+    </div>
+
+    <div style="margin-top: 16px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); padding: 0 14px">
+      <sc-for list="{{toggles}}" as="o" hint-placeholder-count="3"><button onClick="{{o.tap}}" role="switch" aria-checked="{{o.on}}" style="width: 100%; min-height: 62px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid {{o.line}}"><span class="ms" style="color: #9AA59F" aria-hidden="true">{{o.i}}</span><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">{{o.t}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{o.s}}</span></span><span style="width: 46px; height: 28px; border-radius: 14px; background: {{o.tr}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{o.x}}; width: 22px; height: 22px; border-radius: 11px; background: {{o.kn}}; transition: left .2s"></span></span></button></sc-for>
+    </div>
+
+    <sc-if value="{{hasNew}}" hint-placeholder-val="{{true}}">
+      <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC">Недавно в Telegram</div>
+      <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{fresh}}" as="f" hint-placeholder-count="3"><div style="display: flex; align-items: center; gap: 12px; padding: 8px 4px; animation: kxIn .3s ease {{f.d}} both"><span style="width: 44px; height: 44px; border-radius: 22px; background: {{f.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800">{{f.l}}</span><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">{{f.n}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{f.when}}</span></span><button onClick="{{f.tap}}" style="height: 34px; padding: 0 12px; border-radius: 17px; background: {{f.bg}}; color: {{f.ink}}; font-size: 12px; font-weight: 800">{{f.btn}}</button></div></sc-for>
+      </div>
+    </sc-if>
+
+    <button onClick="{{askDelete}}" style="margin-top: 18px; width: 100%; min-height: 54px; padding: 0 14px; border-radius: 18px; background: rgba(229,83,75,.08); display: flex; align-items: center; gap: 12px; color: #FF8A80"><span class="ms" aria-hidden="true">delete_sweep</span><span style="flex: 1; font-size: 15px; font-weight: 700">Удалить загруженные контакты</span></button>
+    <div style="margin-top: 6px; padding: 0 4px; font-size: 12px; color: #8A958F; line-height: 1.4">Удаляет копию с серверов Telegram. Контакты в телефоне останутся.</div>
+  </div>
+
+  <sc-if value="{{dialog}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.6); animation: kxDim .2s ease both"></div>
+    <div role="dialog" aria-label="Удалить контакты" style="position: absolute; left: 24px; right: 24px; top: 50%; margin-top: -120px; padding: 20px; border-radius: 28px; background: linear-gradient(180deg, rgba(48,58,53,.99), rgba(24,29,27,.99)); border: 1px solid rgba(255,255,255,.14); animation: kxPop .25s ease both">
+      <div style="font-size: 18px; font-weight: 800">Удалить с серверов?</div>
+      <div style="margin-top: 8px; font-size: 14px; color: #C9D2CC; line-height: 1.45">Синхронизация выключится. Чаты останутся, но вместо имён из телефона вы увидите имена из профилей.</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px">
+        <button onClick="{{cancel}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button>
+        <button onClick="{{doDelete}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">Удалить</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const ORB = [['А', '#C0443C'], ['М', '#B07A2E'], ['Л', '#6A4C9C'], ['О', '#5C6661'], ['Д', '#2F6E9E'], ['Е', '#3F9A6C']];
+const FRESH = [['Ерлан', 'Е', '#3F9A6C', 'Сегодня'], ['Дана', 'Д', '#2F6E9E', 'Вчера'], ['Сергей Петрович', 'С', '#B07A2E', '3 дня назад']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { sync: true, joined: true, suggest: true, syncing: false, wiped: false, dialog: false, hi: {}, found: 38 }; }
+componentWillUnmount() { clearTimeout(this.ts); }
+renderVals() {
+  const s = this.state;
+  const sw = (on) => ({ tr: on ? '#3F9A6C' : 'rgba(255,255,255,.14)', kn: on ? '#EEF3EF' : '#9AA59F', x: on ? '21px' : '3px', on: on ? 'true' : 'false' });
+  const on = s.sync && !s.wiped;
+  const startSync = () => { clearTimeout(this.ts); this.setState({ sync: true, wiped: false, syncing: true }); this.ts = setTimeout(() => this.setState({ syncing: false }), 1800); };
+  return {
+    orbitState: on ? 'running' : 'paused',
+    outer: ORB.map(([l, c], i) => { const a = (i / ORB.length) * Math.PI * 2; return { l, c, x: (85 + Math.cos(a) * 85) + 'px', y: (85 + Math.sin(a) * 85) + 'px', op: on ? 1 : .25, st: on ? 'running' : 'paused' }; }),
+    coreBg: on ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.08)', coreInk: on ? '#06150D' : '#9AA59F',
+    coreIcon: s.syncing ? 'sync' : on ? 'contacts' : 'sync_disabled',
+    coreSpin: s.syncing ? 'kxSpin 1s linear infinite' : 'none',
+    heroTitle: s.syncing ? 'Синхронизируем…' : on ? 'Контакты синхронизированы' : 'Синхронизация выключена',
+    heroSub: on ? 'Номера из телефона сверяются с Telegram, чтобы вы видели знакомых по именам' : 'Включите, чтобы находить знакомых и видеть их имена из телефона',
+    stats: [[on ? '142' : '—', 'в телефоне', '#EEF3EF'], [on ? String(s.found) : '—', 'в Telegram', '#8FD3AC'], [on ? '2 мин' : '—', 'с проверки', '#EEF3EF']].map(([v, t, c]) => ({ v, t, c })),
+    toggles: [
+      { i: 'sync', t: 'Синхронизировать контакты', s: 'Нужен доступ к контактам телефона', ...sw(on), line: 'rgba(255,255,255,.06)', tap: () => on ? this.setState({ sync: false }) : startSync() },
+      { i: 'person_add', t: 'Кто присоединился', s: 'Сообщать, когда знакомый появится в Telegram', ...sw(s.joined), line: 'rgba(255,255,255,.06)', tap: () => this.setState({ joined: !s.joined }) },
+      { i: 'star', t: 'Частые контакты', s: 'Показывать в поиске и при пересылке', ...sw(s.suggest), line: 'transparent', tap: () => this.setState({ suggest: !s.suggest }) }
+    ],
+    hasNew: on && s.joined,
+    fresh: FRESH.map(([n, l, c, when], i) => { const done = !!s.hi[i]; return { n, l, c, when: 'В Telegram · ' + when, d: (i * 0.06) + 's', btn: done ? 'Отправлено 👋' : 'Сказать привет', bg: done ? 'rgba(143,211,172,.14)' : 'linear-gradient(135deg, #6FC497, #3F9A6C)', ink: done ? '#8FD3AC' : '#06150D', tap: () => this.setState({ hi: { ...s.hi, [i]: true } }) }; }),
+    askDelete: () => this.setState({ dialog: true }),
+    cancel: () => this.setState({ dialog: false }),
+    doDelete: () => this.setState({ dialog: false, wiped: true, sync: false, hi: {} }),
+    dialog: s.dialog
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Новая группа</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+input{font:inherit;color:inherit;background:none;border:0;outline:0}
+input::placeholder{color:#8A958F}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxChip{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes kxSlide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes kxPop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes kxConf{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(-200px) rotate(360deg);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button onClick="{{back}}" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">{{title}}</div><div style="font-size: 12px; color: #9AA59F">{{sub}}</div></div>
+  </header>
+  <div style="padding: 2px 16px 8px; display: flex; gap: 6px">
+    <span style="flex: 1; height: 4px; border-radius: 2px; background: #8FD3AC"></span>
+    <span style="flex: 1; height: 4px; border-radius: 2px; background: {{step2Bar}}; transition: background .3s"></span>
+  </div>
+
+  <!-- Step 1 -->
+  <sc-if value="{{step1}}" hint-placeholder-val="{{true}}">
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column">
+      <div style="margin: 4px 12px 0; min-height: 50px; padding: 6px 10px; border-radius: 24px; background: rgba(255,255,255,.05); display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
+        <sc-for list="{{chips}}" as="c" hint-placeholder-count="2">
+          <button onClick="{{c.remove}}" style="height: 32px; padding: 0 10px 0 3px; border-radius: 16px; background: rgba(143,211,172,.14); color: #DFF5E8; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; animation: kxChip .3s cubic-bezier(.34,1.45,.5,1) both"><span style="width: 26px; height: 26px; border-radius: 13px; background: {{c.av}}; color: {{c.ink}}; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{c.init}}</span>{{c.name}}<span class="ms" style="font-size: 15px; color: #8FD3AC" aria-hidden="true">close</span></button>
+        </sc-for>
+        <input aria-label="Поиск" placeholder="{{searchHint}}" value="{{q}}" onInput="{{onQ}}" style="flex: 1; min-width: 100px; height: 36px; font-size: 15px; padding-left: 4px">
+      </div>
+      <div class="scroll" style="flex: 1; min-height: 0; padding: 10px 8px 100px">
+        <sc-for list="{{contacts}}" as="p" hint-placeholder-count="8">
+          <button onClick="{{p.tap}}" style="width: 100%; padding: 8px; border-radius: 18px; background: {{p.bg}}; display: flex; align-items: center; gap: 12px; transition: background .2s">
+            <span style="position: relative; flex-shrink: 0">
+              <span style="width: 48px; height: 48px; border-radius: 24px; background: {{p.av}}; color: {{p.ink}}; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{p.init}}</span>
+              <sc-if value="{{p.online}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 0; bottom: 0; width: 13px; height: 13px; border-radius: 7px; background: #8FD3AC; border: 2px solid #0A0C0B"></span></sc-if>
+            </span>
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{p.name}}</span><span style="display: block; margin-top: 2px; font-size: 13px; color: {{p.statusInk}}">{{p.status}}</span></span>
+            <span style="width: 26px; height: 26px; border-radius: 13px; border: 2px solid {{p.ring}}; background: {{p.dot}}; color: #06150D; display: flex; align-items: center; justify-content: center; transition: all .2s"><sc-if value="{{p.sel}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="font-size: 16px; animation: kxPop .25s ease both" aria-hidden="true">check</span></sc-if></span>
+          </button>
+        </sc-for>
+      </div>
+      <button onClick="{{next}}" aria-label="Далее" style="position: absolute; right: 18px; bottom: 26px; width: 60px; height: 60px; border-radius: 22px; background: {{nextBg}}; color: {{nextInk}}; display: flex; align-items: center; justify-content: center; box-shadow: {{nextShadow}}; transition: all .25s"><span class="ms" style="font-size: 28px" aria-hidden="true">arrow_forward</span></button>
+    </div>
+  </sc-if>
+
+  <!-- Step 2 -->
+  <sc-if value="{{step2}}" hint-placeholder-val="{{false}}">
+    <div class="scroll" style="flex: 1; min-height: 0; padding: 8px 16px 110px; animation: kxSlide .35s cubic-bezier(.2,.9,.3,1) both">
+      <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0 16px">
+        <button onClick="{{cycleColor}}" aria-label="Фото группы" style="position: relative; width: 78px; height: 78px; border-radius: 26px; background: {{gBg}}; color: {{gInk}}; font-size: 30px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .3s">
+          {{gInit}}
+          <span style="position: absolute; right: -4px; bottom: -4px; width: 30px; height: 30px; border-radius: 15px; background: #8FD3AC; color: #06150D; border: 3px solid #0A0C0B; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 16px" aria-hidden="true">photo_camera</span></span>
+        </button>
+        <div style="flex: 1; height: 56px; border-radius: 20px; background: rgba(255,255,255,.05); border: 1px solid {{nameBorder}}; display: flex; align-items: center; padding: 0 14px; transition: border-color .2s">
+          <input aria-label="Название группы" placeholder="Название группы" value="{{name}}" onInput="{{onName}}" style="flex: 1; font-size: 17px; font-weight: 600">
+        </div>
+      </div>
+
+      <div style="padding: 0 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Настройки</div>
+      <div style="border-radius: 22px; background: rgba(255,255,255,.045); overflow: hidden">
+        <sc-for list="{{settings}}" as="t" hint-placeholder-count="3">
+          <button onClick="{{t.tap}}" style="width: 100%; padding: 13px 16px; display: flex; align-items: center; gap: 12px; border-top: {{t.line}}">
+            <span class="ms" style="color: #8FD3AC" aria-hidden="true">{{t.icon}}</span>
+            <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{t.label}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F">{{t.sub}}</span></span>
+            <sc-if value="{{t.isSwitch}}" hint-placeholder-val="{{true}}"><span style="width: 50px; height: 30px; border-radius: 15px; background: {{t.track}}; position: relative; flex-shrink: 0; transition: background .2s"><span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px; background: {{t.knob}}; transform: translateX({{t.x}}); transition: transform .25s cubic-bezier(.34,1.45,.5,1)"></span></span></sc-if>
+            <sc-if value="{{t.isValue}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: #8FD3AC; font-weight: 700">{{t.value}}</span></sc-if>
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="padding: 16px 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">{{membersTitle}}</div>
+      <div style="border-radius: 22px; background: rgba(255,255,255,.045); padding: 6px">
+        <sc-for list="{{chips}}" as="c" hint-placeholder-count="2">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 6px 8px">
+            <span style="width: 40px; height: 40px; border-radius: 20px; background: {{c.av}}; color: {{c.ink}}; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{c.init}}</span>
+            <span style="flex: 1; font-size: 15px; font-weight: 600">{{c.name}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <button onClick="{{create}}" style="position: absolute; left: 16px; right: 16px; bottom: 26px; height: 56px; border-radius: 18px; background: {{createBg}}; color: {{createInk}}; font-size: 16px; font-weight: 800; text-align: center; box-shadow: {{createShadow}}; transition: all .25s">Создать группу</button>
+    </div>
+  </sc-if>
+
+  <!-- Done -->
+  <sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: radial-gradient(70% 45% at 50% 40%, rgba(63,154,108,.25), #0A0C0B 70%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; animation: kxIn .4s ease both">
+      <sc-for list="{{bits}}" as="b" hint-placeholder-count="14"><span aria-hidden="true" style="position: absolute; left: {{b.x}}; top: 46%; width: 9px; height: 9px; border-radius: 2px; background: {{b.c}}; animation: kxConf 1.4s ease-out {{b.d}} both"></span></sc-for>
+      <span style="width: 104px; height: 104px; border-radius: 34px; background: {{gBg}}; color: {{gInk}}; font-size: 40px; font-weight: 800; display: flex; align-items: center; justify-content: center; animation: kxPop .5s cubic-bezier(.34,1.45,.5,1) both">{{gInit}}</span>
+      <span style="margin-top: 8px; font-size: 22px; font-weight: 800">{{name}}</span>
+      <span style="font-size: 14px; color: #9AA59F">Группа создана · {{memberCount}}</span>
+      <div style="margin-top: 16px; display: flex; gap: 10px">
+        <button style="height: 44px; padding: 0 18px; border-radius: 22px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">link</span>Пригласить по ссылке</button>
+        <button onClick="{{restart}}" style="height: 44px; padding: 0 18px; border-radius: 22px; background: #8FD3AC; color: #06150D; font-size: 14px; font-weight: 700">Открыть чат</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const P = [
+  ['Анна', 'в сети', true, 'linear-gradient(140deg,#4B3F7A,#2A2240)', '#DCD0FF'],
+  ['Алина', 'в сети 5 минут назад', false, 'linear-gradient(140deg,#3A6E7A,#14303A)', '#CFF4FF'],
+  ['Дана', 'в сети', true, 'linear-gradient(140deg,#9E3F5C,#2E1420)', '#FFD0DD'],
+  ['Мама', 'в сети вчера', false, 'linear-gradient(140deg,#9E3F5C,#2E1420)', '#FFD0DD'],
+  ['Олег', 'в сети в 12:40', false, 'linear-gradient(140deg,#2F6E9E,#14243A)', '#CFE6FF'],
+  ['Сергей', 'в сети', true, 'linear-gradient(140deg,#3F7A5A,#1E3A2A)', '#CFF2DD'],
+  ['Тимур', 'был недавно', false, 'linear-gradient(140deg,#7A5A2E,#3A2A14)', '#FFE2B8'],
+  ['Ярослав', 'был на этой неделе', false, 'linear-gradient(140deg,#5C6661,#2A302D)', '#E2E8E4']
+];
+const GC = [['linear-gradient(140deg,#3F9A6C,#1F4D36)', '#DFF5E8'], ['linear-gradient(140deg,#4B3F7A,#2A2240)', '#DCD0FF'], ['linear-gradient(140deg,#B07A2E,#3A2A14)', '#FFE2B8'], ['linear-gradient(140deg,#2F6E9E,#14243A)', '#CFE6FF']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { step: 1, sel: [0, 2], q: '', name: '', gc: 0, history: true, approve: false, slow: 0 }; }
+renderVals() {
+  const s = this.state;
+  const q = s.q.trim().toLowerCase();
+  const chips = s.sel.map(i => ({ name: P[i][0], init: P[i][0][0], av: P[i][3], ink: P[i][4], remove: () => this.setState({ sel: s.sel.filter(k => k !== i) }) }));
+  const contacts = P.map((p, i) => ({ p, i })).filter(x => !q || x.p[0].toLowerCase().includes(q)).map(({ p, i }) => {
+    const sel = s.sel.includes(i);
+    return { name: p[0], status: p[1], statusInk: p[2] ? '#8FD3AC' : '#8A958F', online: p[2], av: p[3], ink: p[4], init: p[0][0], sel,
+      bg: sel ? 'rgba(143,211,172,.07)' : 'transparent', ring: sel ? '#8FD3AC' : '#3A4540', dot: sel ? '#8FD3AC' : 'transparent',
+      tap: () => this.setState({ sel: sel ? s.sel.filter(k => k !== i) : [...s.sel, i], q: '' }) };
+  });
+  const canNext = s.sel.length > 0;
+  const canCreate = s.name.trim().length > 0;
+  const sw = on => ({ track: on ? '#8FD3AC' : 'rgba(255,255,255,.12)', knob: on ? '#06150D' : '#8A958F', x: on ? '20px' : '0' });
+  const SL = ['Выкл.', '10 с', '1 мин', '5 мин'];
+  const settings = [
+    { icon: 'history', label: 'История для новых', sub: 'Новые участники увидят прошлые сообщения', isSwitch: true, isValue: false, ...sw(s.history), tap: () => this.setState({ history: !s.history }) },
+    { icon: 'how_to_reg', label: 'Заявки на вступление', sub: 'Админ одобряет каждого, кто пришёл по ссылке', isSwitch: true, isValue: false, ...sw(s.approve), tap: () => this.setState({ approve: !s.approve }) },
+    { icon: 'hourglass_top', label: 'Медленный режим', sub: 'Пауза между сообщениями участника', isSwitch: false, isValue: true, value: SL[s.slow], track: '', knob: '', x: '', tap: () => this.setState({ slow: (s.slow + 1) % SL.length }) }
+  ].map((t, i) => ({ ...t, line: i ? '1px solid rgba(255,255,255,.06)' : '0' }));
+  const n = s.sel.length + 1;
+  const word = n % 10 === 1 && n % 100 !== 11 ? 'участник' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'участника' : 'участников';
+  const colors = ['#8FD3AC', '#E8B04A', '#FF8A80', '#9FB7FF', '#DCD0FF', '#F2A65A'];
+  return {
+    step1: s.step === 1, step2: s.step === 2, done: s.step === 3,
+    title: s.step === 1 ? 'Новая группа' : 'Название и настройки',
+    sub: s.step === 1 ? (s.sel.length ? 'Выбрано: ' + s.sel.length : 'Кого добавить?') : 'Шаг 2 из 2',
+    step2Bar: s.step >= 2 ? '#8FD3AC' : 'rgba(255,255,255,.1)',
+    back: () => this.setState({ step: Math.max(1, s.step === 3 ? 2 : s.step - 1) }),
+    chips, contacts, q: s.q, onQ: e => this.setState({ q: e.target.value }), searchHint: s.sel.length ? 'Ещё…' : 'Поиск по имени',
+    nextBg: canNext ? 'linear-gradient(140deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.08)', nextInk: canNext ? '#06150D' : '#5C6661',
+    nextShadow: canNext ? '0 12px 30px rgba(63,154,108,.45)' : 'none',
+    next: () => { if (canNext) this.setState({ step: 2 }); },
+    name: s.name, onName: e => this.setState({ name: e.target.value }),
+    nameBorder: canCreate ? 'rgba(143,211,172,.4)' : 'transparent',
+    gBg: GC[s.gc][0], gInk: GC[s.gc][1], gInit: (s.name.trim()[0] || '?').toUpperCase(),
+    cycleColor: () => this.setState({ gc: (s.gc + 1) % GC.length }),
+    settings, membersTitle: n + ' ' + word,
+    createBg: canCreate ? 'linear-gradient(100deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', createInk: canCreate ? '#06150D' : '#5C6661',
+    createShadow: canCreate ? '0 10px 28px rgba(63,154,108,.35)' : 'none',
+    create: () => { if (canCreate) this.setState({ step: 3 }); },
+    memberCount: n + ' ' + word,
+    bits: Array.from({ length: 14 }, (_, i) => ({ x: (30 + i * 24) + 'px', c: colors[i % colors.length], d: (i % 5) * 0.07 + 's' })),
+    restart: () => this.setState({ step: 1, sel: [0, 2], name: '', q: '' })
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Микс эмодзи</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.9)}
+@keyframes kxL{0%{transform:translateX(0) rotate(0)}100%{transform:translateX(62px) rotate(20deg) scale(.6);opacity:0}}
+@keyframes kxR{0%{transform:translateX(0) rotate(0)}100%{transform:translateX(-62px) rotate(-20deg) scale(.6);opacity:0}}
+@keyframes kxBorn{0%{transform:scale(0) rotate(-30deg)}60%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes kxSpark{0%{transform:translate(0,0) scale(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}}
+@keyframes kxBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1"><h1 style="margin: 0; font-size: 20px; font-weight: 800">Микс эмодзи</h1><div style="font-size: 12px; color: #9AA59F">Смешайте два — получите стикер</div></div>
+  </header>
+
+  <!-- Lab -->
+  <div style="margin: 8px 16px 0; height: 260px; position: relative; border-radius: 28px; background: radial-gradient(70% 60% at 50% 40%, rgba(143,211,172,.18), transparent 70%), rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center">
+    <sc-if value="{{showPair}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; align-items: center; gap: 18px">
+        <button onClick="{{pickA}}" aria-label="Первый эмодзи" style="width: 92px; height: 92px; border-radius: 28px; background: {{aBg}}; border: 2px solid {{aBd}}; font-size: 54px; display: flex; align-items: center; justify-content: center; animation: {{aAnim}}">{{a}}</button>
+        <span class="ms" style="font-size: 28px; color: #8FD3AC" aria-hidden="true">add</span>
+        <button onClick="{{pickB}}" aria-label="Второй эмодзи" style="width: 92px; height: 92px; border-radius: 28px; background: {{bBg}}; border: 2px solid {{bBd}}; font-size: 54px; display: flex; align-items: center; justify-content: center; animation: {{bAnim}}">{{b}}</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{showResult}}" hint-placeholder-val="{{false}}">
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center">
+        <div style="position: relative; width: 150px; height: 150px; animation: kxBorn .6s cubic-bezier(.3,1.4,.5,1) both">
+          <span style="position: absolute; left: 50%; top: 50%; font-size: 96px; transform: translate(-60%,-55%); filter: drop-shadow(0 6px 14px rgba(0,0,0,.5)); animation: kxBob 2.4s ease-in-out 2">{{a}}</span>
+          <span style="position: absolute; left: 62%; top: 62%; font-size: 52px; transform: translate(-50%,-50%) rotate(14deg); filter: drop-shadow(0 4px 10px rgba(0,0,0,.5))">{{b}}</span>
+        </div>
+        <sc-for list="{{sparks}}" as="p" hint-placeholder-count="10"><span style="position: absolute; left: 50%; top: 45%; font-size: 16px; --dx: {{p.dx}}; --dy: {{p.dy}}; animation: kxSpark .8s ease-out {{p.d}} both">✨</span></sc-for>
+        <div style="margin-top: 4px; font-size: 15px; font-weight: 800">{{mixName}}</div>
+      </div>
+    </sc-if>
+    <div style="position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; font-size: 12px; color: #8A958F">{{labHint}}</div>
+  </div>
+
+  <!-- Picker -->
+  <div style="padding: 14px 16px 0">
+    <div style="font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">{{pickTitle}}</div>
+    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px">
+      <sc-for list="{{grid}}" as="e" hint-placeholder-count="18"><button onClick="{{e.tap}}" aria-label="{{e.label}}" style="aspect-ratio: 1; border-radius: 14px; background: {{e.bg}}; border: 1.5px solid {{e.bd}}; font-size: 26px; display: flex; align-items: center; justify-content: center">{{e.ch}}</button></sc-for>
+    </div>
+  </div>
+
+  <div style="margin-top: auto; padding: 14px 16px 22px; display: flex; gap: 8px">
+    <button onClick="{{shuffle}}" aria-label="Случайная пара" style="width: 54px; height: 54px; border-radius: 27px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">shuffle</span></button>
+    <button onClick="{{main}}" style="flex: 1; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" aria-hidden="true">{{mainIcon}}</span>{{mainText}}</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">send</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const EM = ['😺', '🔥', '🌵', '🍕', '😎', '🎉', '🥶', '👻', '🌈', '🐸', '☕', '🚀', '😴', '🍩', '⚡', '💚', '🤖', '🌚'];
+const NAMES = { '😺🔥': 'Огненный котик', '🐸☕': 'Лягушка на кофе', '👻🎉': 'Праздничный призрак', '🤖💚': 'Добрый робот', '🌚😴': 'Сонная луна' };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { a: '😺', b: '🔥', slot: 'b', phase: 'pair', k: 0, toast: 0, toastText: '' }; }
+componentWillUnmount() { clearTimeout(this.t1); clearTimeout(this.tt); }
+mix() { this.setState({ phase: 'merge' }); clearTimeout(this.t1); this.t1 = setTimeout(() => this.setState({ phase: 'result', k: this.state.k + 1 }), 450); }
+renderVals() {
+  const s = this.state;
+  const merging = s.phase === 'merge', result = s.phase === 'result';
+  const sel = s.slot === 'a' ? s.a : s.b;
+  return {
+    showPair: !result, showResult: result, a: s.a, b: s.b,
+    aBg: s.slot === 'a' ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', aBd: s.slot === 'a' ? '#8FD3AC' : 'rgba(255,255,255,.1)',
+    bBg: s.slot === 'b' ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', bBd: s.slot === 'b' ? '#8FD3AC' : 'rgba(255,255,255,.1)',
+    aAnim: merging ? 'kxL .45s ease-in both' : 'none', bAnim: merging ? 'kxR .45s ease-in both' : 'none',
+    pickA: () => this.setState({ slot: 'a', phase: 'pair' }), pickB: () => this.setState({ slot: 'b', phase: 'pair' }),
+    sparks: Array.from({ length: 10 }, (_, i) => { const ang = i / 10 * Math.PI * 2; return { dx: Math.round(Math.cos(ang) * 90) + 'px', dy: Math.round(Math.sin(ang) * 80) + 'px', d: (i % 3) * 0.05 + 's' }; }),
+    mixName: NAMES[s.a + s.b] || 'Новый стикер',
+    labHint: result ? 'Готовый стикер можно отправить или сохранить' : 'Нажмите на ячейку, затем выберите эмодзи ниже',
+    pickTitle: s.slot === 'a' ? 'Первый эмодзи' : 'Второй эмодзи',
+    grid: EM.map(ch => ({ ch, label: ch, bg: ch === sel ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.04)', bd: ch === sel ? '#8FD3AC' : 'rgba(255,255,255,.06)', tap: () => this.setState({ [s.slot]: ch, phase: 'pair' }) })),
+    shuffle: () => { const r = () => EM[Math.floor(Math.random() * EM.length)]; this.setState({ a: r(), b: r(), phase: 'pair' }); },
+    mainIcon: result ? 'send' : 'science', mainText: result ? 'Отправить в чат' : 'Смешать',
+    main: () => { if (result) { clearTimeout(this.tt); this.setState({ toast: s.toast + 1, toastText: 'Стикер «' + (NAMES[s.a + s.b] || 'Новый стикер') + '» отправлен' }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); } else this.mix(); },
+    toast: s.toast > 0, toastText: s.toastText
+  };
+}
+}
+</script>
+</body>
+</html>

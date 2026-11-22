@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Данные и память</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+@keyframes kxRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxPop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <div aria-hidden="true" style="position: absolute; right: -90px; top: -110px; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(circle, rgba(70,160,110,.18), rgba(70,160,110,0) 65%)"></div>
+
+  <header style="position: relative; padding: 10px 12px 2px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="margin: 0; font-size: 22px; font-weight: 800">Данные и память</h1>
+  </header>
+
+  <div style="position: relative; padding: 10px 16px 0; display: flex; flex-direction: column; gap: 12px">
+    <div style="padding: 14px; border-radius: 26px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.06); display: flex; align-items: center; gap: 16px; animation: kxRise .45s ease both">
+      <div style="position: relative; width: 112px; height: 112px; flex-shrink: 0">
+        <div style="width: 112px; height: 112px; border-radius: 50%; background: {{donut}}; transition: background .8s ease"></div>
+        <div style="position: absolute; inset: 16px; border-radius: 50%; background: #121614; display: flex; flex-direction: column; align-items: center; justify-content: center">
+          <span style="font-size: 20px; font-weight: 800">{{total}}</span>
+          <span style="font-size: 11px; color: #8A958F">кэш kiroX</span>
+        </div>
+      </div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 5px">
+        <sc-for list="{{legend}}" as="l" hint-placeholder-count="5">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 12px"><span style="width: 8px; height: 8px; border-radius: 4px; background: {{l.color}}"></span><span style="flex-grow: 1; color: #C9D2CC">{{l.label}}</span><span style="color: #8A958F">{{l.size}}</span></div>
+        </sc-for>
+      </div>
+    </div>
+    <button onClick="{{clear}}" style="height: 52px; border-radius: 18px; background: {{clearBg}}; color: {{clearInk}}; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .3s; animation: kxRise .45s ease .04s both">
+      <sc-if value="{{clearing}}" hint-placeholder-val="{{false}}"><span style="width: 18px; height: 18px; border-radius: 50%; border: 3px solid rgba(6,21,13,.3); border-top-color: #06150D; animation: kxSpin .8s linear infinite"></span></sc-if>
+      <sc-if value="{{cleared}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="animation: kxPop .4s ease both" aria-hidden="true">check_circle</span></sc-if>
+      {{clearLabel}}
+    </button>
+
+    <div style="animation: kxRise .45s ease .08s both">
+      <div style="padding: 0 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Автозагрузка медиа</div>
+      <div role="tablist" style="position: relative; height: 40px; border-radius: 20px; background: rgba(255,255,255,.05); display: flex; padding: 3px; box-sizing: border-box">
+        <span aria-hidden="true" style="position: absolute; top: 3px; left: 3px; width: calc((100% - 6px) / 3); height: 34px; border-radius: 17px; background: rgba(143,211,172,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); transition: transform .45s cubic-bezier(.34,1.4,.5,1); transform: {{netX}}"></span>
+        <sc-for list="{{nets}}" as="n" hint-placeholder-count="3"><button role="tab" aria-selected="{{n.sel}}" onClick="{{n.pick}}" style="position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; font-weight: 700; color: {{n.color}}; transition: color .3s"><span class="ms" style="font-size: 17px" aria-hidden="true">{{n.icon}}</span>{{n.label}}</button></sc-for>
+      </div>
+      <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 2px">
+        <sc-for list="{{kinds}}" as="k" hint-placeholder-count="4">
+          <button role="switch" aria-checked="{{k.checked}}" onClick="{{k.flip}}" style="height: 50px; padding: 0 14px; border-radius: {{k.radius}}; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 12px">
+            <span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">{{k.icon}}</span>
+            <span style="flex-grow: 1"><span style="display: block; font-size: 14px">{{k.label}}</span><span style="display: block; font-size: 11px; color: #8A958F">{{k.limit}}</span></span>
+            <span style="width: 44px; height: 26px; border-radius: 13px; background: {{k.track}}; position: relative; transition: background .3s"><span style="position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 10px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,.4); transition: transform .35s cubic-bezier(.34,1.5,.5,1); transform: {{k.knob}}"></span></span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="padding: 12px 14px; border-radius: 20px; background: rgba(255,255,255,.045); animation: kxRise .45s ease .12s both">
+      <div style="display: flex; align-items: baseline"><span style="flex-grow: 1; font-size: 14px">Хранить медиа</span><span style="font-size: 13px; font-weight: 700; color: #8FD3AC">{{keepLabel}}</span></div>
+      <div style="margin-top: 10px; display: flex; gap: 6px">
+        <sc-for list="{{keeps}}" as="p" hint-placeholder-count="4"><button onClick="{{p.pick}}" style="flex: 1; height: 32px; border-radius: 12px; background: {{p.bg}}; color: {{p.color}}; font-size: 12px; font-weight: 700; text-align: center; transition: background .25s">{{p.label}}</button></sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { net: 0, state: 'idle', keep: 2, auto: [ { photo: true, video: true, file: false, music: true }, { photo: true, video: false, file: false, music: false }, { photo: false, video: false, file: false, music: false } ] };
+}
+componentWillUnmount() { clearTimeout(this.t); }
+renderVals() {
+  const s = this.state;
+  const parts = [['Фото', 410, '#8FD3AC'], ['Видео', 320, '#7FC4F0'], ['Документы', 170, '#FFAE80'], ['Музыка', 130, '#C9A6FF'], ['Голосовые', 96, '#FFD27A']];
+  const done = s.state === 'done';
+  const sum = parts.reduce((a, p) => a + p[1], 0);
+  let acc = 0;
+  const stops = parts.map(p => { const a = acc / sum * 100; acc += p[1]; return p[2] + ' ' + a.toFixed(1) + '% ' + (acc / sum * 100).toFixed(1) + '%'; });
+  const donut = done ? 'conic-gradient(#2A322E 0 100%)' : 'conic-gradient(' + stops.join(', ') + ')';
+  const legend = parts.map(p => ({ label: p[0], color: p[2], size: done ? '0 МБ' : p[1] + ' МБ' }));
+  const nets = [['wifi', 'Wi-Fi'], ['signal_cellular_alt', 'Мобильная'], ['travel', 'Роуминг']].map(([icon, label], i) => ({
+    icon, label, sel: i === s.net ? 'true' : 'false', color: i === s.net ? '#EEF3EF' : '#8A958F', pick: () => this.setState({ net: i })
+  }));
+  const kDefs = [['photo', 'image', 'Фото', 'До 5 МБ'], ['video', 'movie', 'Видео', 'До 50 МБ'], ['file', 'description', 'Файлы', 'До 10 МБ'], ['music', 'music_note', 'Музыка', 'До 20 МБ']];
+  const cur = s.auto[s.net];
+  const kinds = kDefs.map(([k, icon, label, limit], i) => {
+    const on = cur[k];
+    return {
+      icon, label, limit: on ? limit : 'Только вручную', checked: on ? 'true' : 'false',
+      track: on ? '#8FD3AC' : '#2A322E', knob: on ? 'translateX(18px)' : 'translateX(0)',
+      radius: i === 0 ? '20px 20px 6px 6px' : i === kDefs.length - 1 ? '6px 6px 20px 20px' : '6px',
+      flip: () => { const auto = s.auto.slice(); auto[s.net] = Object.assign({}, cur, { [k]: !on }); this.setState({ auto }); }
+    };
+  });
+  const keepOpts = ['3 дня', 'Неделя', 'Месяц', 'Всегда'];
+  const keeps = keepOpts.map((label, i) => ({ label, bg: i === s.keep ? '#8FD3AC' : 'rgba(255,255,255,.07)', color: i === s.keep ? '#06150D' : '#C9D2CC', pick: () => this.setState({ keep: i }) }));
+  return {
+    donut, legend, nets, kinds, keeps,
+    total: done ? '0 МБ' : '1,1 ГБ',
+    netX: 'translateX(' + (s.net * 100) + '%)',
+    keepLabel: keepOpts[s.keep],
+    clearing: s.state === 'busy', cleared: done,
+    clearLabel: s.state === 'busy' ? 'Очищаем…' : done ? 'Освобождено 1,1 ГБ' : 'Очистить кэш',
+    clearBg: done ? 'rgba(143,211,172,.16)' : '#8FD3AC', clearInk: done ? '#C8F0D8' : '#06150D',
+    clear: () => {
+      if (s.state === 'busy') return;
+      if (done) { this.setState({ state: 'idle' }); return; }
+      this.setState({ state: 'busy' });
+      clearTimeout(this.t);
+      this.t = setTimeout(() => this.setState({ state: 'done' }), 1400);
+    }
+  };
+}
+}
+</script>
+</body>
+</html>

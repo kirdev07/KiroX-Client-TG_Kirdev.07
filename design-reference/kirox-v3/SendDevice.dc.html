@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>На своё устройство</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+@keyframes kxFly{0%{left:20%;opacity:0;transform:translateY(-50%) scale(.6)}15%{opacity:1}85%{opacity:1}100%{left:80%;opacity:0;transform:translateY(-50%) scale(.6)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+@keyframes kxGlow{0%,100%{box-shadow:0 0 0 0 rgba(143,211,172,0)}50%{box-shadow:0 0 30px 4px rgba(143,211,172,.35)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1"><h1 style="margin: 0; font-size: 20px; font-weight: 800">На своё устройство</h1><div style="font-size: 12px; color: #9AA59F">Без проводов и без лишних чатов</div></div>
+  </header>
+
+  <!-- Transfer scene -->
+  <div style="margin: 8px 16px 0; height: 170px; position: relative; border-radius: 26px; background: radial-gradient(90% 80% at 50% 0%, rgba(63,154,108,.2), transparent 70%), rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08)">
+    <span style="position: absolute; left: 30px; top: 50%; transform: translateY(-50%); width: 60px; height: 100px; border-radius: 14px; border: 2px solid rgba(255,255,255,.4); display: flex; align-items: center; justify-content: center"><span class="ms fill" style="color: #9AA59F" aria-hidden="true">smartphone</span></span>
+    <span style="position: absolute; right: 24px; top: 50%; transform: translateY(-50%); width: 96px; height: 70px; border-radius: 10px; border: 2px solid {{dstBd}}; background: {{dstBg}}; display: flex; align-items: center; justify-content: center; animation: {{dstGlow}}; transition: all .3s"><span class="ms fill" style="color: {{dstInk}}" aria-hidden="true">{{dstIcon}}</span></span>
+    <svg width="358" height="170" viewBox="0 0 358 170" style="position: absolute; inset: 0" aria-hidden="true"><line x1="100" y1="85" x2="250" y2="85" stroke="{{lineC}}" stroke-width="2" stroke-dasharray="5 6"></line></svg>
+    <sc-if value="{{sending}}" hint-placeholder-val="{{false}}">
+      <sc-for list="{{fly}}" as="f" hint-placeholder-count="3"><span class="ms fill" style="position: absolute; top: 50%; font-size: 22px; color: #8FD3AC; animation: kxFly 1.4s linear {{f}} 2" aria-hidden="true">description</span></sc-for>
+    </sc-if>
+    <div style="position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 12px; color: {{sceneInk}}">{{sceneText}}</div>
+  </div>
+
+  <!-- Devices -->
+  <div style="padding: 16px 16px 0">
+    <div style="font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">Куда отправить</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px">
+      <sc-for list="{{devs}}" as="d" hint-placeholder-count="3">
+        <button onClick="{{d.tap}}" aria-pressed="{{d.on}}" style="padding: 12px 8px; border-radius: 18px; background: {{d.bg}}; border: 1px solid {{d.bd}}; text-align: center; transition: all .2s">
+          <span class="ms fill" style="font-size: 28px; color: {{d.ic}}" aria-hidden="true">{{d.icon}}</span>
+          <span style="display: block; margin-top: 4px; font-size: 13px; font-weight: 700">{{d.name}}</span>
+          <span style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 2px; font-size: 11px; color: {{d.stInk}}"><span style="width: 6px; height: 6px; border-radius: 3px; background: {{d.stInk}}"></span>{{d.st}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Files -->
+  <div style="padding: 16px 16px 0">
+    <div style="font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">Что отправить</div>
+    <div style="border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <sc-for list="{{files}}" as="f" hint-placeholder-count="3">
+        <div style="padding: 10px 14px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05)">
+          <span style="width: 38px; height: 38px; border-radius: 10px; background: {{f.c}}; color: #fff; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">{{f.icon}}</span></span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{f.name}}</span><span style="display: block; margin-top: 4px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden"><span style="display: block; height: 100%; width: {{f.pct}}; background: #8FD3AC; transition: width .2s linear"></span></span></span>
+          <span style="width: 52px; text-align: right; font-size: 12px; color: {{f.stInk}}; font-weight: 700">{{f.st}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="margin-top: auto; padding: 14px 16px 22px">
+    <button onClick="{{send}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{btnBg}}; color: {{btnInk}}; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" aria-hidden="true">{{btnIcon}}</span>{{btnText}}</button>
+    <div style="margin-top: 8px; font-size: 11px; color: #8A958F; text-align: center">Файл уходит через ваше облако Telegram — в Избранное, откроется на любом вашем устройстве</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const DEV = [['Ноутбук', 'laptop_mac', 'рядом', '#8FD3AC', 'Wi-Fi напрямую'], ['Планшет', 'tablet_android', 'в сети', '#8FD3AC', 'через облако'], ['Рабочий ПК', 'desktop_windows', 'активность: вчера', '#8A958F', 'отправим, когда включится']];
+const F = [['Презентация Compose.pdf', 'picture_as_pdf', '#C0443C', 18], ['Фото с митапа (12)', 'photo_library', '#2F6E9E', 46], ['notes.txt', 'description', '#5C6661', 1]];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { dev: 0, prog: [0, 0, 0], phase: 'idle' }; }
+componentWillUnmount() { clearInterval(this.iv); }
+send() {
+  this.setState({ phase: 'send', prog: [0, 0, 0] });
+  clearInterval(this.iv);
+  const speed = this.state.dev === 0 ? 9 : 3.5;
+  this.iv = setInterval(() => {
+    const p = this.state.prog.map((v, i) => Math.min(100, v + speed * (40 / F[i][3]) * (0.7 + Math.random() * 0.6)));
+    if (p.every(v => v >= 100)) { clearInterval(this.iv); this.setState({ prog: [100, 100, 100], phase: 'done' }); } else this.setState({ prog: p });
+  }, 120);
+}
+renderVals() {
+  const s = this.state;
+  const d = DEV[s.dev];
+  const sending = s.phase === 'send', done = s.phase === 'done';
+  const offline = s.dev === 2;
+  return {
+    dstIcon: d[1], dstBd: done ? '#8FD3AC' : 'rgba(255,255,255,.4)', dstBg: done ? 'rgba(143,211,172,.12)' : 'transparent', dstInk: done ? '#8FD3AC' : '#9AA59F', dstGlow: done ? 'kxGlow 1.6s ease-in-out 2' : 'none',
+    lineC: sending ? 'rgba(143,211,172,.6)' : 'rgba(255,255,255,.15)', sending, fly: ['0s', '.45s', '.9s'],
+    sceneText: done ? (offline ? 'В очереди — дойдёт, когда ПК включится' : 'Готово! Файлы на «' + d[0] + '»') : sending ? 'Передаём · ' + d[4] : 'Выберите устройство и нажмите «Отправить»',
+    sceneInk: done ? '#8FD3AC' : '#9AA59F',
+    devs: DEV.map(([name, icon, st, stInk], i) => ({ name, icon, st, stInk, on: s.dev === i, bg: s.dev === i ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.04)', bd: s.dev === i ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', ic: s.dev === i ? '#8FD3AC' : '#9AA59F', tap: () => !sending && this.setState({ dev: i, phase: 'idle', prog: [0, 0, 0] }) })),
+    files: F.map(([name, icon, c, mb], i) => ({ name, icon, c, pct: s.prog[i] + '%', st: s.prog[i] >= 100 ? (offline ? 'в очереди' : '✓') : s.prog[i] > 0 ? Math.round(s.prog[i]) + '%' : mb + ' МБ', stInk: s.prog[i] >= 100 ? '#8FD3AC' : '#9AA59F' })),
+    btnBg: sending ? 'rgba(255,255,255,.07)' : 'linear-gradient(135deg, #6FC497, #3F9A6C)', btnInk: sending ? '#9AA59F' : '#06150D',
+    btnIcon: done ? 'replay' : sending ? 'hourglass_top' : 'send', btnText: done ? 'Отправить ещё раз' : sending ? 'Передаём…' : 'Отправить на «' + d[0] + '»',
+    send: () => !sending && this.send()
+  };
+}
+}
+</script>
+</body>
+</html>

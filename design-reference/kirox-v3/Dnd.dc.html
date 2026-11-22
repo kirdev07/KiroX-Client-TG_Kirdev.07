@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Не беспокоить</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxBreath{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.12);opacity:.25}}
+@keyframes kxZ{0%{transform:translate(0,0) scale(.6);opacity:0}30%{opacity:1}100%{transform:translate(18px,-40px) scale(1.1);opacity:0}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: {{pageBg}}; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column; transition: background .6s">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Не беспокоить</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 0 16px 30px">
+    <!-- Big toggle -->
+    <div style="display: flex; flex-direction: column; align-items: center; padding: 14px 0 6px">
+      <div style="position: relative; width: 170px; height: 170px">
+        <span style="position: absolute; inset: -14px; border-radius: 50%; background: radial-gradient(circle, {{glow}}, transparent 70%); animation: {{breath}}" aria-hidden="true"></span>
+        <button onClick="{{toggle}}" aria-pressed="{{on}}" aria-label="{{toggleLabel}}" style="position: absolute; inset: 0; border-radius: 50%; background: {{orbBg}}; border: 1px solid {{orbBd}}; box-shadow: {{orbShadow}}; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all .4s">
+          <span class="ms" style="font-size: 64px; color: {{orbInk}}; font-variation-settings: {{orbFill}}; transition: color .4s" aria-hidden="true">bedtime</span>
+          <span style="margin-top: 6px; font-size: 14px; font-weight: 800; color: {{orbInk}}">{{orbText}}</span>
+        </button>
+        <sc-if value="{{on}}" hint-placeholder-val="{{false}}">
+          <span style="position: absolute; right: 24px; top: 26px; font-size: 16px; font-weight: 800; color: #B9A6FF; animation: kxZ 2.6s ease-out 2" aria-hidden="true">z</span>
+          <span style="position: absolute; right: 14px; top: 34px; font-size: 12px; font-weight: 800; color: #B9A6FF; animation: kxZ 2.6s ease-out 1.3s 2" aria-hidden="true">z</span>
+        </sc-if>
+      </div>
+      <div style="margin-top: 14px; font-size: 15px; font-weight: 700">{{status}}</div>
+      <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">{{statusSub}}</div>
+    </div>
+
+    <!-- Duration -->
+    <div style="margin-top: 14px; font-size: 13px; font-weight: 700; color: {{accent}}; padding: 0 4px 8px">Включить на</div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px">
+      <sc-for list="{{durs}}" as="d" hint-placeholder-count="4"><button onClick="{{d.tap}}" style="height: 44px; border-radius: 16px; background: {{d.bg}}; color: {{d.ink}}; border: 1px solid {{d.bd}}; font-size: 13px; font-weight: 700; text-align: center; transition: all .2s">{{d.label}}</button></sc-for>
+    </div>
+
+    <!-- Exceptions -->
+    <div style="margin-top: 18px; display: flex; align-items: center; padding: 0 4px 8px"><span style="flex: 1; font-size: 13px; font-weight: 700; color: {{accent}}">Всё равно присылать от</span><span style="font-size: 12px; color: #8A958F">{{excCount}}</span></div>
+    <div style="padding: 12px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08)">
+      <div style="display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none">
+        <sc-for list="{{people}}" as="p" hint-placeholder-count="5">
+          <button onClick="{{p.tap}}" aria-pressed="{{p.on}}" aria-label="{{p.label}}" style="width: 58px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; opacity: {{p.op}}; transition: opacity .2s">
+            <span style="position: relative; width: 50px; height: 50px; border-radius: 25px; background: {{p.c}}; font-size: 18px; font-weight: 800; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: {{p.ring}}; transition: box-shadow .2s">{{p.l}}
+              <sc-if value="{{p.on}}" hint-placeholder-val="{{true}}"><span style="position: absolute; right: -3px; bottom: -3px; width: 20px; height: 20px; border-radius: 10px; background: {{accentSolid}}; color: #06150D; border: 2px solid #0A0C0B; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 14px" aria-hidden="true">check</span></span></sc-if>
+            </span>
+            <span style="font-size: 11px; color: #C9D2CC; white-space: nowrap">{{p.name}}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="height: 1px; background: rgba(255,255,255,.06); margin: 12px 0 4px"></div>
+      <sc-for list="{{opts}}" as="o" hint-placeholder-count="2">
+        <button onClick="{{o.tap}}" style="width: 100%; padding: 10px 4px; display: flex; align-items: center; gap: 12px">
+          <span class="ms" style="color: #9AA59F" aria-hidden="true">{{o.icon}}</span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{o.label}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{o.sub}}</span></span>
+          <span style="width: 48px; height: 28px; border-radius: 14px; background: {{o.track}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{o.knob}}; width: 22px; height: 22px; border-radius: 11px; background: {{o.knobBg}}; transition: left .2s"></span></span>
+        </button>
+      </sc-for>
+    </div>
+
+    <!-- Schedule -->
+    <div style="margin-top: 18px; font-size: 13px; font-weight: 700; color: {{accent}}; padding: 0 4px 8px">Каждую ночь</div>
+    <div style="padding: 14px 16px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08)">
+      <button onClick="{{toggleSched}}" style="width: 100%; display: flex; align-items: center; gap: 12px">
+        <span class="ms" style="color: #9AA59F" aria-hidden="true">schedule</span>
+        <span style="flex: 1; font-size: 15px; font-weight: 600">По расписанию</span>
+        <span style="width: 48px; height: 28px; border-radius: 14px; background: {{schTrack}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{schKnob}}; width: 22px; height: 22px; border-radius: 11px; background: {{schKnobBg}}; transition: left .2s"></span></span>
+      </button>
+      <sc-if value="{{sched}}" hint-placeholder-val="{{true}}">
+        <div style="margin-top: 14px; animation: kxIn .2s ease both">
+          <div style="position: relative; height: 34px; border-radius: 17px; background: rgba(255,255,255,.06); overflow: hidden">
+            <span style="position: absolute; top: 0; bottom: 0; left: {{barL1}}; width: {{barW1}}; background: {{barBg}}"></span>
+            <span style="position: absolute; top: 0; bottom: 0; left: 0; width: {{barW2}}; background: {{barBg}}"></span>
+            <span style="position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; font-size: 11px; color: #8A958F"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></span>
+          </div>
+          <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+            <sc-for list="{{times}}" as="t" hint-placeholder-count="2">
+              <div style="padding: 8px 10px; border-radius: 16px; background: rgba(255,255,255,.04); display: flex; align-items: center; gap: 6px">
+                <button onClick="{{t.minus}}" aria-label="{{t.minusLabel}}" style="width: 30px; height: 30px; border-radius: 15px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">remove</span></button>
+                <span style="flex: 1; text-align: center"><span style="display: block; font-size: 11px; color: #8A958F">{{t.label}}</span><span style="display: block; font-size: 17px; font-weight: 800">{{t.value}}</span></span>
+                <button onClick="{{t.plus}}" aria-label="{{t.plusLabel}}" style="width: 30px; height: 30px; border-radius: 15px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">add</span></button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 34px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: {{accentSolid}}" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const DURS = [['1 час', 60], ['3 часа', 180], ['До утра', 'morning'], ['Пока не выключу', 0]];
+const PEOPLE = [['Мама', 'М', '#B07A2E'], ['Анна', 'А', '#C0443C'], ['Папа', 'П', '#2F6E9E'], ['Дмитрий', 'Д', '#6A4C9C'], ['Работа', 'Р', '#5C6661'], ['Алекс', 'А', '#3F9A6C']];
+const hh = h => String(((h % 24) + 24) % 24).padStart(2, '0') + ':00';
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { on: false, dur: 2, exc: { 0: true, 2: true }, calls: true, repeat: true, sched: true, from: 23, to: 7, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+renderVals() {
+  const s = this.state;
+  const on = s.on;
+  const acc = on ? '#B9A6FF' : '#8FD3AC';
+  const sw = v => ({ track: v ? (on ? '#6E5BC4' : '#3F9A6C') : 'rgba(255,255,255,.14)', knob: v ? '23px' : '3px', knobBg: v ? '#EEF3EF' : '#9AA59F' });
+  const excN = Object.values(s.exc).filter(Boolean).length;
+  const until = s.dur === 0 ? '18:15' : s.dur === 1 ? '20:15' : s.dur === 2 ? hh(s.to) : '';
+  const sch = sw(s.sched);
+  const f = s.from, t = s.to;
+  const wraps = f > t;
+  return {
+    pageBg: on ? 'radial-gradient(120% 60% at 50% 0%, #1D1838, #0A0A10 60%)' : '#0A0C0B',
+    on, accent: acc, accentSolid: acc,
+    glow: on ? 'rgba(150,120,255,.45)' : 'rgba(143,211,172,.25)', breath: on ? 'kxBreath 4s ease-in-out 2' : 'none',
+    orbBg: on ? 'radial-gradient(circle at 35% 30%, #4A3E8C, #1E1940 70%)' : 'linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03))',
+    orbBd: on ? 'rgba(185,166,255,.5)' : 'rgba(255,255,255,.14)',
+    orbShadow: on ? '0 20px 60px rgba(110,91,196,.45), inset 0 1px 0 rgba(255,255,255,.2)' : 'inset 0 1px 0 rgba(255,255,255,.12)',
+    orbInk: on ? '#E4DCFF' : '#9AA59F', orbFill: on ? "'FILL' 1" : "'FILL' 0", orbText: on ? 'Включено' : 'Выключено',
+    toggleLabel: on ? 'Выключить «Не беспокоить»' : 'Включить «Не беспокоить»',
+    toggle: () => { this.setState({ on: !on }); this.toastMsg(on ? 'Уведомления снова включены' : 'Тишина' + (until ? ' до ' + until : ''), on ? 'notifications_active' : 'bedtime'); },
+    status: on ? (until ? 'Тишина до ' + until : 'Тишина, пока не выключите') : 'Уведомления приходят как обычно',
+    statusSub: on ? (excN ? 'Пропускаем: ' + PEOPLE.filter((_, i) => s.exc[i]).map(p => p[0]).join(', ') : 'Никого не пропускаем') : 'Нажмите на луну, чтобы включить',
+    durs: DURS.map(([label], i) => ({ label, bg: s.dur === i ? (on ? 'rgba(185,166,255,.16)' : 'rgba(143,211,172,.14)') : 'rgba(255,255,255,.05)', ink: s.dur === i ? acc : '#C9D2CC', bd: s.dur === i ? (on ? 'rgba(185,166,255,.45)' : 'rgba(143,211,172,.45)') : 'rgba(255,255,255,.08)', tap: () => this.setState({ dur: i }) })),
+    excCount: excN ? excN + ' выбрано' : 'никого',
+    people: PEOPLE.map(([name, l, c], i) => { const sel = !!s.exc[i]; return { name, l, c, on: sel, label: name + (sel ? ', пропускать' : ''), op: sel ? '1' : '.55', ring: sel ? '0 0 0 2px #0A0C0B, 0 0 0 4px ' + acc : 'none', tap: () => this.setState({ exc: { ...s.exc, [i]: !sel } }) }; }),
+    opts: [
+      { icon: 'call', label: 'Звонки от избранных', sub: 'Звонок пройдёт, даже если сообщения молчат', v: s.calls, k: 'calls' },
+      { icon: 'replay', label: 'Повторный звонок', sub: 'Если звонят второй раз за 3 минуты — пропустим', v: s.repeat, k: 'repeat' }
+    ].map(o => { const w = sw(o.v); return { ...o, track: w.track, knob: w.knob, knobBg: w.knobBg, tap: () => this.setState({ [o.k]: !o.v }) }; }),
+    toggleSched: () => this.setState({ sched: !s.sched }), sched: s.sched, schTrack: sch.track, schKnob: sch.knob, schKnobBg: sch.knobBg,
+    barBg: on ? 'linear-gradient(90deg, #6E5BC4, #9C88F0)' : 'linear-gradient(90deg, #3F9A6C, #6FC497)',
+    barL1: (f / 24 * 100) + '%', barW1: ((wraps ? 24 - f : t - f) / 24 * 100) + '%', barW2: (wraps ? t / 24 * 100 : 0) + '%',
+    times: [['С', 'from'], ['До', 'to']].map(([label, k]) => ({
+      label, value: hh(s[k]),
+      minus: () => this.setState({ [k]: (s[k] + 23) % 24 }), plus: () => this.setState({ [k]: (s[k] + 1) % 24 }),
+      minusLabel: label + ': на час раньше', plusLabel: label + ': на час позже'
+    })),
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Автоудаление</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.1);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:11px;background:#8FD3AC;border:3px solid #0A0C0B;box-shadow:0 0 0 1px #8FD3AC}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:9px;background:#8FD3AC;border:3px solid #0A0C0B}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxPop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1; min-width: 0">
+      <h1 style="margin: 0; font-size: 20px; font-weight: 800">Автоудаление</h1>
+      <div style="font-size: 12px; color: #9AA59F">Чат: Анна</div>
+    </div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 110px">
+    <!-- Live preview -->
+    <div style="position: relative; height: 236px; border-radius: 26px; overflow: hidden; background: radial-gradient(120% 80% at 80% 0%, rgba(63,154,108,.28), transparent 60%), #101413; border: 1px solid rgba(255,255,255,.08)">
+      <!-- ring -->
+      <div style="position: absolute; left: 50%; top: 18px; transform: translateX(-50%); width: 86px; height: 86px">
+        <svg width="86" height="86" viewBox="0 0 86 86" aria-hidden="true">
+          <circle cx="43" cy="43" r="37" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"></circle>
+          <circle cx="43" cy="43" r="37" fill="none" stroke="{{ringInk}}" stroke-width="6" stroke-linecap="round" stroke-dasharray="232.5" stroke-dashoffset="{{ringOff}}" transform="rotate(-90 43 43)" style="transition: stroke-dashoffset .9s linear, stroke .3s"></circle>
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center">
+          <span class="ms fill" style="font-size: 22px; color: {{ringInk}}" aria-hidden="true">{{ringIcon}}</span>
+          <span style="margin-top: 2px; font-size: 12px; font-weight: 800">{{ringText}}</span>
+        </div>
+      </div>
+      <!-- bubbles -->
+      <div style="position: absolute; left: 14px; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{bubbles}}" as="b" hint-placeholder-count="3">
+          <div style="align-self: {{b.side}}; max-width: 74%; padding: 8px 12px; border-radius: {{b.radius}}; background: {{b.bg}}; color: {{b.ink}}; font-size: 14px; opacity: {{b.op}}; filter: {{b.blur}}; transform: {{b.tf}}; transition: opacity .8s ease, filter .8s ease, transform .8s ease">
+            {{b.text}}
+            <span style="display: inline-flex; align-items: center; gap: 2px; margin-left: 8px; font-size: 11px; opacity: .7; vertical-align: -1px">
+              <sc-if value="{{b.timer}}" hint-placeholder-val="{{true}}"><span class="ms" style="font-size: 13px" aria-hidden="true">timer</span></sc-if>{{b.time}}
+            </span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <p style="margin: 12px 4px 0; font-size: 13px; line-height: 1.45; color: #9AA59F">{{explain}}</p>
+
+    <!-- Options -->
+    <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">Удалять сообщения через</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+      <sc-for list="{{opts}}" as="o" hint-placeholder-count="6">
+        <button onClick="{{o.tap}}" aria-pressed="{{o.on}}" style="height: 58px; padding: 0 14px; border-radius: 18px; background: {{o.bg}}; border: 1px solid {{o.bd}}; display: flex; align-items: center; gap: 10px; transition: all .2s">
+          <span class="ms" style="font-size: 22px; color: {{o.ic}}; font-variation-settings: {{o.fill}}" aria-hidden="true">{{o.icon}}</span>
+          <span style="flex: 1; font-size: 14px; font-weight: 700; color: {{o.ink}}">{{o.label}}</span>
+          <sc-if value="{{o.on}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC; animation: kxPop .2s ease both" aria-hidden="true">check_circle</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{custom}}" hint-placeholder-val="{{false}}">
+      <div style="margin-top: 10px; padding: 14px 16px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); animation: kxIn .25s ease both">
+        <div style="display: flex; align-items: baseline"><span style="flex: 1; font-size: 14px; color: #C9D2CC">Свой срок</span><span style="font-size: 16px; font-weight: 800; color: #8FD3AC">{{customText}}</span></div>
+        <input type="range" min="0" max="11" step="1" value="{{customVal}}" onInput="{{onCustom}}" aria-label="Свой срок автоудаления" style="margin-top: 14px">
+        <div style="margin-top: 8px; display: flex; justify-content: space-between; font-size: 11px; color: #8A958F"><span>1 час</span><span>1 год</span></div>
+      </div>
+    </sc-if>
+
+    <!-- Extra -->
+    <div style="margin-top: 18px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <div style="padding: 12px 4px; display: flex; gap: 12px; align-items: center; font-size: 13px; line-height: 18px; color: #9AA59F"><span class="ms" style="color: #8A958F" aria-hidden="true">history</span>Таймер действует только на новые сообщения — старые останутся</div>
+      <div style="height: 1px; background: rgba(255,255,255,.06); margin-left: 52px"></div>
+      <button onClick="{{toggleAll}}" style="width: 100%; padding: 14px 16px; display: flex; align-items: center; gap: 12px">
+        <span class="ms" style="color: #9AA59F" aria-hidden="true">auto_delete</span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">Для всех новых чатов</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{allSub}}</span></span>
+        <span style="width: 48px; height: 28px; border-radius: 14px; background: {{allTrack}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{allKnob}}; width: 22px; height: 22px; border-radius: 11px; background: {{allKnobBg}}; transition: left .2s"></span></span>
+      </button>
+    </div>
+    <p style="margin: 10px 4px 0; font-size: 12px; line-height: 1.45; color: #8A958F">Сообщения удаляются у обоих. Анна увидит, что вы включили автоудаление.</p>
+  </div>
+
+  <!-- Save bar -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; background: linear-gradient(180deg, rgba(10,12,11,0), #0A0C0B 40%)">
+    <button onClick="{{save}}" style="width: 100%; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 30px rgba(63,154,108,.35)"><span class="ms fill" aria-hidden="true">done</span>Сохранить</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const OPTS = [
+  { label: 'Выключено', icon: 'timer_off', short: 'выкл' },
+  { label: '1 час', icon: 'hourglass_top', short: '1 час' },
+  { label: '1 день', icon: 'today', short: '1 день' },
+  { label: '1 неделя', icon: 'date_range', short: '1 нед.' },
+  { label: '1 месяц', icon: 'calendar_month', short: '1 мес.' },
+  { label: 'Свой срок', icon: 'tune', short: '' }
+];
+const CUSTOM = ['1 час', '3 часа', '6 часов', '12 часов', '1 день', '2 дня', '3 дня', '1 неделя', '2 недели', '1 месяц', '3 месяца', '1 год'];
+const MSG = [
+  { text: 'Привет! Завтра в силе?', mine: false, time: '18:02' },
+  { text: 'Да, в 10 у метро', mine: true, time: '18:03' },
+  { text: 'Код от подъезда 4512', mine: false, time: '18:04' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { opt: 2, customVal: 7, old: false, all: false, tick: 0, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentDidMount() { this.iv = setInterval(() => this.setState({ tick: this.state.tick + 1 }), 1000); }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tt); }
+showToast(text, icon) {
+  clearTimeout(this.tt);
+  this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon });
+  this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400);
+}
+renderVals() {
+  const s = this.state;
+  const on = s.opt !== 0;
+  const period = s.opt === 5 ? CUSTOM[s.customVal] : OPTS[s.opt].label;
+  const cycle = 8;
+  const t = s.tick % cycle;
+  const frac = on ? t / (cycle - 1) : 0;
+  const goneIdx = on && t >= cycle - 2 ? 2 : -1;
+  const sw = v => ({ track: v ? '#3F9A6C' : 'rgba(255,255,255,.14)', knob: v ? '23px' : '3px', knobBg: v ? '#EEF3EF' : '#9AA59F' });
+  const o1 = sw(s.old), o2 = sw(s.all);
+  return {
+    ringInk: on ? '#8FD3AC' : '#5C6661',
+    ringOff: String(on ? 232.5 * frac : 0),
+    ringIcon: on ? 'timer' : 'timer_off',
+    ringText: on ? (s.opt === 5 ? CUSTOM[s.customVal] : OPTS[s.opt].short) : 'выкл',
+    bubbles: MSG.map((m, i) => {
+      const gone = i === goneIdx;
+      return {
+        text: m.text, time: m.time, timer: on && (i > 0 || s.old),
+        side: m.mine ? 'flex-end' : 'flex-start',
+        radius: m.mine ? '18px 18px 6px 18px' : '18px 18px 18px 6px',
+        bg: m.mine ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.08)',
+        ink: m.mine ? '#06150D' : '#EEF3EF',
+        op: gone ? '0' : '1', blur: gone ? 'blur(6px)' : 'none', tf: gone ? 'scale(.92) translateY(-6px)' : 'none'
+      };
+    }),
+    explain: on ? 'Сообщения исчезают у вас и у собеседника. Срок: ' + period + ' после отправки.' : 'Сообщения хранятся, пока вы сами их не удалите.',
+    opts: OPTS.map((o, i) => {
+      const sel = s.opt === i;
+      return {
+        label: o.label, icon: o.icon, on: sel,
+        bg: sel ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.04)', bd: sel ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)',
+        ic: sel ? '#8FD3AC' : '#9AA59F', ink: sel ? '#EEF3EF' : '#C9D2CC', fill: sel ? "'FILL' 1" : "'FILL' 0",
+        tap: () => this.setState({ opt: i, tick: 0 })
+      };
+    }),
+    custom: s.opt === 5, customVal: String(s.customVal), customText: CUSTOM[s.customVal],
+    onCustom: e => this.setState({ customVal: +e.target.value }),
+    toggleOld: () => this.setState({ old: !s.old }), oldTrack: o1.track, oldKnob: o1.knob, oldKnobBg: o1.knobBg,
+    toggleAll: () => this.setState({ all: !s.all }), allTrack: o2.track, allKnob: o2.knob, allKnobBg: o2.knobBg,
+    allSub: s.all && on ? 'Новые чаты сразу с таймером: ' + period : 'Сейчас: выключено',
+    save: () => this.showToast(on ? 'Автоудаление: ' + period : 'Автоудаление выключено', on ? 'timer' : 'timer_off'),
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

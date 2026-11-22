@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Ярлыки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxMenu{from{opacity:0;transform:scale(.85) translateY(10px);transform-origin:bottom left}to{opacity:1;transform:none}}
+@keyframes kxIcon{0%{transform:scale(0) rotate(-20deg)}60%{transform:scale(1.15) rotate(5deg)}100%{transform:none}}
+@keyframes kxHint{0%,100%{transform:scale(1);opacity:0}20%{opacity:.8}50%{transform:scale(1.3);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Ярлыки на иконке</h1>
+  </header>
+
+  <!-- Home -->
+  <div style="margin: 4px 16px 0; height: 380px; position: relative; border-radius: 28px; overflow: hidden; background: radial-gradient(80% 60% at 70% 20%, #9CC4E8, transparent 60%), linear-gradient(180deg, #2F6E9E, #0D1A26)">
+    <div style="position: absolute; left: 0; right: 0; top: 18px; display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 18px; justify-items: center">
+      <sc-for list="{{pins}}" as="p" hint-placeholder-count="4">
+        <span style="display: flex; flex-direction: column; align-items: center; gap: 4px; animation: {{p.anim}}">
+          <span style="position: relative; width: 52px; height: 52px; border-radius: 17px; background: {{p.bg}}; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #fff"><span class="ms fill" style="font-size: {{p.isz}}" aria-hidden="true">{{p.icon}}</span>{{p.l}}
+            <sc-if value="{{p.badge}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 11px; font-weight: 900; border: 2px solid #1B3A55; display: flex; align-items: center; justify-content: center">kX</span></sc-if>
+          </span>
+          <span style="font-size: 11px; color: rgba(255,255,255,.9); max-width: 70px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{p.name}}</span>
+        </span>
+      </sc-for>
+    </div>
+
+    <!-- kiroX icon -->
+    <div style="position: absolute; left: 36px; bottom: 26px; display: flex; flex-direction: column; align-items: center; gap: 4px">
+      <sc-if value="{{hint}}" hint-placeholder-val="{{true}}"><span style="position: absolute; left: -6px; top: -6px; width: 64px; height: 64px; border-radius: 20px; border: 2px solid #fff; animation: kxHint 2s ease-out 2" aria-hidden="true"></span></sc-if>
+      <button onClick="{{toggleMenu}}" aria-label="Иконка kiroX — показать ярлыки" style="width: 52px; height: 52px; border-radius: 17px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 18px; font-weight: 900; display: flex; align-items: center; justify-content: center; transform: {{iconTf}}; transition: transform .2s; position: relative">kX<sc-if value="{{badgeOn}}" hint-placeholder-val="{{true}}"><span style="position: absolute; right: -5px; top: -5px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; background: #E5534B; color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">16</span></sc-if></button>
+      <span style="font-size: 11px; color: rgba(255,255,255,.9)">kiroX</span>
+    </div>
+
+    <sc-if value="{{menu}}" hint-placeholder-val="{{false}}">
+      <div style="position: absolute; left: 24px; bottom: 108px; width: 250px; padding: 6px; border-radius: 22px; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 20px 50px rgba(0,0,0,.5); animation: kxMenu .25s cubic-bezier(.2,.8,.2,1) both">
+        <div style="display: flex; gap: 4px; padding: 6px 6px 8px; border-bottom: 1px solid rgba(255,255,255,.08)">
+          <sc-for list="{{people}}" as="c" hint-placeholder-count="4"><button onClick="{{c.pin}}" aria-label="{{c.pinLabel}}" style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #C9D2CC"><span style="width: 40px; height: 40px; border-radius: 20px; background: {{c.c}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: #fff">{{c.l}}</span>{{c.name}}</button></sc-for>
+        </div>
+        <sc-for list="{{actions}}" as="a" hint-placeholder-count="3">
+          <button onClick="{{a.pin}}" style="width: 100%; height: 46px; padding: 0 10px; border-radius: 14px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600"><span class="ms" style="color: #8FD3AC" aria-hidden="true">{{a.icon}}</span><span style="flex: 1">{{a.label}}</span><span class="ms" style="font-size: 18px; color: #8A958F" aria-hidden="true">push_pin</span></button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div style="position: absolute; right: 14px; bottom: 30px; max-width: 150px; font-size: 11px; color: rgba(255,255,255,.75); text-align: right">{{homeHint}}</div>
+  </div>
+
+  <!-- Settings -->
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 16px 30px">
+    <div style="font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">Что показывать в меню иконки</div>
+    <div style="border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+        <button onClick="{{o.tap}}" aria-pressed="{{o.on}}" style="width: 100%; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05)">
+          <span class="ms" style="color: {{o.ic}}" aria-hidden="true">{{o.icon}}</span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{o.label}}</span><span style="display: block; font-size: 12px; color: #8A958F">{{o.sub}}</span></span>
+          <span style="width: 48px; height: 28px; border-radius: 14px; background: {{o.track}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{o.knob}}; width: 22px; height: 22px; border-radius: 11px; background: {{o.knobBg}}; transition: left .2s"></span></span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const BASE = [['Камера', 'photo_camera', '#5C6661'], ['Часы', 'schedule', '#2F6E9E'], ['Карты', 'map', '#3F9A6C'], ['Музыка', 'music_note', '#C0443C']];
+const PEOPLE = [['Мама', 'М', '#B07A2E'], ['Анна', 'А', '#C0443C'], ['Лиза', 'Л', '#6A4C9C'], ['Работа', 'Р', '#5C6661']];
+const ACTS = [['edit_square', 'Новое сообщение'], ['bookmark', 'Избранное'], ['search', 'Поиск']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { menu: false, pinned: [], people: true, acts: true, unread: true, last: '' }; }
+renderVals() {
+  const s = this.state;
+  const sw = v => ({ track: v ? '#3F9A6C' : 'rgba(255,255,255,.14)', knob: v ? '23px' : '3px', knobBg: v ? '#EEF3EF' : '#9AA59F' });
+  const pin = (name, l, c, icon) => { if (s.pinned.find(p => p.name === name)) { this.setState({ menu: false }); return; } this.setState({ pinned: [...s.pinned, { name, l, c, icon }].slice(-4), menu: false, last: name }); };
+  return {
+    pins: [...BASE.map(([name, icon, c]) => ({ name, l: '', bg: c, icon, isz: '26px', badge: false, anim: 'none' })), ...s.pinned.map(p => ({ name: p.name, l: p.icon ? '' : p.l, bg: p.icon ? 'rgba(255,255,255,.2)' : p.c, icon: p.icon || '', isz: p.icon ? '24px' : '0px', badge: true, anim: p.name === s.last ? 'kxIcon .45s ease both' : 'none' }))],
+    hint: !s.menu && s.pinned.length === 0,
+    badgeOn: s.unread, toggleMenu: () => this.setState({ menu: !s.menu }), menu: s.menu, iconTf: s.menu ? 'scale(1.1)' : 'none',
+    homeHint: s.menu ? 'Нажмите на пункт, чтобы закрепить его отдельной иконкой' : s.pinned.length ? 'Ярлык появился на главном экране' : 'Нажмите на kiroX — в Android это долгое нажатие',
+    people: s.people ? PEOPLE.map(([name, l, c]) => ({ name, l, c, pinLabel: 'Закрепить чат ' + name, pin: () => pin(name, l, c, '') })) : [],
+    actions: s.acts ? ACTS.map(([icon, label]) => ({ icon, label, pin: () => pin(label, '', '', icon) })) : [],
+    opts: [
+      { icon: 'group', label: 'Частые чаты', sub: 'Четыре человека, с кем больше всего пишете', k: 'people' },
+      { icon: 'bolt', label: 'Быстрые действия', sub: 'Новое сообщение, Избранное, Поиск', k: 'acts' },
+      { icon: 'counter_9', label: 'Счётчик на иконке', sub: 'Число непрочитанных', k: 'unread' }
+    ].map(o => { const w = sw(s[o.k]); return { ...o, on: s[o.k], ic: s[o.k] ? '#8FD3AC' : '#9AA59F', track: w.track, knob: w.knob, knobBg: w.knobBg, tap: () => this.setState({ [o.k]: !s[o.k] }) }; })
+  };
+}
+}
+</script>
+</body>
+</html>

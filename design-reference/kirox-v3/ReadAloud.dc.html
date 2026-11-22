@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Прочитать вслух</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes kxEq{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+@keyframes kxRing{0%{transform:scale(.9);opacity:.6}100%{transform:scale(1.7);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: linear-gradient(135deg, #3F9A6C, #2F6E9E); display: flex; align-items: center; justify-content: center; font-weight: 800">A</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Android Weekly</div><div style="font-size: 12px; color: #9AA59F">канал · 18,4 тыс.</div></div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end">
+    <div style="padding: 14px; border-radius: 20px 20px 20px 6px; background: rgba(255,255,255,.07); border: 1px solid {{postBd}}; transition: border-color .3s">
+      <div style="font-size: 12px; font-weight: 800; color: #8FD3AC">Android Weekly</div>
+      <div style="margin-top: 6px; font-size: 16px; line-height: 1.7"><sc-for list="{{words}}" as="w" hint-placeholder-count="30"><button onClick="{{w.tap}}" style="display: inline; padding: 1px 2px; border-radius: 5px; background: {{w.bg}}; color: {{w.ink}}; transition: background .15s, color .15s">{{w.t}}</button> </sc-for></div>
+      <div style="margin-top: 6px; font-size: 11px; color: #8A958F; text-align: right">09:30 · 12,4K просмотров</div>
+    </div>
+    <div style="margin-top: 8px; font-size: 11px; color: #8A958F; text-align: center">Нажмите на слово, чтобы читать с него</div>
+  </div>
+
+  <!-- Player -->
+  <div style="margin: 0 12px 14px; padding: 14px; border-radius: 26px; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(143,211,172,.25); animation: kxIn .35s ease both">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="position: relative; width: 56px; height: 56px; flex-shrink: 0">
+        <sc-if value="{{playing}}" hint-placeholder-val="{{true}}"><span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8FD3AC; animation: kxRing 1.4s ease-out infinite" aria-hidden="true"></span></sc-if>
+        <button onClick="{{toggle}}" aria-label="{{playLabel}}" style="position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 30px" aria-hidden="true">{{playIcon}}</span></button>
+      </div>
+      <div style="flex: 1; min-width: 0">
+        <div style="font-size: 14px; font-weight: 800">{{status}}</div>
+        <div style="margin-top: 6px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.12)"><div style="height: 100%; width: {{prog}}; border-radius: 2px; background: #8FD3AC; transition: width .2s linear"></div></div>
+        <div style="margin-top: 4px; display: flex; font-size: 11px; color: #8A958F; font-variant-numeric: tabular-nums"><span style="flex: 1">{{pos}}</span><span>{{total}}</span></div>
+      </div>
+      <span style="display: flex; align-items: flex-end; gap: 2px; height: 22px" aria-hidden="true"><sc-for list="{{eq}}" as="e" hint-placeholder-count="4"><span style="width: 3px; height: 22px; border-radius: 2px; background: #8FD3AC; transform-origin: bottom; animation: kxEq .7s ease-in-out {{e.d}} infinite; animation-play-state: {{e.st}}"></span></sc-for></span>
+    </div>
+    <div style="margin-top: 12px; display: flex; gap: 6px">
+      <sc-for list="{{speeds}}" as="sp" hint-placeholder-count="4"><button onClick="{{sp.tap}}" style="flex: 1; height: 34px; border-radius: 17px; background: {{sp.bg}}; color: {{sp.ink}}; font-size: 12px; font-weight: 800; text-align: center">{{sp.label}}</button></sc-for>
+    </div>
+    <div style="margin-top: 8px; display: flex; gap: 6px">
+      <sc-for list="{{voices}}" as="v" hint-placeholder-count="2"><button onClick="{{v.tap}}" style="flex: 1; height: 40px; border-radius: 14px; background: {{v.bg}}; border: 1px solid {{v.bd}}; color: {{v.ink}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">record_voice_over</span>{{v.label}}</button></sc-for>
+    </div>
+    <div style="margin-top: 8px; font-size: 11px; color: #8A958F; text-align: center">Голос синтезируется на телефоне · работает без интернета</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const TEXT = 'Вышел Compose 1.9. Общие переходы между экранами стали стабильными, ленивые списки работают быстрее на треть, а превью теперь понимают тёмную тему. Обновляйтесь и делитесь впечатлениями в комментариях.';
+const W = TEXT.split(' ');
+const SP = [['0,8×', 0.8], ['1×', 1], ['1,5×', 1.5], ['2×', 2]];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { i: 0, playing: true, speed: 1, voice: 0 }; }
+componentDidMount() { this.tick(); }
+componentWillUnmount() { clearTimeout(this.t); }
+tick() { clearTimeout(this.t); this.t = setTimeout(() => { const s = this.state; if (s.playing) { if (s.i < W.length - 1) this.setState({ i: s.i + 1 }); else this.setState({ playing: false }); } this.tick(); }, 380 / this.state.speed); }
+renderVals() {
+  const s = this.state;
+  const secs = w => Math.round(w * 0.38 / s.speed);
+  const mmss = t => Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+  return {
+    postBd: s.playing ? 'rgba(143,211,172,.35)' : 'transparent',
+    words: W.map((t, k) => ({ t, bg: k === s.i ? '#8FD3AC' : 'transparent', ink: k === s.i ? '#06150D' : k < s.i ? '#EEF3EF' : '#8A958F', tap: () => this.setState({ i: k, playing: true }) })),
+    playing: s.playing, toggle: () => this.setState({ playing: !s.playing, i: !s.playing && s.i >= W.length - 1 ? 0 : s.i }),
+    playIcon: s.playing ? 'pause' : 'play_arrow', playLabel: s.playing ? 'Пауза' : 'Читать',
+    status: s.playing ? 'Читаю вслух…' : s.i >= W.length - 1 ? 'Дочитано' : 'Пауза',
+    prog: ((s.i + 1) / W.length * 100) + '%', pos: mmss(secs(s.i)), total: mmss(secs(W.length)),
+    eq: ['0s', '.15s', '.3s', '.45s'].map(d => ({ d, st: s.playing ? 'running' : 'paused' })),
+    speeds: SP.map(([label, v]) => ({ label, bg: s.speed === v ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.06)', ink: s.speed === v ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ speed: v }) })),
+    voices: [['Мягкий голос', 0], ['Бодрый голос', 1]].map(([label, v]) => ({ label, bg: s.voice === v ? 'rgba(143,211,172,.1)' : 'rgba(255,255,255,.04)', bd: s.voice === v ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', ink: s.voice === v ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ voice: v }) }))
+  };
+}
+}
+</script>
+</body>
+</html>

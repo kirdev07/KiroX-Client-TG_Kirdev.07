@@ -32,6 +32,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) openAccountFrom(intent)
         enableEdgeToEdge()
+        // kiroX v3 preview app (build type v3preview): the new design on demo data only, no account.
+        if (BuildConfig.KX_V3_DEMO) {
+            setContent { com.kirox.app.ui.v3.KxApp(androidx.compose.runtime.remember { com.kirox.app.ui.v3.demo.KxDemoStore() }) }
+            return
+        }
         setContent {
             val chosenPalette by (application as KiroXApplication).settings.palette.collectAsStateWithLifecycle()
             // «Автосмена темы»: the day or night theme by the clock, checked every minute.

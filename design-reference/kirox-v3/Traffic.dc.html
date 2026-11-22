@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Использование сети</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@keyframes kxPulse{0%,100%{opacity:.35}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Использование сети</h1>
+  </header>
+
+  <!-- Network tabs -->
+  <div style="margin: 4px 16px 0; padding: 4px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); display: grid; grid-template-columns: 1fr 1fr 1fr; position: relative">
+    <span style="position: absolute; top: 4px; bottom: 4px; left: {{pillLeft}}; width: calc((100% - 8px) / 3); border-radius: 18px; background: linear-gradient(180deg, rgba(143,211,172,.24), rgba(143,211,172,.12)); border: 1px solid rgba(143,211,172,.4); transition: left .3s cubic-bezier(.2,.8,.2,1)" aria-hidden="true"></span>
+    <sc-for list="{{nets}}" as="n" hint-placeholder-count="3"><button onClick="{{n.tap}}" aria-pressed="{{n.on}}" style="position: relative; height: 40px; border-radius: 18px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 700; color: {{n.ink}}; transition: color .2s"><span class="ms" style="font-size: 18px; font-variation-settings: {{n.fill}}" aria-hidden="true">{{n.icon}}</span>{{n.label}}</button></sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 10px 16px 40px">
+    <!-- Donut -->
+    <div style="position: relative; height: 220px; display: flex; align-items: center; justify-content: center">
+      <svg width="210" height="210" viewBox="0 0 210 210" aria-hidden="true" style="transform: rotate(-90deg)">
+        <circle cx="105" cy="105" r="86" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="20"></circle>
+        <sc-for list="{{arcs}}" as="a" hint-placeholder-count="5">
+          <circle cx="105" cy="105" r="86" fill="none" stroke="{{a.c}}" stroke-width="{{a.w}}" stroke-dasharray="{{a.dash}}" stroke-dashoffset="{{a.off}}" style="transition: stroke-dasharray .7s cubic-bezier(.2,.8,.2,1), stroke-dashoffset .7s cubic-bezier(.2,.8,.2,1), stroke-width .2s"></circle>
+        </sc-for>
+      </svg>
+      <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center">
+        <span style="font-size: 12px; color: #9AA59F">{{centerLabel}}</span>
+        <span style="margin-top: 2px; font-size: 30px; font-weight: 800; letter-spacing: -.5px">{{centerValue}}</span>
+        <span style="margin-top: 4px; display: flex; gap: 10px; font-size: 12px; color: #C9D2CC">
+          <span style="display: flex; align-items: center; gap: 2px"><span class="ms" style="font-size: 15px; color: #8FD3AC" aria-hidden="true">south</span>{{centerIn}}</span>
+          <span style="display: flex; align-items: center; gap: 2px"><span class="ms" style="font-size: 15px; color: #E8B04A" aria-hidden="true">north</span>{{centerOut}}</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Live speed -->
+    <div style="margin-top: 2px; padding: 10px 14px; border-radius: 18px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 10px">
+      <span style="width: 8px; height: 8px; border-radius: 4px; background: #8FD3AC; animation: kxPulse 1.4s ease-in-out infinite" aria-hidden="true"></span>
+      <span style="flex: 1; font-size: 13px; color: #C9D2CC">Сейчас</span>
+      <span style="display: flex; align-items: flex-end; gap: 2px; height: 22px" aria-hidden="true">
+        <sc-for list="{{spark}}" as="b" hint-placeholder-count="16"><span style="width: 4px; height: {{b}}; border-radius: 2px; background: linear-gradient(180deg, #8FD3AC, #3F9A6C); transition: height .4s"></span></sc-for>
+      </span>
+      <span style="width: 74px; text-align: right; font-size: 13px; font-weight: 700; color: #8FD3AC">{{speed}}</span>
+    </div>
+
+    <!-- Period -->
+    <div style="margin-top: 14px; display: flex; gap: 6px">
+      <sc-for list="{{periods}}" as="p" hint-placeholder-count="3"><button onClick="{{p.tap}}" style="height: 34px; padding: 0 14px; border-radius: 17px; background: {{p.bg}}; color: {{p.ink}}; font-size: 13px; font-weight: 700; transition: all .2s">{{p.label}}</button></sc-for>
+    </div>
+
+    <!-- Categories -->
+    <div style="margin-top: 12px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+        <button onClick="{{c.tap}}" style="width: 100%; padding: 12px 14px; display: flex; align-items: center; gap: 12px; background: {{c.bg}}; border-bottom: 1px solid rgba(255,255,255,.05); transition: background .2s">
+          <span style="width: 38px; height: 38px; border-radius: 12px; background: {{c.c}}; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 20px" aria-hidden="true">{{c.icon}}</span></span>
+          <span style="flex: 1; min-width: 0">
+            <span style="display: flex; align-items: baseline"><span style="flex: 1; font-size: 15px; font-weight: 700">{{c.label}}</span><span style="font-size: 14px; font-weight: 800">{{c.total}}</span></span>
+            <span style="display: block; margin-top: 6px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.07); overflow: hidden"><span style="display: block; height: 100%; width: {{c.pct}}; border-radius: 2px; background: {{c.c}}; transition: width .6s cubic-bezier(.2,.8,.2,1)"></span></span>
+            <span style="display: block; margin-top: 4px; font-size: 12px; color: #8A958F">{{c.sub}}</span>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+
+    <button onClick="{{askReset}}" style="margin-top: 14px; width: 100%; height: 52px; padding: 0 16px; border-radius: 20px; background: rgba(229,83,75,.1); border: 1px solid rgba(229,83,75,.25); color: #FF8A80; display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 700"><span class="ms" aria-hidden="true">restart_alt</span>Сбросить статистику</button>
+    <p style="margin: 10px 4px 0; font-size: 12px; line-height: 1.45; color: #8A958F">{{since}}</p>
+  </div>
+
+  <!-- Reset confirm -->
+  <sc-if value="{{confirm}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{cancelReset}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 22px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .32s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 16px"></div>
+      <div style="width: 56px; height: 56px; border-radius: 28px; background: rgba(229,83,75,.14); color: #FF8A80; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 30px" aria-hidden="true">restart_alt</span></div>
+      <div style="margin-top: 12px; font-size: 19px; font-weight: 800">Сбросить статистику?</div>
+      <div style="margin-top: 6px; font-size: 14px; line-height: 1.45; color: #9AA59F">{{confirmText}}</div>
+      <div style="margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+        <button onClick="{{cancelReset}}" style="height: 50px; border-radius: 25px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button>
+        <button onClick="{{doReset}}" style="height: 50px; border-radius: 25px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">Сбросить</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 34px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">done</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const NETS = [['Мобильная', 'signal_cellular_alt'], ['Wi-Fi', 'wifi'], ['Роуминг', 'public']];
+const CATS = [
+  ['Видео', 'movie', '#2F6E9E'], ['Фото', 'image', '#3F9A6C'], ['Голосовые и музыка', 'graphic_eq', '#6A4C9C'],
+  ['Звонки', 'call', '#B07A2E'], ['Файлы', 'description', '#C0443C'], ['Сообщения и прочее', 'chat', '#5C6661']
+];
+// [in, out] MB per category, per network, for 30 days
+const DATA = [
+  [[820, 64], [410, 120], [96, 38], [210, 190], [140, 22], [48, 31]],
+  [[4200, 180], [1650, 420], [380, 90], [640, 590], [2100, 340], [160, 95]],
+  [[12, 1], [8, 3], [2, 1], [0, 0], [0, 0], [3, 2]]
+];
+const PER = [['7 дней', .26], ['30 дней', 1], ['Всё время', 3.4]];
+const fmt = mb => mb >= 1000 ? (mb / 1000).toFixed(mb >= 10000 ? 1 : 2).replace('.', ',') + ' ГБ' : Math.round(mb) + ' МБ';
+const C = 2 * Math.PI * 86;
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { net: 0, per: 1, sel: -1, confirm: false, reset: [false, false, false], tick: 0, toast: 0, toastText: '' }; }
+componentDidMount() { this.iv = setInterval(() => this.setState({ tick: this.state.tick + 1 }), 700); }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const k = s.reset[s.net] ? 0 : PER[s.per][1];
+  const rows = DATA[s.net].map(([i, o]) => [i * k, o * k]);
+  const tot = rows.reduce((a, [i, o]) => a + i + o, 0);
+  const tin = rows.reduce((a, [i]) => a + i, 0), tout = tot - tin;
+  let acc = 0;
+  const gap = tot ? 4 : 0;
+  const arcs = rows.map(([i, o], n) => {
+    const len = tot ? (i + o) / tot * C : 0;
+    const seg = Math.max(0, len - gap);
+    const a = { c: CATS[n][2], w: s.sel === n ? '26' : (s.sel >= 0 ? '14' : '20'), dash: seg + ' ' + (C - seg), off: String(-acc) };
+    acc += len;
+    return a;
+  });
+  const selRow = s.sel >= 0 ? rows[s.sel] : null;
+  const spark = Array.from({ length: 16 }, (_, j) => {
+    const v = s.net === 2 ? 0.1 : (Math.sin((s.tick + j) * 0.9) * 0.5 + 0.5) * 0.8 + ((s.tick * 7 + j * 13) % 5) / 25;
+    return Math.max(3, Math.round(v * 22)) + 'px';
+  });
+  const spd = s.net === 2 ? 0.4 : (Math.sin(s.tick * 0.9) * 0.5 + 0.5) * (s.net === 1 ? 6.2 : 1.8) + 0.2;
+  return {
+    pillLeft: 'calc(4px + ' + s.net + ' * (100% - 8px) / 3)',
+    nets: NETS.map(([label, icon], i) => ({ label, icon, on: s.net === i, ink: s.net === i ? '#EEF3EF' : '#9AA59F', fill: s.net === i ? "'FILL' 1" : "'FILL' 0", tap: () => this.setState({ net: i, sel: -1 }) })),
+    arcs,
+    centerLabel: selRow ? CATS[s.sel][0] : 'Всего за ' + PER[s.per][0].toLowerCase(),
+    centerValue: fmt(selRow ? selRow[0] + selRow[1] : tot),
+    centerIn: fmt(selRow ? selRow[0] : tin), centerOut: fmt(selRow ? selRow[1] : tout),
+    spark, speed: (spd < 1 ? Math.round(spd * 1000) + ' КБ/с' : spd.toFixed(1).replace('.', ',') + ' МБ/с'),
+    periods: PER.map(([label], i) => ({ label, bg: s.per === i ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.per === i ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ per: i }) })),
+    cats: CATS.map(([label, icon, c], n) => {
+      const [i, o] = rows[n];
+      return {
+        label, icon, c, total: fmt(i + o), pct: (tot ? (i + o) / tot * 100 : 0) + '%',
+        sub: 'Получено ' + fmt(i) + ' · отправлено ' + fmt(o),
+        bg: s.sel === n ? 'rgba(143,211,172,.08)' : 'transparent',
+        tap: () => this.setState({ sel: s.sel === n ? -1 : n })
+      };
+    }),
+    since: s.reset[s.net] ? 'Статистика сброшена только что.' : 'Считается с 3 сентября. kiroX считает только свой трафик — у оператора цифры могут отличаться.',
+    askReset: () => this.setState({ confirm: true }), cancelReset: () => this.setState({ confirm: false }), confirm: s.confirm,
+    confirmText: 'Счётчики для сети «' + NETS[s.net][0] + '» начнутся с нуля. Сами файлы и сообщения не удалятся.',
+    doReset: () => {
+      clearTimeout(this.tt);
+      this.setState({ confirm: false, sel: -1, reset: s.reset.map((v, i) => i === s.net ? true : v), toast: s.toast + 1, toastText: 'Статистика сброшена' });
+      this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400);
+    },
+    toast: s.toast > 0, toastText: s.toastText
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Субтитры в звонке</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+@keyframes kxRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.6);opacity:0}}
+@keyframes kxIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes kxWord{from{opacity:0;filter:blur(3px)}to{opacity:1;filter:none}}
+@keyframes kxBlob{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(20px,-30px) scale(1.15)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #070908; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <span style="position: absolute; left: -60px; top: 60px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(63,154,108,.35), transparent 65%); animation: kxBlob 10s ease-in-out 2" aria-hidden="true"></span>
+
+  <header style="position: relative; padding: 14px 16px 0; display: flex; align-items: center; gap: 8px">
+    <span style="flex: 1; font-size: 13px; color: #8FD3AC; font-variant-numeric: tabular-nums">{{time}} · защищённый звонок</span>
+    <button onClick="{{toggleCap}}" aria-pressed="{{capOn}}" style="height: 36px; padding: 0 12px; border-radius: 18px; background: {{capBg}}; color: {{capInk}}; font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 6px"><span class="ms fill" style="font-size: 18px" aria-hidden="true">closed_caption</span>{{capText}}</button>
+  </header>
+
+  <div style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 30px">
+    <div style="position: relative; width: 110px; height: 110px">
+      <span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(143,211,172,.5); animation: {{ring}}" aria-hidden="true"></span>
+      <span style="position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(135deg, #6FA9D8, #2F6E9E); display: flex; align-items: center; justify-content: center; font-size: 42px; font-weight: 800">M</span>
+    </div>
+    <div style="margin-top: 12px; font-size: 24px; font-weight: 800">Marco</div>
+    <div style="margin-top: 2px; font-size: 13px; color: #9AA59F">{{speakingText}}</div>
+  </div>
+
+  <!-- Captions -->
+  <div style="position: relative; flex: 1; min-height: 0; padding: 18px 14px 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; opacity: {{capOp}}; transition: opacity .3s">
+    <sc-for list="{{lines}}" as="l" hint-placeholder-count="4">
+      <div style="align-self: {{l.side}}; max-width: 90%; padding: 10px 12px; border-radius: 18px; background: {{l.bg}}; border: 1px solid {{l.bd}}; animation: kxIn .3s ease both">
+        <div style="font-size: 11px; font-weight: 800; color: {{l.who}}">{{l.name}}</div>
+        <div style="margin-top: 2px; font-size: 16px; line-height: 1.4; font-weight: 600">{{l.text}}<span style="display: {{l.caret}}; width: 2px; height: 16px; margin-left: 3px; vertical-align: -2px; background: #8FD3AC; animation: kxWord .5s ease 2 alternate"></span></div>
+        <sc-if value="{{l.hasOrig}}" hint-placeholder-val="{{false}}"><div style="margin-top: 4px; font-size: 12px; color: #8A958F; font-style: italic">{{l.orig}}</div></sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Lang row -->
+  <div style="position: relative; margin: 12px 14px 0; padding: 8px; border-radius: 18px; background: rgba(255,255,255,.06); display: flex; align-items: center; gap: 8px">
+    <span class="ms" style="color: #9AA59F; font-size: 20px; padding-left: 4px" aria-hidden="true">translate</span>
+    <span style="flex: 1; font-size: 13px; color: #C9D2CC">{{langText}}</span>
+    <sc-for list="{{langs}}" as="g" hint-placeholder-count="3"><button onClick="{{g.tap}}" style="height: 30px; padding: 0 10px; border-radius: 15px; background: {{g.bg}}; color: {{g.ink}}; font-size: 12px; font-weight: 800">{{g.label}}</button></sc-for>
+  </div>
+
+  <div style="position: relative; padding: 16px 24px 28px; display: flex; justify-content: space-between; align-items: center">
+    <button aria-label="Микрофон" style="width: 58px; height: 58px; border-radius: 29px; background: rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">mic</span></button>
+    <button aria-label="Динамик" style="width: 58px; height: 58px; border-radius: 29px; background: rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">volume_up</span></button>
+    <button aria-label="Видео" style="width: 58px; height: 58px; border-radius: 29px; background: rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">videocam</span></button>
+    <button aria-label="Завершить" style="width: 66px; height: 66px; border-radius: 33px; background: #E5534B; color: #fff; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 30px" aria-hidden="true">call_end</span></button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+// [speaker 0=Marco 1=me, original(it/en), ru, en]
+const SCRIPT = [
+  [0, 'Ciao! Mi senti bene?', 'Привет! Хорошо меня слышишь?', 'Hi! Can you hear me well?'],
+  [1, 'Да, отлично слышно', 'Да, отлично слышно', 'Yes, I can hear you perfectly'],
+  [0, 'Domani arrivo ad Almaty alle dieci', 'Завтра прилетаю в Алматы в десять', 'I land in Almaty tomorrow at ten'],
+  [1, 'Супер, встречу тебя в аэропорту', 'Супер, встречу тебя в аэропорту', 'Great, I will meet you at the airport'],
+  [0, 'Perfetto, grazie mille! A domani', 'Отлично, огромное спасибо! До завтра', 'Perfect, thanks a lot! See you tomorrow']
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { line: 0, words: 1, sec: 128, cap: true, lang: 'ru' }; }
+componentDidMount() {
+  this.iv = setInterval(() => this.setState({ sec: this.state.sec + 1 }), 1000);
+  this.tw = setInterval(() => {
+    const s = this.state; const cur = SCRIPT[s.line % SCRIPT.length]; const n = (s.lang === 'en' ? cur[3] : s.lang === 'orig' ? cur[1] : cur[2]).split(' ').length;
+    if (s.words < n) this.setState({ words: s.words + 1 }); else this.setState({ line: s.line + 1, words: 1 });
+  }, 420);
+}
+componentWillUnmount() { clearInterval(this.iv); clearInterval(this.tw); }
+renderVals() {
+  const s = this.state;
+  const cur = SCRIPT[s.line % SCRIPT.length];
+  const pick = row => s.lang === 'en' ? row[3] : s.lang === 'orig' ? row[1] : row[2];
+  const shown = [];
+  for (let k = Math.max(0, s.line - 2); k <= s.line; k++) {
+    const row = SCRIPT[k % SCRIPT.length];
+    const text = pick(row);
+    const ws = text.split(' ');
+    const partial = k === s.line ? ws.slice(0, s.words) : ws;
+    const other = row[0] === 0;
+    shown.push({ side: other ? 'flex-start' : 'flex-end', name: other ? 'Marco · итальянский' : 'Вы', who: other ? '#6FA9D8' : '#8FD3AC', bg: other ? 'rgba(255,255,255,.07)' : 'rgba(143,211,172,.12)', bd: other ? 'rgba(255,255,255,.08)' : 'rgba(143,211,172,.3)', text: partial.join(' '), caret: k === s.line ? 'inline-block' : 'none', hasOrig: other && s.lang !== 'orig', orig: row[1] });
+  }
+  const speakingOther = cur[0] === 0;
+  return {
+    time: Math.floor(s.sec / 60) + ':' + String(s.sec % 60).padStart(2, '0'),
+    toggleCap: () => this.setState({ cap: !s.cap }), capOn: s.cap, capText: s.cap ? 'Субтитры' : 'Субтитры выкл',
+    capBg: s.cap ? 'rgba(143,211,172,.18)' : 'rgba(255,255,255,.08)', capInk: s.cap ? '#8FD3AC' : '#9AA59F', capOp: s.cap ? '1' : '0',
+    ring: speakingOther ? 'kxRing 1.2s ease-out infinite' : 'none', speakingText: speakingOther ? 'говорит…' : 'слушает',
+    lines: shown,
+    langText: s.lang === 'orig' ? 'Без перевода' : 'Переводим на ' + (s.lang === 'en' ? 'английский' : 'русский'),
+    langs: [['RU', 'ru'], ['EN', 'en'], ['Оригинал', 'orig']].map(([label, k]) => ({ label, bg: s.lang === k ? 'rgba(143,211,172,.16)' : 'transparent', ink: s.lang === k ? '#8FD3AC' : '#9AA59F', tap: () => this.setState({ lang: k, words: 1 }) }))
+  };
+}
+}
+</script>
+</body>
+</html>

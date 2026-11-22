@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Ограничить участника</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+input{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxStamp{0%{transform:scale(1.8) rotate(-18deg);opacity:0}60%{transform:scale(.92) rotate(-12deg);opacity:1}100%{transform:scale(1) rotate(-12deg);opacity:1}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Ограничить</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 110px">
+    <!-- Person + offending message -->
+    <div style="position: relative; overflow: hidden; padding: 14px; border-radius: 24px; background: rgba(255,255,255,.04); border: 1px solid {{cardBd}}; transition: border-color .3s">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="position: relative; width: 50px; height: 50px; border-radius: 25px; background: linear-gradient(135deg, #B07A2E, #7A3B2E); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; flex-shrink: 0; filter: {{avFilter}}; transition: filter .3s">C</span>
+        <div style="flex: 1; min-width: 0"><div style="font-size: 16px; font-weight: 800">Crypto Max</div><div style="font-size: 12px; color: #9AA59F">@crypto_max_x · в группе 2 дня</div></div>
+      </div>
+      <div style="margin-top: 10px; padding: 8px 12px; border-radius: 14px; background: rgba(229,83,75,.08); border-left: 3px solid #E5534B; font-size: 13px; color: #E4C3BF">Заработай x100 за неделю! Пиши в личку, ссылка в профиле 🚀</div>
+      <sc-if value="{{stamp}}" hint-placeholder-val="{{false}}">
+        <span style="position: absolute; right: 14px; top: 12px; padding: 4px 10px; border-radius: 8px; border: 2px solid {{stampInk}}; color: {{stampInk}}; font-size: 13px; font-weight: 900; letter-spacing: 1px; animation: kxStamp .45s cubic-bezier(.3,1.4,.5,1) both">{{stampText}}</span>
+      </sc-if>
+    </div>
+
+    <!-- Mode -->
+    <div style="margin-top: 14px; padding: 4px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); display: grid; grid-template-columns: 1fr 1fr; gap: 4px; position: relative">
+      <span style="position: absolute; top: 4px; bottom: 4px; left: {{modeLeft}}; width: calc(50% - 6px); border-radius: 18px; background: {{modeBg}}; border: 1px solid {{modeBd}}; transition: all .3s cubic-bezier(.2,.8,.2,1)" aria-hidden="true"></span>
+      <sc-for list="{{modes}}" as="m" hint-placeholder-count="2"><button onClick="{{m.tap}}" aria-pressed="{{m.on}}" style="position: relative; height: 44px; border-radius: 18px; font-size: 14px; font-weight: 700; color: {{m.ink}}; display: flex; align-items: center; justify-content: center; gap: 6px; transition: color .2s"><span class="ms" style="font-size: 20px" aria-hidden="true">{{m.icon}}</span>{{m.label}}</button></sc-for>
+    </div>
+
+    <!-- Restrictions (mute mode) -->
+    <sc-if value="{{mute}}" hint-placeholder-val="{{true}}">
+      <div style="margin-top: 14px; display: flex; align-items: center; padding: 0 4px 8px; animation: kxIn .2s ease both"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">Что разрешить</span><button onClick="{{allOff}}" style="font-size: 12px; font-weight: 700; color: #E8B04A">Запретить всё</button></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; animation: kxIn .2s ease both">
+        <sc-for list="{{perms}}" as="p" hint-placeholder-count="6">
+          <button onClick="{{p.tap}}" aria-pressed="{{p.on}}" style="padding: 12px; border-radius: 18px; background: {{p.bg}}; border: 1px solid {{p.bd}}; display: flex; align-items: center; gap: 10px; transition: all .2s">
+            <span class="ms" style="font-size: 22px; color: {{p.ic}}" aria-hidden="true">{{p.icon}}</span>
+            <span style="flex: 1; font-size: 13px; font-weight: 700; color: {{p.ink}}; text-decoration: {{p.strike}}">{{p.label}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ban}}" hint-placeholder-val="{{false}}">
+      <div style="margin-top: 14px; padding: 14px 16px; border-radius: 20px; background: rgba(229,83,75,.08); border: 1px solid rgba(229,83,75,.25); display: flex; gap: 12px; animation: kxIn .2s ease both">
+        <span class="ms" style="color: #FF8A80" aria-hidden="true">block</span>
+        <span style="font-size: 13px; line-height: 1.45; color: #E4C3BF">Crypto Max больше не будет в группе и не сможет вернуться по ссылке, пока срок не истечёт.</span>
+      </div>
+      <button onClick="{{toggleWipe}}" style="margin-top: 8px; width: 100%; padding: 12px 4px; display: flex; align-items: center; gap: 12px; animation: kxIn .2s ease both">
+        <span style="width: 24px; height: 24px; border-radius: 7px; border: 2px solid {{wipeBd}}; background: {{wipeBg}}; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms" style="font-size: 18px; opacity: {{wipeChk}}" aria-hidden="true">check</span></span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">Удалить все сообщения участника</span><span style="display: block; font-size: 12px; color: #8A958F">14 сообщений за последние 2 дня</span></span>
+      </button>
+    </sc-if>
+
+    <!-- Duration -->
+    <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">На сколько</div>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px">
+      <sc-for list="{{durs}}" as="d" hint-placeholder-count="5"><button onClick="{{d.tap}}" style="height: 44px; border-radius: 16px; background: {{d.bg}}; color: {{d.ink}}; border: 1px solid {{d.bd}}; font-size: 12px; font-weight: 700; text-align: center; transition: all .2s">{{d.label}}</button></sc-for>
+    </div>
+    <div style="margin: 8px 6px 0; font-size: 12px; color: #8A958F">{{untilText}}</div>
+
+    <!-- Reason -->
+    <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">Заметка для себя · хранится только в kiroX</div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap">
+      <sc-for list="{{reasons}}" as="r" hint-placeholder-count="4"><button onClick="{{r.tap}}" style="height: 34px; padding: 0 12px; border-radius: 17px; background: {{r.bg}}; color: {{r.ink}}; border: 1px solid {{r.bd}}; font-size: 13px; font-weight: 600; transition: all .2s">{{r.label}}</button></sc-for>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; background: linear-gradient(180deg, rgba(10,12,11,0), #0A0C0B 40%)">
+    <button onClick="{{apply}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{applyBg}}; color: {{applyInk}}; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .25s"><span class="ms fill" aria-hidden="true">{{applyIcon}}</span>{{applyText}}</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}<button onClick="{{undo}}" style="margin-left: 6px; font-size: 14px; font-weight: 800; color: #8FD3AC">Отменить</button></div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PERMS = [['chat', 'Текст'], ['image', 'Фото и видео'], ['emoji_emotions', 'Стикеры и GIF'], ['link', 'Ссылки'], ['ballot', 'Опросы'], ['person_add', 'Приглашать']];
+const DURS = [['1 ч', '1 час', '19:20'], ['1 дн', '1 день', 'завтра в 18:20'], ['1 нед', '1 неделю', '29 ноября'], ['1 мес', '1 месяц', '22 декабря'], ['∞', 'навсегда', '']];
+const REASONS = ['Спам', 'Реклама', 'Оскорбления', 'Флуд', 'Другое'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { mode: 0, allow: { 0: true, 2: true }, dur: 1, reason: 0, wipe: true, done: false, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const ban = s.mode === 1;
+  const d = DURS[s.dur];
+  const chip = on => ({ bg: on ? (ban ? 'rgba(229,83,75,.14)' : 'rgba(143,211,172,.14)') : 'rgba(255,255,255,.05)', ink: on ? (ban ? '#FF8A80' : '#8FD3AC') : '#C9D2CC', bd: on ? (ban ? 'rgba(229,83,75,.45)' : 'rgba(143,211,172,.45)') : 'rgba(255,255,255,.08)' });
+  const allowedN = Object.values(s.allow).filter(Boolean).length;
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    cardBd: s.done ? (ban ? 'rgba(229,83,75,.5)' : 'rgba(232,176,74,.45)') : 'rgba(255,255,255,.08)',
+    avFilter: s.done ? 'grayscale(1)' : 'none',
+    stamp: s.done, stampInk: ban ? '#FF8A80' : '#E8B04A', stampText: ban ? 'ЗАБЛОКИРОВАН' : 'В МУТЕ',
+    modeLeft: ban ? 'calc(50% + 2px)' : '4px',
+    modeBg: ban ? 'rgba(229,83,75,.16)' : 'rgba(143,211,172,.14)', modeBd: ban ? 'rgba(229,83,75,.45)' : 'rgba(143,211,172,.45)',
+    modes: [['Ограничить', 'voice_over_off', 0], ['Заблокировать', 'block', 1]].map(([label, icon, i]) => ({ label, icon, on: s.mode === i, ink: s.mode === i ? (i ? '#FF8A80' : '#8FD3AC') : '#9AA59F', tap: () => this.setState({ mode: i, done: false }) })),
+    mute: !ban, ban,
+    allOff: () => this.setState({ allow: {} }),
+    perms: PERMS.map(([icon, label], i) => {
+      const on = !!s.allow[i];
+      return { icon, label, on, bg: on ? 'rgba(143,211,172,.1)' : 'rgba(229,83,75,.06)', bd: on ? 'rgba(143,211,172,.35)' : 'rgba(229,83,75,.2)', ic: on ? '#8FD3AC' : '#C98A84', ink: on ? '#EEF3EF' : '#C98A84', strike: on ? 'none' : 'line-through', tap: () => this.setState({ allow: { ...s.allow, [i]: !on }, done: false }) };
+    }),
+    toggleWipe: () => this.setState({ wipe: !s.wipe }), wipeBd: s.wipe ? '#E5534B' : 'rgba(255,255,255,.3)', wipeBg: s.wipe ? '#E5534B' : 'transparent', wipeChk: s.wipe ? '1' : '0',
+    durs: DURS.map(([label], i) => ({ label, ...chip(s.dur === i), tap: () => this.setState({ dur: i }) })),
+    untilText: d[2] ? (ban ? 'Сможет вернуться ' : 'Ограничения снимутся ') + (d[2].includes(':') && !d[2].startsWith('завтра') ? 'в ' + d[2] : d[2]) : (ban ? 'Пока вы сами не разблокируете' : 'Пока вы сами не снимете'),
+    reasons: REASONS.map((label, i) => ({ label, ...chip(s.reason === i), tap: () => this.setState({ reason: i }) })),
+    applyBg: ban ? '#E5534B' : 'linear-gradient(135deg, #6FC497, #3F9A6C)', applyInk: ban ? '#fff' : '#06150D',
+    applyIcon: ban ? 'block' : 'voice_over_off',
+    applyText: (ban ? 'Заблокировать' : 'Ограничить') + ' на ' + (s.dur === 4 ? 'всегда' : d[1]),
+    apply: () => this.ask('Применить ограничения?', 'Если выбрано удаление всех сообщений участника, вернуть их будет нельзя.', 'Применить', () => {
+      clearTimeout(this.tt);
+      const t = ban ? 'Блокировка · Crypto Max' : (allowedN ? 'Ограничения включены' : 'Crypto Max в муте');
+      this.setState({ done: true, toast: s.toast + 1, toastText: t, toastIcon: ban ? 'block' : 'voice_over_off' });
+      this.tt = setTimeout(() => this.setState({ toast: 0 }), 4000);
+    }),
+    undo: () => { clearTimeout(this.tt); this.setState({ done: false, toast: 0 }); },
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

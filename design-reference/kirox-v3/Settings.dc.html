@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Настройки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+@keyframes kxRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kxSheen{0%{transform:translateX(-140%)}55%,100%{transform:translateX(260%)}}
+@keyframes kxShine{0%{transform:translateX(-120%) skewX(-20deg)}60%,100%{transform:translateX(700%) skewX(-20deg)}}
+@keyframes kxFade{from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <div aria-hidden="true" style="position: absolute; right: -90px; top: -110px; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(circle, rgba(70,160,110,.20), rgba(70,160,110,0) 65%)"></div>
+
+  <header style="position: relative; padding: 10px 16px 4px; display: flex; align-items: center; gap: 8px; animation: kxRise .6s cubic-bezier(.2,.8,.2,1) both">
+    <h1 style="margin: 0; flex-grow: 1; font-size: 30px; font-weight: 800; letter-spacing: -0.4px">Настройки</h1>
+    <button aria-label="Поиск настроек" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" style="font-size: 22px" aria-hidden="true">search</span></button>
+    <button aria-label="Ещё" onClick="{{toggleMenu}}" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" style="font-size: 22px" aria-hidden="true">more_vert</span></button>
+  </header>
+
+  <div style="position: relative; padding: 12px 16px 0; display: flex; flex-direction: column; gap: 12px">
+    <div style="position: relative; padding: 16px; border-radius: 28px; overflow: hidden; background: linear-gradient(150deg, rgba(63,154,108,.28), rgba(18,24,21,.9) 60%); border: 1px solid rgba(143,211,172,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); animation: kxRise .6s cubic-bezier(.2,.8,.2,1) .06s both">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="position: relative; width: 70px; height: 70px; border-radius: 35px; background: linear-gradient(140deg, #3E7A5A, #173A28); color: #DDF5E5; font-size: 26px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">В<span style="position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 13px; background: #8FD3AC; color: #06150D; border: 3px solid #14201A; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 14px" aria-hidden="true">photo_camera</span></span></span>
+        <div style="flex-grow: 1; min-width: 0">
+          <div style="font-size: 20px; font-weight: 700">Ваше имя</div>
+          <div style="font-size: 14px; color: #A6B5AC">+7 ··· ··· ·· ·· · @username</div>
+        </div>
+        <button aria-label="Мой QR-код" style="width: 42px; height: 42px; border-radius: 14px; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; color: #C8F0D8"><span class="ms" aria-hidden="true">qr_code_2</span></button>
+      </div>
+      <div style="margin-top: 14px; display: flex; align-items: center; gap: 8px">
+        <button style="height: 36px; padding: 0 14px; border-radius: 18px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">edit</span>Изменить профиль</button>
+        <span style="flex-grow: 1"></span>
+        <span style="font-size: 12px; color: #8A958F">Аккаунты</span>
+        <span style="display: flex"><span style="width: 30px; height: 30px; border-radius: 15px; border: 2px solid #14201A; background: linear-gradient(140deg, #3E7A5A, #173A28); color: #DDF5E5; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">В</span><span style="width: 30px; height: 30px; margin-left: -8px; border-radius: 15px; border: 2px solid #14201A; background: linear-gradient(140deg, #3C7BD0, #142A4A); color: #D6E6FF; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">Р</span><button aria-label="Добавить аккаунт" style="width: 30px; height: 30px; margin-left: -8px; border-radius: 15px; border: 2px solid #14201A; background: #26302B; color: #C9D2CC; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 16px" aria-hidden="true">add</span></button></span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; animation: kxRise .6s cubic-bezier(.2,.8,.2,1) .12s both">
+      <button style="position: relative; flex: 1.4; height: 64px; padding: 0 14px; border-radius: 22px; overflow: hidden; background: linear-gradient(120deg, #6E58C9, #3E2F7A 60%, #2A6B4F); display: flex; align-items: center; gap: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.25)">
+        <span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 40px; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.28), rgba(255,255,255,0)); animation: kxShine 4s ease-in-out 1s 2"></span>
+        <span class="ms fill" style="color: #FFE38A" aria-hidden="true">star</span>
+        <span><span style="display: block; font-size: 15px; font-weight: 700">Premium</span><span style="display: block; font-size: 12px; color: #E2DAFF">Статусы, подарки</span></span>
+      </button>
+      <button style="flex: 1; height: 64px; padding: 0 14px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 10px">
+        <span class="ms fill" style="color: #F2A6C0" aria-hidden="true">redeem</span>
+        <span><span style="display: block; font-size: 15px; font-weight: 700">Подарки</span><span style="display: block; font-size: 12px; color: #8A958F">За звёзды</span></span>
+      </button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px; animation: kxRise .6s cubic-bezier(.2,.8,.2,1) .18s both">
+      <button style="height: 58px; padding: 0 14px; border-radius: 22px 22px 6px 6px; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 14px"><span style="width: 36px; height: 36px; border-radius: 12px; background: #3B2A22; color: #FFB68F; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">notifications</span></span><span style="flex-grow: 1; font-size: 15px">Уведомления и звуки</span><span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">chevron_right</span></button>
+      <button style="height: 58px; padding: 0 14px; border-radius: 6px; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 14px"><span style="width: 36px; height: 36px; border-radius: 12px; background: #1F2E40; color: #A9CBF5; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">lock</span></span><span style="flex-grow: 1; font-size: 15px">Конфиденциальность</span><span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">chevron_right</span></button>
+      <button style="height: 58px; padding: 0 14px; border-radius: 6px; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 14px"><span style="width: 36px; height: 36px; border-radius: 12px; background: #1E3333; color: #9FDCD6; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">database</span></span><span style="flex-grow: 1; font-size: 15px">Данные и память</span><span style="font-size: 13px; color: #8A958F">1,2 ГБ</span><span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">chevron_right</span></button>
+      <button style="height: 58px; padding: 0 14px; border-radius: 6px; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 14px"><span style="width: 36px; height: 36px; border-radius: 12px; background: #1F3A2C; color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">palette</span></span><span style="flex-grow: 1; font-size: 15px">Кастомизация</span><span style="font-size: 13px; color: #8A958F">Тёмно-зелёная</span><span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">chevron_right</span></button>
+      <button style="height: 58px; padding: 0 14px; border-radius: 6px 6px 22px 22px; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 14px"><span style="width: 36px; height: 36px; border-radius: 12px; background: #2E2A3D; color: #CFC2F2; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">translate</span></span><span style="flex-grow: 1; font-size: 15px">Язык</span><span style="font-size: 13px; color: #8A958F">Русский</span><span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">chevron_right</span></button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; animation: kxRise .6s cubic-bezier(.2,.8,.2,1) .24s both">
+      <button style="height: 74px; padding: 12px; box-sizing: border-box; border-radius: 22px; background: rgba(255,255,255,.045); display: flex; flex-direction: column; justify-content: space-between"><span class="ms fill" style="color: #F2A6C0; font-size: 22px" aria-hidden="true">music_note</span><span style="font-size: 14px; font-weight: 600">Музыка</span></button>
+      <button style="height: 74px; padding: 12px; box-sizing: border-box; border-radius: 22px; background: linear-gradient(150deg, rgba(63,154,108,.22), rgba(255,255,255,.04)); border: 1px solid rgba(143,211,172,.16); display: flex; flex-direction: column; justify-content: space-between"><span class="ms fill" style="color: #8FD3AC; font-size: 22px" aria-hidden="true">bolt</span><span style="font-size: 14px; font-weight: 600">kiroX функции</span></button>
+      <button style="height: 74px; padding: 12px; box-sizing: border-box; border-radius: 22px; background: rgba(255,255,255,.045); display: flex; flex-direction: column; justify-content: space-between"><span class="ms" style="color: #A9CBF5; font-size: 22px" aria-hidden="true">help</span><span style="font-size: 14px; font-weight: 600">Помощь</span></button>
+      <button style="height: 74px; padding: 12px; box-sizing: border-box; border-radius: 22px; background: rgba(255,255,255,.045); display: flex; flex-direction: column; justify-content: space-between"><span style="display: flex; align-items: center; justify-content: space-between"><span class="ms" style="color: #FFD58A; font-size: 22px" aria-hidden="true">info</span><span style="font-size: 11px; color: #8A958F">v1.0</span></span><span style="font-size: 14px; font-weight: 600">О приложении</span></button>
+    </div>
+  </div>
+
+  <sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть меню" onClick="{{toggleMenu}}" style="position: absolute; inset: 0; width: 100%"></button>
+    <div role="menu" style="position: absolute; right: 16px; top: 58px; width: 210px; padding: 6px; border-radius: 20px; background: linear-gradient(180deg, rgba(46,58,52,.92), rgba(24,30,27,.95)); backdrop-filter: blur(22px) saturate(170%); -webkit-backdrop-filter: blur(22px) saturate(170%); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 18px 40px rgba(0,0,0,.6); transform-origin: top right; animation: kxFade .22s cubic-bezier(.2,.8,.2,1) both">
+      <button role="menuitem" style="width: 100%; height: 44px; padding: 0 12px; border-radius: 14px; display: flex; align-items: center; gap: 12px; font-size: 15px"><span class="ms" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">account_circle</span>Мой профиль</button>
+      <button role="menuitem" style="width: 100%; height: 44px; padding: 0 12px; border-radius: 14px; display: flex; align-items: center; gap: 12px; font-size: 15px"><span class="ms" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">switch_account</span>Аккаунты</button>
+      <button role="menuitem" style="width: 100%; height: 44px; padding: 0 12px; border-radius: 14px; display: flex; align-items: center; gap: 12px; font-size: 15px"><span class="ms" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">contacts</span>Контакты</button>
+      <button role="menuitem" style="width: 100%; height: 44px; padding: 0 12px; border-radius: 14px; display: flex; align-items: center; gap: 12px; font-size: 15px"><span class="ms" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">devices</span>Устройства</button>
+      <button role="menuitem" style="width: 100%; height: 44px; padding: 0 12px; border-radius: 14px; display: flex; align-items: center; gap: 12px; font-size: 15px"><span class="ms" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">folder</span>Чаты и папки</button>
+    </div>
+  </sc-if>
+
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(10,12,11,0), rgba(10,12,11,.85) 70%)"></div>
+  <nav aria-label="Разделы" style="position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); height: 64px; padding: 0 6px; border-radius: 32px; display: flex; align-items: center; overflow: hidden; background: rgba(28,34,31,.92); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 14px 34px rgba(0,0,0,.55); z-index: 5">
+    <span aria-hidden="true" style="position: absolute; left: 6px; top: 6px; width: 78px; height: 52px; border-radius: 26px; background: rgba(143,211,172,.18); border: 1px solid rgba(166,227,193,.3); display: {{lensShow}}; transition: transform .45s cubic-bezier(.34,1.3,.5,1); transform: {{lensTransform}}"></span>
+    <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="4">
+      <button aria-label="{{tab.label}}" aria-current="{{tab.current}}" onClick="{{tab.pick}}" style="position: relative; width: 78px; height: 52px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: {{tab.color}}">
+        <span class="{{tab.cls}}" style="font-size: 23px" aria-hidden="true">{{tab.icon}}</span>
+        <span style="font-size: 11px; font-weight: {{tab.fw}}; line-height: 13px">{{tab.label}}</span>
+        <sc-if value="{{tab.badge}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 12px; top: 3px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: {{tab.badgeColor}}; color: #06150D; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{tab.badge}}</span></sc-if>
+      </button>
+    </sc-for>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { tab: 4, menu: false }; }
+renderVals() {
+  const items = [
+    { icon: 'chat', label: 'Чаты', badge: '16', badgeColor: '#8FD3AC' },
+    { icon: 'call', label: 'Звонки', badge: '1', badgeColor: '#FF8A80' },
+    { icon: 'motion_photos_on', label: 'Истории' },
+    { icon: 'settings', label: 'Настройки' }
+  ];
+  const cur = this.state.tab;
+  const tabs = items.map((t, i) => {
+    const on = i === 3;
+    return {
+      icon: t.icon, label: t.label, badge: t.badge || false, badgeColor: t.badgeColor || '#8FD3AC',
+      current: on ? 'page' : 'false', cls: on ? 'ms fill' : 'ms', fw: on ? 800 : 600, fill: on ? 'fill' : '', color: on ? '#E6F6EC' : '#B4BEB8',
+      iconTransform: on ? 'translateY(-1px) scale(1.08)' : 'translateY(6px) scale(1)',
+      labelOpacity: on ? '1' : '0', labelTransform: on ? 'translateY(0)' : 'translateY(6px)',
+      pick: () => this.setState({ tab: i })
+    };
+  });
+  return {
+    tabs, lensTransform: 'translateX(234px)', lensShow: 'block',
+    menuOpen: this.state.menu,
+    toggleMenu: () => this.setState({ menu: !this.state.menu })
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Состояния и ошибки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxDots{0%,80%,100%{opacity:.25}40%{opacity:1}}
+@keyframes kxShimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxDrop{from{transform:translateY(-100%)}to{transform:none}}
+@keyframes kxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes kxBar{from{width:0}to{width:100%}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <!-- Header with status -->
+  <header style="padding: 12px 16px 6px; display: flex; align-items: center; gap: 10px; min-height: 48px">
+    <sc-if value="{{titleNormal}}" hint-placeholder-val="{{true}}"><h1 style="flex: 1; margin: 0; font-size: 26px; font-weight: 800; animation: kxIn .3s ease both">Чаты</h1></sc-if>
+    <sc-if value="{{titleStatus}}" hint-placeholder-val="{{false}}">
+      <div style="flex: 1; display: flex; align-items: center; gap: 10px; animation: kxIn .3s ease both">
+        <span aria-hidden="true" style="width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(143,211,172,.25); border-top-color: #8FD3AC; animation: kxSpin .8s linear infinite"></span>
+        <span style="font-size: 20px; font-weight: 800">{{statusText}}</span>
+        <span style="display: flex; gap: 2px; font-size: 20px; font-weight: 800"><span style="animation: kxDots 1.2s infinite">.</span><span style="animation: kxDots 1.2s .2s infinite">.</span><span style="animation: kxDots 1.2s .4s infinite">.</span></span>
+      </div>
+    </sc-if>
+    <button aria-label="Поиск" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">search</span></button>
+  </header>
+
+  <!-- Offline banner -->
+  <sc-if value="{{offline}}" hint-placeholder-val="{{false}}">
+    <div style="margin: 4px 12px 0; padding: 12px 14px; border-radius: 18px; background: rgba(232,176,74,.1); border: 1px solid rgba(232,176,74,.3); display: flex; align-items: center; gap: 12px; animation: kxDrop .35s cubic-bezier(.2,.9,.3,1) both">
+      <span class="ms" style="color: #E8B04A" aria-hidden="true">wifi_off</span>
+      <span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 700">Нет подключения</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #C9D2CC">Сообщения отправятся, когда появится сеть</span></span>
+      <button onClick="{{retry}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(232,176,74,.18); color: #E8B04A; font-size: 12px; font-weight: 800">Повторить</button>
+    </div>
+  </sc-if>
+
+  <!-- Update banner -->
+  <sc-if value="{{update}}" hint-placeholder-val="{{false}}">
+    <div style="margin: 4px 12px 0; padding: 12px 14px; border-radius: 18px; background: linear-gradient(120deg, rgba(63,154,108,.25), rgba(255,255,255,.04)); border: 1px solid rgba(143,211,172,.3); animation: kxDrop .35s cubic-bezier(.2,.9,.3,1) both">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span class="ms fill" style="color: #8FD3AC" aria-hidden="true">system_update</span>
+        <span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 700">{{updTitle}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #C9D2CC">{{updSub}}</span></span>
+        <sc-if value="{{updIdle}}" hint-placeholder-val="{{true}}"><button onClick="{{startUpd}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: #8FD3AC; color: #06150D; font-size: 12px; font-weight: 800">Обновить</button></sc-if>
+      </div>
+      <sc-if value="{{updRun}}" hint-placeholder-val="{{false}}"><div style="margin-top: 10px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); overflow: hidden"><div style="height: 100%; background: #8FD3AC; animation: kxBar 3s linear both"></div></div></sc-if>
+    </div>
+  </sc-if>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 8px 8px 130px">
+    <!-- Skeleton -->
+    <sc-if value="{{loading}}" hint-placeholder-val="{{false}}">
+      <sc-for list="{{skel}}" as="k" hint-placeholder-count="7">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 8px">
+          <span style="width: 52px; height: 52px; border-radius: 26px; background: linear-gradient(90deg, #151A17 0, #222924 60px, #151A17 120px); background-size: 400px 100%; animation: kxShimmer 1.2s linear infinite; flex-shrink: 0"></span>
+          <span style="flex: 1; display: flex; flex-direction: column; gap: 8px"><span style="height: 12px; width: {{k.w1}}; border-radius: 6px; background: linear-gradient(90deg, #151A17 0, #222924 60px, #151A17 120px); background-size: 400px 100%; animation: kxShimmer 1.2s linear infinite"></span><span style="height: 10px; width: {{k.w2}}; border-radius: 5px; background: linear-gradient(90deg, #151A17 0, #222924 60px, #151A17 120px); background-size: 400px 100%; animation: kxShimmer 1.2s linear infinite"></span></span>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <!-- Normal list -->
+    <sc-if value="{{list}}" hint-placeholder-val="{{true}}">
+      <sc-for list="{{chats}}" as="c" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 8px; animation: kxIn .3s ease {{c.d}} both">
+          <span style="width: 52px; height: 52px; border-radius: 26px; background: {{c.av}}; color: {{c.ink}}; font-size: 19px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{c.init}}</span>
+          <span style="flex: 1; min-width: 0">
+            <span style="display: flex"><span style="flex: 1; font-size: 15px; font-weight: 700">{{c.name}}</span><span style="font-size: 12px; color: #8A958F">{{c.time}}</span></span>
+            <span style="display: flex; align-items: center; gap: 6px; margin-top: 3px">
+              <sc-if value="{{c.pending}}" hint-placeholder-val="{{false}}"><span class="ms" style="font-size: 15px; color: #E8B04A" aria-hidden="true">schedule</span></sc-if>
+              <span style="flex: 1; font-size: 14px; color: #8A958F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{c.last}}</span>
+            </span>
+          </span>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <!-- Empty -->
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 80px 30px 0; display: flex; flex-direction: column; align-items: center; text-align: center; animation: kxIn .4s ease both">
+        <span style="width: 110px; height: 110px; border-radius: 36px; background: linear-gradient(145deg, #1D2A23, #121714); border: 1px solid #2A3A31; color: #8FD3AC; display: flex; align-items: center; justify-content: center; animation: kxFloat 4s ease-in-out 2"><span class="ms" style="font-size: 54px" aria-hidden="true">forum</span></span>
+        <div style="margin-top: 20px; font-size: 20px; font-weight: 800">Пока тихо</div>
+        <div style="margin-top: 6px; font-size: 14px; line-height: 20px; color: #9AA59F">Напишите кому-нибудь первым или найдите канал по интересам</div>
+        <div style="margin-top: 18px; display: flex; gap: 8px">
+          <button style="height: 44px; padding: 0 16px; border-radius: 22px; background: #8FD3AC; color: #06150D; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">edit</span>Написать</button>
+          <button style="height: 44px; padding: 0 16px; border-radius: 22px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">explore</span>Найти каналы</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Error -->
+    <sc-if value="{{error}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 80px 30px 0; display: flex; flex-direction: column; align-items: center; text-align: center; animation: kxIn .4s ease both">
+        <span style="width: 110px; height: 110px; border-radius: 36px; background: rgba(255,138,128,.08); border: 1px solid rgba(255,138,128,.25); color: #FF8A80; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 54px" aria-hidden="true">cloud_off</span></span>
+        <div style="margin-top: 20px; font-size: 20px; font-weight: 800">Не удалось загрузить</div>
+        <div style="margin-top: 6px; font-size: 14px; line-height: 20px; color: #9AA59F">Сервер не ответил. Проверьте интернет или попробуйте позже.</div>
+        <button onClick="{{retry}}" style="margin-top: 18px; height: 44px; padding: 0 18px; border-radius: 22px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">refresh</span>Попробовать снова</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- State switcher -->
+  <div style="position: absolute; left: 10px; right: 10px; bottom: 20px; padding: 8px; border-radius: 26px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 18px 40px rgba(0,0,0,.5)">
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="8"><button onClick="{{t.pick}}" style="height: 40px; border-radius: 14px; background: {{t.bg}}; color: {{t.ink}}; font-size: 11px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; text-align: center; transition: all .2s"><span class="ms" style="font-size: 17px" aria-hidden="true">{{t.icon}}</span>{{t.label}}</button></sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const CH = [
+  ['Анна', 'Возьмёшь мне капучино?', '15:41', 'linear-gradient(140deg,#4B3F7A,#2A2240)', '#DCD0FF'],
+  ['Курс английского', 'Марина: Тест в субботу', '15:37', 'linear-gradient(140deg,#2F6E9E,#14243A)', '#CFE6FF'],
+  ['Сергей', 'Ок, тогда до пятницы', '14:02', 'linear-gradient(140deg,#3F7A5A,#1E3A2A)', '#CFF2DD'],
+  ['Мама', 'Позвони, как освободишься', '12:15', 'linear-gradient(140deg,#9E3F5C,#2E1420)', '#FFD0DD'],
+  ['Избранное', 'Заметка: купить батарейки', 'Вчера', 'linear-gradient(140deg,#6FC497,#3F9A6C)', '#06150D']
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { st: 'ok', upd: 'idle' }; }
+componentWillUnmount() { clearTimeout(this.t); }
+renderVals() {
+  const s = this.state;
+  const st = s.st;
+  const T = [
+    ['ok', 'Обычно', 'check_circle'], ['connecting', 'Подключение', 'sync'], ['updating', 'Обновление', 'downloading'], ['offline', 'Без сети', 'wifi_off'],
+    ['loading', 'Загрузка', 'hourglass_empty'], ['empty', 'Пусто', 'inbox'], ['error', 'Ошибка', 'error'], ['update', 'Новая версия', 'system_update']
+  ];
+  const pick = id => { clearTimeout(this.t); this.setState({ st: id, upd: 'idle' }); };
+  return {
+    titleNormal: st !== 'connecting' && st !== 'updating', titleStatus: st === 'connecting' || st === 'updating',
+    statusText: st === 'connecting' ? 'Подключение' : 'Обновление',
+    offline: st === 'offline', update: st === 'update',
+    loading: st === 'loading', empty: st === 'empty', error: st === 'error',
+    list: ['ok', 'connecting', 'updating', 'offline', 'update'].includes(st),
+    chats: CH.map((c, i) => ({ name: c[0], last: st === 'offline' && i === 0 ? 'Вы: Уже иду, возьму 👍' : c[1], time: c[2], av: c[3], ink: c[4], init: c[0][0], pending: st === 'offline' && i === 0, d: (i * 0.04) + 's' })),
+    skel: [['60%', '85%'], ['45%', '70%'], ['70%', '60%'], ['50%', '80%'], ['65%', '55%'], ['40%', '75%'], ['55%', '65%']].map(([w1, w2]) => ({ w1, w2 })),
+    retry: () => { this.setState({ st: 'connecting' }); clearTimeout(this.t); this.t = setTimeout(() => this.setState({ st: 'ok' }), 1800); },
+    updIdle: s.upd === 'idle', updRun: s.upd === 'run',
+    updTitle: s.upd === 'run' ? 'Скачиваем kiroX 2.4…' : 'Доступна версия 2.4',
+    updSub: s.upd === 'run' ? 'Можно продолжать пользоваться' : 'Новый дизайн и исправления',
+    startUpd: () => { this.setState({ upd: 'run' }); clearTimeout(this.t); this.t = setTimeout(() => this.setState({ st: 'ok', upd: 'idle' }), 3100); },
+    tabs: T.map(([id, label, icon]) => ({ label, icon, bg: id === st ? 'rgba(143,211,172,.18)' : 'transparent', ink: id === st ? '#8FD3AC' : '#C9D2CC', pick: () => pick(id) }))
+  };
+}
+}
+</script>
+</body>
+</html>

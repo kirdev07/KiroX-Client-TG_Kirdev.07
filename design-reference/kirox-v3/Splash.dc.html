@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Загрузка kiroX</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;display=swap">
+<style>
+body{margin:0}
+@keyframes kxGlow{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.15);opacity:1}}
+@keyframes kxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxSpinBack{to{transform:rotate(-360deg)}}
+@keyframes kxRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kxLoad{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+@keyframes kxTwinkle{0%,100%{opacity:.15;transform:scale(.6)}50%{opacity:1;transform:scale(1)}}
+@keyframes kxDrift{0%{transform:translateY(0);opacity:0}15%{opacity:.8}100%{transform:translateY(-220px);opacity:0}}
+@keyframes kxDot{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-6px);opacity:1}}
+@keyframes kxTilt{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: radial-gradient(90% 55% at 50% 42%, #0F2419 0%, #0B0D0C 62%); color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <div aria-hidden="true" style="position: absolute; left: 60px; top: 150px; width: 4px; height: 4px; border-radius: 2px; background: #A6E3C1; animation: kxTwinkle 2.6s ease-in-out 2"></div>
+  <div aria-hidden="true" style="position: absolute; left: 318px; top: 220px; width: 5px; height: 5px; border-radius: 3px; background: #A6E3C1; animation: kxTwinkle 3.1s ease-in-out .8s 2"></div>
+  <div aria-hidden="true" style="position: absolute; left: 290px; top: 560px; width: 3px; height: 3px; border-radius: 2px; background: #A6E3C1; animation: kxTwinkle 2.2s ease-in-out 1.3s 2"></div>
+  <div aria-hidden="true" style="position: absolute; left: 92px; top: 520px; width: 4px; height: 4px; border-radius: 2px; background: #A6E3C1; animation: kxTwinkle 2.9s ease-in-out .4s 2"></div>
+  <div aria-hidden="true" style="position: absolute; left: 150px; top: 640px; width: 3px; height: 3px; border-radius: 2px; background: #8FD3AC; animation: kxDrift 4.5s ease-out 2"></div>
+  <div aria-hidden="true" style="position: absolute; left: 238px; top: 660px; width: 3px; height: 3px; border-radius: 2px; background: #8FD3AC; animation: kxDrift 5.2s ease-out 1.6s 2"></div>
+  <div aria-hidden="true" style="position: absolute; left: 196px; top: 690px; width: 2px; height: 2px; border-radius: 1px; background: #8FD3AC; animation: kxDrift 4s ease-out 2.8s 2"></div>
+  <div style="position: absolute; left: 0; right: 0; top: 230px; height: 240px; display: flex; align-items: center; justify-content: center">
+    <div aria-hidden="true" style="position: absolute; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(80,175,120,.35), rgba(80,175,120,0) 65%); animation: kxGlow 3.2s ease-in-out 2"></div>
+    <div aria-hidden="true" style="position: absolute; width: 210px; height: 210px; border-radius: 50%; border: 1px dashed rgba(143,211,172,.25); animation: kxSpin 18s linear infinite"></div>
+    <div aria-hidden="true" style="position: absolute; width: 168px; height: 168px; border-radius: 50%; animation: kxSpinBack 6s linear 2">
+      <span style="position: absolute; left: 50%; top: -5px; width: 10px; height: 10px; margin-left: -5px; border-radius: 5px; background: #CFF5DE; box-shadow: 0 0 12px #8FD3AC"></span>
+    </div>
+    <div style="position: relative; width: 150px; height: 130px">
+      <div aria-hidden="true" style="position: absolute; left: -26px; top: 64px; width: 96px; height: 56px; border-radius: 24px 24px 24px 6px; background: rgba(26,36,31,.85); border: 1px solid #2E4A3A; box-shadow: 0 12px 30px rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; gap: 7px; animation: kxTilt 4.6s ease-in-out .8s 2">
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #8FD3AC; animation: kxDot 1.2s ease-in-out infinite"></span>
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #8FD3AC; animation: kxDot 1.2s ease-in-out .15s infinite"></span>
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #8FD3AC; animation: kxDot 1.2s ease-in-out .3s infinite"></span>
+      </div>
+      <div style="position: absolute; right: -10px; top: 0; width: 124px; height: 104px; border-radius: 36px 36px 8px 36px; background: linear-gradient(150deg, #A6E3C1 0%, #6FC497 35%, #2E7A54 100%); box-shadow: 0 0 60px rgba(111,196,151,.45), inset 0 2px 0 rgba(255,255,255,.35); display: flex; align-items: center; justify-content: center; animation: kxFloat 4s ease-in-out 2">
+        <span style="font-size: 56px; font-weight: 800; color: #06150D; letter-spacing: -2px; text-shadow: 0 1px 0 rgba(255,255,255,.35)">X</span>
+      </div>
+    </div>
+  </div>
+  <div style="position: absolute; left: 0; right: 0; top: 500px; text-align: center; animation: kxRise .9s cubic-bezier(.2,.8,.2,1) .3s both">
+    <div style="font-size: 40px; font-weight: 300; letter-spacing: .5px">kiro<span style="color: #8FD3AC; font-weight: 800">X</span></div>
+    <div style="margin-top: 8px; font-size: 14px; color: #9AA59F; animation: kxRise .9s cubic-bezier(.2,.8,.2,1) .6s both">Telegram, только удобнее</div>
+  </div>
+  <div style="position: absolute; left: 50%; bottom: 96px; width: 120px; margin-left: -60px; height: 4px; border-radius: 2px; background: #1A211D; overflow: hidden" role="progressbar" aria-label="Загрузка">
+    <div style="width: 40%; height: 100%; border-radius: 2px; background: linear-gradient(90deg, #3F9A6C, #8FD3AC); animation: kxLoad 1.4s ease-in-out infinite"></div>
+  </div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 56px; text-align: center; font-size: 12px; color: #8A958F; animation: kxRise .9s ease .9s both">Подключаемся к Telegram…</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

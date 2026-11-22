@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Отправка фото</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+input{font:inherit;color:inherit}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxSpoil{0%{background-position:0 0}100%{background-position:40px 40px}}
+@keyframes kxFly{0%{transform:none;opacity:1}100%{transform:translate(120px,-420px) scale(.2) rotate(-12deg);opacity:0}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #050606; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <!-- Big preview -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center">
+    <div style="position: relative; width: 390px; height: 560px; margin-top: -40px; background: {{photo}}; transition: background .4s; animation: {{flyAnim}}; overflow: hidden">
+      <span class="ms" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size: 90px; color: rgba(255,255,255,.55)" aria-hidden="true">{{photoIcon}}</span>
+      <sc-if value="{{spoiler}}" hint-placeholder-val="{{false}}">
+        <div style="position: absolute; inset: 0; backdrop-filter: blur(26px); -webkit-backdrop-filter: blur(26px); background-image: radial-gradient(rgba(255,255,255,.55) 1px, transparent 1.5px); background-size: 10px 10px; animation: kxSpoil 3s linear infinite, kxFade .3s ease both; display: flex; align-items: center; justify-content: center">
+          <span style="padding: 8px 14px; border-radius: 16px; background: rgba(0,0,0,.4); font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">visibility_off</span>Спойлер</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{once}}" hint-placeholder-val="{{false}}">
+        <span style="position: absolute; right: 14px; bottom: 14px; padding: 6px 10px; border-radius: 14px; background: rgba(0,0,0,.5); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px; animation: kxIn .2s ease both"><span class="ms fill" style="font-size: 16px; color: #8FD3AC" aria-hidden="true">looks_one</span>Откроется один раз</span>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- Top bar -->
+  <header style="position: absolute; left: 0; right: 0; top: 0; padding: 10px 12px; display: flex; align-items: center; gap: 8px; background: linear-gradient(180deg, rgba(0,0,0,.65), transparent)">
+    <button aria-label="Закрыть" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.1); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+    <div style="flex: 1; text-align: center"><div style="font-size: 15px; font-weight: 800">{{counter}}</div><div style="font-size: 11px; color: #C9D2CC">Анна</div></div>
+    <button onClick="{{toggleHd}}" aria-pressed="{{hd}}" aria-label="Качество" style="height: 36px; padding: 0 12px; border-radius: 18px; background: {{hdBg}}; color: {{hdInk}}; border: 1px solid {{hdBd}}; font-size: 13px; font-weight: 800; transition: all .2s">{{hdText}}</button>
+  </header>
+
+  <!-- Tools -->
+  <div style="position: absolute; right: 12px; top: 74px; display: flex; flex-direction: column; gap: 8px">
+    <sc-for list="{{tools}}" as="t" hint-placeholder-count="4">
+      <button onClick="{{t.tap}}" aria-label="{{t.label}}" aria-pressed="{{t.on}}" style="width: 44px; height: 44px; border-radius: 22px; background: {{t.bg}}; color: {{t.ink}}; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center; transition: all .2s"><span class="ms" style="font-size: 22px; font-variation-settings: {{t.fill}}" aria-hidden="true">{{t.icon}}</span></button>
+    </sc-for>
+  </div>
+
+  <!-- Bottom -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 30px 12px 18px; background: linear-gradient(180deg, transparent, rgba(0,0,0,.85) 35%)">
+    <!-- thumbs -->
+    <div style="display: flex; gap: 6px; justify-content: center; margin-bottom: 12px">
+      <sc-for list="{{thumbs}}" as="p" hint-placeholder-count="4">
+        <button onClick="{{p.tap}}" aria-label="{{p.label}}" style="position: relative; width: {{p.w}}; height: 52px; border-radius: 12px; background: {{p.bg}}; border: 2px solid {{p.bd}}; opacity: {{p.op}}; transition: all .25s cubic-bezier(.2,.8,.2,1); overflow: hidden">
+          <span style="position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 9px; background: {{p.numBg}}; color: {{p.numInk}}; border: 1.5px solid #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{p.num}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; align-items: flex-end; gap: 8px">
+      <label style="flex: 1; min-height: 50px; padding: 0 14px; border-radius: 25px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.06)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); display: flex; align-items: center; gap: 8px">
+        <span class="ms" style="color: #C9D2CC" aria-hidden="true">add_photo_alternate</span>
+        <input value="{{caption}}" onInput="{{onCaption}}" placeholder="Подпись…" aria-label="Подпись к фото" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 15px">
+      </label>
+      <button onClick="{{send}}" aria-label="Отправить" style="position: relative; width: 50px; height: 50px; border-radius: 25px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(63,154,108,.4)">
+        <span class="ms fill" aria-hidden="true">send</span>
+        <span style="position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 4px; box-sizing: border-box; border-radius: 10px; background: #EEF3EF; color: #06150D; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{selCount}}</span>
+      </button>
+      <button onClick="{{openMore}}" aria-label="Другие способы отправки" style="width: 40px; height: 50px; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" aria-hidden="true">more_vert</span></button>
+    </div>
+    <div style="margin-top: 8px; padding: 0 6px; font-size: 11px; color: #8A958F; display: flex; gap: 6px; align-items: center"><span class="ms" style="font-size: 14px" aria-hidden="true">{{sizeIcon}}</span>{{sizeText}}</div>
+  </div>
+
+  <!-- More sheet -->
+  <sc-if value="{{more}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{closeMore}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px 20px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 10px"></div>
+      <sc-for list="{{ways}}" as="w" hint-placeholder-count="4">
+        <button onClick="{{w.tap}}" style="width: 100%; height: 56px; padding: 0 12px; border-radius: 16px; display: flex; align-items: center; gap: 14px">
+          <span class="ms" style="color: #8FD3AC" aria-hidden="true">{{w.icon}}</span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{w.label}}</span><span style="display: block; font-size: 12px; color: #8A958F">{{w.sub}}</span></span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; top: 380px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.18); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PICS = [
+  { bg: 'radial-gradient(70% 60% at 30% 25%, #F2B866, transparent 60%), radial-gradient(90% 70% at 70% 90%, #2F6E9E, transparent 65%), linear-gradient(180deg, #E07A4F, #3A2A4A)', icon: 'landscape', mb: 3.8 },
+  { bg: 'radial-gradient(60% 60% at 60% 40%, #8FD3AC, transparent 60%), linear-gradient(160deg, #1E4B36, #0E1C16)', icon: 'forest', mb: 4.4 },
+  { bg: 'radial-gradient(60% 50% at 50% 30%, #F4E7C5, transparent 60%), linear-gradient(180deg, #C9925A, #4A2E1E)', icon: 'local_cafe', mb: 2.9 },
+  { bg: 'radial-gradient(70% 60% at 40% 30%, #B39DDB, transparent 60%), linear-gradient(200deg, #3B2D63, #120E1E)', icon: 'nightlight', mb: 5.1 }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { cur: 0, sel: [true, true, true, false], spoil: {}, once: {}, hd: false, caption: '', more: false, fly: false, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); clearTimeout(this.tf); }
+toastMsg(text, icon) {
+  clearTimeout(this.tt);
+  this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon });
+  this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400);
+}
+doSend(text, icon) {
+  this.setState({ more: false, fly: true });
+  clearTimeout(this.tf);
+  this.tf = setTimeout(() => { this.setState({ fly: false, caption: '' }); this.toastMsg(text, icon); }, 550);
+}
+renderVals() {
+  const s = this.state;
+  const p = PICS[s.cur];
+  const order = s.sel.map((v, i) => v ? i : -1).filter(i => i >= 0);
+  const n = order.length;
+  const mb = order.reduce((a, i) => a + PICS[i].mb, 0);
+  const sent = s.hd ? mb : mb * 0.09;
+  const word = k => k === 1 ? 'фото' : 'фото';
+  return {
+    photo: p.bg, photoIcon: p.icon,
+    flyAnim: s.fly ? 'kxFly .55s cubic-bezier(.5,0,.8,.4) both' : 'none',
+    spoiler: !!s.spoil[s.cur], once: !!s.once[s.cur],
+    counter: n ? 'Выбрано ' + n + ' из 4' : 'Ничего не выбрано',
+    hd: s.hd, hdText: s.hd ? 'HD' : 'SD', hdBg: s.hd ? 'rgba(143,211,172,.22)' : 'rgba(255,255,255,.1)', hdInk: s.hd ? '#8FD3AC' : '#EEF3EF', hdBd: s.hd ? 'rgba(143,211,172,.5)' : 'rgba(255,255,255,.14)',
+    toggleHd: () => this.setState({ hd: !s.hd }),
+    tools: [
+      { icon: 'tune', label: 'Редактировать', on: false, tap: () => this.toastMsg('Откроется редактор фото', 'tune') },
+      { icon: 'crop_rotate', label: 'Обрезать', on: false, tap: () => this.toastMsg('Откроется обрезка', 'crop_rotate') },
+      { icon: 'blur_on', label: 'Скрыть под спойлер', on: !!s.spoil[s.cur], tap: () => this.setState({ spoil: { ...s.spoil, [s.cur]: !s.spoil[s.cur] } }) },
+      { icon: 'looks_one', label: 'Одноразовое фото', on: !!s.once[s.cur], tap: () => this.setState({ once: { ...s.once, [s.cur]: !s.once[s.cur] } }) }
+    ].map(t => ({ ...t, bg: t.on ? 'rgba(143,211,172,.28)' : 'rgba(0,0,0,.35)', ink: t.on ? '#8FD3AC' : '#EEF3EF', fill: t.on ? "'FILL' 1" : "'FILL' 0" })),
+    thumbs: PICS.map((q, i) => {
+      const on = s.sel[i], cur = s.cur === i;
+      const k = order.indexOf(i);
+      return {
+        bg: q.bg, w: cur ? '62px' : '46px', bd: cur ? '#8FD3AC' : 'transparent', op: on || cur ? '1' : '.5',
+        num: on ? String(k + 1) : '', numBg: on ? '#3F9A6C' : 'rgba(0,0,0,.35)', numInk: '#fff',
+        label: 'Фото ' + (i + 1) + (on ? ', выбрано' : ''),
+        tap: () => cur ? this.setState({ sel: s.sel.map((v, j) => j === i ? !v : v) }) : this.setState({ cur: i })
+      };
+    }),
+    caption: s.caption, onCaption: e => this.setState({ caption: e.target.value }),
+    selCount: String(n),
+    sizeIcon: s.hd ? 'hd' : 'compress',
+    sizeText: s.hd ? 'Оригинал · ' + sent.toFixed(1).replace('.', ',') + ' МБ' : 'Сжатие · ~' + Math.max(1, Math.round(sent * 1000)) + ' КБ вместо ' + mb.toFixed(1).replace('.', ',') + ' МБ',
+    send: () => n ? this.doSend('Отправлено ' + n + ' ' + word(n), 'done_all') : this.toastMsg('Выберите хотя бы одно фото', 'info'),
+    openMore: () => this.setState({ more: true }), closeMore: () => this.setState({ more: false }), more: s.more,
+    ways: [
+      { icon: 'notifications_off', label: 'Без звука', sub: 'Анна получит без уведомления', tap: () => this.doSend('Отправлено без звука', 'notifications_off') },
+      { icon: 'schedule_send', label: 'Отправить позже', sub: 'Выбрать день и время', tap: () => { this.setState({ more: false }); this.toastMsg('Откроется выбор времени', 'schedule_send'); } },
+      { icon: 'description', label: 'Отправить файлом', sub: 'Без сжатия и с данными камеры', tap: () => this.doSend('Отправлено файлом', 'description') },
+      { icon: 'photo_library', label: 'Одним альбомом', sub: s.caption ? 'Подпись будет под альбомом' : 'Фото придут вместе', tap: () => this.doSend('Альбом отправлен', 'photo_library') }
+    ],
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

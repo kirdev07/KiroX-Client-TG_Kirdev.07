@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Бусты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxBolt{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes kxBurst{0%{transform:scale(.6);opacity:0}50%{opacity:1}100%{transform:scale(1.8);opacity:0}}
+@keyframes kxBurst2{0%{transform:scale(.6);opacity:0}50%{opacity:1}100%{transform:scale(1.8);opacity:0}}
+@keyframes kxShine{0%{background-position:-160px 0}100%{background-position:360px 0}}
+@keyframes kxUnlock{0%{transform:scale(1)}40%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes kxUnlock2{0%{transform:scale(1)}40%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">Бусты</div><div style="font-size: 12px; color: #9AA59F">Kotlin-клуб · 1 284 участника</div></div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 0 16px 16px">
+    <!-- Hero -->
+    <div style="position: relative; padding: 18px 16px 16px; border-radius: 26px; background: radial-gradient(circle at 50% 0%, rgba(143,211,172,.22), transparent 70%), linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.1); text-align: center; overflow: hidden">
+      <span style="position: relative; display: inline-flex; width: 72px; height: 72px; border-radius: 24px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; align-items: center; justify-content: center">
+        <span style="position: absolute; inset: 0; border-radius: 24px; border: 2px solid #8FD3AC; animation: {{burst}}"></span>
+        <span class="ms fill" style="font-size: 40px; animation: kxBolt 2s ease-in-out 2" aria-hidden="true">bolt</span>
+      </span>
+      <div style="margin-top: 10px; font-size: 22px; font-weight: 800">Уровень {{lvl}}</div>
+      <div style="margin-top: 2px; font-size: 13px; color: #9AA59F">{{needText}}</div>
+      <div style="margin-top: 14px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700">
+        <span style="color: #9AA59F">Ур. {{lvl}}</span>
+        <div style="flex: 1; height: 14px; border-radius: 7px; background: rgba(255,255,255,.08); overflow: hidden; position: relative">
+          <span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{pct}}; border-radius: 7px; background: linear-gradient(90deg, #3F9A6C, #8FD3AC); transition: width .6s cubic-bezier(.2,.8,.2,1)"></span>
+          <span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{pct}}; border-radius: 7px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent); background-size: 160px 100%; background-repeat: no-repeat; animation: kxShine 2.4s linear 2; transition: width .6s"></span>
+        </div>
+        <span style="color: #8FD3AC">Ур. {{next}}</span>
+      </div>
+      <div style="margin-top: 6px; font-size: 12px; color: #C9D2CC; font-variant-numeric: tabular-nums">{{have}} из {{goalText}}</div>
+    </div>
+
+    <!-- Unlocks -->
+    <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC">Что открывают уровни</div>
+    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{perks}}" as="p" hint-placeholder-count="5"><div style="min-height: 52px; padding: 8px 12px; border-radius: 16px; background: {{p.bg}}; display: flex; align-items: center; gap: 12px; animation: {{p.anim}}"><span style="width: 36px; height: 36px; border-radius: 12px; background: {{p.ibg}}; color: {{p.ink}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">{{p.i}}</span></span><span style="flex: 1; font-size: 14px; font-weight: 700; color: {{p.tink}}">{{p.t}}</span><span style="height: 24px; padding: 0 8px; border-radius: 12px; background: {{p.tagBg}}; color: {{p.tagInk}}; font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 3px"><span class="ms fill" style="font-size: 14px" aria-hidden="true">{{p.tagIcon}}</span>{{p.tag}}</span></div></sc-for>
+    </div>
+
+    <!-- Boosters -->
+    <div style="margin-top: 16px; display: flex; align-items: center"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">Кто бустит</span><span style="font-size: 12px; color: #9AA59F">{{have}}</span></div>
+    <div style="margin-top: 6px; display: flex; flex-direction: column">
+      <sc-for list="{{boosters}}" as="b" hint-placeholder-count="4"><div style="display: flex; align-items: center; gap: 12px; padding: 8px 2px"><span style="width: 40px; height: 40px; border-radius: 20px; background: {{b.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800">{{b.l}}</span><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 700">{{b.n}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{b.s}}</span></span><span style="height: 24px; padding: 0 8px; border-radius: 12px; background: rgba(143,211,172,.14); color: #8FD3AC; font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 2px"><span class="ms fill" style="font-size: 14px" aria-hidden="true">bolt</span>×{{b.x}}</span></div></sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 10px 16px 20px; display: flex; gap: 8px">
+    <button onClick="{{share}}" aria-label="Поделиться ссылкой на буст" style="width: 54px; height: 54px; border-radius: 27px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">share</span></button>
+    <button onClick="{{boost}}" style="flex: 1; height: 54px; border-radius: 27px; background: {{bBg}}; color: {{bInk}}; font-size: 16px; font-weight: 800; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms fill" aria-hidden="true">bolt</span>{{bText}}</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 92px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">bolt</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const LV = [0, 1, 3, 7, 12, 18, 25];
+const PERKS = [
+  [1, 'auto_stories', 'Истории в группе'],
+  [2, 'palette', 'Цвет названия и профиля'],
+  [3, 'add_reaction', 'Свои реакции'],
+  [4, 'wallpaper', 'Обои для всей группы'],
+  [5, 'mood', 'Свои эмодзи в названиях тем'],
+  [6, 'emoji_emotions', 'Набор эмодзи группы']
+];
+const BOOST = [['Дмитрий', 'Д', '#3F9A6C', 'до 14 февраля', 4], ['Анна', 'А', '#C0443C', 'до 2 января', 2], ['Ерлан', 'Е', '#2F6E9E', 'до 30 декабря', 1], ['Лиза', 'Л', '#6A4C9C', 'до 21 декабря', 1]];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { have: 16, mine: 0, k: 0, uk: 0, toast: '', tk: 0, justLvl: -1 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  let lvl = 0; for (let i = 0; i < LV.length; i++) if (s.have >= LV[i]) lvl = i;
+  const top = lvl >= LV.length - 1;
+  const goal = top ? LV[LV.length - 1] : LV[lvl + 1];
+  const base = LV[lvl];
+  const pct = top ? 100 : Math.round((s.have - base) / (goal - base) * 100);
+  const need = goal - s.have;
+  const word = (n) => n % 10 === 1 && n % 100 !== 11 ? 'буст' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'буста' : 'бустов';
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2200); };
+  const boosters = s.mine ? [['Вы', 'В', 'linear-gradient(135deg, #6FC497, #3F9A6C)', 'только что', s.mine], ...BOOST] : BOOST;
+  return {
+    lvl, next: top ? lvl : lvl + 1, have: s.have, goal, goalText: goal + ' ' + word(goal), pct: pct + '%',
+    needText: top ? 'Максимальный уровень — открыто всё' : 'Ещё ' + need + ' ' + word(need) + ' до уровня ' + (lvl + 1),
+    burst: s.k ? (s.k % 2 ? 'kxBurst2' : 'kxBurst') + ' .7s ease-out both' : 'none',
+    perks: PERKS.map(([l, i, t]) => { const open = lvl >= l; const fresh = s.justLvl === l; return { i, t,
+      bg: open ? 'rgba(143,211,172,.08)' : 'rgba(255,255,255,.03)', ibg: open ? 'rgba(143,211,172,.18)' : 'rgba(255,255,255,.06)', ink: open ? '#8FD3AC' : '#8A958F', tink: open ? '#EEF3EF' : '#8A958F',
+      tag: open ? 'Открыто' : 'Ур. ' + l, tagIcon: open ? 'lock_open' : 'lock', tagBg: open ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.06)', tagInk: open ? '#8FD3AC' : '#9AA59F',
+      anim: fresh ? (s.uk % 2 ? 'kxUnlock2' : 'kxUnlock') + ' .5s ease both' : 'none' }; }),
+    boosters: boosters.map(([n, l, c, until, x]) => ({ n, l, c, s: 'Буст ' + until, x })),
+    bText: s.mine >= 4 ? 'Все ваши бусты здесь' : s.mine ? 'Добавить ещё буст' : 'Забустить группу',
+    bBg: s.mine >= 4 ? 'rgba(255,255,255,.07)' : 'linear-gradient(135deg, #6FC497, #3F9A6C)', bInk: s.mine >= 4 ? '#8A958F' : '#06150D',
+    boost: () => {
+      if (s.mine >= 4) return;
+      const have = s.have + 1;
+      let nl = 0; for (let i = 0; i < LV.length; i++) if (have >= LV[i]) nl = i;
+      const up = nl > lvl;
+      this.setState({ have, mine: s.mine + 1, k: s.k + 1, justLvl: up ? nl : s.justLvl, uk: up ? s.uk + 1 : s.uk });
+      say(up ? 'Уровень ' + nl + '! Открыто: ' + (PERKS.find(p => p[0] === nl) || [0, 0, 'новое'])[2] : 'Спасибо за буст!');
+    },
+    share: () => say('Ссылка на буст скопирована'),
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2.2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

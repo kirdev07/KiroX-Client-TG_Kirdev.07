@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Заменить фото в сообщении</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFlip{0%{transform:rotateY(0)}50%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
+@keyframes kxFlip2{0%{transform:rotateY(0)}50%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
+@keyframes kxGlow{0%,100%{box-shadow:0 0 0 0 rgba(143,211,172,0)}50%{box-shadow:0 0 0 4px rgba(143,211,172,.35)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #2F6E9E; display: flex; align-items: center; justify-content: center; font-weight: 800">С</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Семья</div><div style="font-size: 12px; color: #9AA59F">5 участников</div></div>
+  </header>
+
+  <div style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px">
+    <div style="align-self: flex-start; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px"><span style="display: block; font-size: 12px; font-weight: 800; color: #E8B04A">Мама</span>Покажи, что получилось с ремонтом!</div>
+    <div style="align-self: flex-end; width: 250px; border-radius: 20px 20px 6px 20px; overflow: hidden; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; border: 2px solid {{bubbleBd}}; animation: {{bubbleGlow}}">
+      <div style="height: 180px; background: {{img}}; display: flex; align-items: center; justify-content: center; font-size: 56px; animation: {{flip}}; position: relative">{{imgE}}<span style="position: absolute; left: 8px; top: 8px; height: 22px; padding: 0 8px; border-radius: 11px; background: rgba(0,0,0,.45); color: #fff; font-size: 11px; font-weight: 700; display: {{tagShow}}; align-items: center">{{tag}}</span></div>
+      <div style="padding: 8px 12px; font-size: 15px">{{caption}}<span style="font-size: 11px; opacity: .7; margin-left: 8px">{{edited}}20:41</span><span class="ms" style="font-size: 15px; margin-left: 3px; vertical-align: -3px" aria-hidden="true">done_all</span></div>
+    </div>
+  </div>
+
+  <!-- Edit bar -->
+  <div style="padding: 8px 12px 16px; border-top: 1px solid rgba(255,255,255,.06)">
+    <div style="display: {{editShow}}; align-items: center; gap: 10px; padding: 6px 4px 8px; animation: kxIn .2s ease both">
+      <span class="ms" style="color: #8FD3AC" aria-hidden="true">edit</span>
+      <span style="width: 36px; height: 36px; border-radius: 8px; background: {{img}}; display: flex; align-items: center; justify-content: center; font-size: 18px">{{imgE}}</span>
+      <span style="flex: 1"><span style="display: block; font-size: 12px; font-weight: 800; color: #8FD3AC">Изменение сообщения</span><span style="display: block; font-size: 12px; color: #9AA59F">Нажмите на фото, чтобы заменить</span></span>
+      <button onClick="{{cancel}}" aria-label="Отменить изменение" style="width: 32px; height: 32px; border-radius: 16px; color: #9AA59F; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">close</span></button>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center">
+      <button onClick="{{openPick}}" aria-label="Заменить фото" style="width: 46px; height: 46px; border-radius: 23px; background: {{attBg}}; color: {{attInk}}; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">{{attIcon}}</span></button>
+      <div style="flex: 1; min-height: 46px; padding: 0 14px; border-radius: 23px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 15px; color: {{dInk}}">{{draft}}</div>
+      <button onClick="{{main}}" aria-label="{{mainLabel}}" style="width: 46px; height: 46px; border-radius: 23px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">{{mainIcon}}</span></button>
+    </div>
+  </div>
+
+  <sc-if value="{{picker}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.5)"></div>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 14px 22px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.99), rgba(18,22,20,1)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 12px"></div>
+      <div style="display: flex; align-items: center"><span style="flex: 1; font-size: 17px; font-weight: 800">Заменить на…</span><button onClick="{{closePick}}" style="height: 32px; padding: 0 12px; border-radius: 16px; font-size: 13px; font-weight: 700; color: #9AA59F">Отмена</button></div>
+      <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px">
+        <sc-for list="{{gal}}" as="g" hint-placeholder-count="6"><button onClick="{{g.tap}}" aria-label="{{g.aria}}" style="aspect-ratio: 1; border-radius: 14px; background: {{g.img}}; display: flex; align-items: center; justify-content: center; font-size: 34px; border: 2px solid {{g.bd}}">{{g.e}}</button></sc-for>
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: #9AA59F; display: flex; gap: 8px"><span class="ms" style="font-size: 17px" aria-hidden="true">info</span>Заменить можно фото, видео или файл. Отметку «изменено» увидят все.</div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const G = [
+  { e: '🛋', img: 'linear-gradient(160deg, #C9A27A, #6B4A2E)', tag: 'гостиная, было', cap: 'Вот так было 😅' },
+  { e: '🪴', img: 'linear-gradient(160deg, #3F9A6C, #1B3A2C)', tag: 'гостиная, стало', cap: 'А вот что получилось! 🎉' },
+  { e: '🛏', img: 'linear-gradient(160deg, #7FB8E0, #2F6E9E)', tag: 'спальня', cap: 'Спальня тоже готова' },
+  { e: '🍳', img: 'linear-gradient(160deg, #E8B04A, #8E4A1E)', tag: 'кухня', cap: 'Кухня почти готова' },
+  { e: '🛁', img: 'linear-gradient(160deg, #9AA59F, #3A403D)', tag: 'ванная', cap: 'Ванная — следующая' },
+  { e: '🌇', img: 'linear-gradient(160deg, #F2B866, #C0443C)', tag: 'вид с балкона', cap: 'И вид с балкона 😍' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { cur: 0, sel: 0, mode: 'edit', fk: 0, edited: false, picker: false }; }
+renderVals() {
+  const s = this.state;
+  const shown = G[s.mode === 'edit' ? s.sel : s.cur];
+  const editing = s.mode === 'edit';
+  return {
+    img: shown.img, imgE: shown.e, tag: shown.tag, tagShow: 'flex', caption: shown.cap,
+    edited: s.edited ? 'изм. ' : '', flip: s.fk ? (s.fk % 2 ? 'kxFlip2' : 'kxFlip') + ' .45s ease both' : 'none',
+    bubbleBd: editing ? '#8FD3AC' : 'transparent', bubbleGlow: editing ? 'kxGlow 1.8s ease-in-out 2' : 'none',
+    editShow: editing ? 'flex' : 'none',
+    attIcon: editing ? 'swap_horiz' : 'attach_file', attBg: editing ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.06)', attInk: editing ? '#8FD3AC' : '#9AA59F',
+    draft: editing ? shown.cap : 'Сообщение', dInk: editing ? '#EEF3EF' : '#8A958F',
+    mainIcon: editing ? 'check' : 'edit', mainLabel: editing ? 'Сохранить изменения' : 'Изменить сообщение',
+    main: () => editing ? this.setState({ mode: 'view', cur: s.sel, edited: s.edited || s.sel !== s.cur }) : this.setState({ mode: 'edit', sel: s.cur }),
+    cancel: () => this.setState({ mode: 'view', sel: s.cur, fk: s.sel !== s.cur ? s.fk + 1 : s.fk }),
+    openPick: () => editing && this.setState({ picker: true }), closePick: () => this.setState({ picker: false }), picker: s.picker,
+    gal: G.map((g, i) => ({ e: g.e, img: g.img, aria: g.tag, bd: s.sel === i ? '#8FD3AC' : 'transparent', tap: () => this.setState({ sel: i, picker: false, fk: s.fk + 1 }) }))
+  };
+}
+}
+</script>
+</body>
+</html>

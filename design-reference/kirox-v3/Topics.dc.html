@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Темы группы</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+input{font:inherit;color:inherit;background:none;border:0;outline:0}
+input::placeholder{color:#8A958F}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxSlide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxPop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.05)">
+    <button onClick="{{back}}" aria-label="Назад" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <sc-if value="{{listView}}" hint-placeholder-val="{{true}}">
+      <span style="width: 40px; height: 40px; border-radius: 14px; background: linear-gradient(140deg,#3F9A6C,#1B2E3A); color: #DFF5E8; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center">A</span>
+      <div style="flex: 1; min-width: 0"><div style="font-size: 16px; font-weight: 800">Android-разработка</div><div style="font-size: 12px; color: #9AA59F">форум · 2 140 участников</div></div>
+      <button aria-label="Поиск" style="width: 42px; height: 42px; border-radius: 21px; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">search</span></button>
+    </sc-if>
+    <sc-if value="{{topicView}}" hint-placeholder-val="{{false}}">
+      <span style="width: 40px; height: 40px; border-radius: 20px; background: {{tColor}}; color: #fff; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 22px" aria-hidden="true">{{tIcon}}</span></span>
+      <div style="flex: 1; min-width: 0"><div style="font-size: 16px; font-weight: 800">{{tName}}</div><div style="font-size: 12px; color: #9AA59F">тема в «Android-разработка»</div></div>
+    </sc-if>
+  </header>
+
+  <!-- Topic list -->
+  <sc-if value="{{listView}}" hint-placeholder-val="{{true}}">
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column">
+      <div style="padding: 8px 12px; display: flex; gap: 6px">
+        <sc-for list="{{views}}" as="v" hint-placeholder-count="2"><button onClick="{{v.tap}}" style="height: 34px; padding: 0 14px; border-radius: 17px; background: {{v.bg}}; color: {{v.ink}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: all .2s"><span class="ms" style="font-size: 18px" aria-hidden="true">{{v.icon}}</span>{{v.label}}</button></sc-for>
+      </div>
+      <sc-if value="{{rowsView}}" hint-placeholder-val="{{true}}">
+        <div class="scroll" style="flex: 1; min-height: 0; padding: 0 8px 100px">
+          <sc-for list="{{topics}}" as="t" hint-placeholder-count="6">
+            <button onClick="{{t.open}}" style="width: 100%; padding: 10px 8px; border-radius: 18px; display: flex; align-items: center; gap: 12px; animation: kxIn .3s ease {{t.d}} both; opacity: {{t.op}}">
+              <span style="width: 46px; height: 46px; border-radius: 23px; background: {{t.color}}; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 24px" aria-hidden="true">{{t.icon}}</span></span>
+              <span style="flex: 1; min-width: 0">
+                <span style="display: flex; align-items: center; gap: 5px"><span style="flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{t.name}}</span><sc-if value="{{t.pinned}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="font-size: 14px; color: #8FD3AC; transform: rotate(45deg)" aria-hidden="true">push_pin</span></sc-if><sc-if value="{{t.closed}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="font-size: 14px; color: #8A958F" aria-hidden="true">lock</span></sc-if><span style="font-size: 12px; color: #8A958F">{{t.time}}</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; margin-top: 3px"><span style="flex: 1; font-size: 13px; color: #8A958F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis"><b style="color: #C9D2CC">{{t.who}}:</b> {{t.last}}</span><sc-if value="{{t.unread}}" hint-placeholder-val="{{false}}"><span style="min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px; background: #8FD3AC; color: #06150D; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{t.badge}}</span></sc-if></span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{gridView}}" hint-placeholder-val="{{false}}">
+        <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 12px 100px">
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+            <sc-for list="{{topics}}" as="t" hint-placeholder-count="6">
+              <button onClick="{{t.open}}" style="position: relative; height: 118px; padding: 12px; border-radius: 22px; background: {{t.tile}}; border: 1px solid rgba(255,255,255,.07); display: flex; flex-direction: column; justify-content: space-between; animation: kxIn .3s ease {{t.d}} both; opacity: {{t.op}}">
+                <span style="width: 38px; height: 38px; border-radius: 19px; background: {{t.color}}; color: #fff; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">{{t.icon}}</span></span>
+                <span style="font-size: 14px; font-weight: 700; line-height: 18px">{{t.name}}</span>
+                <sc-if value="{{t.unread}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 10px; top: 12px; min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 11px; background: #8FD3AC; color: #06150D; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{t.badge}}</span></sc-if>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <button onClick="{{openNew}}" style="position: absolute; right: 18px; bottom: 26px; height: 56px; padding: 0 20px; border-radius: 20px; background: linear-gradient(140deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; box-shadow: 0 12px 30px rgba(63,154,108,.45)"><span class="ms" aria-hidden="true">add_comment</span>Новая тема</button>
+    </div>
+  </sc-if>
+
+  <!-- Topic chat -->
+  <sc-if value="{{topicView}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; animation: kxSlide .3s cubic-bezier(.2,.9,.3,1) both">
+      <div class="scroll" style="flex: 1; min-height: 0; padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; background: radial-gradient(120% 60% at 100% 0%, {{tGlow}}, #0A0C0B 60%)">
+        <div style="align-self: center; padding: 5px 12px; border-radius: 12px; background: rgba(255,255,255,.06); font-size: 12px; color: #9AA59F">Тема «{{tName}}» создана</div>
+        <sc-for list="{{tMsgs}}" as="m" hint-placeholder-count="3">
+          <div style="align-self: flex-start; display: flex; gap: 8px; max-width: 86%">
+            <span style="width: 32px; height: 32px; border-radius: 16px; background: {{m.av}}; color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-end">{{m.init}}</span>
+            <div style="padding: 7px 12px; border-radius: 18px 18px 18px 5px; background: #161B18"><div style="font-size: 12px; font-weight: 800; color: {{m.c}}">{{m.who}}</div><div style="font-size: 15px; line-height: 1.35">{{m.text}}</div></div>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{tClosed}}" hint-placeholder-val="{{false}}"><div style="padding: 14px; text-align: center; font-size: 13px; color: #8A958F; border-top: 1px solid rgba(255,255,255,.06)"><span class="ms fill" style="font-size: 16px; vertical-align: -3px" aria-hidden="true">lock</span> Тема закрыта, писать могут только админы</div></sc-if>
+      <sc-if value="{{tOpen}}" hint-placeholder-val="{{true}}"><div style="padding: 6px 10px 18px"><div style="height: 46px; border-radius: 23px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; padding: 0 14px; color: #8A958F; font-size: 15px">Сообщение в «{{tName}}»</div></div></sc-if>
+    </div>
+  </sc-if>
+
+  <!-- New topic sheet -->
+  <sc-if value="{{newSheet}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeNew}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px 12px; font-size: 18px; font-weight: 800">Новая тема</div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="width: 56px; height: 56px; border-radius: 28px; background: {{nColor}}; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .25s; animation: kxPop .3s ease both" data-k="{{nKey}}"><span class="ms fill" style="font-size: 28px" aria-hidden="true">{{nIcon}}</span></span>
+        <div style="flex: 1; height: 54px; border-radius: 18px; background: rgba(255,255,255,.05); display: flex; align-items: center; padding: 0 14px"><input aria-label="Название темы" placeholder="Название темы" value="{{nName}}" onInput="{{onName}}" style="flex: 1; font-size: 16px; font-weight: 600"></div>
+      </div>
+      <div style="padding: 14px 4px 6px; font-size: 13px; color: #9AA59F">Цвет</div>
+      <div style="display: flex; gap: 10px; padding: 0 4px">
+        <sc-for list="{{colors}}" as="c" hint-placeholder-count="6"><button onClick="{{c.tap}}" aria-label="{{c.label}}" style="width: 36px; height: 36px; border-radius: 18px; background: {{c.c}}; box-shadow: {{c.ring}}; transition: box-shadow .2s"></button></sc-for>
+      </div>
+      <div style="padding: 14px 4px 6px; font-size: 13px; color: #9AA59F">Значок</div>
+      <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px">
+        <sc-for list="{{icons}}" as="i" hint-placeholder-count="16"><button onClick="{{i.tap}}" aria-label="{{i.icon}}" style="height: 40px; border-radius: 12px; background: {{i.bg}}; color: {{i.ink}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 21px" aria-hidden="true">{{i.icon}}</span></button></sc-for>
+      </div>
+      <button onClick="{{create}}" style="margin-top: 14px; width: 100%; height: 52px; border-radius: 16px; background: {{createBg}}; color: {{createInk}}; font-size: 15px; font-weight: 800; text-align: center; transition: all .2s">Создать тему</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const COL = [['Зелёный', '#3F9A6C'], ['Синий', '#2F6E9E'], ['Фиолетовый', '#6A4C9C'], ['Янтарный', '#B07A2E'], ['Розовый', '#A8456A'], ['Бирюзовый', '#2E8A86']];
+const IC = ['tag', 'campaign', 'help', 'bug_report', 'code', 'work', 'school', 'sports_esports', 'palette', 'music_note', 'photo_camera', 'rocket_launch', 'lightbulb', 'event', 'shopping_bag', 'favorite'];
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { view: 'list', mode: 'rows', open: -1, sheet: false, nName: '', nc: 0, ni: 0, nKey: 0, list: [
+    { name: 'Общий чат', icon: 'tag', c: 0, who: 'Дана', last: 'Кто идёт на митап в субботу?', time: '15:40', badge: 18, pinned: true },
+    { name: 'Объявления', icon: 'campaign', c: 3, who: 'Админ', last: 'Новые правила форума', time: '12:02', badge: 1, pinned: true, closed: true },
+    { name: 'Вопросы новичков', icon: 'help', c: 1, who: 'Олег', last: 'Как подключить TDLib?', time: '11:15', badge: 6 },
+    { name: 'Баги и краши', icon: 'bug_report', c: 4, who: 'Тимур', last: 'Падает на Android 14 при старте', time: 'Вчера', badge: 0 },
+    { name: 'Compose', icon: 'code', c: 2, who: 'Марина', last: 'Покажу пример с анимацией', time: 'Вчера', badge: 3 },
+    { name: 'Вакансии', icon: 'work', c: 5, who: 'Алина', last: 'Ищем Kotlin-разработчика', time: 'Пн', badge: 0 }
+  ] };
+}
+renderVals() {
+  const s = this.state;
+  const t = s.open >= 0 ? s.list[s.open] : null;
+  const topics = s.list.map((x, i) => ({
+    name: x.name, icon: x.icon, color: COL[x.c][1], tile: 'linear-gradient(150deg, ' + COL[x.c][1] + '33, rgba(255,255,255,.03))',
+    who: x.who, last: x.last, time: x.time, unread: x.badge > 0, badge: String(x.badge), pinned: !!x.pinned, closed: !!x.closed, op: x.closed ? '.75' : '1',
+    d: (i * 0.04) + 's', open: () => { const list = s.list.map((y, k) => k === i ? { ...y, badge: 0 } : y); this.setState({ open: i, view: 'topic', list }); }
+  }));
+  const canCreate = s.nName.trim().length > 0;
+  return {
+    listView: s.view === 'list', topicView: s.view === 'topic',
+    back: () => this.setState({ view: 'list' }),
+    views: [['rows', 'view_list', 'Списком'], ['grid', 'grid_view', 'Плиткой']].map(([id, icon, label]) => ({ icon, label, bg: s.mode === id ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.mode === id ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ mode: id }) })),
+    rowsView: s.mode === 'rows', gridView: s.mode === 'grid', topics,
+    tName: t ? t.name : '', tIcon: t ? t.icon : 'tag', tColor: t ? COL[t.c][1] : '#3F9A6C', tGlow: t ? COL[t.c][1] + '33' : 'transparent',
+    tClosed: !!(t && t.closed), tOpen: !(t && t.closed),
+    tMsgs: t ? [
+      { who: 'Марина', init: 'М', av: '#6A4C9C', c: '#C7B5FF', text: t.closed ? 'Пожалуйста, ознакомьтесь с правилами 📌' : 'Всем привет! Пишем сюда по теме «' + t.name + '»' },
+      { who: t.who, init: t.who[0], av: '#2F6E9E', c: '#9FCBFF', text: t.last },
+      { who: 'Олег', init: 'О', av: '#3F7A5A', c: '#A9E2C2', text: t.closed ? 'Принято 👍' : 'Подписался на тему, интересно' }
+    ] : [],
+    newSheet: s.sheet, openNew: () => this.setState({ sheet: true, nName: '', nc: 0, ni: 0 }), closeNew: () => this.setState({ sheet: false }),
+    nName: s.nName, onName: e => this.setState({ nName: e.target.value }), nColor: COL[s.nc][1], nIcon: IC[s.ni], nKey: String(s.nKey),
+    colors: COL.map(([label, c], i) => ({ label, c, ring: i === s.nc ? '0 0 0 2px #121614, 0 0 0 4px ' + c : 'none', tap: () => this.setState({ nc: i, nKey: s.nKey + 1 }) })),
+    icons: IC.map((icon, i) => ({ icon, bg: i === s.ni ? COL[s.nc][1] + '44' : 'rgba(255,255,255,.04)', ink: i === s.ni ? '#fff' : '#9AA59F', tap: () => this.setState({ ni: i, nKey: s.nKey + 1 }) })),
+    createBg: canCreate ? 'linear-gradient(100deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', createInk: canCreate ? '#06150D' : '#5C6661',
+    create: () => { if (!canCreate) return; const list = [{ name: s.nName.trim(), icon: IC[s.ni], c: s.nc, who: 'Вы', last: 'Тема создана', time: 'сейчас', badge: 0 }, ...s.list]; this.setState({ list, sheet: false, open: 0, view: 'topic' }); }
+  };
+}
+}
+</script>
+</body>
+</html>

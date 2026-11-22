@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Настройки звонков</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxBar{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+@keyframes kxRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.8);opacity:0}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 22px; font-weight: 800">Звонки</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 30px">
+    <!-- Mic test -->
+    <div style="padding: 16px; border-radius: 24px; background: linear-gradient(150deg, rgba(63,154,108,.18), rgba(255,255,255,.03)); border: 1px solid rgba(143,211,172,.2)">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <button onClick="{{toggleTest}}" aria-label="{{testLabel}}" style="position: relative; width: 52px; height: 52px; border-radius: 26px; background: {{testBg}}; color: {{testInk}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .2s">
+          <sc-if value="{{testing}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8FD3AC; animation: kxRing 1.6s ease-out infinite"></span></sc-if>
+          <span class="ms fill" aria-hidden="true">{{testIcon}}</span>
+        </button>
+        <div style="flex: 1"><div style="font-size: 15px; font-weight: 800">Проверка микрофона</div><div style="margin-top: 2px; font-size: 12px; color: #9AA59F">{{testSub}}</div></div>
+      </div>
+      <div style="margin-top: 14px; height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 3px">
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="28"><span style="flex: 1; height: 100%; border-radius: 3px; background: {{b.c}}; transform-origin: center; transform: scaleY(.18); animation: {{b.anim}}"></span></sc-for>
+      </div>
+    </div>
+
+    <div style="padding: 16px 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Звук</div>
+    <div style="border-radius: 22px; background: rgba(255,255,255,.045); overflow: hidden">
+      <sc-for list="{{audio}}" as="t" hint-placeholder-count="3">
+        <button onClick="{{t.tap}}" style="width: 100%; padding: 13px 16px; display: flex; align-items: center; gap: 12px; border-top: {{t.line}}">
+          <span class="ms" style="color: #8FD3AC" aria-hidden="true">{{t.icon}}</span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{t.label}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F">{{t.sub}}</span></span>
+          <sc-if value="{{t.isSwitch}}" hint-placeholder-val="{{true}}"><span style="width: 50px; height: 30px; border-radius: 15px; background: {{t.track}}; position: relative; flex-shrink: 0; transition: background .2s"><span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px; background: {{t.knob}}; transform: translateX({{t.x}}); transition: transform .25s cubic-bezier(.34,1.45,.5,1)"></span></span></sc-if>
+          <sc-if value="{{t.isValue}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: #8FD3AC; font-weight: 700">{{t.value}}</span><span class="ms" style="color: #8A958F" aria-hidden="true">chevron_right</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="padding: 16px 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Расход трафика</div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+      <sc-for list="{{data}}" as="d" hint-placeholder-count="3">
+        <button onClick="{{d.tap}}" style="padding: 12px 8px; border-radius: 18px; background: {{d.bg}}; border: 1px solid {{d.border}}; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; transition: all .2s">
+          <span class="ms" style="color: {{d.ink}}" aria-hidden="true">{{d.icon}}</span>
+          <span style="font-size: 13px; font-weight: 700; color: {{d.ink}}">{{d.label}}</span>
+          <span style="font-size: 11px; color: #8A958F">{{d.sub}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="padding: 16px 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Приватность</div>
+    <div style="border-radius: 22px; background: rgba(255,255,255,.045); overflow: hidden">
+      <sc-for list="{{privacy}}" as="t" hint-placeholder-count="2">
+        <button onClick="{{t.tap}}" style="width: 100%; padding: 13px 16px; display: flex; align-items: center; gap: 12px; border-top: {{t.line}}">
+          <span class="ms" style="color: #8FD3AC" aria-hidden="true">{{t.icon}}</span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{t.label}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F">{{t.sub}}</span></span>
+          <span style="font-size: 13px; color: #8FD3AC; font-weight: 700">{{t.value}}</span><span class="ms" style="color: #8A958F" aria-hidden="true">chevron_right</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="padding: 8px 6px 0; font-size: 12px; line-height: 17px; color: #8A958F">Прямое соединение быстрее, но собеседник может узнать ваш IP-адрес. Через серверы Telegram адрес скрыт.</div>
+  </div>
+
+  <!-- Picker sheet -->
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeSheet}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px 10px; font-size: 18px; font-weight: 800">{{sheetTitle}}</div>
+      <sc-for list="{{sheetOpts}}" as="o" hint-placeholder-count="3">
+        <button onClick="{{o.tap}}" style="width: 100%; min-height: 52px; padding: 8px 12px; border-radius: 16px; background: {{o.bg}}; display: flex; align-items: center; gap: 12px">
+          <span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{o.ring}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{o.dot}}"></span></span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{o.label}}</span><sc-if value="{{o.hasSub}}" hint-placeholder-val="{{false}}"><span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F">{{o.sub}}</span></sc-if></span>
+          <sc-if value="{{o.playable}}" hint-placeholder-val="{{false}}"><span class="ms" style="color: #8A958F" aria-hidden="true">play_circle</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const SH = {
+  ring: { title: 'Мелодия звонка', opts: [['Волна kiroX', ''], ['Лёгкий звон', ''], ['Классика', ''], ['Без звука, только вибрация', '']], playable: true },
+  p2p: { title: 'Прямое соединение', opts: [['Все', 'Быстрее, IP виден собеседнику'], ['Мои контакты', 'Остальные через серверы Telegram'], ['Никто', 'Всегда через серверы Telegram']] },
+  calls: { title: 'Кто может звонить', opts: [['Все', ''], ['Мои контакты', ''], ['Никто', '']] }
+};
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { test: false, noise: true, echo: true, ring: 0, data: 1, p2p: 1, calls: 1, sheet: '' }; }
+renderVals() {
+  const s = this.state;
+  const sw = on => ({ track: on ? '#8FD3AC' : 'rgba(255,255,255,.12)', knob: on ? '#06150D' : '#8A958F', x: on ? '20px' : '0' });
+  const D = [['signal_cellular_alt', 'Высокое', '~1 МБ/мин'], ['signal_cellular_alt_2_bar', 'Сбалансир.', '~500 КБ/мин'], ['signal_cellular_alt_1_bar', 'Экономно', '~200 КБ/мин']];
+  const sheetDef = SH[s.sheet];
+  const sheetVal = s.sheet ? s[s.sheet] : 0;
+  return {
+    testing: s.test, toggleTest: () => this.setState({ test: !s.test }),
+    testIcon: s.test ? 'stop' : 'mic', testLabel: s.test ? 'Остановить проверку' : 'Начать проверку',
+    testBg: s.test ? 'linear-gradient(140deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.1)', testInk: s.test ? '#06150D' : '#EEF3EF',
+    testSub: s.test ? (s.noise ? 'Скажите что-нибудь · шумоподавление включено' : 'Скажите что-нибудь') : 'Нажмите и скажите пару слов',
+    bars: Array.from({ length: 28 }, (_, i) => ({ c: s.test ? (i % 7 === 3 ? '#E6F6EC' : '#8FD3AC') : 'rgba(255,255,255,.12)', anim: s.test ? 'kxBar ' + (0.5 + (i * 37 % 7) / 10) + 's ease-in-out ' + (-(i * 13 % 9) / 10) + 's infinite' : 'none' })),
+    audio: [
+      { icon: 'noise_control_off', label: 'Шумоподавление', sub: 'Убирает фоновый шум улицы и клавиатуры', isSwitch: true, isValue: false, ...sw(s.noise), tap: () => this.setState({ noise: !s.noise }) },
+      { icon: 'spatial_audio_off', label: 'Подавление эха', sub: 'Когда говорите по громкой связи', isSwitch: true, isValue: false, ...sw(s.echo), tap: () => this.setState({ echo: !s.echo }) },
+      { icon: 'music_note', label: 'Мелодия звонка', sub: 'Для входящих в kiroX', isSwitch: false, isValue: true, value: SH.ring.opts[s.ring][0].split(',')[0], track: '', knob: '', x: '', tap: () => this.setState({ sheet: 'ring' }) }
+    ].map((t, i) => ({ ...t, line: i ? '1px solid rgba(255,255,255,.06)' : '0' })),
+    data: D.map(([icon, label, sub], i) => ({ icon, label, sub, bg: i === s.data ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.045)', border: i === s.data ? 'rgba(143,211,172,.45)' : 'transparent', ink: i === s.data ? '#8FD3AC' : '#EEF3EF', tap: () => this.setState({ data: i }) })),
+    privacy: [
+      { icon: 'call', label: 'Кто может звонить', sub: 'Остальные не дозвонятся', value: SH.calls.opts[s.calls][0], tap: () => this.setState({ sheet: 'calls' }) },
+      { icon: 'lan', label: 'Прямое соединение', sub: 'Peer-to-peer для звонков', value: SH.p2p.opts[s.p2p][0], tap: () => this.setState({ sheet: 'p2p' }) }
+    ].map((t, i) => ({ ...t, line: i ? '1px solid rgba(255,255,255,.06)' : '0' })),
+    sheet: !!s.sheet, closeSheet: () => this.setState({ sheet: '' }), sheetTitle: sheetDef ? sheetDef.title : '',
+    sheetOpts: sheetDef ? sheetDef.opts.map(([label, sub], i) => ({ label, sub, hasSub: !!sub, playable: !!sheetDef.playable, bg: i === sheetVal ? 'rgba(143,211,172,.08)' : 'transparent', ring: i === sheetVal ? '#8FD3AC' : '#3A4540', dot: i === sheetVal ? '#8FD3AC' : 'transparent', tap: () => this.setState({ [s.sheet]: i, sheet: '' }) })) : []
+  };
+}
+}
+</script>
+</body>
+</html>

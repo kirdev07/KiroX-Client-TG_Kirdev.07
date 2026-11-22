@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Обои чата</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxFlow{0%{background-position:0% 0%}50%{background-position:100% 100%}100%{background-position:0% 0%}}
+@keyframes kxSwap{from{opacity:.3;transform:scale(1.04)}to{opacity:1;transform:none}}
+@keyframes kxSwap2{from{opacity:.3;transform:scale(1.04)}to{opacity:1;transform:none}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="font-size: 20px; font-weight: 800">Обои чата</span>
+  </header>
+
+  <!-- Live preview -->
+  <div style="margin: 0 16px; height: 260px; border-radius: 26px; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,.12)">
+    <div style="position: absolute; inset: -20px; background: {{wpBg}}; background-size: {{wpSize}}; filter: blur({{blurPx}}); animation: {{wpAnim}}"></div>
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,{{dimA}}); transition: background .3s"></div>
+    <div style="position: absolute; inset: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; animation: {{swapAnim}}">
+      <div style="align-self: center; padding: 3px 10px; border-radius: 10px; background: rgba(0,0,0,.35); font-size: 11px; font-weight: 700; color: #C9D2CC">Сегодня</div>
+      <div style="align-self: flex-start; max-width: 74%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(20,24,22,.82); backdrop-filter: blur(10px); font-size: 14px">Смотри, какие у меня обои 😍</div>
+      <div style="align-self: flex-end; max-width: 74%; padding: 8px 12px; border-radius: 18px 18px 6px 18px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 14px">Красиво! Тоже хочу такие</div>
+      <div style="align-self: flex-start; max-width: 74%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(20,24,22,.82); backdrop-filter: blur(10px); font-size: 14px">Настройки → Обои 👌</div>
+    </div>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 16px 0">
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px">
+      <button onClick="{{fromGallery}}" aria-label="Из галереи" style="aspect-ratio: .7; border-radius: 16px; background: rgba(255,255,255,.06); border: 1.5px dashed rgba(255,255,255,.2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #C9D2CC; text-align: center"><span class="ms" aria-hidden="true">add_photo_alternate</span><span style="font-size: 11px; font-weight: 700">Галерея</span></button>
+      <sc-for list="{{wps}}" as="w" hint-placeholder-count="7"><button onClick="{{w.tap}}" aria-label="{{w.name}}" aria-pressed="{{w.on}}" style="position: relative; aspect-ratio: .7; border-radius: 16px; background: {{w.bg}}; background-size: {{w.size}}; border: 2.5px solid {{w.bd}}; transform: {{w.tf}}; transition: transform .2s, border-color .2s; overflow: hidden"><span class="ms fill" style="position: absolute; right: 5px; bottom: 5px; font-size: 18px; color: #fff; opacity: {{w.chk}}; text-shadow: 0 1px 4px rgba(0,0,0,.5)" aria-hidden="true">check_circle</span><span class="ms fill" style="position: absolute; left: 5px; top: 5px; font-size: 14px; color: #fff; opacity: {{w.mv}}" aria-hidden="true">animation</span></button></sc-for>
+    </div>
+
+    <div style="margin-top: 16px; font-size: 13px; font-weight: 700; color: #8FD3AC">Размытие</div>
+    <div style="margin-top: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; border-radius: 18px; background: rgba(255,255,255,.05)">
+      <sc-for list="{{blurs}}" as="b" hint-placeholder-count="4"><button onClick="{{b.tap}}" aria-pressed="{{b.on}}" style="height: 38px; border-radius: 14px; background: {{b.bg}}; color: {{b.ink}}; font-size: 13px; font-weight: 700; text-align: center; transition: all .2s">{{b.t}}</button></sc-for>
+    </div>
+
+    <div style="margin-top: 10px; display: flex; flex-direction: column">
+      <sc-for list="{{toggles}}" as="o" hint-placeholder-count="2"><button onClick="{{o.tap}}" role="switch" aria-checked="{{o.on}}" style="min-height: 56px; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: #9AA59F" aria-hidden="true">{{o.i}}</span><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">{{o.t}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{o.s}}</span></span><span style="width: 46px; height: 28px; border-radius: 14px; background: {{o.tr}}; position: relative; transition: background .2s"><span style="position: absolute; top: 3px; left: {{o.x}}; width: 22px; height: 22px; border-radius: 11px; background: {{o.kn}}; transition: left .2s"></span></span></button></sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 10px 16px 20px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 18px; background: rgba(255,255,255,.05)">
+      <sc-for list="{{scopes}}" as="sc" hint-placeholder-count="2"><button onClick="{{sc.tap}}" aria-pressed="{{sc.on}}" style="height: 36px; border-radius: 14px; background: {{sc.bg}}; color: {{sc.ink}}; font-size: 13px; font-weight: 700; text-align: center">{{sc.t}}</button></sc-for>
+    </div>
+    <button onClick="{{apply}}" style="width: 100%; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; text-align: center">Установить</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 150px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">wallpaper</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const W = [
+  { name: 'Изумрудная волна', bg: 'linear-gradient(135deg, #0F3D2A, #3F9A6C, #0B1F17, #6FC497)', size: '300% 300%', anim: true },
+  { name: 'Северное сияние', bg: 'linear-gradient(135deg, #0B1F2E, #2F6E9E, #3F9A6C, #1A1033)', size: '300% 300%', anim: true },
+  { name: 'Закат', bg: 'linear-gradient(160deg, #3A1424, #C0443C, #F2B866, #2A1630)', size: '300% 300%', anim: true },
+  { name: 'Графит', bg: 'linear-gradient(180deg, #1B201E, #0A0C0B)', size: '100% 100%', anim: false },
+  { name: 'Точки', bg: 'radial-gradient(rgba(143,211,172,.35) 1.5px, transparent 1.6px) 0 0 / 14px 14px, linear-gradient(180deg, #102019, #0A0C0B)', size: '14px 14px, 100% 100%', anim: false },
+  { name: 'Клетка', bg: 'linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px) 0 0 / 18px 18px, linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px) 0 0 / 18px 18px, linear-gradient(180deg, #16201C, #0D1210)', size: '18px 18px, 18px 18px, 100% 100%', anim: false },
+  { name: 'Лаванда', bg: 'linear-gradient(135deg, #1A1033, #6A4C9C, #2F6E9E, #120B22)', size: '300% 300%', anim: true }
+];
+const BL = [['Нет', '0px'], ['Лёгкое', '3px'], ['Среднее', '7px'], ['Сильное', '14px']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { w: 0, b: 0, motion: true, dim: true, scope: 0, k: 0, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const w = W[s.w];
+  const sw = (on) => ({ tr: on ? '#3F9A6C' : 'rgba(255,255,255,.14)', kn: on ? '#EEF3EF' : '#9AA59F', x: on ? '21px' : '3px', on: on ? 'true' : 'false' });
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2200); };
+  const seg = (on) => ({ bg: on ? 'rgba(143,211,172,.18)' : 'transparent', ink: on ? '#8FD3AC' : '#9AA59F', on: on ? 'true' : 'false' });
+  return {
+    wpBg: w.bg, wpSize: w.size, blurPx: BL[s.b][1],
+    wpAnim: w.anim && s.motion ? 'kxFlow 14s ease-in-out infinite' : 'none',
+    dimA: s.dim ? '.28' : '0',
+    swapAnim: (s.k % 2 ? 'kxSwap2' : 'kxSwap') + ' .35s ease both',
+    wps: W.map((x, i) => { const on = s.w === i; return { name: x.name, bg: x.bg, size: x.size, bd: on ? '#8FD3AC' : 'transparent', tf: on ? 'scale(.94)' : 'none', chk: on ? 1 : 0, mv: x.anim ? .8 : 0, on: on ? 'true' : 'false', tap: () => this.setState({ w: i, k: s.k + 1 }) }; }),
+    fromGallery: () => say('Откроем галерею телефона'),
+    blurs: BL.map(([t], i) => ({ t, ...seg(s.b === i), tap: () => this.setState({ b: i }) })),
+    toggles: [
+      { i: 'animation', t: 'Движение', s: 'Градиент медленно переливается', ...sw(s.motion), tap: () => this.setState({ motion: !s.motion }) },
+      { i: 'dark_mode', t: 'Притемнять', s: 'Текст читается на любых обоях', ...sw(s.dim), tap: () => this.setState({ dim: !s.dim }) }
+    ],
+    scopes: [['Все чаты', 0], ['Только «Анна»', 1]].map(([t, i]) => ({ t, ...seg(s.scope === i), tap: () => this.setState({ scope: i }) })),
+    apply: () => say(s.scope ? '«' + w.name + '» — только для «Анна»' : '«' + w.name + '» — для всех чатов'),
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2.2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

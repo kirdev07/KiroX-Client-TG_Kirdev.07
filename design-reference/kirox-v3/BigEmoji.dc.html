@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Живые эмодзи</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.92)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxBeat{0%,100%{transform:scale(1)}15%{transform:scale(1.25)}30%{transform:scale(1)}45%{transform:scale(1.18)}}
+@keyframes kxBounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-18px) rotate(-8deg)}70%{transform:translateY(0) rotate(4deg)}}
+@keyframes kxShake{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(6deg)}}
+@keyframes kxFlame{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.15) translateY(-3px)}}
+@keyframes kxPop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:none}}
+@keyframes kxFlyA{0%{transform:translate(0,0) scale(.4);opacity:0}15%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1.3);opacity:0}}
+@keyframes kxFlyB{0%{transform:translate(0,0) scale(.4);opacity:0}15%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1.3);opacity:0}}
+@keyframes kxHint{0%{opacity:0;transform:translate(-50%,8px)}15%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,8px)}}
+@keyframes kxHint2{0%{opacity:0;transform:translate(-50%,8px)}15%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,8px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #C0443C; display: flex; align-items: center; justify-content: center; font-weight: 800">А</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Анна</div><div style="font-size: 12px; color: {{stInk}}">{{status}}</div></div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; gap: 6px; justify-content: flex-end">
+    <div style="align-self: flex-start; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">Меня взяли на работу!!!</div>
+    <sc-for list="{{msgs}}" as="m" hint-placeholder-count="3">
+      <button onClick="{{m.tap}}" aria-label="{{m.aria}}" style="align-self: {{m.side}}; padding: 2px 4px; font-size: {{m.fs}}; line-height: 1.1; letter-spacing: 2px; animation: {{m.anim}}"><span style="display: inline-block; animation: {{m.loop}}">{{m.e}}</span></button>
+    </sc-for>
+  </div>
+
+  <div style="padding: 6px 12px 0; font-size: 12px; color: #8A958F; text-align: center">Нажмите на большой эмодзи — эффект увидит и собеседник</div>
+  <div style="padding: 8px 12px 6px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px">
+    <sc-for list="{{pick}}" as="p" hint-placeholder-count="6"><button onClick="{{p.tap}}" aria-label="{{p.aria}}" style="height: 52px; border-radius: 16px; background: rgba(255,255,255,.05); font-size: 28px; display: flex; align-items: center; justify-content: center">{{p.e}}</button></sc-for>
+  </div>
+  <div style="padding: 0 12px 16px; display: flex; gap: 6px; justify-content: center">
+    <sc-for list="{{counts}}" as="c" hint-placeholder-count="3"><button onClick="{{c.tap}}" aria-pressed="{{c.on}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: {{c.bg}}; color: {{c.ink}}; font-size: 12px; font-weight: 700">{{c.t}}</button></sc-for>
+  </div>
+
+  <!-- Fullscreen burst -->
+  <div style="position: absolute; left: 50%; top: 45%; width: 0; height: 0; pointer-events: none" aria-hidden="true">
+    <sc-for list="{{burst}}" as="b" hint-placeholder-count="0"><span style="position: absolute; left: -16px; top: -16px; font-size: {{b.sz}}; --dx: {{b.dx}}; --dy: {{b.dy}}; animation: {{b.anim}}">{{b.e}}</span></sc-for>
+  </div>
+  <sc-if value="{{hint}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; top: 76px; padding: 8px 14px; border-radius: 16px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 12px; font-weight: 700; white-space: nowrap; animation: {{hintAnim}}">{{hintText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const E = { '❤️': 'kxBeat 1.4s ease-in-out 2', '🎉': 'kxShake 1.6s ease-in-out 2', '👍': 'kxBounce 1.4s ease-in-out 2', '😂': 'kxShake 1s ease-in-out 2', '🔥': 'kxFlame .8s ease-in-out 2', '🥳': 'kxBounce 1.6s ease-in-out 2' };
+const BURST = { '❤️': ['❤️', '💖', '💕'], '🎉': ['🎉', '🎊', '✨'], '👍': ['👍', '✨'], '😂': ['😂', '🤣'], '🔥': ['🔥', '✨'], '🥳': ['🥳', '🎈', '🎊'] };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { msgs: [{ e: '🥳', me: false, n: 1 }, { e: '🎉', me: true, n: 1 }], n: 1, run: '', rk: 0, hint: false, hk: 0, seen: false }; }
+componentWillUnmount() { clearTimeout(this.tr); clearTimeout(this.th); clearTimeout(this.ts); }
+fire(e, mine) {
+  clearTimeout(this.tr); clearTimeout(this.th); clearTimeout(this.ts);
+  this.setState({ run: e, rk: this.state.rk + 1, hint: true, hk: this.state.hk + 1, seen: false });
+  this.tr = setTimeout(() => this.setState({ run: '' }), 2000);
+  this.ts = setTimeout(() => this.setState({ seen: true }), 900);
+  this.th = setTimeout(() => this.setState({ hint: false }), 2400);
+}
+renderVals() {
+  const s = this.state;
+  const burst = [];
+  if (s.run) { const set = BURST[s.run] || [s.run]; for (let i = 0; i < 22; i++) { const a = (i / 22) * Math.PI * 2 + (i % 2) * 0.2; const r = 150 + (i * 37) % 120; burst.push({ e: set[i % set.length], dx: Math.round(Math.cos(a) * r) + 'px', dy: Math.round(Math.sin(a) * r - 60) + 'px', sz: (26 + (i * 11) % 22) + 'px', anim: (s.rk % 2 ? 'kxFlyB' : 'kxFlyA') + ' ' + (1.1 + (i % 4) * 0.2) + 's cubic-bezier(.2,.7,.3,1) ' + ((i % 5) * 0.05) + 's both' }); } }
+  const size = (n) => n === 1 ? '96px' : n === 2 ? '64px' : '48px';
+  return {
+    status: s.run && s.seen ? 'смотрит эффект ✨' : 'в сети', stInk: '#8FD3AC',
+    msgs: s.msgs.slice(-4).map(m => ({ side: m.me ? 'flex-end' : 'flex-start', e: m.e.repeat(m.n), fs: size(m.n), aria: 'Эмодзи ' + m.e + ', нажмите для эффекта',
+      anim: 'kxPop .4s cubic-bezier(.2,.8,.2,1) both', loop: m.n === 1 ? (E[m.e] || 'none') : 'none', tap: () => this.fire(m.e, m.me) })),
+    pick: Object.keys(E).map(e => ({ e, aria: 'Отправить ' + e, tap: () => { this.setState({ msgs: [...s.msgs, { e, me: true, n: s.n }] }); if (s.n === 1) this.fire(e, true); } })),
+    counts: [[1, 'Один — огромный'], [2, 'Два'], [3, 'Три']].map(([n, t]) => { const on = s.n === n; return { t, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.05)', ink: on ? '#8FD3AC' : '#9AA59F', tap: () => this.setState({ n }) }; }),
+    burst,
+    hint: s.hint, hintAnim: (s.hk % 2 ? 'kxHint2' : 'kxHint') + ' 2.4s ease both',
+    hintText: s.seen ? 'Анна тоже видит эффект' : 'Эффект на весь экран…'
+  };
+}
+}
+</script>
+</body>
+</html>

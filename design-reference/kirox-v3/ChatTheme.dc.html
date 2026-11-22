@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Тема чата для двоих</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:.2}to{opacity:1}}
+@keyframes kxFade2{from{opacity:.2}to{opacity:1}}
+@keyframes kxFloat{0%{transform:translateY(0) rotate(0);opacity:0}15%{opacity:.5}100%{transform:translateY(-420px) rotate(40deg);opacity:0}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,-10px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-10px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,-10px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-10px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: {{bg}}; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column; transition: background .5s">
+  <!-- floating motif -->
+  <div style="position: absolute; inset: 0; overflow: hidden; pointer-events: none" aria-hidden="true">
+    <sc-for list="{{motif}}" as="f" hint-placeholder-count="0"><span style="position: absolute; left: {{f.x}}; bottom: -30px; font-size: {{f.sz}}; animation: kxFloat {{f.dur}} linear {{f.d}} 2">{{f.e}}</span></sc-for>
+  </div>
+
+  <header style="position: relative; padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; background: #0D100E;">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #C0443C; display: flex; align-items: center; justify-content: center; font-weight: 800">А</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Анна</div><div style="font-size: 12px; color: {{acc}}">в сети</div></div>
+  </header>
+
+  <div style="position: relative; flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; animation: {{fade}}">
+    <div style="align-self: center; padding: 4px 12px; border-radius: 12px; background: rgba(0,0,0,.3); font-size: 12px; color: #DDE5E0; display: {{sysShow}}">{{sysText}}</div>
+    <div style="align-self: flex-start; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: {{inBg}}; font-size: 15px; backdrop-filter: blur(8px)">Смотри, можно поставить тему на наш чат 😍</div>
+    <div style="align-self: flex-end; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 6px 18px; background: {{outBg}}; color: {{outInk}}; font-size: 15px">Давай что-нибудь весёлое!</div>
+    <div style="align-self: flex-start; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: {{inBg}}; font-size: 15px; backdrop-filter: blur(8px)">Выбирай ты 🙂</div>
+  </div>
+
+  <div style="position: relative; padding: 12px 14px 22px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(30,36,33,.96), rgba(14,17,15,.99)); border-top: 1px solid rgba(255,255,255,.14); animation: kxSheet .4s cubic-bezier(.2,.8,.2,1) both">
+    <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 12px"></div>
+    <div style="display: flex; align-items: center"><span style="flex: 1; font-size: 17px; font-weight: 800">Тема чата</span><span style="font-size: 12px; color: #9AA59F">{{themeName}}</span></div>
+    <div class="scroll" style="margin-top: 10px; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px">
+      <sc-for list="{{themes}}" as="t" hint-placeholder-count="7"><button onClick="{{t.tap}}" aria-label="{{t.name}}" aria-pressed="{{t.on}}" style="flex-shrink: 0; width: 70px; height: 92px; border-radius: 18px; background: {{t.bg}}; border: 2.5px solid {{t.bd}}; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 8px 6px 6px; box-sizing: border-box; transform: {{t.tf}}; transition: transform .2s, border-color .2s"><span style="align-self: flex-end; width: 34px; height: 10px; border-radius: 5px; background: {{t.out}}"></span><span style="align-self: flex-start; width: 26px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.35)"></span><span style="font-size: 24px">{{t.e}}</span></button></sc-for>
+    </div>
+    <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 18px; background: rgba(255,255,255,.05)">
+      <sc-for list="{{scopes}}" as="sc" hint-placeholder-count="2"><button onClick="{{sc.tap}}" aria-pressed="{{sc.on}}" style="height: 38px; border-radius: 14px; background: {{sc.bg}}; color: {{sc.ink}}; font-size: 13px; font-weight: 700; text-align: center">{{sc.t}}</button></sc-for>
+    </div>
+    <div style="margin-top: 6px; padding: 0 4px; font-size: 12px; color: #9AA59F">{{scopeHint}}</div>
+    <button onClick="{{apply}}" style="margin-top: 10px; width: 100%; height: 52px; border-radius: 26px; background: {{applyBg}}; color: {{applyInk}}; font-size: 16px; font-weight: 800; text-align: center">{{applyText}}</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; top: 74px; padding: 10px 14px; border-radius: 16px; background: rgba(30,36,33,.96); border: 1px solid rgba(255,255,255,.14); font-size: 13px; font-weight: 700; white-space: nowrap; animation: {{toastAnim}}">{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const T = [
+  { e: '❌', name: 'Без темы', bg: '#0A0C0B', out: 'linear-gradient(135deg, #6FC497, #3F9A6C)', ink: '#06150D', inBg: 'rgba(255,255,255,.07)', acc: '#8FD3AC', motif: [] },
+  { e: '🌸', name: 'Сакура', bg: 'linear-gradient(170deg, #3A1424, #1C0E16)', out: 'linear-gradient(135deg, #F5A3C0, #D0648E)', ink: '#2A0A18', inBg: 'rgba(255,200,220,.12)', acc: '#F5A3C0', motif: ['🌸', '🌸', '✿'] },
+  { e: '🐳', name: 'Океан', bg: 'linear-gradient(170deg, #0B2A44, #071624)', out: 'linear-gradient(135deg, #7FC4E8, #2F6E9E)', ink: '#04172A', inBg: 'rgba(127,196,232,.12)', acc: '#7FC4E8', motif: ['🫧', '🐳', '🫧'] },
+  { e: '🌿', name: 'Лес', bg: 'linear-gradient(170deg, #12301F, #08140D)', out: 'linear-gradient(135deg, #6FC497, #3F9A6C)', ink: '#06150D', inBg: 'rgba(143,211,172,.12)', acc: '#8FD3AC', motif: ['🍃', '🌿', '🍃'] },
+  { e: '🔥', name: 'Огонь', bg: 'linear-gradient(170deg, #3A1A0A, #160904)', out: 'linear-gradient(135deg, #F2B866, #C0443C)', ink: '#2A0E04', inBg: 'rgba(242,184,102,.12)', acc: '#F2B866', motif: ['🔥', '✨', '🔥'] },
+  { e: '🌙', name: 'Ночь', bg: 'linear-gradient(170deg, #1A1033, #0A0718)', out: 'linear-gradient(135deg, #B9A3E8, #6A4C9C)', ink: '#140A28', inBg: 'rgba(185,163,232,.12)', acc: '#B9A3E8', motif: ['⭐', '✨', '🌙'] },
+  { e: '🎄', name: 'Праздник', bg: 'linear-gradient(170deg, #0F2A1C, #2A0E0E)', out: 'linear-gradient(135deg, #E05A50, #A02E28)', ink: '#fff', inBg: 'rgba(255,255,255,.1)', acc: '#E8B04A', motif: ['❄️', '✨', '❄️'] }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { t: 0, cur: 0, both: true, curBoth: true, k: 0, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const th = T[s.t];
+  const say = (x) => { clearTimeout(this.tt); this.setState({ toast: x, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2200); };
+  const changed = s.t !== s.cur;
+  return {
+    bg: th.bg, acc: th.acc, inBg: th.inBg, outBg: th.out, outInk: th.ink,
+    fade: (s.k % 2 ? 'kxFade2' : 'kxFade') + ' .4s ease both',
+    motif: th.motif.length ? Array.from({ length: 9 }, (_, i) => ({ e: th.motif[i % th.motif.length], x: ((i * 37) % 92 + 2) + '%', sz: (16 + (i * 7) % 14) + 'px', dur: (9 + (i % 4) * 2) + 's', d: (-i * 1.3) + 's' })) : [],
+    themeName: th.name,
+    themes: T.map((x, i) => { const on = s.t === i; return { e: x.e, name: x.name, bg: x.bg, out: x.out, on: on ? 'true' : 'false', bd: on ? '#EEF3EF' : 'transparent', tf: on ? 'translateY(-4px)' : 'none', tap: () => this.setState({ t: i, k: s.k + 1 }) }; }),
+    scopes: [['У обоих · тема Telegram', true], ['Только у меня', false]].map(([t, v]) => { const on = s.both === v; return { t, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.18)' : 'transparent', ink: on ? '#8FD3AC' : '#9AA59F', tap: () => this.setState({ both: v }) }; }),
+    scopeHint: s.both ? 'Анна увидит ту же тему и сообщение о смене' : 'Тема будет только на этом телефоне',
+    applyText: changed ? (s.t === 0 ? 'Убрать тему' : 'Поставить «' + th.name + '»') : 'Эта тема уже стоит',
+    applyBg: changed ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', applyInk: changed ? '#06150D' : '#8A958F',
+    apply: () => { if (!changed) return; this.setState({ cur: s.t, curBoth: s.both }); say(s.both ? 'Тема изменена у вас обоих' : 'Тема изменена только у вас'); },
+    sysShow: s.cur !== 0 && s.curBoth ? 'block' : 'none', sysText: 'Вы поставили тему ' + T[s.cur].e + ' «' + T[s.cur].name + '»',
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2.2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

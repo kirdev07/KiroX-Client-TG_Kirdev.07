@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Статистика поста</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes kxGrow2{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxW{from{width:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">Статистика поста</div><div style="font-size: 12px; color: #9AA59F">Канал «Kotlin по-русски»</div></div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 0 16px 20px">
+    <!-- Post preview -->
+    <div style="padding: 12px; border-radius: 18px; background: rgba(255,255,255,.05); display: flex; gap: 10px; align-items: center">
+      <span style="width: 54px; height: 54px; border-radius: 12px; background: linear-gradient(135deg, #3F9A6C, #2F6E9E); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="color: #fff" aria-hidden="true">code</span></span>
+      <div style="flex: 1; min-width: 0"><div style="font-size: 14px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">Корутины без боли: 7 ошибок новичков</div><div style="font-size: 12px; color: #9AA59F">Опубликован 15 ноября в 10:00</div></div>
+    </div>
+
+    <!-- KPIs -->
+    <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+      <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4"><div style="padding: 12px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.035)); border: 1px solid rgba(255,255,255,.08); animation: kxIn .3s ease {{k.d}} both"><div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9AA59F"><span class="ms" style="font-size: 16px" aria-hidden="true">{{k.i}}</span>{{k.t}}</div><div style="margin-top: 4px; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums">{{k.v}}</div><div style="font-size: 12px; color: {{k.dc}}; font-weight: 700">{{k.delta}}</div></div></sc-for>
+    </div>
+
+    <!-- Views chart -->
+    <div style="margin-top: 16px; padding: 14px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07)">
+      <div style="display: flex; align-items: center">
+        <span style="flex: 1; font-size: 15px; font-weight: 800">Просмотры</span>
+        <div style="display: flex; gap: 2px; padding: 3px; border-radius: 14px; background: rgba(255,255,255,.05)">
+          <sc-for list="{{ranges}}" as="r" hint-placeholder-count="2"><button onClick="{{r.tap}}" aria-pressed="{{r.on}}" style="height: 28px; padding: 0 10px; border-radius: 11px; background: {{r.bg}}; color: {{r.ink}}; font-size: 12px; font-weight: 700">{{r.t}}</button></sc-for>
+        </div>
+      </div>
+      <div style="margin-top: 8px; height: 22px; font-size: 13px; color: #C9D2CC"><span style="font-weight: 800; color: #EEF3EF; font-variant-numeric: tabular-nums">{{selV}}</span> {{selT}}</div>
+      <div style="margin-top: 6px; position: relative; height: 150px; display: flex; align-items: flex-end; gap: 2px; border-bottom: 1px solid rgba(255,255,255,.12)">
+        <span style="position: absolute; left: 0; right: 0; top: 0; border-top: 1px dashed rgba(255,255,255,.07)"></span>
+        <span style="position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dashed rgba(255,255,255,.07)"></span>
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="12"><button onClick="{{b.tap}}" aria-label="{{b.aria}}" style="flex: 1; height: 100%; display: flex; align-items: flex-end; padding: 0"><span style="display: block; width: 100%; height: {{b.h}}; border-radius: 4px 4px 0 0; background: {{b.c}}; transform-origin: bottom; animation: {{b.anim}}; transition: background .15s"></span></button></sc-for>
+      </div>
+      <div style="margin-top: 4px; display: flex; justify-content: space-between; font-size: 11px; color: #8A958F">{{axis}}</div>
+    </div>
+
+    <!-- Sources -->
+    <div style="margin-top: 16px; font-size: 15px; font-weight: 800">Откуда смотрят канал · 7 дней</div>
+    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 10px">
+      <sc-for list="{{src}}" as="s" hint-placeholder-count="4"><div><div style="display: flex; font-size: 13px"><span style="flex: 1; color: #C9D2CC">{{s.t}}</span><span style="font-weight: 800; font-variant-numeric: tabular-nums">{{s.v}}</span><span style="width: 44px; text-align: right; color: #9AA59F; font-variant-numeric: tabular-nums">{{s.p}}</span></div><div style="margin-top: 4px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.06)"><span style="display: block; height: 100%; width: {{s.w}}; border-radius: 4px; background: #8FD3AC; opacity: {{s.op}}; animation: kxW .8s cubic-bezier(.2,.8,.2,1) both"></span></div></div></sc-for>
+    </div>
+
+    <!-- Reactions -->
+    <div style="margin-top: 16px; font-size: 15px; font-weight: 800">Реакции · 312</div>
+    <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px">
+      <sc-for list="{{reacts}}" as="r" hint-placeholder-count="5"><span style="height: 34px; padding: 0 12px; border-radius: 17px; background: rgba(255,255,255,.06); display: flex; align-items: center; gap: 6px; font-size: 14px"><span>{{r.e}}</span><span style="font-weight: 800; font-variant-numeric: tabular-nums">{{r.n}}</span></span></sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const H24 = [3100, 2400, 1700, 1300, 1100, 900, 760, 680, 620, 540, 480, 410];
+const D7 = [14610, 3220, 1480, 860, 540, 390, 310];
+const fmt = (n) => n.toLocaleString('ru-RU').replace(/ /g, ' ');
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { r: 0, sel: 0, k: 0 }; }
+renderVals() {
+  const s = this.state;
+  const data = s.r === 0 ? H24 : D7;
+  const max = Math.max(...data);
+  const label = (i) => s.r === 0 ? ((10 + i * 2) % 24) + ':00–' + ((12 + i * 2) % 24) + ':00' : (15 + i) + ' ноября';
+  const sel = Math.min(s.sel, data.length - 1);
+  return {
+    kpis: [['visibility', 'Просмотры', '21 410', '+38% к среднему', '#8FD3AC'], ['forward', 'Репосты', '486', '+12%', '#8FD3AC'], ['favorite', 'Реакции', '312', '−4%', '#FF8A80'], ['chat_bubble', 'Комментарии', '57', '+21%', '#8FD3AC']].map(([i, t, v, delta, dc], n) => ({ i, t, v, delta, dc, d: (n * 0.05) + 's' })),
+    ranges: [['Первые 24 ч', 0], ['7 дней', 1]].map(([t, i]) => { const on = s.r === i; return { t, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.18)' : 'transparent', ink: on ? '#8FD3AC' : '#9AA59F', tap: () => this.setState({ r: i, sel: 0, k: s.k + 1 }) }; }),
+    selV: fmt(data[sel]), selT: 'просмотров · ' + label(sel),
+    bars: data.map((v, i) => ({ h: Math.max(3, v / max * 100) + '%', c: i === sel ? '#8FD3AC' : 'rgba(143,211,172,.38)', aria: label(i) + ': ' + fmt(v) + ' просмотров', anim: (s.k % 2 ? 'kxGrow2' : 'kxGrow') + ' .5s cubic-bezier(.2,.8,.2,1) ' + (i * 0.03) + 's both', tap: () => this.setState({ sel: i }) })),
+    axis: s.r === 0 ? '15 ноя, 10:00 · 16 ноя, 10:00' : '15 ноя · 21 ноя',
+    src: [['Подписчики', 15200], ['Репосты в другие каналы', 3480], ['Поиск', 1610], ['По ссылке', 1120]].map(([t, v], i, a) => { const tot = 21410; return { t, v: fmt(v), p: Math.round(v / tot * 100) + '%', w: (v / a[0][1] * 100) + '%', op: 1 - i * 0.18 }; }),
+    reacts: [['👍', 141], ['🔥', 88], ['❤️', 47], ['🤯', 23], ['🙏', 13]].map(([e, n]) => ({ e, n }))
+  };
+}
+}
+</script>
+</body>
+</html>

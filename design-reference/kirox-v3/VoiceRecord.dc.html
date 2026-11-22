@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Запись голосового</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+@keyframes kxBlob{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@keyframes kxRec{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes kxHint{0%,100%{transform:translateX(0);opacity:.6}50%{transform:translateX(-8px);opacity:1}}
+@keyframes kxLockUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes kxTrash{0%{transform:translateY(0) scale(1)}40%{transform:translateY(-40px) scale(.6) rotate(-20deg)}100%{transform:translateY(20px) scale(.2);opacity:0}}
+@keyframes kxLid{0%,30%{transform:rotate(0)}50%,80%{transform:rotate(-40deg)}100%{transform:rotate(0)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes kxBar{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #C0443C; display: flex; align-items: center; justify-content: center; font-weight: 800">А</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Анна</div><div style="font-size: 12px; color: #8FD3AC">{{status}}</div></div>
+  </header>
+
+  <div style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px">
+    <div style="align-self: flex-start; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">Расскажи голосом, как прошло?</div>
+    <sc-for list="{{sent}}" as="m" hint-placeholder-count="0">
+      <div style="align-self: flex-end; width: 250px; padding: 10px 12px; border-radius: 20px 20px 6px 20px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; gap: 10px; animation: kxIn .3s cubic-bezier(.2,.8,.2,1) both">
+        <span style="width: 36px; height: 36px; border-radius: 18px; background: rgba(6,21,13,.18); display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">play_arrow</span></span>
+        <span style="flex: 1; height: 24px; display: flex; align-items: center; gap: 2px" aria-hidden="true"><span style="flex: 1; height: 8px; border-radius: 2px; background: rgba(6,21,13,.45)"></span><span style="flex: 1; height: 16px; border-radius: 2px; background: rgba(6,21,13,.45)"></span><span style="flex: 1; height: 22px; border-radius: 2px; background: rgba(6,21,13,.45)"></span><span style="flex: 1; height: 12px; border-radius: 2px; background: rgba(6,21,13,.45)"></span><span style="flex: 1; height: 18px; border-radius: 2px; background: rgba(6,21,13,.45)"></span><span style="flex: 1; height: 10px; border-radius: 2px; background: rgba(6,21,13,.45)"></span><span style="flex: 1; height: 20px; border-radius: 2px; background: rgba(6,21,13,.45)"></span><span style="flex: 1; height: 14px; border-radius: 2px; background: rgba(6,21,13,.45)"></span><span style="flex: 1; height: 8px; border-radius: 2px; background: rgba(6,21,13,.45)"></span><span style="flex: 1; height: 16px; border-radius: 2px; background: rgba(6,21,13,.45)"></span></span>
+        <span style="font-size: 12px; font-weight: 700">{{m.d}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Lock tab (while holding) -->
+  <sc-if value="{{holding}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; right: 18px; bottom: 170px; width: 44px; padding: 10px 0 8px; border-radius: 22px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); display: flex; flex-direction: column; align-items: center; gap: 4px; animation: kxIn .2s ease both"><span class="ms" style="font-size: 20px" aria-hidden="true">lock_open</span><span class="ms" style="font-size: 18px; color: #9AA59F; animation: kxLockUp 1.2s ease-in-out 2" aria-hidden="true">keyboard_arrow_up</span></div>
+  </sc-if>
+
+  <!-- Composer -->
+  <div style="position: relative; padding: 8px 12px 10px; border-top: 1px solid rgba(255,255,255,.06); display: flex; gap: 8px; align-items: center; min-height: 66px">
+    <sc-if value="{{idle}}" hint-placeholder-val="{{true}}">
+      <span style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" aria-hidden="true">add_circle</span></span>
+      <div style="flex: 1; height: 48px; padding: 0 16px; border-radius: 24px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 15px; color: #8A958F">Сообщение</div>
+    </sc-if>
+    <sc-if value="{{recBar}}" hint-placeholder-val="{{false}}">
+      <span style="display: flex; align-items: center; gap: 8px; min-width: 76px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #FF5A4E; animation: kxRec 1s ease-in-out infinite"></span><span style="font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums">{{time}}</span></span>
+      <span style="flex: 1; display: {{hintShow}}; align-items: center; justify-content: center; gap: 4px; font-size: 13px; color: #9AA59F; animation: kxHint 1.4s ease-in-out 2"><span class="ms" style="font-size: 18px" aria-hidden="true">chevron_left</span>Влево — отмена</span>
+      <span style="flex: 1; display: {{waveShow}}; height: 28px; align-items: center; gap: 2px" aria-hidden="true"><span style="flex: 1; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxBar .6s ease-in-out 0s infinite; animation-play-state: {{wavePlay}}"></span><span style="flex: 1; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxBar .6s ease-in-out .1s infinite; animation-play-state: {{wavePlay}}"></span><span style="flex: 1; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxBar .6s ease-in-out .2s infinite; animation-play-state: {{wavePlay}}"></span><span style="flex: 1; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxBar .6s ease-in-out .3s infinite; animation-play-state: {{wavePlay}}"></span><span style="flex: 1; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxBar .6s ease-in-out .15s infinite; animation-play-state: {{wavePlay}}"></span><span style="flex: 1; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxBar .6s ease-in-out .25s infinite; animation-play-state: {{wavePlay}}"></span><span style="flex: 1; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxBar .6s ease-in-out .05s infinite; animation-play-state: {{wavePlay}}"></span><span style="flex: 1; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxBar .6s ease-in-out .35s infinite; animation-play-state: {{wavePlay}}"></span><span style="flex: 1; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxBar .6s ease-in-out .12s infinite; animation-play-state: {{wavePlay}}"></span><span style="flex: 1; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxBar .6s ease-in-out .22s infinite; animation-play-state: {{wavePlay}}"></span></span>
+      <button onClick="{{discard}}" aria-label="Удалить запись" style="display: {{lockedShow}}; width: 42px; height: 42px; border-radius: 21px; background: rgba(229,83,75,.12); color: #FF8A80; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">delete</span></button>
+      <button onClick="{{pause}}" aria-label="{{pauseLabel}}" style="display: {{lockedShow}}; width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.08); align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">{{pauseIcon}}</span></button>
+    </sc-if>
+    <sc-if value="{{trashing}}" hint-placeholder-val="{{false}}">
+      <span style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #FF8A80"><span class="ms fill" style="position: absolute; animation: kxTrash .7s ease-in both; color: #FF5A4E; font-size: 22px" aria-hidden="true">mic</span><span class="ms" style="font-size: 28px; transform-origin: 20% 30%; animation: kxLid .9s ease both" aria-hidden="true">delete</span></span>
+      <span style="flex: 1; font-size: 14px; color: #FF8A80; font-weight: 700">Запись удалена</span>
+    </sc-if>
+    <button onClick="{{mainBtn}}" aria-label="{{mainLabel}}" style="position: relative; width: {{btnSize}}; height: {{btnSize}}; margin: {{btnMargin}}; border-radius: 50%; background: {{btnBg}}; color: {{btnInk}}; display: flex; align-items: center; justify-content: center; transition: all .25s cubic-bezier(.2,.8,.2,1); flex-shrink: 0">
+      <span style="position: absolute; inset: -10px; border-radius: 50%; background: rgba(143,211,172,.22); display: {{blobShow}}; animation: kxBlob 1s ease-in-out 2"></span>
+      <span class="ms fill" style="position: relative; font-size: {{iconSize}}" aria-hidden="true">{{btnIcon}}</span>
+    </button>
+  </div>
+
+  <!-- Demo gestures -->
+  <div style="padding: 4px 12px 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px">
+    <sc-for list="{{gest}}" as="g" hint-placeholder-count="4"><button onClick="{{g.tap}}" style="height: 44px; border-radius: 14px; background: {{g.bg}}; color: {{g.ink}}; font-size: 11px; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; opacity: {{g.op}}"><span class="ms" style="font-size: 18px" aria-hidden="true">{{g.i}}</span>{{g.t}}</button></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { mode: 'idle', sec: 0, paused: false, sent: [] }; }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tt); }
+start() { clearInterval(this.iv); this.setState({ mode: 'hold', sec: 0, paused: false }); this.iv = setInterval(() => { const s = this.state; if ((s.mode === 'hold' || s.mode === 'lock') && !s.paused) this.setState({ sec: s.sec + 1 }); }, 1000); }
+renderVals() {
+  const s = this.state;
+  const t = Math.floor(s.sec / 60) + ':' + String(s.sec % 60).padStart(2, '0');
+  const rec = s.mode === 'hold' || s.mode === 'lock';
+  const send = () => { clearInterval(this.iv); this.setState({ mode: 'idle', sent: [...s.sent, { d: t === '0:00' ? '0:01' : t }].slice(-3) }); };
+  const cancel = () => { clearInterval(this.iv); clearTimeout(this.tt); this.setState({ mode: 'trash' }); this.tt = setTimeout(() => this.setState({ mode: 'idle' }), 1100); };
+  const can = { hold: s.mode === 'idle', left: s.mode === 'hold', up: s.mode === 'hold', release: s.mode === 'hold' || s.mode === 'lock' };
+  const g = (k, i, txt, f) => ({ i, t: txt, tap: () => can[k] && f(), op: can[k] ? 1 : .35, bg: can[k] ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.04)', ink: can[k] ? '#8FD3AC' : '#8A958F' });
+  return {
+    status: 'в сети',
+    idle: s.mode === 'idle', recBar: rec, trashing: s.mode === 'trash', holding: s.mode === 'hold',
+    time: t, hintShow: s.mode === 'hold' ? 'flex' : 'none', waveShow: s.mode === 'lock' ? 'flex' : 'none', wavePlay: s.paused ? 'paused' : 'running',
+    lockedShow: s.mode === 'lock' ? 'flex' : 'none',
+    pause: () => this.setState({ paused: !s.paused }), pauseIcon: s.paused ? 'mic' : 'pause', pauseLabel: s.paused ? 'Продолжить запись' : 'Пауза',
+    discard: cancel,
+    btnSize: s.mode === 'hold' ? '76px' : '52px', btnMargin: s.mode === 'hold' ? '-14px -8px -14px 0' : '0',
+    btnBg: rec ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', btnInk: rec ? '#06150D' : '#9AA59F',
+    blobShow: s.mode === 'hold' ? 'block' : 'none', iconSize: s.mode === 'hold' ? '34px' : '24px',
+    btnIcon: s.mode === 'lock' ? 'send' : 'mic',
+    mainLabel: s.mode === 'lock' ? 'Отправить голосовое' : 'Удерживайте для записи',
+    mainBtn: () => s.mode === 'idle' ? this.start() : s.mode === 'lock' ? send() : s.mode === 'hold' ? send() : null,
+    gest: [g('hold', 'touch_app', 'Удержать', () => this.start()), g('left', 'west', 'Влево', cancel), g('up', 'north', 'Вверх', () => this.setState({ mode: 'lock' })), g('release', 'send', s.mode === 'lock' ? 'Отправить' : 'Отпустить', send)],
+    sent: s.sent
+  };
+}
+}
+</script>
+</body>
+</html>

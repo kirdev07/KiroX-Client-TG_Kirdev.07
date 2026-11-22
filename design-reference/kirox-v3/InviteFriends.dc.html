@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Пригласить друзей</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+input{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxCheck{0%{transform:scale(0)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
+@keyframes kxPlane{0%{transform:translate(0,0) rotate(-10deg)}50%{transform:translate(8px,-8px) rotate(5deg)}100%{transform:translate(0,0) rotate(-10deg)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Пригласить друзей</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 110px">
+    <!-- Hero / link -->
+    <div style="position: relative; padding: 18px 16px 16px; border-radius: 26px; background: radial-gradient(100% 90% at 100% 0%, rgba(63,154,108,.35), transparent 60%), rgba(255,255,255,.04); border: 1px solid rgba(143,211,172,.22); overflow: hidden">
+      <span class="ms fill" style="position: absolute; right: 18px; top: 16px; font-size: 40px; color: rgba(143,211,172,.6); animation: kxPlane 3s ease-in-out 2" aria-hidden="true">send</span>
+      <div style="font-size: 18px; font-weight: 800; max-width: 240px">Позовите друзей в Telegram через kiroX</div>
+      <div style="margin-top: 6px; font-size: 13px; color: #9AA59F; max-width: 260px">Когда друг зарегистрируется, Telegram покажет его у вас в контактах</div>
+      <div style="margin-top: 14px; height: 48px; padding: 0 6px 0 14px; border-radius: 16px; background: rgba(0,0,0,.3); display: flex; align-items: center; gap: 8px">
+        <span class="ms" style="color: #8FD3AC; font-size: 20px" aria-hidden="true">link</span>
+        <span style="flex: 1; font-size: 14px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">t.me/+Kx7pQ2mZr4</span>
+        <button onClick="{{copy}}" aria-label="Скопировать ссылку" style="height: 36px; padding: 0 12px; border-radius: 18px; background: rgba(255,255,255,.08); font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 17px" aria-hidden="true">{{copyIcon}}</span>{{copyText}}</button>
+      </div>
+      <div style="margin-top: 12px; display: flex; gap: 8px">
+        <sc-for list="{{apps}}" as="a" hint-placeholder-count="4"><button onClick="{{a.tap}}" aria-label="{{a.label}}" style="flex: 1; height: 62px; border-radius: 18px; background: rgba(255,255,255,.06); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; color: #C9D2CC"><span style="width: 30px; height: 30px; border-radius: 10px; background: {{a.c}}; color: #fff; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 18px" aria-hidden="true">{{a.icon}}</span></span>{{a.label}}</button></sc-for>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <label style="margin-top: 14px; height: 46px; padding: 0 14px; border-radius: 23px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 10px">
+      <span class="ms" style="color: #9AA59F" aria-hidden="true">search</span>
+      <input value="{{q}}" onInput="{{onQ}}" placeholder="Поиск в контактах телефона" aria-label="Поиск в контактах" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 15px">
+    </label>
+
+    <div style="margin-top: 14px; display: flex; align-items: center; padding: 0 4px 6px"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">Ещё не в Telegram · {{left}}</span></div>
+    <sc-for list="{{people}}" as="p" hint-placeholder-count="6">
+      <button onClick="{{p.tap}}" aria-pressed="{{p.on}}" style="width: 100%; padding: 8px 6px; display: flex; align-items: center; gap: 12px; opacity: {{p.op}}; animation: kxIn .25s ease {{p.d}} both">
+        <span style="position: relative; width: 46px; height: 46px; border-radius: 23px; background: {{p.c}}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800; flex-shrink: 0">{{p.l}}
+          <sc-if value="{{p.on}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: -3px; bottom: -3px; width: 22px; height: 22px; border-radius: 11px; background: #8FD3AC; color: #06150D; border: 2px solid #0A0C0B; display: flex; align-items: center; justify-content: center; animation: kxCheck .25s ease both"><span class="ms" style="font-size: 15px" aria-hidden="true">check</span></span></sc-if>
+        </span>
+        <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{p.name}}</span><span style="display: block; font-size: 12px; color: {{p.subInk}}">{{p.sub}}</span></span>
+      </button>
+    </sc-for>
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><div style="padding: 30px 0; text-align: center; font-size: 14px; color: #8A958F">Никого не нашли</div></sc-if>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; background: linear-gradient(180deg, rgba(10,12,11,0), #0A0C0B 40%)">
+    <button onClick="{{invite}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{invBg}}; color: {{invInk}}; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .25s"><span class="ms fill" aria-hidden="true">sms</span>{{invText}}</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PEOPLE = [['Бабушка', 'Б', '#B07A2E', '+7 701 ••• •• 44'], ['Сосед Ерлан', 'Е', '#2F6E9E', '+7 777 ••• •• 18'], ['Тётя Галя', 'Г', '#C0443C', '+7 705 ••• •• 90'], ['Тренер Аскар', 'А', '#3F9A6C', '+7 747 ••• •• 03'], ['Мастер по ремонту', 'М', '#5C6661', '+7 700 ••• •• 61'], ['Света (работа)', 'С', '#6A4C9C', '+7 771 ••• •• 27']];
+const APPS = [['SMS', 'sms', '#3F9A6C'], ['Почта', 'mail', '#2F6E9E'], ['QR-код', 'qr_code_2', '#5C6661'], ['Ещё', 'share', '#6A4C9C']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { sel: { 0: true }, sent: {}, q: '', copied: false, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); clearTimeout(this.tc); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+renderVals() {
+  const s = this.state;
+  const q = s.q.trim().toLowerCase();
+  const list = PEOPLE.map((p, i) => ({ p, i })).filter(({ p }) => !q || p[0].toLowerCase().includes(q));
+  const pending = PEOPLE.map((_, i) => i).filter(i => !s.sent[i]);
+  const n = Object.keys(s.sel).filter(k => s.sel[k] && !s.sent[k]).length;
+  const allOn = pending.length > 0 && pending.every(i => s.sel[i]);
+  return {
+    copy: () => { this.setState({ copied: true }); clearTimeout(this.tc); this.tc = setTimeout(() => this.setState({ copied: false }), 1600); },
+    copyIcon: s.copied ? 'check' : 'content_copy', copyText: s.copied ? 'Готово' : 'Копировать',
+    apps: APPS.map(([label, icon, c]) => ({ label, icon, c, tap: () => this.toastMsg('Откроется «' + label + '»', icon) })),
+    q: s.q, onQ: e => this.setState({ q: e.target.value }),
+    left: String(pending.length),
+    selAll: () => { const o = {}; if (!allOn) pending.forEach(i => o[i] = true); this.setState({ sel: o }); },
+    selAllText: allOn ? 'Снять выбор' : 'Выбрать всех',
+    people: list.map(({ p, i }, k) => {
+      const sent = !!s.sent[i], on = !!s.sel[i] && !sent;
+      return { name: p[0], l: p[1], c: p[2], on, d: (k * 0.03) + 's', op: sent ? '.5' : '1', sub: sent ? 'SMS открыта в приложении сообщений' : p[3], subInk: sent ? '#8FD3AC' : '#8A958F', tap: () => !sent && this.setState({ sel: { ...s.sel, [i]: !s.sel[i] } }) };
+    }),
+    empty: list.length === 0,
+    invBg: n ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', invInk: n ? '#06150D' : '#5C6661',
+    invText: n ? 'Пригласить · ' + n : 'Выберите, кого пригласить',
+    invite: () => {
+      if (!n) return;
+      const sent = { ...s.sent }; Object.keys(s.sel).forEach(k => { if (s.sel[k]) sent[k] = true; });
+      this.setState({ sent, sel: {} });
+      this.toastMsg(n === 1 ? 'Откроется SMS — отправите сами' : 'Откроется SMS с ' + n + ' получателями — отправите сами', 'sms');
+    },
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

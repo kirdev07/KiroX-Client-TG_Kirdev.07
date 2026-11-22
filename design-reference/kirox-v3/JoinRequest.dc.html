@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Заявка в группу</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+textarea{font:inherit;color:inherit}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxHour{0%,40%{transform:rotate(0)}50%,90%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}
+@keyframes kxRing{0%{transform:scale(.8);opacity:.6}100%{transform:scale(1.6);opacity:0}}
+@keyframes kxPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:none}}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxConf{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(260px) rotate(400deg);opacity:0}}
+@keyframes kxDots{0%,100%{opacity:.3}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <!-- Chat behind with the link -->
+  <div style="position: absolute; inset: 0; display: flex; flex-direction: column" aria-hidden="true">
+    <div style="padding: 10px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)"><span class="ms">arrow_back</span><span style="width: 40px; height: 40px; border-radius: 20px; background: #C0443C; display: flex; align-items: center; justify-content: center; font-weight: 800">А</span><span style="font-size: 16px; font-weight: 800">Анна</span></div>
+    <div style="padding: 14px"><div style="max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">Залетай к нам в клуб настолок 🎲<br><span style="color: #8FD3AC">t.me/+Hx7…</span></div></div>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(0,0,0,.55)"></div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 18px 24px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.99), rgba(18,22,20,1)); border-top: 1px solid rgba(255,255,255,.16); overflow: hidden; animation: kxSheet .4s cubic-bezier(.2,.8,.2,1) both">
+    <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 16px"></div>
+
+    <sc-for list="{{conf}}" as="c" hint-placeholder-count="0"><span style="position: absolute; left: {{c.x}}; top: 0; width: 8px; height: 12px; border-radius: 2px; background: {{c.col}}; animation: kxConf 1.6s ease-in {{c.d}} both"></span></sc-for>
+
+    <div style="display: flex; flex-direction: column; align-items: center; text-align: center">
+      <span style="position: relative; width: 84px; height: 84px; border-radius: 42px; background: linear-gradient(135deg, #B07A2E, #6A4C9C); display: flex; align-items: center; justify-content: center; font-size: 40px">🎲
+        <span style="position: absolute; right: -2px; bottom: -2px; width: 28px; height: 28px; border-radius: 14px; background: {{badgeBg}}; color: {{badgeInk}}; border: 3px solid #1A1F1C; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 16px" aria-hidden="true">{{badgeIcon}}</span></span>
+      </span>
+      <div style="margin-top: 10px; font-size: 20px; font-weight: 800">Настолки по пятницам</div>
+      <div style="margin-top: 2px; font-size: 13px; color: #9AA59F">Частная группа · 214 участников</div>
+      <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px">
+        <span style="display: flex">
+          <span style="width: 26px; height: 26px; border-radius: 13px; background: #C0443C; border: 2px solid #1A1F1C; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">А</span>
+          <span style="margin-left: -8px; width: 26px; height: 26px; border-radius: 13px; background: #2F6E9E; border: 2px solid #1A1F1C; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">Д</span>
+          <span style="margin-left: -8px; width: 26px; height: 26px; border-radius: 13px; background: #3F9A6C; border: 2px solid #1A1F1C; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">Е</span>
+        </span>
+        <span style="font-size: 12px; color: #C9D2CC">Анна, Дана и Ерлан уже здесь</span>
+      </div>
+    </div>
+
+    <sc-if value="{{s0}}" hint-placeholder-val="{{true}}">
+      <div style="margin-top: 14px; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.05); font-size: 13px; line-height: 1.45; color: #C9D2CC">Собираемся по пятницам в 19:00. Играем в «Каркассон», «Кодовые имена» и всё новое. Новичкам объясняем правила 🙂</div>
+      <div style="margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(232,176,74,.08); border: 1px solid rgba(232,176,74,.22); display: flex; gap: 8px; font-size: 12px; color: #E8D2A0; line-height: 1.4"><span class="ms fill" style="font-size: 18px; color: #E8B04A" aria-hidden="true">how_to_reg</span><span>Вступление по заявке — админы увидят ваш профиль и решат.</span></div>
+      <button onClick="{{apply}}" style="margin-top: 12px; width: 100%; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; text-align: center">Подать заявку</button>
+    </sc-if>
+
+    <sc-if value="{{s1}}" hint-placeholder-val="{{false}}">
+      <div style="margin-top: 18px; display: flex; flex-direction: column; align-items: center; text-align: center; animation: kxIn .3s ease both">
+        <span style="position: relative; width: 64px; height: 64px; border-radius: 32px; background: rgba(232,176,74,.14); color: #E8B04A; display: flex; align-items: center; justify-content: center">
+          <span style="position: absolute; inset: 0; border-radius: 32px; border: 2px solid rgba(232,176,74,.6); animation: kxRing 1.8s ease-out infinite"></span>
+          <span class="ms fill" style="font-size: 32px; animation: kxHour 2.4s ease-in-out infinite" aria-hidden="true">hourglass_top</span>
+        </span>
+        <div style="margin-top: 10px; font-size: 17px; font-weight: 800">Заявка отправлена<span style="animation: kxDots 1.2s ease infinite">…</span></div>
+        <div style="margin-top: 4px; font-size: 13px; color: #9AA59F; line-height: 1.4">Пришлём уведомление, когда админы ответят. Группа появится в списке чатов сама.</div>
+        <div style="margin-top: 14px; width: 100%; display: flex; gap: 8px">
+          <button onClick="{{cancel}}" style="flex: 1; height: 50px; border-radius: 25px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; text-align: center">Закрыть</button>
+          <button onClick="{{approve}}" style="outline: 1px dashed rgba(143,211,172,.5); outline-offset: 2px; flex: 1; height: 50px; border-radius: 25px; background: rgba(143,211,172,.14); color: #8FD3AC; font-size: 13px; font-weight: 800; text-align: center">Макет: админ одобрил</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{s2}}" hint-placeholder-val="{{false}}">
+      <div style="margin-top: 18px; display: flex; flex-direction: column; align-items: center; text-align: center">
+        <span style="width: 64px; height: 64px; border-radius: 32px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; animation: kxPop .5s ease both"><span class="ms fill" style="font-size: 34px" aria-hidden="true">celebration</span></span>
+        <div style="margin-top: 10px; font-size: 17px; font-weight: 800">Вас приняли!</div>
+        <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">Добро пожаловать в «Настолки по пятницам»</div>
+        <button onClick="{{openChat}}" style="margin-top: 14px; width: 100%; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; text-align: center">Открыть чат</button>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const COLS = ['#8FD3AC', '#E8B04A', '#C0443C', '#7FB8E0', '#6A4C9C'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { st: 0 }; }
+renderVals() {
+  const s = this.state;
+  return {
+    s0: s.st === 0, s1: s.st === 1, s2: s.st === 2,
+    badgeBg: s.st === 2 ? '#3F9A6C' : s.st === 1 ? '#E8B04A' : '#5C6661', badgeInk: s.st === 2 ? '#06150D' : '#0A0C0B',
+    badgeIcon: s.st === 2 ? 'check' : s.st === 1 ? 'schedule' : 'lock',
+    onNote: () => {},
+    apply: () => this.setState({ st: 1 }),
+    cancel: () => this.setState({ st: 0 }),
+    approve: () => this.setState({ st: 2 }),
+    openChat: () => this.setState({ st: 0 }),
+    conf: s.st === 2 ? Array.from({ length: 18 }, (_, i) => ({ x: ((i * 41) % 96 + 2) + '%', col: COLS[i % COLS.length], d: ((i % 6) * 0.08) + 's' })) : []
+  };
+}
+}
+</script>
+</body>
+</html>

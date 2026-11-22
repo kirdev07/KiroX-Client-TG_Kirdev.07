@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Просмотр медиа</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxToast{0%{opacity:0;transform:translateY(16px)}12%,85%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes kxSun{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes kxHeart{0%{opacity:0;transform:scale(.3)}40%{opacity:1;transform:scale(1.2)}70%{transform:scale(.95)}100%{opacity:0;transform:scale(1.4)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #000; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+
+  <!-- Slides track -->
+  <div style="position: absolute; left: 0; top: 0; height: 100%; display: flex; width: {{trackW}}; transform: translateX({{trackX}}); transition: transform .45s cubic-bezier(.2,.9,.3,1)">
+    <sc-for list="{{slides}}" as="m" hint-placeholder-count="5">
+      <div style="position: relative; width: 390px; height: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden">
+        <div style="position: relative; width: 390px; height: {{m.h}}; background: {{m.bg}}; overflow: hidden; transform: scale({{m.zoom}}); transition: transform .35s cubic-bezier(.2,.9,.3,1)">
+          <span aria-hidden="true" style="position: absolute; left: {{m.sunX}}; top: {{m.sunY}}; width: 70px; height: 70px; border-radius: 35px; background: {{m.sun}}; box-shadow: 0 0 60px {{m.sun}}; animation: kxSun 6s ease-in-out 2"></span>
+          <span aria-hidden="true" style="position: absolute; left: -40px; right: -40px; bottom: -20px; height: 46%; border-radius: 50% 50% 0 0; background: {{m.hill1}}"></span>
+          <span aria-hidden="true" style="position: absolute; left: 30%; right: -60px; bottom: -40px; height: 36%; border-radius: 50% 50% 0 0; background: {{m.hill2}}"></span>
+          <sc-if value="{{m.isVideo}}" hint-placeholder-val="{{false}}">
+            <span aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.15)"><span style="display: block; height: 100%; width: {{m.prog}}; background: #8FD3AC; transition: width .5s linear"></span></span>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Tap zones -->
+  <button aria-label="Предыдущее" onClick="{{prev}}" style="position: absolute; left: 0; top: 90px; bottom: 200px; width: 90px; z-index: 1"></button>
+  <button aria-label="Показать или скрыть панели" onClick="{{toggleUi}}" style="position: absolute; left: 90px; right: 90px; top: 90px; bottom: 200px; z-index: 1"></button>
+  <button aria-label="Следующее" onClick="{{next}}" style="position: absolute; right: 0; top: 90px; bottom: 200px; width: 90px; z-index: 1"></button>
+
+  <!-- Video play -->
+  <sc-if value="{{isVideo}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{togglePlay}}" aria-label="{{playLabel}}" style="position: absolute; left: 50%; top: 50%; width: 72px; height: 72px; margin: -36px 0 0 -36px; border-radius: 36px; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.25); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); display: flex; align-items: center; justify-content: center; z-index: 2; opacity: {{playOpacity}}; transition: opacity .3s"><span class="ms fill" style="font-size: 40px" aria-hidden="true">{{playIcon}}</span></button>
+  </sc-if>
+
+  <sc-if value="{{heart}}" hint-placeholder-val="{{false}}">
+    <span class="ms fill" aria-hidden="true" style="position: absolute; left: 50%; top: 50%; margin: -50px 0 0 -50px; font-size: 100px; color: #FF6B81; z-index: 3; animation: kxHeart .9s ease both">favorite</span>
+  </sc-if>
+
+  <!-- Top bar -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; padding: 12px 12px 30px; background: linear-gradient(180deg, rgba(0,0,0,.7), transparent); display: flex; align-items: center; gap: 10px; z-index: 2; opacity: {{ui}}; transform: translateY({{topY}}); transition: all .3s ease; pointer-events: {{pe}}">
+    <button aria-label="Закрыть" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1; min-width: 0">
+      <div style="font-size: 15px; font-weight: 700">Анна</div>
+      <div style="font-size: 12px; color: #C9D2CC">{{when}}</div>
+    </div>
+    <span style="font-size: 13px; color: #C9D2CC; padding-right: 4px">{{counter}}</span>
+    <button onClick="{{openMenu}}" aria-label="Ещё" style="width: 42px; height: 42px; border-radius: 21px; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">more_vert</span></button>
+  </div>
+
+  <!-- Bottom -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 14px 22px; background: linear-gradient(0deg, rgba(0,0,0,.8), transparent); z-index: 2; opacity: {{ui}}; transform: translateY({{botY}}); transition: all .3s ease; pointer-events: {{pe}}">
+    <sc-if value="{{hasCaption}}" hint-placeholder-val="{{true}}"><div style="padding: 0 6px 12px; font-size: 15px; line-height: 21px">{{caption}}</div></sc-if>
+    <sc-if value="{{isVideo}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 0 6px 12px; font-size: 12px; color: #C9D2CC">
+        <span>{{vNow}}</span>
+        <div style="flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.2); position: relative"><div style="height: 100%; width: {{vProg}}; border-radius: 2px; background: #8FD3AC; transition: width .5s linear"></div><span style="position: absolute; top: -5px; left: {{vProg}}; width: 14px; height: 14px; margin-left: -7px; border-radius: 7px; background: #EEF3EF; transition: left .5s linear"></span></div>
+        <span>0:24</span>
+        <button onClick="{{cycleSpeed}}" style="height: 26px; padding: 0 8px; border-radius: 13px; background: rgba(255,255,255,.12); font-size: 12px; font-weight: 700">{{speed}}</button>
+      </div>
+    </sc-if>
+    <!-- thumbnails -->
+    <div style="display: flex; justify-content: center; gap: 4px; padding-bottom: 14px">
+      <sc-for list="{{thumbs}}" as="t" hint-placeholder-count="5"><button onClick="{{t.pick}}" aria-label="{{t.label}}" style="width: {{t.w}}; height: 44px; border-radius: 10px; background: {{t.bg}}; border: 2px solid {{t.border}}; box-sizing: border-box; transition: width .3s cubic-bezier(.34,1.45,.5,1), border-color .2s; position: relative">
+        <sc-if value="{{t.isVideo}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="position: absolute; left: 50%; top: 50%; margin: -9px 0 0 -9px; font-size: 18px" aria-hidden="true">play_arrow</span></sc-if>
+      </button></sc-for>
+    </div>
+    <div style="height: 58px; border-radius: 29px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); display: flex; align-items: center; justify-content: space-around">
+      <sc-for list="{{acts}}" as="a" hint-placeholder-count="5"><button onClick="{{a.tap}}" aria-label="{{a.label}}" style="width: 52px; height: 46px; border-radius: 23px; display: flex; align-items: center; justify-content: center; color: {{a.ink}}"><span class="ms" style="font-variation-settings: {{a.cls}}" aria-hidden="true">{{a.icon}}</span></button></sc-for>
+    </div>
+  </div>
+
+  <!-- Menu sheet -->
+  <sc-if value="{{menu}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeMenu}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); z-index: 5; animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); z-index: 6; animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <sc-for list="{{menuItems}}" as="i" hint-placeholder-count="5">
+        <button onClick="{{i.tap}}" style="width: 100%; height: 52px; padding: 0 12px; border-radius: 16px; display: flex; align-items: center; gap: 14px; color: {{i.ink}}; text-align: left">
+          <span class="ms" aria-hidden="true">{{i.icon}}</span><span style="font-size: 15px; font-weight: 600">{{i.label}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 24px; right: 24px; top: 80px; height: 46px; border-radius: 16px; background: #1E2622; border: 1px solid rgba(143,211,172,.25); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; z-index: 7; animation: kxToast 2.2s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const MEDIA = [
+  { h: '520px', bg: 'linear-gradient(180deg,#F2A65A 0%,#C0587E 55%,#3B2448 100%)', sun: '#FFE3A3', sunX: '240px', sunY: '120px', hill1: '#2A1B36', hill2: '#1A1024', when: 'вчера в 19:42', caption: 'Закат с крыши 🌇' },
+  { h: '640px', bg: 'linear-gradient(180deg,#7EC8E3 0%,#3F9A6C 70%,#1E4D36 100%)', sun: '#FFF6C9', sunX: '60px', sunY: '90px', hill1: '#1F5A3E', hill2: '#163F2C', when: 'вчера в 14:10', caption: '' },
+  { h: '300px', bg: 'linear-gradient(180deg,#141B3A 0%,#2C2F6E 60%,#0D0F22 100%)', sun: '#E6ECFF', sunX: '280px', sunY: '40px', hill1: '#0B0D1E', hill2: '#07081A', when: '20 ноября в 23:05', caption: 'Видео · ночной город', video: true },
+  { h: '520px', bg: 'linear-gradient(180deg,#D9E4EE 0%,#9FB6C9 60%,#5B7389 100%)', sun: '#FFFFFF', sunX: '160px', sunY: '70px', hill1: '#EEF3F7', hill2: '#C9D6E1', when: '18 ноября в 11:30', caption: 'Первый снег ❄️' },
+  { h: '440px', bg: 'linear-gradient(180deg,#F7D774 0%,#E58E3A 70%,#7A3A16 100%)', sun: '#FFF2C0', sunX: '100px', sunY: '60px', hill1: '#6E3414', hill2: '#4A220C', when: '15 ноября в 16:20', caption: '' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { i: 0, ui: true, zoom: false, playing: false, vt: 0, speed: 1, menu: false, liked: [], heart: 0, toast: 0, toastText: '' }; }
+componentDidMount() {
+  this.iv = setInterval(() => {
+    const s = this.state;
+    if (MEDIA[s.i].video && s.playing) {
+      const vt = s.vt + 0.5 * s.speed;
+      this.setState(vt >= 24 ? { vt: 0, playing: false } : { vt });
+    }
+  }, 500);
+}
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tt); clearTimeout(this.ht); }
+go(i) { if (i < 0 || i >= MEDIA.length) return; this.setState({ i, zoom: false, playing: false, vt: 0 }); }
+say(t) { clearTimeout(this.tt); this.setState({ toast: Date.now(), toastText: t, menu: false }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2200); }
+renderVals() {
+  const s = this.state;
+  const m = MEDIA[s.i];
+  const liked = s.liked.includes(s.i);
+  const pct = (s.vt / 24 * 100) + '%';
+  const slides = MEDIA.map((x, k) => ({ ...x, zoom: k === s.i && s.zoom ? '1.8' : '1', isVideo: !!x.video, prog: pct }));
+  const thumbs = MEDIA.map((x, k) => ({ bg: x.bg, w: k === s.i ? '64px' : '34px', border: k === s.i ? '#8FD3AC' : 'transparent', isVideo: !!x.video, label: 'Медиа ' + (k + 1), pick: () => this.go(k) }));
+  const acts = [
+    { icon: 'favorite', label: 'Нравится', cls: liked ? "'FILL' 1" : "'FILL' 0", ink: liked ? '#FF6B81' : '#EEF3EF', tap: () => { clearTimeout(this.ht); this.setState({ liked: liked ? s.liked.filter(k => k !== s.i) : [...s.liked, s.i], heart: liked ? 0 : Date.now() }); this.ht = setTimeout(() => this.setState({ heart: 0 }), 900); } },
+    { icon: 'reply', label: 'Ответить', cls: "'FILL' 0", ink: '#EEF3EF', tap: () => {} },
+    { icon: 'forward', label: 'Переслать', cls: "'FILL' 0", ink: '#EEF3EF', tap: () => this.say('Переслано в «Избранное»') },
+    { icon: 'download', label: 'Сохранить', cls: "'FILL' 0", ink: '#EEF3EF', tap: () => this.say('Сохранено в галерею') },
+    { icon: s.zoom ? 'zoom_out' : 'zoom_in', label: 'Приблизить', cls: "'FILL' 0", ink: s.zoom ? '#8FD3AC' : '#EEF3EF', tap: () => this.setState({ zoom: !s.zoom }) }
+  ];
+  const mm = Math.floor(s.vt / 60), ss = String(Math.floor(s.vt % 60)).padStart(2, '0');
+  return {
+    slides, thumbs, acts,
+    trackW: (MEDIA.length * 390) + 'px', trackX: (-s.i * 390) + 'px',
+    prev: () => this.go(s.i - 1), next: () => this.go(s.i + 1),
+    toggleUi: () => this.setState({ ui: !s.ui }),
+    ui: s.ui ? '1' : '0', topY: s.ui ? '0' : '-20px', botY: s.ui ? '0' : '30px', pe: s.ui ? 'auto' : 'none',
+    when: m.when, counter: (s.i + 1) + ' из ' + MEDIA.length,
+    caption: m.caption, hasCaption: !!m.caption,
+    isVideo: !!m.video, togglePlay: () => this.setState({ playing: !s.playing }),
+    playIcon: s.playing ? 'pause' : 'play_arrow', playLabel: s.playing ? 'Пауза' : 'Смотреть', playOpacity: s.playing && !s.ui ? '0' : '1',
+    vNow: mm + ':' + ss, vProg: pct,
+    speed: s.speed + '×', cycleSpeed: () => this.setState({ speed: s.speed === 1 ? 1.5 : s.speed === 1.5 ? 2 : 1 }),
+    heart: !!s.heart,
+    menu: s.menu, openMenu: () => this.setState({ menu: true }), closeMenu: () => this.setState({ menu: false }),
+    menuItems: [
+      { icon: 'chat', label: 'Показать в чате', ink: '#EEF3EF', tap: () => this.setState({ menu: false }) },
+      { icon: 'share', label: 'Поделиться', ink: '#EEF3EF', tap: () => this.setState({ menu: false }) },
+      { icon: 'brush', label: 'Редактировать', ink: '#EEF3EF', tap: () => this.setState({ menu: false }) },
+      { icon: 'photo_library', label: 'Все медиа чата', ink: '#EEF3EF', tap: () => this.setState({ menu: false }) },
+      { icon: 'delete', label: 'Удалить', ink: '#FF8A80', tap: () => this.say('Удалено') }
+    ],
+    toast: !!s.toast, toastText: s.toastText
+  };
+}
+}
+</script>
+</body>
+</html>

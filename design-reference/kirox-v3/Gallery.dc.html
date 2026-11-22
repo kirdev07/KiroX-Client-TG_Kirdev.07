@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Медиатека</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes kxCheck{0%{transform:scale(0)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes kxGone{to{opacity:0;transform:scale(.6)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1"><h1 style="margin: 0; font-size: 20px; font-weight: 800">{{title}}</h1><div style="font-size: 12px; color: #9AA59F">{{sub}}</div></div>
+    <button onClick="{{toggleSel}}" style="height: 36px; padding: 0 14px; border-radius: 18px; background: {{selBg}}; color: {{selInk}}; font-size: 13px; font-weight: 700">{{selText}}</button>
+  </header>
+
+  <div style="padding: 6px 16px 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none">
+    <sc-for list="{{kinds}}" as="k" hint-placeholder-count="4"><button onClick="{{k.tap}}" style="flex-shrink: 0; height: 34px; padding: 0 12px; border-radius: 17px; background: {{k.bg}}; color: {{k.ink}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 16px" aria-hidden="true">{{k.icon}}</span>{{k.label}}</button></sc-for>
+  </div>
+  <div style="padding: 8px 16px 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none">
+    <sc-for list="{{chats}}" as="c" hint-placeholder-count="5"><button onClick="{{c.tap}}" aria-label="{{c.label}}" style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 54px; opacity: {{c.op}}"><span style="width: 44px; height: 44px; border-radius: 22px; background: {{c.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; box-shadow: {{c.ring}}"><span class="ms fill" style="font-size: {{c.isz}}" aria-hidden="true">apps</span>{{c.l}}</span><span style="font-size: 11px; color: #C9D2CC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 54px">{{c.name}}</span></button></sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 8px 4px 100px">
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px">
+    <sc-for list="{{cells}}" as="m" hint-placeholder-count="16">
+      <div style="grid-column: {{m.span}}">
+        <sc-if value="{{m.hdr}}" hint-placeholder-val="{{false}}"><div style="padding: 12px 8px 4px; display: flex; align-items: baseline"><span style="flex: 1; font-size: 14px; font-weight: 800">{{m.month}}</span><span style="font-size: 12px; color: #8A958F">{{m.size}}</span></div></sc-if>
+        <sc-if value="{{m.tile}}" hint-placeholder-val="{{true}}">
+            <button onClick="{{m.tap}}" aria-label="{{m.label}}" style="position: relative; display: block; width: 100%; aspect-ratio: 1; border-radius: 6px; background: {{m.bg}}; overflow: hidden; transform: {{m.tf}}; transition: transform .2s; animation: {{m.anim}}">
+              <span class="ms fill" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size: 22px; color: rgba(255,255,255,.55)" aria-hidden="true">{{m.icon}}</span>
+              <sc-if value="{{m.video}}" hint-placeholder-val="{{false}}"><span style="position: absolute; left: 4px; bottom: 4px; padding: 1px 5px; border-radius: 5px; background: rgba(0,0,0,.55); font-size: 11px; font-weight: 700">{{m.dur}}</span></sc-if>
+              <span style="position: absolute; right: 4px; bottom: 4px; padding: 1px 5px; border-radius: 5px; background: rgba(0,0,0,.45); font-size: 11px; opacity: {{m.sizeOp}}">{{m.mb}}</span>
+              <sc-if value="{{m.selecting}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 4px; top: 4px; width: 20px; height: 20px; border-radius: 10px; border: 2px solid #fff; background: {{m.chk}}; color: #06150D; display: flex; align-items: center; justify-content: center"><sc-if value="{{m.on}}" hint-placeholder-val="{{false}}"><span class="ms" style="font-size: 14px; animation: kxCheck .2s ease both" aria-hidden="true">check</span></sc-if></span></sc-if>
+            </button>
+        </sc-if>
+      </div>
+    </sc-for>
+    </div>
+  </div>
+
+  <sc-if value="{{selBar}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 12px; right: 12px; bottom: 16px; padding: 10px; border-radius: 24px; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.14); display: flex; align-items: center; gap: 8px; animation: kxIn .2s ease both">
+      <span style="flex: 1; padding-left: 8px; font-size: 13px; color: #C9D2CC">{{selInfo}}</span>
+      <button onClick="{{save}}" aria-label="Сохранить в галерею" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">download</span></button>
+      <button onClick="{{del}}" style="height: 44px; padding: 0 14px; border-radius: 22px; background: #E5534B; color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">cleaning_services</span>Убрать с телефона</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 90px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PL = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
+
+const CH = [['Все чаты', '', '#3A4540'], ['Мама', 'М', '#B07A2E'], ['Анна', 'А', '#C0443C'], ['Семья', 'С', '#2F6E9E'], ['Kotlin-клуб', 'K', '#3F9A6C'], ['Лиза', 'Л', '#6A4C9C']];
+const BGS = ['#2F6E9E', '#B07A2E', '#3F9A6C', '#C0443C', '#6A4C9C', '#5C6661'];
+const ICONS = ['landscape', 'pets', 'local_cafe', 'forest', 'beach_access', 'photo_camera', 'restaurant', 'celebration', 'ac_unit', 'directions_bike'];
+const MONTHS = ['Ноябрь', 'Октябрь', 'Сентябрь'];
+const ITEMS = Array.from({ length: 30 }, (_, i) => ({ id: i, m: i < 11 ? 0 : i < 21 ? 1 : 2, chat: 1 + (i * 7) % 5, video: i % 5 === 2, mb: i % 5 === 2 ? 18 + (i % 4) * 9 : 1.2 + (i % 3) * 0.8, icon: ICONS[i % ICONS.length], bg: 'radial-gradient(70% 60% at 30% 25%, rgba(255,255,255,.35), transparent 60%), linear-gradient(160deg, ' + BGS[i % 6] + ', #0E1311)' }));
+const fmt = mb => mb >= 1000 ? (mb / 1000).toFixed(1).replace('.', ',') + ' ГБ' : mb >= 10 ? Math.round(mb) + ' МБ' : mb.toFixed(1).replace('.', ',') + ' МБ';
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { kind: 0, chat: 0, selecting: false, sel: {}, gone: {}, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+renderVals() {
+  const s = this.state;
+  const vis = ITEMS.filter(it => !s.gone[it.id] && (s.chat === 0 || it.chat === s.chat) && (s.kind === 0 || (s.kind === 1 && !it.video) || (s.kind === 2 && it.video) || (s.kind === 3 && it.mb > 10)));
+  const total = vis.reduce((a, it) => a + it.mb, 0);
+  const selIds = Object.keys(s.sel).filter(k => s.sel[k]).map(Number);
+  const selMb = ITEMS.filter(it => selIds.includes(it.id)).reduce((a, it) => a + it.mb, 0);
+  const rows = [];
+  MONTHS.forEach((mn, m) => {
+    const list = vis.filter(it => it.m === m);
+    if (!list.length) return;
+    rows.push({ hdr: true, tile: false, span: '1 / -1', month: mn, size: list.length + ' · ' + fmt(list.reduce((a, it) => a + it.mb, 0)) });
+    list.forEach(it => { const on = !!s.sel[it.id]; rows.push({ hdr: false, tile: true, span: 'auto', bg: it.bg, icon: it.icon, video: it.video, dur: '0:' + String(10 + it.id % 50).padStart(2, '0'), mb: fmt(it.mb), sizeOp: s.kind === 3 || s.selecting ? '1' : '0', selecting: s.selecting, on, chk: on ? '#8FD3AC' : 'rgba(0,0,0,.25)', tf: on ? 'scale(.9)' : 'none', anim: 'kxIn .25s ease both', label: (it.video ? 'Видео' : 'Фото') + ', ' + fmt(it.mb) + (on ? ', выбрано' : ''), tap: () => s.selecting ? this.setState({ sel: { ...s.sel, [it.id]: !on } }) : this.toastMsg('Откроется в чате «' + CH[it.chat][0] + '»', 'open_in_new') }); });
+  });
+  return {
+    title: s.selecting ? (selIds.length ? 'Выбрано ' + selIds.length : 'Выберите') : 'Медиатека',
+    sub: vis.length + ' ' + PL(vis.length, 'файл', 'файла', 'файлов') + ' · ' + fmt(total) + ' на телефоне',
+    toggleSel: () => this.setState({ selecting: !s.selecting, sel: {} }),
+    selText: s.selecting ? 'Готово' : 'Выбрать', selBg: s.selecting ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.07)', selInk: s.selecting ? '#8FD3AC' : '#EEF3EF',
+    kinds: [['Всё', 'perm_media'], ['Фото', 'image'], ['Видео', 'movie'], ['Большие', 'hard_drive']].map(([label, icon], i) => ({ label, icon, bg: s.kind === i ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.kind === i ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ kind: i }) })),
+    chats: CH.map(([name, l, c], i) => ({ name, l, c, isz: i === 0 ? '22px' : '0px', label: 'Фильтр: ' + name, op: s.chat === i || s.chat === 0 && i === 0 ? '1' : '.55', ring: s.chat === i ? '0 0 0 2px #0A0C0B, 0 0 0 4px #8FD3AC' : 'none', tap: () => this.setState({ chat: i }) })),
+    cells: rows,
+    selBar: s.selecting && selIds.length > 0, selInfo: selIds.length + ' · освободится ' + fmt(selMb),
+    save: () => this.toastMsg('Сохранено в галерею: ' + selIds.length, 'download_done'),
+    del: () => { const gone = { ...s.gone }; selIds.forEach(i => gone[i] = true); this.setState({ gone, sel: {}, selecting: false }); this.toastMsg('Освобождено ' + fmt(selMb) + ' · в облаке осталось', 'cleaning_services'); },
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

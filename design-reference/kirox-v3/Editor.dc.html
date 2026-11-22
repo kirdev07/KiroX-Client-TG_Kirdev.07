@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Редактор фото</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+input::placeholder{color:rgba(255,255,255,.6)}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxSpark{0%,100%{opacity:.2;transform:scale(.6)}50%{opacity:1;transform:scale(1)}}
+@keyframes kxDot{from{transform:scale(0)}to{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #000; color: #FFFFFF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; user-select: none">
+  <header style="position: absolute; left: 12px; right: 12px; top: 12px; display: flex; align-items: center; gap: 8px; z-index: 3">
+    <button aria-label="Отмена" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+    <span style="flex-grow: 1"></span>
+    <sc-if value="{{canUndo}}" hint-placeholder-val="{{false}}"><button aria-label="Отменить штрих" onClick="{{undo}}" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; animation: kxIn .2s ease both"><span class="ms" aria-hidden="true">undo</span></button></sc-if>
+    <button onClick="{{reset}}" style="height: 44px; padding: 0 14px; border-radius: 22px; background: rgba(255,255,255,.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); font-size: 13px; font-weight: 700">Сбросить</button>
+  </header>
+
+  <div style="position: absolute; left: 0; right: 0; top: 70px; height: 470px; display: flex; align-items: center; justify-content: center">
+    <button aria-label="Фото: нажимайте, чтобы рисовать" onClick="{{paint}}" style="display: block; padding: 0; position: relative; width: {{imgW}}; height: {{imgH}}; border-radius: 18px; overflow: hidden; transition: transform .45s cubic-bezier(.34,1.3,.5,1), width .35s ease, height .35s ease; transform: {{imgTransform}}; cursor: {{cursor}}">
+      <div style="position: absolute; inset: 0; background: linear-gradient(180deg, #F2A35E 0%, #C9585A 38%, #4B2A55 62%, #12151E 100%); filter: {{blur}}; transition: filter .4s"></div>
+      <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 46%; background: linear-gradient(180deg, #2A1E30, #0C0E12); clip-path: polygon(0 40%, 18% 18%, 34% 34%, 52% 6%, 70% 30%, 84% 16%, 100% 34%, 100% 100%, 0 100%); filter: {{blur}}"></div>
+      <div aria-hidden="true" style="position: absolute; left: 58%; top: 22%; width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle, #FFE6B0, #F2A35E 70%); filter: {{blur}}"></div>
+      <sc-for list="{{dots}}" as="d" hint-placeholder-count="0"><span aria-hidden="true" style="position: absolute; left: {{d.x}}; top: {{d.y}}; width: {{d.s}}; height: {{d.s}}; margin: {{d.m}}; border-radius: 50%; background: {{d.c}}; animation: kxDot .15s ease both"></span></sc-for>
+      <sc-if value="{{spoiler}}" hint-placeholder-val="{{false}}">
+        <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(10,12,11,.35)">
+          <sc-for list="{{sparks}}" as="p" hint-placeholder-count="10"><span style="position: absolute; left: {{p.x}}; top: {{p.y}}; width: 4px; height: 4px; border-radius: 2px; background: #FFFFFF; animation: kxSpark 1.6s ease-in-out 2; animation-delay: {{p.d}}"></span></sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{cropping}}" hint-placeholder-val="{{false}}">
+        <div aria-hidden="true" style="position: absolute; inset: 8px; border: 2px solid #FFFFFF; border-radius: 10px; box-shadow: 0 0 0 999px rgba(0,0,0,.45)">
+          <span style="position: absolute; left: 33%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.4)"></span><span style="position: absolute; left: 66%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.4)"></span>
+          <span style="position: absolute; top: 33%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,.4)"></span><span style="position: absolute; top: 66%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,.4)"></span>
+          <span style="position: absolute; left: -4px; top: -4px; width: 20px; height: 20px; border-left: 4px solid #8FD3AC; border-top: 4px solid #8FD3AC; border-radius: 6px 0 0 0"></span>
+          <span style="position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-right: 4px solid #8FD3AC; border-bottom: 4px solid #8FD3AC; border-radius: 0 0 6px 0"></span>
+        </div>
+      </sc-if>
+    </button>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; top: 548px; padding: 0 16px; display: flex; flex-direction: column; gap: 12px">
+    <sc-if value="{{drawing}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; align-items: center; gap: 10px; animation: kxIn .25s ease both">
+        <sc-for list="{{colors}}" as="c" hint-placeholder-count="6"><button aria-label="{{c.label}}" onClick="{{c.pick}}" style="width: 30px; height: 30px; border-radius: 15px; background: {{c.c}}; box-shadow: {{c.ring}}; transition: box-shadow .2s, transform .2s; transform: {{c.scale}}"></button></sc-for>
+        <span style="flex-grow: 1"></span>
+        <button onClick="{{toggleSize}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(255,255,255,.12); font-size: 12px; font-weight: 700">{{sizeLabel}}</button>
+      </div>
+      <div style="font-size: 12px; color: rgba(255,255,255,.55); text-align: center">Нажимайте на фото, чтобы рисовать</div>
+    </sc-if>
+    <sc-if value="{{cropping}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; justify-content: center; gap: 8px; animation: kxIn .25s ease both">
+        <sc-for list="{{ratios}}" as="r" hint-placeholder-count="2"><button onClick="{{r.pick}}" style="height: 36px; padding: 0 16px; border-radius: 18px; background: {{r.bg}}; color: {{r.color}}; font-size: 13px; font-weight: 700">{{r.label}}</button></sc-for>
+      </div>
+    </sc-if>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px">
+      <sc-for list="{{tools}}" as="t" hint-placeholder-count="5">
+        <button aria-label="{{t.label}}" onClick="{{t.tap}}" style="height: 62px; border-radius: 18px; background: {{t.bg}}; color: {{t.color}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 700; transition: background .2s; text-align: center"><span class="ms {{t.fill}}" aria-hidden="true">{{t.icon}}</span>{{t.label}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 12px; right: 12px; bottom: 22px; display: flex; align-items: center; gap: 8px">
+    <div style="flex-grow: 1; height: 54px; border-radius: 27px; padding: 0 16px; display: flex; align-items: center; background: rgba(255,255,255,.12); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.18)">
+      <input aria-label="Подпись" placeholder="Подпись…" style="flex-grow: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #FFFFFF; font: inherit; font-size: 15px">
+    </div>
+    <button aria-label="Отправить" style="width: 54px; height: 54px; border-radius: 27px; background: #8FD3AC; color: #06150D; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(63,154,108,.4)"><span class="ms fill" aria-hidden="true">send</span></button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { tool: 'draw', color: 0, thick: false, rot: 0, flip: false, square: false, spoiler: false, dots: [] }; }
+renderVals() {
+  const s = this.state;
+  const palette = [['#FFFFFF', 'Белый'], ['#8FD3AC', 'Зелёный'], ['#FFD27A', 'Жёлтый'], ['#FF8A80', 'Красный'], ['#7FC4F0', 'Голубой'], ['#C9A6FF', 'Сиреневый']];
+  const colors = palette.map(([c, label], i) => ({ c, label, ring: i === s.color ? '0 0 0 3px #000, 0 0 0 5px ' + c : 'inset 0 0 0 1px rgba(255,255,255,.3)', scale: i === s.color ? 'scale(1.1)' : 'scale(1)', pick: () => this.setState({ color: i }) }));
+  const T = [['draw', 'brush', 'Рисовать'], ['crop', 'crop', 'Обрезать'], ['rotate', 'rotate_right', 'Повернуть'], ['flip', 'flip', 'Отразить'], ['spoiler', 'auto_awesome', s.spoiler ? 'Спойлер: вкл' : 'Спойлер']];
+  const tools = T.map(([k, icon, label]) => {
+    const active = (k === 'draw' || k === 'crop') ? s.tool === k : (k === 'spoiler' ? s.spoiler : false);
+    return {
+      icon, label, fill: active ? 'fill' : '',
+      bg: active ? '#8FD3AC' : 'rgba(255,255,255,.10)', color: active ? '#06150D' : '#FFFFFF',
+      tap: () => {
+        if (k === 'draw' || k === 'crop') this.setState({ tool: s.tool === k ? null : k });
+        else if (k === 'rotate') this.setState({ rot: s.rot + 90 });
+        else if (k === 'flip') this.setState({ flip: !s.flip });
+        else this.setState({ spoiler: !s.spoiler });
+      }
+    };
+  });
+  const ratios = [['Свободно', false], ['Квадрат', true]].map(([label, sq]) => ({ label, bg: s.square === sq ? '#FFFFFF' : 'rgba(255,255,255,.12)', color: s.square === sq ? '#000' : '#FFFFFF', pick: () => this.setState({ square: sq }) }));
+  const sparks = Array.from({ length: 14 }, (_, i) => ({ x: ((i * 37) % 92 + 4) + '%', y: ((i * 53) % 88 + 6) + '%', d: ((i % 7) * 0.2) + 's' }));
+  const size = s.thick ? 18 : 9;
+  return {
+    colors, tools, ratios, sparks,
+    dots: s.dots,
+    drawing: s.tool === 'draw', cropping: s.tool === 'crop',
+    spoiler: s.spoiler, blur: s.spoiler ? 'blur(14px)' : 'none',
+    imgW: s.square ? '330px' : '330px', imgH: s.square ? '330px' : '440px',
+    imgTransform: 'rotate(' + s.rot + 'deg) scaleX(' + (s.flip ? -1 : 1) + ')',
+    cursor: s.tool === 'draw' ? 'crosshair' : 'default',
+    sizeLabel: s.thick ? 'Толстая' : 'Тонкая',
+    toggleSize: () => this.setState({ thick: !s.thick }),
+    canUndo: s.dots.length > 0,
+    undo: () => this.setState({ dots: s.dots.slice(0, -1) }),
+    reset: () => this.setState({ rot: 0, flip: false, square: false, spoiler: false, dots: [] }),
+    paint: (e) => {
+      if (s.tool !== 'draw' || !e || !e.nativeEvent) return;
+      const t = e.currentTarget, r = t.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width * 100, y = (e.clientY - r.top) / r.height * 100;
+      this.setState({ dots: s.dots.concat([{ x: x + '%', y: y + '%', s: size + 'px', m: (-size / 2) + 'px 0 0 ' + (-size / 2) + 'px', c: palette[s.color][0] }]).slice(-120) });
+    }
+  };
+}
+}
+</script>
+</body>
+</html>

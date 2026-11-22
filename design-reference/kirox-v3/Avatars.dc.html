@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Фото профиля</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+@keyframes kxIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes kxSlideL{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+@keyframes kxSlideR{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes kxSlideL2{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+@keyframes kxSlideR2{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes kxBlob{0%,100%{border-radius:50% 50% 50% 50%}25%{border-radius:58% 42% 55% 45%}50%{border-radius:45% 55% 42% 58%}75%{border-radius:52% 48% 58% 42%}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #050606; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <!-- Big photo -->
+  <div style="position: relative; height: 460px; overflow: hidden">
+    <div style="position: absolute; inset: 0; background: {{bg}}; animation: {{slideAnim}}"></div>
+    <sc-if value="{{isVideo}}" hint-placeholder-val="{{false}}">
+      <span style="position: absolute; left: 50%; top: 50%; width: 180px; height: 180px; margin: -90px 0 0 -90px; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.5), rgba(255,255,255,.05) 70%); animation: kxBlob 3s ease-in-out 2, kxSpin 12s linear 2" aria-hidden="true"></span>
+    </sc-if>
+    <span class="ms fill" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size: 96px; color: rgba(255,255,255,.75)" aria-hidden="true">{{icon}}</span>
+    <div style="position: absolute; left: 12px; right: 12px; top: 10px; display: flex; gap: 4px">
+      <sc-for list="{{bars}}" as="b" hint-placeholder-count="5"><span style="flex: 1; height: 3px; border-radius: 2px; background: {{b}}; transition: background .2s"></span></sc-for>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; top: 18px; padding: 8px 12px; display: flex; align-items: center; gap: 8px">
+      <button aria-label="Назад" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(0,0,0,.35); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+      <span style="flex: 1"></span>
+      <span style="height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(0,0,0,.35); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-size: 12px; font-weight: 700; display: flex; align-items: center">{{counter}}</span>
+    </div>
+    <button onClick="{{prev}}" aria-label="Предыдущее фото" style="position: absolute; left: 0; top: 70px; bottom: 60px; width: 40%"></button>
+    <button onClick="{{next}}" aria-label="Следующее фото" style="position: absolute; right: 0; top: 70px; bottom: 60px; width: 60%"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 16px 14px; background: linear-gradient(180deg, transparent, rgba(0,0,0,.75)); pointer-events: none">
+      <div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 22px; font-weight: 800">Алекс</span><sc-if value="{{isMain}}" hint-placeholder-val="{{true}}"><span style="padding: 3px 8px; border-radius: 8px; background: #8FD3AC; color: #06150D; font-size: 11px; font-weight: 800">Главное</span></sc-if><sc-if value="{{isVideo}}" hint-placeholder-val="{{false}}"><span style="padding: 3px 8px; border-radius: 8px; background: rgba(255,255,255,.2); font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 2px"><span class="ms fill" style="font-size: 13px" aria-hidden="true">play_circle</span>Видео</span></sc-if></div>
+      <div style="margin-top: 2px; font-size: 13px; color: #C9D2CC">{{date}}</div>
+    </div>
+  </div>
+
+  <!-- Thumbnails -->
+  <div style="padding: 14px 16px 0; display: flex; gap: 8px">
+    <sc-for list="{{thumbs}}" as="t" hint-placeholder-count="5">
+      <button onClick="{{t.tap}}" aria-label="{{t.label}}" style="position: relative; flex: 1; aspect-ratio: 1; border-radius: 16px; background: {{t.bg}}; border: 2px solid {{t.bd}}; overflow: hidden; transform: {{t.tf}}; transition: all .2s">
+        <span class="ms fill" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size: 26px; color: rgba(255,255,255,.7)" aria-hidden="true">{{t.icon}}</span>
+        <sc-if value="{{t.main}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="position: absolute; right: 3px; top: 3px; font-size: 14px; color: #8FD3AC" aria-hidden="true">star</span></sc-if>
+      </button>
+    </sc-for>
+    <button onClick="{{add}}" aria-label="Добавить фото" style="flex: 1; aspect-ratio: 1; border-radius: 16px; border: 2px dashed rgba(143,211,172,.4); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">add_a_photo</span></button>
+  </div>
+
+  <!-- Actions -->
+  <div style="padding: 16px 16px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px">
+    <sc-for list="{{acts}}" as="a" hint-placeholder-count="4">
+      <button onClick="{{a.tap}}" style="height: 74px; border-radius: 20px; background: {{a.bg}}; color: {{a.ink}}; border: 1px solid {{a.bd}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 11px; font-weight: 700; text-align: center; opacity: {{a.op}}"><span class="ms" aria-hidden="true">{{a.icon}}</span>{{a.label}}</button>
+    </sc-for>
+  </div>
+
+  <div style="margin: 14px 16px 0; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,.04); display: flex; align-items: center; gap: 10px">
+    <span class="ms" style="color: #9AA59F" aria-hidden="true">visibility</span>
+    <span style="flex: 1; font-size: 13px; color: #C9D2CC">Фото видят: <b style="color: #EEF3EF">{{who}}</b></span>
+    <button onClick="{{whoTap}}" style="font-size: 13px; font-weight: 700; color: #8FD3AC">Изменить</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 30px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PH = [
+  { bg: 'radial-gradient(70% 50% at 30% 25%, #9FE3BE, transparent 60%), linear-gradient(160deg, #3F9A6C, #10251A)', icon: 'face', date: 'Сегодня', video: true },
+  { bg: 'radial-gradient(70% 50% at 70% 30%, #F2B866, transparent 60%), linear-gradient(160deg, #B07A2E, #2A1A0C)', icon: 'hiking', date: '12 августа 2026', video: false },
+  { bg: 'radial-gradient(70% 50% at 40% 30%, #9CC4E8, transparent 60%), linear-gradient(160deg, #2F6E9E, #0D1A26)', icon: 'surfing', date: '3 мая 2026', video: false },
+  { bg: 'radial-gradient(70% 50% at 50% 30%, #D2B6F2, transparent 60%), linear-gradient(160deg, #6A4C9C, #150E22)', icon: 'sports_esports', date: '18 декабря 2025', video: false },
+  { bg: 'radial-gradient(70% 50% at 50% 30%, #F2A6A0, transparent 60%), linear-gradient(160deg, #C0443C, #250C0A)', icon: 'pets', date: '1 сентября 2025', video: false }
+];
+const WHO = ['все', 'мои контакты', 'никто, кроме близких'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { list: PH, cur: 0, main: 0, dir: 0, who: 1, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const n = s.list.length;
+  const p = s.list[s.cur] || s.list[0];
+  const isMain = s.cur === s.main;
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    bg: p.bg, icon: p.icon, isVideo: !!p.video, date: (isMain ? 'Сейчас стоит · ' : 'Было главным · ') + p.date, isMain,
+    slideAnim: (s.dir < 0 ? 'kxSlideL' : s.dir > 0 ? 'kxSlideR' : 'kxIn') + (s.dir && s.cur % 2 ? '2' : '') + ' .3s ease both',
+    bars: s.list.map((_, i) => i === s.cur ? '#fff' : 'rgba(255,255,255,.35)'),
+    counter: (s.cur + 1) + ' из ' + n,
+    prev: () => s.cur > 0 && this.setState({ cur: s.cur - 1, dir: -1 }),
+    next: () => s.cur < n - 1 && this.setState({ cur: s.cur + 1, dir: 1 }),
+    thumbs: s.list.map((t, i) => ({ bg: t.bg, icon: t.icon, main: i === s.main, bd: i === s.cur ? '#8FD3AC' : 'transparent', tf: i === s.cur ? 'scale(1.06)' : 'none', label: 'Фото ' + (i + 1) + (i === s.main ? ', главное' : ''), tap: () => this.setState({ cur: i, dir: i > s.cur ? 1 : i < s.cur ? -1 : 0 }) })),
+    add: () => this.toastMsg('Камера или галерея', 'add_a_photo'),
+    acts: [
+      { icon: 'star', label: isMain ? 'Уже главное' : 'Сделать главным', op: isMain ? '.45' : '1', tap: () => { if (!isMain) { this.setState({ main: s.cur }); this.toastMsg('Теперь это главное фото', 'star'); } } },
+      { icon: 'videocam', label: 'Видео-аватар', op: '1', tap: () => this.toastMsg('Запишите 10 секунд видео', 'videocam') },
+      { icon: 'download', label: 'Сохранить', op: '1', tap: () => this.toastMsg('Сохранено в галерею', 'download') },
+      { icon: 'delete', label: 'Удалить', op: n > 1 ? '1' : '.45', danger: true, tap: () => this.ask('Удалить фото?', 'Фото пропадёт из профиля, вернуть его нельзя.', 'Удалить', () => { if (n <= 1) return; const list = s.list.filter((_, i) => i !== s.cur); const main = s.main === s.cur ? 0 : s.main > s.cur ? s.main - 1 : s.main; this.setState({ list, main, cur: Math.min(s.cur, list.length - 1), dir: 0 }); this.toastMsg('Фото удалено', 'delete'); }) }
+    ].map(a => ({ ...a, bg: a.danger ? 'rgba(229,83,75,.1)' : 'rgba(255,255,255,.06)', ink: a.danger ? '#FF8A80' : '#EEF3EF', bd: a.danger ? 'rgba(229,83,75,.25)' : 'rgba(255,255,255,.08)' })),
+    who: WHO[s.who], whoTap: () => this.setState({ who: (s.who + 1) % WHO.length }),
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

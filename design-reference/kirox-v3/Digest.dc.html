@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Сводка</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxOut{0%{opacity:1;transform:none;max-height:120px}100%{opacity:0;transform:translateX(80px);max-height:0;margin:0;padding:0}}
+@keyframes kxSun{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(15deg)}}
+@keyframes kxDone{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Сводка</h1>
+    <button aria-label="Настройки сводки" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">tune</span></button>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 30px">
+    <!-- Greeting -->
+    <div style="padding: 18px 16px; border-radius: 26px; background: radial-gradient(100% 90% at 100% 0%, rgba(232,176,74,.25), transparent 60%), radial-gradient(90% 80% at 0% 100%, rgba(63,154,108,.25), transparent 60%), rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 14px">
+      <span class="ms fill" style="font-size: 44px; color: #F2B866; animation: kxSun 4s ease-in-out 2" aria-hidden="true">wb_sunny</span>
+      <div style="flex: 1">
+        <div style="font-size: 18px; font-weight: 800">Доброе утро!</div>
+        <div style="margin-top: 2px; font-size: 13px; color: #C9D2CC">{{summary}}</div>
+      </div>
+    </div>
+    <div style="margin-top: 10px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.07); overflow: hidden"><div style="height: 100%; width: {{pct}}; border-radius: 4px; background: linear-gradient(90deg, #6FC497, #3F9A6C); transition: width .4s"></div></div>
+    <div style="margin-top: 6px; font-size: 12px; color: #8A958F">{{progText}}</div>
+
+    <sc-for list="{{items}}" as="it" hint-placeholder-count="7">
+      <sc-if value="{{it.hdr}}" hint-placeholder-val="{{false}}"><div style="padding: 16px 4px 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; color: {{it.hInk}}"><span class="ms fill" style="font-size: 18px" aria-hidden="true">{{it.hIcon}}</span>{{it.hText}}</div></sc-if>
+      <div style="margin-bottom: 8px; padding: 12px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); display: flex; gap: 12px; overflow: hidden; animation: {{it.anim}}">
+        <span style="width: 42px; height: 42px; border-radius: 21px; background: {{it.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0">{{it.l}}</span>
+        <div style="flex: 1; min-width: 0">
+          <div style="display: flex; align-items: baseline; gap: 6px"><span style="flex: 1; font-size: 14px; font-weight: 800; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{it.chat}}</span><span style="font-size: 11px; color: #8A958F">{{it.time}}</span></div>
+          <div style="margin-top: 3px; font-size: 14px; line-height: 1.35; color: #E2E9E4">{{it.text}}</div>
+          <div style="margin-top: 8px; display: flex; gap: 6px">
+            <button onClick="{{it.open}}" style="height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(143,211,172,.14); color: #8FD3AC; font-size: 12px; font-weight: 700">{{it.openText}}</button>
+            <button onClick="{{it.done}}" style="height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(255,255,255,.06); font-size: 12px; font-weight: 700; color: #C9D2CC">Прочитано</button>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{allDone}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 40px 20px; text-align: center">
+        <span style="display: inline-flex; width: 72px; height: 72px; border-radius: 36px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; align-items: center; justify-content: center; animation: kxDone .45s ease both"><span class="ms fill" style="font-size: 40px" aria-hidden="true">celebration</span></span>
+        <div style="margin-top: 12px; font-size: 18px; font-weight: 800">Всё важное прочитано</div>
+        <div style="margin-top: 4px; font-size: 13px; color: #8A958F">Остальные {{restText}} подождут</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{notDone}}" hint-placeholder-val="{{true}}">
+      <button onClick="{{markAll}}" style="margin-top: 8px; width: 100%; height: 48px; border-radius: 24px; background: rgba(255,255,255,.06); font-size: 14px; font-weight: 700; color: #C9D2CC; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">done_all</span>Отметить всё прочитанным</button>
+    </sc-if>
+    <p style="margin: 14px 4px 0; font-size: 12px; line-height: 1.45; color: #8A958F">Сводка собирается на телефоне: упоминания, ответы вам и сообщения близких. Приходит каждое утро в 8:00.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const ITEMS = [
+  ['m', 'Kotlin-клуб', 'K', '#2F6E9E', '23:41', 'Дмитрий: @kirill_dev, глянешь мой PR до обеда?', 'Ответить'],
+  ['m', 'Выпускники 2018', 'В', '#6A4C9C', '22:10', 'Олег: @kirill_dev ты в субботу с нами?', 'Ответить'],
+  ['r', 'Анна', 'А', '#C0443C', '07:52', 'Ответ на ваше сообщение: «Да, давай в 7!»', 'Открыть'],
+  ['c', 'Мама', 'М', '#B07A2E', '07:30', 'Не забудь позвонить бабушке, у неё сегодня день рождения 🎂', 'Позвонить'],
+  ['c', 'Лиза', 'Л', '#C0443C', '00:12', '3 новых фото', 'Посмотреть']
+];
+const HDR = { m: ['alternate_email', 'Вас упомянули', '#8FD3AC'], r: ['reply', 'Ответы вам', '#6FA9D8'], c: ['favorite', 'От близких', '#F07AA0'] };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { done: {}, leaving: {} }; }
+componentWillUnmount() { clearTimeout(this.tl); }
+finish(ids) {
+  const leaving = { ...this.state.leaving }; ids.forEach(i => leaving[i] = true);
+  this.setState({ leaving });
+  clearTimeout(this.tl);
+  this.tl = setTimeout(() => { const done = { ...this.state.done }; ids.forEach(i => done[i] = true); this.setState({ done, leaving: {} }); }, 380);
+}
+renderVals() {
+  const s = this.state;
+  const left = ITEMS.map((x, i) => ({ x, i })).filter(({ i }) => !s.done[i]);
+  const n = ITEMS.length, doneN = n - left.length;
+  let last = '';
+  return {
+    summary: left.length ? 'Пока вы спали: ' + left.length + ' важных из 214 сообщений' : 'Вы всё разобрали — можно пить кофе ☕',
+    pct: (doneN / n * 100) + '%', progText: 'Разобрано ' + doneN + ' из ' + n,
+    items: left.map(({ x, i }) => {
+      const [kind, chat, l, c, time, text, openText] = x;
+      const hdr = kind !== last; last = kind;
+      const h = HDR[kind];
+      return { hdr, hIcon: h[0], hText: h[1], hInk: h[2], chat, l, c, time, text, openText, anim: s.leaving[i] ? 'kxOut .38s ease both' : 'kxIn .3s ease both', open: () => this.finish([i]), done: () => this.finish([i]) };
+    }),
+    allDone: left.length === 0, notDone: left.length > 0, restText: '209 сообщений',
+    markAll: () => this.finish(left.map(({ i }) => i))
+  };
+}
+}
+</script>
+</body>
+</html>

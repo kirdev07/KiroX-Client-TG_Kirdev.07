@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Поделиться в kiroX</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxTick{0%{transform:scale(0)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes kxTick2{0%{transform:scale(0)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes kxBar{from{transform:translateY(100%);opacity:0}to{transform:none;opacity:1}}
+@keyframes kxFly{0%{transform:none;opacity:1}100%{transform:translateY(-420px) scale(.4);opacity:0}}
+@keyframes kxDone{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #111; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <!-- Gallery app behind -->
+  <div style="position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; opacity: .5" aria-hidden="true">
+    <span style="background: linear-gradient(160deg, #7FC4E8, #2F6E9E)"></span><span style="background: linear-gradient(160deg, #E8B04A, #8E4A1E)"></span><span style="background: linear-gradient(160deg, #3F9A6C, #1B3A2C)"></span>
+    <span style="background: linear-gradient(160deg, #C0443C, #3A1424)"></span><span style="background: linear-gradient(160deg, #6A4C9C, #1A1033)"></span><span style="background: linear-gradient(160deg, #9AA59F, #3A403D)"></span>
+    <span style="background: linear-gradient(160deg, #F2B866, #C0443C)"></span><span style="background: linear-gradient(160deg, #2F6E9E, #0B1F2E)"></span><span style="background: linear-gradient(160deg, #3F9A6C, #0F3D2A)"></span>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(0,0,0,.55)"></div>
+
+  <sc-if value="{{open}}" hint-placeholder-val="{{true}}">
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 690px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(30,36,33,.99), rgba(12,15,13,1)); border-top: 1px solid rgba(255,255,255,.16); display: flex; flex-direction: column; animation: kxSheet .4s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 10px auto 10px"></div>
+      <div style="padding: 0 16px; display: flex; align-items: center; gap: 12px">
+        <span style="position: relative; width: 64px; height: 64px; flex-shrink: 0; animation: {{flyAnim}}"><span style="position: absolute; left: 8px; top: 4px; width: 52px; height: 56px; border-radius: 10px; background: linear-gradient(160deg, #3F9A6C, #1B3A2C); transform: rotate(8deg)"></span><span style="position: absolute; left: 4px; top: 6px; width: 52px; height: 56px; border-radius: 10px; background: linear-gradient(160deg, #E8B04A, #8E4A1E); transform: rotate(-4deg)"></span><span style="position: absolute; left: 0; top: 4px; width: 56px; height: 58px; border-radius: 10px; background: linear-gradient(160deg, #7FC4E8, #2F6E9E); border: 2px solid #1E2421"></span><span style="position: absolute; right: -2px; bottom: -2px; min-width: 22px; height: 22px; border-radius: 11px; background: #8FD3AC; color: #06150D; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">3</span></span>
+        <div style="flex: 1"><div style="font-size: 18px; font-weight: 800">Отправить 3 фото</div><div style="font-size: 12px; color: #9AA59F">из «Галереи» · 8,4 МБ</div></div>
+        <span style="width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">search</span></span>
+      </div>
+
+      <div class="scroll" style="flex: 1; min-height: 0; padding: 16px 12px 120px">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px">
+          <sc-for list="{{chats}}" as="c" hint-placeholder-count="12"><button onClick="{{c.tap}}" role="checkbox" aria-checked="{{c.on}}" aria-label="{{c.n}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+            <span style="position: relative; width: 62px; height: 62px; border-radius: {{c.rad}}; background: {{c.c}}; display: flex; align-items: center; justify-content: center; font-size: {{c.fs}}; font-weight: 800; transform: {{c.tf}}; transition: transform .2s; box-shadow: {{c.ring}}">{{c.l}}<span style="position: absolute; right: -2px; bottom: -2px; width: 24px; height: 24px; border-radius: 12px; background: #8FD3AC; color: #06150D; border: 2px solid #1A1F1C; display: {{c.tickShow}}; align-items: center; justify-content: center; animation: {{c.tickAnim}}"><span class="ms" style="font-size: 16px; font-weight: 700" aria-hidden="true">check</span></span></span>
+            <span style="font-size: 12px; color: {{c.ink}}; text-align: center; line-height: 1.2; max-width: 80px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{c.n}}</span>
+          </button></sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{hasSel}}" hint-placeholder-val="{{false}}">
+        <div style="position: absolute; left: 10px; right: 10px; bottom: 14px; padding: 8px; border-radius: 28px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); animation: kxBar .25s cubic-bezier(.2,.8,.2,1) both">
+          <div style="display: flex; gap: 8px; align-items: center">
+            <div style="flex: 1; height: 46px; padding: 0 14px; border-radius: 23px; background: rgba(0,0,0,.28); display: flex; align-items: center; font-size: 14px; color: #8A958F">Добавить подпись…</div>
+            <button onClick="{{send}}" style="height: 46px; padding: 0 16px; border-radius: 23px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 6px"><span class="ms fill" style="font-size: 18px" aria-hidden="true">send</span>{{sendText}}</button>
+          </div>
+          <div style="margin-top: 6px; padding: 0 8px; display: flex; gap: 8px; font-size: 11px; color: #9AA59F"><span style="flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{selNames}}</span><button onClick="{{toggleHd}}" style="font-size: 11px; font-weight: 800; color: {{hdInk}}">{{hdText}}</button></div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 270px; padding: 22px; border-radius: 26px; background: linear-gradient(180deg, rgba(48,58,53,.98), rgba(24,29,27,.98)); border: 1px solid rgba(143,211,172,.35); text-align: center; animation: kxDone .4s ease both">
+      <span class="ms fill" style="font-size: 46px; color: #8FD3AC" aria-hidden="true">send</span>
+      <div style="margin-top: 6px; font-size: 17px; font-weight: 800">{{doneTitle}}</div>
+      <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">Вы остались в «Галерее»</div>
+      <button onClick="{{reset}}" style="outline: 1px dashed rgba(143,211,172,.5); outline-offset: 2px; margin-top: 14px; height: 40px; padding: 0 16px; border-radius: 20px; background: rgba(255,255,255,.08); font-size: 13px; font-weight: 700; color: #8FD3AC">Макет: показать снова</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const CH = [
+  ['Избранное', '★', 'linear-gradient(135deg, #6FC497, #3F9A6C)', true], ['Семья', 'С', '#2F6E9E'], ['Анна', 'А', '#C0443C'], ['Мама', 'М', '#B07A2E'],
+  ['Kotlin-клуб', 'K', '#3F9A6C'], ['Лиза', 'Л', '#6A4C9C'], ['Работа', 'Р', '#5C6661'], ['Олег', 'О', '#9AA59F'],
+  ['Дмитрий', 'Д', '#3F9A6C'], ['Дана', 'Д', '#7FB8E0'], ['Ерлан', 'Е', '#C0443C'], ['Папа', 'П', '#2F6E9E']
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { sel: [], last: -1, k: 0, hd: false, st: 'pick' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const n = s.sel.length;
+  const word = (k) => k % 10 === 1 && k % 100 !== 11 ? 'чат' : (k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 10 || k % 100 >= 20)) ? 'чата' : 'чатов';
+  return {
+    open: s.st !== 'done', done: s.st === 'done',
+    flyAnim: s.st === 'fly' ? 'kxFly .6s cubic-bezier(.4,.1,.6,1) both' : 'none',
+    chats: CH.map(([nm, l, c, saved], i) => { const on = s.sel.includes(i); return { n: nm, l, c, rad: saved ? '20px' : '31px', fs: saved ? '26px' : '22px', on: on ? 'true' : 'false',
+      tf: on ? 'scale(.9)' : 'none', ring: on ? '0 0 0 3px #1A1F1C, 0 0 0 5px #8FD3AC' : 'none', tickShow: on ? 'flex' : 'none',
+      tickAnim: s.last === i ? (s.k % 2 ? 'kxTick2' : 'kxTick') + ' .25s ease both' : 'none', ink: on ? '#8FD3AC' : '#C9D2CC',
+      tap: () => this.setState({ sel: on ? s.sel.filter(x => x !== i) : [...s.sel, i], last: i, k: s.k + 1 }) }; }),
+    hasSel: n > 0,
+    sendText: n > 1 ? 'В ' + n + ' ' + word(n) : 'Отправить',
+    selNames: s.sel.map(i => CH[i][0]).join(', '),
+    hdText: s.hd ? 'Без сжатия ✓' : 'Сжать · 8,4 → 2,1 МБ', hdInk: s.hd ? '#8FD3AC' : '#C9D2CC', toggleHd: () => this.setState({ hd: !s.hd }),
+    send: () => { clearTimeout(this.tt); this.setState({ st: 'fly' }); this.tt = setTimeout(() => this.setState({ st: 'done' }), 600); },
+    doneTitle: n > 1 ? 'Отправлено в ' + n + ' ' + word(n) : 'Отправлено в «' + (CH[s.sel[0]] ? CH[s.sel[0]][0] : '') + '»',
+    reset: () => this.setState({ sel: [], st: 'pick', last: -1 })
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Вид чатов</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <header style="position: relative; padding: 10px 12px 2px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="margin: 0; font-size: 22px; font-weight: 800">Вид чатов</h1>
+  </header>
+
+  <div style="position: relative; margin: 10px 16px 0; height: 250px; border-radius: 26px; overflow: hidden; background: {{wall}}; border: 1px solid rgba(255,255,255,.08); transition: background .5s ease">
+    <sc-if value="{{pattern}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="position: absolute; inset: 0; opacity: .14; background-image: radial-gradient(circle at 10px 10px, #8FD3AC 2px, transparent 2.5px); background-size: 22px 22px"></div></sc-if>
+    <div style="position: absolute; left: 10px; right: 10px; top: 10px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; gap: 8px; padding: 0 6px">
+      <span style="width: 28px; height: 28px; border-radius: 14px; background: linear-gradient(140deg, #4B3F7A, #2A2240); color: #DCD0FF; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">А</span><span style="font-size: 13px; font-weight: 700">Анна</span>
+    </div>
+    <div style="position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: {{gap}}">
+      <div style="align-self: flex-start; max-width: 80%; padding: {{pad}}; border-radius: {{rIn}}; background: #161B18; font-size: {{fs}}; line-height: 1.35; transition: all .3s ease">Привет! Как тебе новый вид?</div>
+      <div style="align-self: flex-end; max-width: 80%; padding: {{pad}}; border-radius: {{rOut}}; background: linear-gradient(160deg, #2E6B4B, #1F4D36); color: #E6F6EC; font-size: {{fs}}; line-height: 1.35; transition: all .3s ease">Отлично смотрится 👌</div>
+      <div style="align-self: flex-end; max-width: 80%; padding: {{pad}}; border-radius: {{rOut}}; background: linear-gradient(160deg, #2E6B4B, #1F4D36); color: #E6F6EC; font-size: {{fs}}; line-height: 1.35; transition: all .3s ease">Шрифт и пузыри меняются сразу</div>
+    </div>
+  </div>
+
+  <div style="position: relative; padding: 14px 16px 0; display: flex; flex-direction: column; gap: 14px">
+    <div>
+      <div style="padding: 0 4px 8px; font-size: 13px; font-weight: 800; color: #8FD3AC">Пузыри</div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{shapes}}" as="b" hint-placeholder-count="3">
+          <button onClick="{{b.pick}}" style="height: 74px; border-radius: 18px; background: {{b.bg}}; border: 1px solid {{b.border}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; transition: all .2s; text-align: center">
+            <span style="width: 54px; height: 22px; border-radius: {{b.r}}; background: linear-gradient(160deg, #2E6B4B, #1F4D36)"></span>
+            <span style="font-size: 12px; font-weight: 700">{{b.label}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div>
+      <div style="padding: 0 4px 8px; font-size: 13px; font-weight: 800; color: #8FD3AC">Обои</div>
+      <div style="display: flex; gap: 8px">
+        <sc-for list="{{walls}}" as="w" hint-placeholder-count="5">
+          <button onClick="{{w.pick}}" style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center">
+            <span style="position: relative; width: 100%; height: 62px; border-radius: 14px; overflow: hidden; background: {{w.bg}}; box-shadow: {{w.ring}}; transition: box-shadow .2s"><sc-if value="{{w.dots}}" hint-placeholder-val="{{false}}"><span style="position: absolute; inset: 0; opacity: .2; background-image: radial-gradient(circle at 6px 6px, #8FD3AC 1.5px, transparent 2px); background-size: 12px 12px"></span></sc-if></span>
+            <span style="font-size: 11px; color: {{w.ink}}">{{w.label}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div>
+      <div style="display: flex; align-items: baseline; padding: 0 4px 8px"><span style="flex-grow: 1; font-size: 13px; font-weight: 800; color: #8FD3AC">Размер текста</span><span style="font-size: 12px; color: #9AA59F">{{sizeLabel}}</span></div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px">
+        <span style="font-size: 13px; color: #8A958F">A</span>
+        <div style="flex-grow: 1; display: flex; gap: 6px">
+          <sc-for list="{{sizes}}" as="z" hint-placeholder-count="4"><button aria-label="{{z.label}}" onClick="{{z.pick}}" style="flex: 1; height: 10px; border-radius: 5px; background: {{z.bg}}; transition: background .2s"></button></sc-for>
+        </div>
+        <span style="font-size: 20px; color: #8A958F">A</span>
+      </div>
+    </div>
+    <div>
+      <div style="padding: 0 4px 8px; font-size: 13px; font-weight: 800; color: #8FD3AC">Плотность</div>
+      <div style="display: flex; gap: 6px">
+        <sc-for list="{{dens}}" as="d" hint-placeholder-count="3"><button onClick="{{d.pick}}" style="flex: 1; height: 38px; border-radius: 14px; background: {{d.bg}}; color: {{d.color}}; font-size: 13px; font-weight: 700; text-align: center; transition: background .2s">{{d.label}}</button></sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { shape: 1, wall: 0, size: 1, dens: 1 }; }
+renderVals() {
+  const s = this.state;
+  const S = [['Острые', 8], ['Мягкие', 18], ['Круглые', 26]];
+  const shapes = S.map(([label, r], i) => ({ label, r: r + 'px', bg: i === s.shape ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.045)', border: i === s.shape ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.06)', pick: () => this.setState({ shape: i }) }));
+  const W = [
+    ['Тема', 'radial-gradient(120% 80% at 100% 0%, rgba(63,154,108,.30), #0A0C0B 65%)', false],
+    ['Узор', '#0E1310', true],
+    ['Градиент', 'linear-gradient(170deg, #173A28 0%, #0F1F2A 60%, #0A0C0B 100%)', false],
+    ['Ночь', 'linear-gradient(170deg, #1E1830 0%, #0A0C0B 80%)', false],
+    ['Нет', '#0A0C0B', false]
+  ];
+  const walls = W.map(([label, bg, dots], i) => ({ label, bg, dots, ink: i === s.wall ? '#EEF3EF' : '#8A958F', ring: i === s.wall ? '0 0 0 2px #0A0C0B, 0 0 0 4px #8FD3AC' : 'inset 0 0 0 1px rgba(255,255,255,.12)', pick: () => this.setState({ wall: i }) }));
+  const Z = [['Мелкий', 13], ['Обычный', 15], ['Крупный', 17], ['Очень крупный', 19]];
+  const sizes = Z.map(([label], i) => ({ label, bg: i <= s.size ? '#8FD3AC' : 'rgba(255,255,255,.1)', pick: () => this.setState({ size: i }) }));
+  const D = [['Компактно', '4px', '6px 11px'], ['Обычно', '6px', '8px 12px'], ['Свободно', '10px', '11px 14px']];
+  const dens = D.map(([label], i) => ({ label, bg: i === s.dens ? '#8FD3AC' : 'rgba(255,255,255,.07)', color: i === s.dens ? '#06150D' : '#C9D2CC', pick: () => this.setState({ dens: i }) }));
+  const r = S[s.shape][1];
+  return {
+    shapes, walls, sizes, dens,
+    wall: W[s.wall][1], pattern: W[s.wall][2],
+    rIn: r + 'px ' + r + 'px ' + r + 'px 5px', rOut: r + 'px ' + r + 'px 5px ' + r + 'px',
+    fs: Z[s.size][1] + 'px', sizeLabel: Z[s.size][0],
+    gap: D[s.dens][1], pad: D[s.dens][2]
+  };
+}
+}
+</script>
+</body>
+</html>

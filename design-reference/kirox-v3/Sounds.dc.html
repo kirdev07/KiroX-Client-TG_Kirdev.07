@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Звук уведомлений</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxRipple{0%{transform:scale(.6);opacity:.7}100%{transform:scale(2.2);opacity:0}}
+@keyframes kxBell{0%,100%{transform:rotate(0)}15%{transform:rotate(16deg)}30%{transform:rotate(-14deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}75%{transform:rotate(0)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1; min-width: 0"><h1 style="margin: 0; font-size: 20px; font-weight: 800">Звук уведомлений</h1><div style="font-size: 12px; color: #9AA59F">{{forWhom}}</div></div>
+  </header>
+
+  <!-- Scope tabs -->
+  <div style="padding: 4px 16px 0; display: flex; gap: 6px">
+    <sc-for list="{{scopes}}" as="t" hint-placeholder-count="3"><button onClick="{{t.tap}}" style="height: 34px; padding: 0 14px; border-radius: 17px; background: {{t.bg}}; color: {{t.ink}}; font-size: 13px; font-weight: 700; transition: all .2s">{{t.label}}</button></sc-for>
+  </div>
+
+  <!-- Now playing -->
+  <div style="margin: 12px 16px 0; padding: 16px; border-radius: 26px; background: radial-gradient(100% 90% at 100% 0%, rgba(63,154,108,.3), transparent 60%), rgba(255,255,255,.04); border: 1px solid rgba(143,211,172,.22); display: flex; align-items: center; gap: 16px">
+    <div style="position: relative; width: 64px; height: 64px; flex-shrink: 0">
+      <sc-if value="{{playing}}" hint-placeholder-val="{{false}}">
+        <span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8FD3AC; animation: kxRipple 1.2s ease-out 2" aria-hidden="true"></span>
+        <span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8FD3AC; animation: kxRipple 1.2s ease-out .4s 2" aria-hidden="true"></span>
+      </sc-if>
+      <span style="position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 32px; animation: {{bellAnim}}; transform-origin: 50% 15%" aria-hidden="true">notifications</span></span>
+    </div>
+    <div style="flex: 1; min-width: 0">
+      <div style="font-size: 12px; color: #8FD3AC; font-weight: 700">Сейчас выбран</div>
+      <div style="margin-top: 2px; font-size: 18px; font-weight: 800">{{curName}}</div>
+      <div style="margin-top: 8px; display: flex; align-items: center; gap: 2px; height: 26px" aria-hidden="true">
+        <sc-for list="{{wave}}" as="w" hint-placeholder-count="28"><span style="flex: 1; height: {{w.h}}; border-radius: 2px; background: {{w.c}}; transition: background .1s"></span></sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 12px 16px 30px">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="10">
+      <sc-if value="{{g.hdr}}" hint-placeholder-val="{{false}}"><div style="padding: 10px 4px 6px; font-size: 12px; font-weight: 700; color: #8A958F; text-transform: uppercase; letter-spacing: .6px">{{g.hdrText}}</div></sc-if>
+      <button onClick="{{g.tap}}" aria-pressed="{{g.on}}" style="width: 100%; padding: 10px 12px; margin-bottom: 4px; border-radius: 18px; background: {{g.bg}}; border: 1px solid {{g.bd}}; display: flex; align-items: center; gap: 12px; transition: all .2s">
+        <span style="width: 38px; height: 38px; border-radius: 12px; background: {{g.ibg}}; color: {{g.iink}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 20px" aria-hidden="true">{{g.icon}}</span></span>
+        <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{g.name}}</span><span style="display: block; font-size: 12px; color: #8A958F">{{g.sub}}</span></span>
+        <span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{g.ring}}; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{g.dot}}"></span></span>
+      </button>
+    </sc-for>
+    <button onClick="{{upload}}" style="margin-top: 8px; width: 100%; height: 54px; padding: 0 16px; border-radius: 18px; background: rgba(255,255,255,.04); border: 1px dashed rgba(143,211,172,.4); color: #8FD3AC; display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 700"><span class="ms" aria-hidden="true">upload</span>Свой звук из файла</button>
+    <p style="margin: 10px 4px 0; font-size: 12px; line-height: 1.45; color: #8A958F">Подойдёт MP3 или OGG до 5 секунд и 300 КБ. Можно взять голосовое из любого чата: нажмите на него и выберите «Сделать звуком».</p>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 34px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const SOUNDS = [
+  ['Без звука', 'notifications_off', 'Только вибрация', 0, 'kiroX'],
+  ['Капля', 'water_drop', 'kiroX · 0,4 с', 1, 'kiroX'], ['Стекло', 'wine_bar', 'kiroX · 0,6 с', 2, 'kiroX'], ['Росток', 'eco', 'kiroX · 0,8 с', 3, 'kiroX'], ['Колокольчик', 'notifications', 'kiroX · 1,0 с', 4, 'kiroX'],
+  ['Аккорд', 'piano', 'Системный · 1,2 с', 5, 'Системные'], ['Пинг', 'radar', 'Системный · 0,5 с', 6, 'Системные'],
+  ['Смех Лизы', 'mic', 'Из голосового · 2,1 с', 7, 'Мои звуки']
+];
+const SCOPES = ['Личные чаты', 'Группы', 'Каналы'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { scope: 0, sel: [1, 3, 0], playing: -1, t: 0, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tt); }
+play(i) {
+  clearInterval(this.iv);
+  if (i === 0) { this.setState({ playing: -1, t: 0 }); return; }
+  this.setState({ playing: i, t: 0 });
+  this.iv = setInterval(() => { const t = this.state.t + 1; if (t > 28) { clearInterval(this.iv); this.setState({ playing: -1, t: 0 }); } else this.setState({ t }); }, 45);
+}
+renderVals() {
+  const s = this.state;
+  const cur = s.sel[s.scope];
+  const seed = cur * 7 + 3;
+  let last = '';
+  return {
+    forWhom: 'Для: ' + SCOPES[s.scope].toLowerCase(),
+    scopes: SCOPES.map((label, i) => ({ label, bg: s.scope === i ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.scope === i ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ scope: i }) })),
+    playing: s.playing >= 0, bellAnim: s.playing >= 0 ? 'kxBell .8s ease-in-out 2' : 'none',
+    curName: SOUNDS[cur][0],
+    wave: Array.from({ length: 28 }, (_, j) => {
+      const h = cur === 0 ? 3 : Math.round(4 + Math.abs(Math.sin(j * 0.7 + seed)) * 18 * (1 - j / 40));
+      return { h: h + 'px', c: s.playing >= 0 && j < s.t ? '#8FD3AC' : 'rgba(255,255,255,.18)' };
+    }),
+    groups: SOUNDS.map(([name, icon, sub, i, grp]) => {
+      const on = cur === i;
+      const hdr = grp !== last; last = grp;
+      return {
+        hdr, hdrText: grp, name, icon, sub, on,
+        bg: on ? 'rgba(143,211,172,.1)' : 'transparent', bd: on ? 'rgba(143,211,172,.4)' : 'transparent',
+        ibg: on ? '#3F9A6C' : 'rgba(255,255,255,.06)', iink: on ? '#fff' : '#9AA59F',
+        ring: on ? '#8FD3AC' : 'rgba(255,255,255,.3)', dot: on ? '#8FD3AC' : 'transparent',
+        tap: () => { this.setState({ sel: s.sel.map((v, k) => k === s.scope ? i : v) }); this.play(i); }
+      };
+    }),
+    upload: () => { clearTimeout(this.tt); this.setState({ toast: s.toast + 1, toastText: 'Откроется выбор файла', toastIcon: 'upload' }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); },
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

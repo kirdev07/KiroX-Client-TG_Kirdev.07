@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Голосовые сообщения</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxDrop{from{transform:translateY(-100%);opacity:0}to{transform:none;opacity:1}}
+@keyframes kxShimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+@keyframes kxType{from{opacity:0;filter:blur(3px)}to{opacity:1;filter:none}}
+@keyframes kxEq{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px">
+    <button aria-label="Назад" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <span style="width: 38px; height: 38px; border-radius: 19px; background: linear-gradient(140deg,#4B3F7A,#2A2240); color: #DCD0FF; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center">А</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Анна</div><div style="font-size: 12px; color: #8FD3AC">{{headSub}}</div></div>
+  </header>
+
+  <!-- Mini player -->
+  <sc-if value="{{mini}}" hint-placeholder-val="{{true}}">
+    <div style="margin: 0 10px 4px; height: 50px; padding: 0 6px 0 4px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.14); display: flex; align-items: center; gap: 8px; position: relative; overflow: hidden; animation: kxDrop .3s ease both">
+      <span aria-hidden="true" style="position: absolute; left: 0; bottom: 0; height: 2px; width: {{progPct}}; background: #8FD3AC; transition: width .25s linear"></span>
+      <button onClick="{{toggle}}" aria-label="{{playLabel}}" style="width: 40px; height: 40px; border-radius: 20px; color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">{{playIcon}}</span></button>
+      <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 800">{{curName}}</span><span style="display: block; font-size: 11px; color: #9AA59F">Голосовое · {{curTime}}</span></span>
+      <button onClick="{{cycleSpeed}}" style="height: 28px; padding: 0 8px; border-radius: 14px; background: rgba(255,255,255,.1); font-size: 12px; font-weight: 800">{{speed}}</button>
+      <button onClick="{{stop}}" aria-label="Закрыть плеер" style="width: 34px; height: 34px; border-radius: 17px; display: flex; align-items: center; justify-content: center; color: #9AA59F"><span class="ms" style="font-size: 20px" aria-hidden="true">close</span></button>
+    </div>
+  </sc-if>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; background: radial-gradient(120% 60% at 100% 0%, rgba(63,154,108,.14), #0A0C0B 60%)">
+    <sc-for list="{{msgs}}" as="m" hint-placeholder-count="3">
+      <div style="align-self: {{m.side}}; width: 290px; padding: 10px 12px 8px; border-radius: {{m.r}}; background: {{m.bg}}">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <button onClick="{{m.play}}" aria-label="{{m.playLabel}}" style="width: 44px; height: 44px; border-radius: 22px; background: {{m.btnBg}}; color: {{m.btnInk}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" aria-hidden="true">{{m.icon}}</span></button>
+          <div style="flex: 1; min-width: 0">
+            <div style="position: relative; height: 30px; display: flex; align-items: center; gap: 2px">
+              <sc-for list="{{m.bars}}" as="b" hint-placeholder-count="34"><span style="flex: 1; height: {{b.h}}; border-radius: 2px; background: {{b.c}}; transition: background .15s"></span></sc-for>
+              <sc-for list="{{m.zones}}" as="z" hint-placeholder-count="10"><button onClick="{{z.seek}}" aria-label="Перемотать" style="position: absolute; top: 0; bottom: 0; left: {{z.l}}; width: 10%"></button></sc-for>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 11px; color: {{m.meta}}">
+              <span>{{m.time}}</span>
+              <sc-if value="{{m.unheard}}" hint-placeholder-val="{{false}}"><span style="width: 6px; height: 6px; border-radius: 3px; background: #8FD3AC"></span></sc-if>
+              <span style="flex: 1"></span>
+              <span>{{m.sent}}</span>
+            </div>
+          </div>
+          <button onClick="{{m.tr}}" aria-label="Расшифровать" style="width: 40px; height: 40px; border-radius: 12px; background: {{m.trBg}}; color: {{m.trInk}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; font-weight: 800">→A</button>
+        </div>
+        <sc-if value="{{m.trLoading}}" hint-placeholder-val="{{false}}"><div style="margin-top: 8px"><span style="display: block; height: 10px; width: 90%; border-radius: 5px; background: linear-gradient(90deg, rgba(255,255,255,.06) 0, rgba(255,255,255,.18) 60px, rgba(255,255,255,.06) 120px); background-size: 400px 100%; animation: kxShimmer 1s linear infinite"></span><span style="display: block; margin-top: 6px; height: 10px; width: 60%; border-radius: 5px; background: linear-gradient(90deg, rgba(255,255,255,.06) 0, rgba(255,255,255,.18) 60px, rgba(255,255,255,.06) 120px); background-size: 400px 100%; animation: kxShimmer 1s linear infinite"></span></div></sc-if>
+        <sc-if value="{{m.trShown}}" hint-placeholder-val="{{false}}"><div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.08); font-size: 14px; line-height: 1.4; color: {{m.trText}}; animation: kxType .4s ease both">{{m.text}}</div></sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <div style="padding: 6px 10px 18px; display: flex; gap: 8px; align-items: center">
+    <div style="flex: 1; height: 46px; border-radius: 23px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; padding: 0 14px; color: #8A958F; font-size: 15px">Сообщение</div>
+    <button aria-label="Записать голосовое" style="width: 46px; height: 46px; border-radius: 23px; background: linear-gradient(140deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">mic</span></button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const V = [
+  { mine: false, name: 'Анна', dur: 14, sent: '15:02', text: 'Привет! Слушай, я тут подумала, может в субботу съездим за город? Погоду обещают хорошую.' },
+  { mine: true, name: 'Вы', dur: 6, sent: '15:04', text: 'Давай! Я как раз свободен, возьму термос.' },
+  { mine: false, name: 'Анна', dur: 21, sent: '15:06', text: 'Отлично. Тогда выезжаем в девять утра, я заеду за тобой. Купи, пожалуйста, хлеб и сыр по дороге, остальное у меня.' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { cur: -1, pos: [0, 0, 0], playing: false, speed: 1, heard: [false, true, false], tr: [0, 0, 0] }; }
+componentDidMount() {
+  this.iv = setInterval(() => {
+    const s = this.state;
+    if (!s.playing || s.cur < 0) return;
+    const pos = s.pos.slice();
+    pos[s.cur] = pos[s.cur] + 0.25 * s.speed;
+    if (pos[s.cur] >= V[s.cur].dur) {
+      pos[s.cur] = 0;
+      const nxt = V.findIndex((v, i) => i > s.cur && !v.mine && !s.heard[i]);
+      if (nxt > 0) { const heard = s.heard.slice(); heard[nxt] = true; this.setState({ pos, cur: nxt, heard }); }
+      else this.setState({ pos, playing: false, cur: -1 });
+      return;
+    }
+    this.setState({ pos });
+  }, 250);
+}
+componentWillUnmount() { clearInterval(this.iv); (this.ts || []).forEach(clearTimeout); }
+renderVals() {
+  const s = this.state;
+  const fmt = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+  const msgs = V.map((v, i) => {
+    const isCur = s.cur === i;
+    const playing = isCur && s.playing;
+    const frac = s.pos[i] / v.dur;
+    let x = (i + 3) * 7919;
+    const bars = Array.from({ length: 34 }, (_, k) => { x = (x * 9301 + 49297) % 233280; const h = 6 + Math.round((x / 233280) * 22 * (0.5 + Math.sin(k / 3) * 0.5 + 0.3)); return { h: Math.min(28, h) + 'px', c: k / 34 < frac ? (v.mine ? '#E6F6EC' : '#8FD3AC') : (v.mine ? 'rgba(230,246,236,.35)' : 'rgba(255,255,255,.22)') }; });
+    const tr = s.tr[i];
+    return {
+      side: v.mine ? 'flex-end' : 'flex-start', r: v.mine ? '20px 20px 6px 20px' : '20px 20px 20px 6px',
+      bg: v.mine ? 'linear-gradient(160deg, #2E6B4B, #1F4D36)' : '#161B18',
+      btnBg: v.mine ? '#E6F6EC' : 'linear-gradient(140deg, #6FC497, #3F9A6C)', btnInk: '#06150D',
+      icon: playing ? 'pause' : 'play_arrow', playLabel: playing ? 'Пауза' : 'Слушать',
+      bars, zones: Array.from({ length: 10 }, (_, k) => ({ l: (k * 10) + '%', seek: () => { const pos = s.pos.slice(); pos[i] = v.dur * k / 10; const heard = s.heard.slice(); heard[i] = true; this.setState({ pos, cur: i, playing: true, heard }); } })),
+      time: isCur || s.pos[i] > 0 ? fmt(s.pos[i]) + ' / ' + fmt(v.dur) : fmt(v.dur),
+      meta: v.mine ? '#A9D9BF' : '#8A958F', sent: v.sent, unheard: !v.mine && !s.heard[i],
+      play: () => { const heard = s.heard.slice(); heard[i] = true; this.setState(isCur ? { playing: !s.playing } : { cur: i, playing: true, heard }); },
+      trBg: tr === 2 ? 'rgba(143,211,172,.2)' : v.mine ? 'rgba(0,0,0,.18)' : 'rgba(255,255,255,.07)', trInk: tr === 2 ? '#8FD3AC' : v.mine ? '#E6F6EC' : '#C9D2CC',
+      tr: () => {
+        if (tr === 2) { const t2 = s.tr.slice(); t2[i] = 0; this.setState({ tr: t2 }); return; }
+        const t1 = s.tr.slice(); t1[i] = 1; this.setState({ tr: t1 });
+        this.ts = this.ts || []; this.ts.push(setTimeout(() => { const t3 = this.state.tr.slice(); t3[i] = 2; this.setState({ tr: t3 }); }, 1100));
+      },
+      trLoading: tr === 1, trShown: tr === 2, text: v.text, trText: v.mine ? '#E6F6EC' : '#C9D2CC'
+    };
+  });
+  const c = s.cur >= 0 ? V[s.cur] : null;
+  return {
+    msgs, mini: !!c,
+    headSub: s.playing ? 'вы слушаете голосовое' : 'в сети',
+    toggle: () => this.setState({ playing: !s.playing }), playIcon: s.playing ? 'pause' : 'play_arrow', playLabel: s.playing ? 'Пауза' : 'Продолжить',
+    curName: c ? c.name : '', curTime: c ? fmt(s.pos[s.cur]) + ' / ' + fmt(c.dur) : '', progPct: c ? (s.pos[s.cur] / c.dur * 100) + '%' : '0%',
+    speed: s.speed + '×', cycleSpeed: () => this.setState({ speed: s.speed === 1 ? 1.5 : s.speed === 1.5 ? 2 : 1 }),
+    stop: () => this.setState({ playing: false, cur: -1 })
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Premium и подарки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+@keyframes kxRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kxStar{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.08)}}
+@keyframes kxOrbit{to{transform:rotate(360deg)}}
+@keyframes kxTwinkle{0%,100%{opacity:.2}50%{opacity:1}}
+@keyframes kxShine{0%{transform:translateX(-120%) skewX(-20deg)}60%,100%{transform:translateX(900%) skewX(-20deg)}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxGift{0%{transform:scale(.4) rotate(-20deg);opacity:0}60%{transform:scale(1.15) rotate(6deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 330px; background: radial-gradient(80% 70% at 50% 20%, rgba(130,100,220,.45), rgba(63,154,108,.15) 55%, rgba(10,12,11,0) 80%)"></div>
+
+  <header style="position: relative; padding: 10px 12px 0; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <span style="flex-grow: 1"></span>
+    <span style="height: 36px; padding: 0 12px; border-radius: 18px; background: rgba(255,255,255,.08); display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800"><span class="ms fill" style="font-size: 18px; color: #FFD27A" aria-hidden="true">star</span>{{stars}}</span>
+  </header>
+
+  <div style="position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 6px">
+    <div style="position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center">
+      <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; border: 1px dashed rgba(255,255,255,.18); animation: kxOrbit 14s linear 2"><span style="position: absolute; left: 50%; top: -4px; width: 8px; height: 8px; margin-left: -4px; border-radius: 4px; background: #8FD3AC; box-shadow: 0 0 10px #8FD3AC"></span></span>
+      <span aria-hidden="true" style="position: absolute; left: 6px; top: 20px; width: 4px; height: 4px; border-radius: 2px; background: #FFE38A; animation: kxTwinkle 2s 2"></span>
+      <span aria-hidden="true" style="position: absolute; right: 10px; bottom: 18px; width: 3px; height: 3px; border-radius: 2px; background: #E6C3FF; animation: kxTwinkle 2.6s .5s 2"></span>
+      <span style="width: 84px; height: 84px; border-radius: 28px; background: linear-gradient(140deg, #B794FF, #6E58C9 50%, #3F9A6C); display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 40px rgba(110,88,201,.5); animation: kxStar 4s ease-in-out 2"><span class="ms fill" style="font-size: 50px; color: #FFF6D6" aria-hidden="true">star</span></span>
+    </div>
+    <div style="margin-top: 8px; font-size: 26px; font-weight: 800">Telegram Premium</div>
+    <div style="margin-top: 2px; font-size: 13px; color: #C9C2E8">Больше возможностей в kiroX и Telegram</div>
+  </div>
+
+  <div style="position: relative; margin: 16px 16px 0; display: flex; flex-direction: column; gap: 2px">
+    <sc-for list="{{feats}}" as="f" hint-placeholder-count="6">
+      <div style="height: 50px; padding: 0 12px; border-radius: {{f.radius}}; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 12px; animation: kxRise .4s ease both; animation-delay: {{f.d}}">
+        <span style="width: 32px; height: 32px; border-radius: 11px; background: {{f.bg}}; color: {{f.ink}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 18px" aria-hidden="true">{{f.icon}}</span></span>
+        <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">{{f.title}}</span><span style="display: block; font-size: 11px; color: #8A958F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{f.sub}}</span></span>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position: relative; margin: 14px 16px 0; display: flex; gap: 8px">
+    <button style="position: relative; flex: 1.5; height: 56px; border-radius: 18px; overflow: hidden; background: linear-gradient(110deg, #8E6CF0, #5B44C0 55%, #2E8A60); font-size: 15px; font-weight: 800; text-align: center; box-shadow: 0 12px 28px rgba(110,88,201,.4)"><span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 40px; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0)); animation: kxShine 3.4s ease-in-out 1s 2"></span><span style="position: relative; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" style="font-size: 20px" aria-hidden="true">smart_toy</span>Через @PremiumBot</span></button>
+    <button onClick="{{openGifts}}" style="flex: 1; height: 56px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms fill" style="color: #F2A6C0" aria-hidden="true">redeem</span>Подарить</button>
+  </div>
+  <div style="position: relative; margin: 10px 16px 0; padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.04); display: flex; align-items: center; gap: 10px; font-size: 12px; line-height: 16px; color: #9AA59F"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">verified</span><span>Premium подключается только в официальном боте Telegram. kiroX просто откроет его, оплату внутри приложения мы не принимаем.</span></div>
+
+  <sc-if value="{{giftOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeGifts}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.55); animation: kxFade .2s ease both"></button>
+    <div role="dialog" aria-label="Подарок" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 22px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,34,60,.95), rgba(16,20,18,.97)); border-top: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); animation: kxSheet .38s cubic-bezier(.2,.9,.25,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 12px"></div>
+      <sc-if value="{{choosing}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; align-items: center"><span style="flex-grow: 1; font-size: 19px; font-weight: 800">Подарок: Анна</span><span style="font-size: 13px; color: #FFD27A; font-weight: 700">★ {{stars}}</span></div>
+        <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{gifts}}" as="g" hint-placeholder-count="6">
+            <button onClick="{{g.pick}}" style="height: 104px; border-radius: 20px; background: {{g.bg}}; border: 1px solid {{g.border}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; transition: border-color .2s, transform .25s cubic-bezier(.34,1.5,.5,1); transform: {{g.scale}}; text-align: center">
+              <span style="font-size: 36px; line-height: 1">{{g.e}}</span>
+              <span style="padding: 2px 8px; border-radius: 10px; background: rgba(255,210,122,.16); color: #FFD27A; font-size: 12px; font-weight: 800">★ {{g.price}}</span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="margin-top: 12px; height: 46px; border-radius: 16px; background: rgba(255,255,255,.06); display: flex; align-items: center; padding: 0 14px; font-size: 14px; color: #8A958F">Сообщение к подарку…</div>
+        <button onClick="{{send}}" style="margin-top: 10px; width: 100%; height: 54px; border-radius: 18px; background: {{sendBg}}; color: {{sendInk}}; font-size: 15px; font-weight: 800; text-align: center; transition: background .3s">{{sendLabel}}</button>
+      </sc-if>
+      <sc-if value="{{sent}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 20px 0 10px; display: flex; flex-direction: column; align-items: center; gap: 10px">
+          <span style="font-size: 72px; line-height: 1; animation: kxGift .6s cubic-bezier(.2,.8,.2,1) both">{{sentEmoji}}</span>
+          <span style="font-size: 20px; font-weight: 800">Подарок отправлен</span>
+          <span style="font-size: 13px; color: #9AA59F">Анна увидит его в чате и в профиле</span>
+          <button onClick="{{closeGifts}}" style="margin-top: 8px; height: 46px; padding: 0 24px; border-radius: 23px; background: rgba(255,255,255,.1); font-size: 14px; font-weight: 700">Готово</button>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { gift: false, pick: null, sent: false, stars: 420 }; }
+renderVals() {
+  const s = this.state;
+  const F = [
+    ['mic', 'Голосовые в текст', 'Читайте голосовые, когда неудобно слушать', '#1F3A2C', '#8FD3AC'],
+    ['speed', 'Быстрая загрузка', 'Файлы и медиа без ограничений скорости', '#1F2E40', '#A9CBF5'],
+    ['mood', 'Эмодзи-статус и свои эмодзи', 'Анимированные эмодзи везде', '#3A2A1E', '#FFB68F'],
+    ['upload_file', 'Файлы до 4 ГБ', 'Вдвое больше обычного', '#2E2A3D', '#CFC2F2'],
+    ['block', 'Без рекламы', 'В публичных каналах', '#3A1E2A', '#FF9CC8'],
+    ['palette', 'Цвета и обои профиля', 'Выделитесь в чатах', '#2A3320', '#C8E6A0']
+  ];
+  const feats = F.map((f, i) => ({ icon: f[0], title: f[1], sub: f[2], bg: f[3], ink: f[4], d: (i * 0.04) + 's', radius: i === 0 ? '18px 18px 6px 6px' : i === F.length - 1 ? '6px 6px 18px 18px' : '6px' }));
+  const G = [['🧸', 15], ['💐', 25], ['🎂', 50], ['💎', 100], ['🚀', 250], ['🏆', 500]];
+  const gifts = G.map(([e, price], i) => {
+    const on = s.pick === i;
+    return { e, price, bg: on ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.06)', border: on ? 'rgba(143,211,172,.6)' : 'rgba(255,255,255,.06)', scale: on ? 'scale(1.04)' : 'scale(1)', pick: () => this.setState({ pick: i }) };
+  });
+  const sel = s.pick != null ? G[s.pick] : null;
+  const enough = sel && sel[1] <= s.stars;
+  return {
+    feats, gifts, stars: s.stars,
+    giftOpen: s.gift, choosing: !s.sent, sent: s.sent, sentEmoji: sel ? sel[0] : '🎁',
+    sendLabel: !sel ? 'Выберите подарок' : enough ? 'Отправить за ★ ' + sel[1] : 'Не хватает звёзд',
+    sendBg: enough ? 'linear-gradient(100deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', sendInk: enough ? '#06150D' : '#8A958F',
+    send: () => { if (enough) this.setState({ sent: true, stars: s.stars - sel[1] }); },
+    openGifts: () => this.setState({ gift: true, pick: null, sent: false }),
+    closeGifts: () => this.setState({ gift: false })
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Выбор нескольких чатов</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxTick{0%{transform:scale(0)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes kxTick2{0%{transform:scale(0)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes kxBar{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxHead{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <sc-if value="{{normalHead}}" hint-placeholder-val="{{false}}">
+    <div style="padding: 14px 16px 8px; display: flex; align-items: center; animation: kxHead .2s ease both"><span style="flex: 1; font-size: 26px; font-weight: 800">Чаты</span><span class="ms" style="color: #9AA59F" aria-hidden="true">search</span></div>
+    <div style="padding: 0 16px 6px; font-size: 12px; color: #8A958F">Удерживайте чат, чтобы начать выбор</div>
+  </sc-if>
+  <sc-if value="{{selHead}}" hint-placeholder-val="{{true}}">
+    <div style="padding: 10px 12px; display: flex; align-items: center; gap: 10px; background: rgba(143,211,172,.06); border-bottom: 1px solid rgba(143,211,172,.2); animation: kxHead .2s ease both">
+      <button onClick="{{clear}}" aria-label="Отменить выбор" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+      <span style="flex: 1; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums">{{count}}</span>
+      <button onClick="{{all}}" style="height: 36px; padding: 0 12px; border-radius: 18px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 700; color: #8FD3AC">{{allText}}</button>
+    </div>
+  </sc-if>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 8px 100px">
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+      <button onPointerDown="{{r.down}}" onPointerUp="{{r.up}}" onPointerLeave="{{r.leave}}" role="checkbox" aria-checked="{{r.on}}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 8px; border-radius: 18px; background: {{r.bg}}; transition: background .15s">
+        <span style="position: relative; width: 50px; height: 50px; border-radius: 25px; background: {{r.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0; transform: {{r.tf}}; transition: transform .2s">{{r.l}}<span style="position: absolute; right: -3px; bottom: -3px; width: 22px; height: 22px; border-radius: 11px; background: #8FD3AC; color: #06150D; border: 2px solid #0A0C0B; display: {{r.tickShow}}; align-items: center; justify-content: center; animation: {{r.tickAnim}}"><span class="ms" style="font-size: 15px; font-weight: 700" aria-hidden="true">check</span></span></span>
+        <span style="flex: 1; min-width: 0"><span style="display: flex; align-items: center; gap: 4px"><span class="ms fill" style="font-size: 14px; color: #8FD3AC; display: {{r.pinShow}}" aria-hidden="true">push_pin</span><span style="flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{r.n}}</span><span class="ms fill" style="font-size: 14px; color: #8A958F; display: {{r.muteShow}}" aria-hidden="true">notifications_off</span><span style="font-size: 12px; color: #8A958F">{{r.t}}</span></span><span style="display: flex; align-items: center; gap: 6px"><span style="flex: 1; font-size: 13px; color: #9AA59F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{r.msg}}</span><span style="min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 10px; background: {{r.badgeBg}}; color: #06150D; font-size: 11px; font-weight: 800; display: {{r.badgeShow}}; align-items: center; justify-content: center">{{r.u}}</span></span></span>
+      </button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{bar}}" hint-placeholder-val="{{true}}">
+    <div style="position: absolute; left: 10px; right: 10px; bottom: 14px; padding: 8px; border-radius: 26px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; animation: kxBar .25s cubic-bezier(.2,.8,.2,1) both">
+      <sc-for list="{{acts}}" as="a" hint-placeholder-count="5"><button onClick="{{a.tap}}" style="height: 58px; border-radius: 18px; color: {{a.ink}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 700"><span class="ms" aria-hidden="true">{{a.i}}</span>{{a.t}}</button></sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 24px; padding: 10px 8px 10px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 10px; animation: {{toastAnim}}">{{toastText}}<button onClick="{{undo}}" style="display: {{undoShow}}; height: 30px; padding: 0 10px; border-radius: 15px; color: #8FD3AC; font-size: 13px; font-weight: 800">Вернуть</button></div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const CH = [
+  { id: 1, n: 'Анна', l: 'А', c: '#C0443C', msg: 'До завтра 👋', t: '19:40', u: 2 },
+  { id: 2, n: 'Семья', l: 'С', c: '#2F6E9E', msg: 'Мама: фото с дачи', t: '18:20', u: 5 },
+  { id: 3, n: 'Kotlin-клуб', l: 'K', c: '#3F9A6C', msg: 'Дмитрий: PR готов', t: '17:40', u: 14 },
+  { id: 4, n: 'Доставка 24', l: 'Д', c: '#B07A2E', msg: 'Ваш заказ в пути', t: '16:10', u: 1 },
+  { id: 5, n: 'Скидки и акции', l: '%', c: '#E8B04A', msg: 'Только сегодня −50%!', t: '15:55', u: 23 },
+  { id: 6, n: 'Лиза', l: 'Л', c: '#6A4C9C', msg: 'Сюрприз готов 🎁', t: '15:30', u: 0 },
+  { id: 7, n: 'Новости города', l: 'Н', c: '#5C6661', msg: 'Пробки на Абая', t: '14:00', u: 41 },
+  { id: 8, n: 'Работа', l: 'Р', c: '#9AA59F', msg: 'Созвон в понедельник', t: 'вчера', u: 0 }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { sel: [4, 5, 7], last: 0, k: 0, read: {}, muted: {}, pinned: { 1: true }, gone: {}, snap: null, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+lp(tap, long) { return { down: () => { clearTimeout(this._lp); this._lpDone = false; this._lp = setTimeout(() => { this._lpDone = true; long(); }, 450); }, up: () => { clearTimeout(this._lp); if (!this._lpDone) tap(); this._lpDone = true; }, leave: () => { clearTimeout(this._lp); this._lpDone = true; } }; }
+renderVals() {
+  const s = this.state;
+  const list = CH.filter(c => !s.gone[c.id]);
+  const n = s.sel.length;
+  const word = (k) => k % 10 === 1 && k % 100 !== 11 ? 'чат' : (k % 10 >= 2 && k % 10 <= 4 && (k % 100 < 10 || k % 100 >= 20)) ? 'чата' : 'чатов';
+  const say = (t, snap) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1, snap: snap || null }); this.tt = setTimeout(() => this.setState({ toast: '', snap: null }), 3000); };
+  const apply = (patch, t, undoable) => { const snap = undoable ? { read: s.read, muted: s.muted, pinned: s.pinned, gone: s.gone, sel: s.sel } : null; this.setState({ ...patch, sel: [] }); say(t, snap); };
+  const ids = s.sel;
+  const allMuted = ids.length && ids.every(id => s.muted[id]);
+  const allPinned = ids.length && ids.every(id => s.pinned[id]);
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    normalHead: !n, selHead: n > 0, bar: n > 0,
+    count: 'Выбрано: ' + n,
+    allText: n === list.length ? 'Снять все' : 'Все',
+    all: () => this.setState({ sel: n === list.length ? [] : list.map(c => c.id) }),
+    clear: () => this.setState({ sel: [] }),
+    rows: list.map(c => { const on = ids.includes(c.id); const u = s.read[c.id] ? 0 : c.u; return { n: c.n, l: c.l, c: c.c, msg: c.msg, t: c.t, on: on ? 'true' : 'false',
+      bg: on ? 'rgba(143,211,172,.08)' : 'transparent', tf: on ? 'scale(.9)' : 'none', tickShow: on ? 'flex' : 'none', tickAnim: s.last === c.id ? (s.k % 2 ? 'kxTick2' : 'kxTick') + ' .25s ease both' : 'none',
+      pinShow: s.pinned[c.id] ? 'inline-block' : 'none', muteShow: s.muted[c.id] ? 'inline-block' : 'none',
+      u, badgeShow: u ? 'flex' : 'none', badgeBg: s.muted[c.id] ? '#8A958F' : '#8FD3AC',
+      ...this.lp(() => ids.length ? this.setState({ sel: on ? ids.filter(x => x !== c.id) : [...ids, c.id], last: c.id, k: s.k + 1 }) : say('Открывается чат · ' + c.n), () => this.setState({ sel: on ? ids.filter(x => x !== c.id) : [...ids, c.id], last: c.id, k: s.k + 1 })) }; }),
+    acts: [
+      { i: 'mark_chat_read', t: 'Прочитать', ink: '#EEF3EF', tap: () => { const r = { ...s.read }; ids.forEach(id => r[id] = true); apply({ read: r }, 'Прочитано: ' + n + ' ' + word(n), true); } },
+      { i: allMuted ? 'notifications' : 'notifications_off', t: allMuted ? 'Звук' : 'Без звука', ink: '#EEF3EF', tap: () => { const m = { ...s.muted }; ids.forEach(id => m[id] = !allMuted); apply({ muted: m }, (allMuted ? 'Звук включён: ' : 'Без звука: ') + n + ' ' + word(n), true); } },
+      { i: allPinned ? 'keep_off' : 'push_pin', t: allPinned ? 'Открепить' : 'Закрепить', ink: '#EEF3EF', tap: () => { const p = { ...s.pinned }; ids.forEach(id => p[id] = !allPinned); apply({ pinned: p }, allPinned ? 'Откреплено' : 'Закреплено', true); } },
+      { i: 'archive', t: 'В архив', ink: '#EEF3EF', tap: () => { const g = { ...s.gone }; ids.forEach(id => g[id] = true); apply({ gone: g }, 'В архиве: ' + n + ' ' + word(n), true); } },
+      { i: 'delete', t: 'Удалить', ink: '#FF8A80', tap: () => this.ask('Удалить выбранные чаты?', 'Личные чаты удалятся у вас, из групп и каналов вы выйдете.', 'Удалить', () => { const g = { ...s.gone }; ids.forEach(id => g[id] = true); apply({ gone: g }, 'Удалено: ' + n + ' ' + word(n), true); }) }
+    ],
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 3s ease both',
+    undoShow: s.snap ? 'inline-block' : 'none',
+    undo: () => { if (!s.snap) return; clearTimeout(this.tt); this.setState({ ...s.snap, toast: '', snap: null }); }
+  };
+}
+}
+</script>
+</body>
+</html>

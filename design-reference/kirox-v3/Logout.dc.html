@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Выйти из аккаунта</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxDoor{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+@keyframes kxDim{from{opacity:0}to{opacity:1}}
+@keyframes kxPop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxBye{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <sc-if value="{{inApp}}" hint-placeholder-val="{{true}}">
+    <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+      <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+      <span style="font-size: 20px; font-weight: 800">Выйти из аккаунта</span>
+    </header>
+    <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 0">
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6px 0 14px">
+        <span style="width: 76px; height: 76px; border-radius: 26px; background: rgba(143,211,172,.12); border: 1px solid rgba(143,211,172,.3); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 40px; animation: kxDoor 1.8s ease-in-out 2" aria-hidden="true">logout</span></span>
+        <div style="margin-top: 12px; font-size: 18px; font-weight: 800">Может, хватит чего-то из этого?</div>
+        <div style="margin-top: 4px; font-size: 13px; color: #9AA59F; line-height: 1.4">Выход нужен не всегда. Вот что обычно решает задачу быстрее.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{alts}}" as="a" hint-placeholder-count="5"><button onClick="{{a.tap}}" style="padding: 12px 14px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; gap: 12px; animation: kxIn .3s ease {{a.d}} both"><span style="width: 42px; height: 42px; border-radius: 14px; background: {{a.bg}}; color: {{a.c}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 22px" aria-hidden="true">{{a.i}}</span></span><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 800">{{a.t}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F; line-height: 1.35">{{a.s}}</span></span><span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">chevron_right</span></button></sc-for>
+      </div>
+    </div>
+    <div style="padding: 12px 16px 22px">
+      <button onClick="{{ask}}" style="width: 100%; height: 54px; border-radius: 27px; background: rgba(229,83,75,.12); border: 1px solid rgba(229,83,75,.35); color: #FF8A80; font-size: 16px; font-weight: 800; text-align: center">Всё равно выйти</button>
+    </div>
+
+    <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+      <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">info</span>{{toastText}}</div>
+    </sc-if>
+
+    <sc-if value="{{dialog}}" hint-placeholder-val="{{false}}">
+      <div style="position: absolute; inset: 0; background: rgba(0,0,0,.6); animation: kxDim .2s ease both"></div>
+      <div role="dialog" aria-label="Подтверждение выхода" style="position: absolute; left: 20px; right: 20px; top: 50%; margin-top: -190px; padding: 20px; border-radius: 28px; background: linear-gradient(180deg, rgba(48,58,53,.99), rgba(24,29,27,.99)); border: 1px solid rgba(255,255,255,.14); animation: kxPop .25s ease both">
+        <div style="font-size: 19px; font-weight: 800">Выйти из kiroX?</div>
+        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; gap: 10px; font-size: 13px; line-height: 1.4; color: #C9D2CC"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">cloud_done</span><span>Обычные чаты, фото и файлы останутся в облаке Telegram. Войдёте снова — всё на месте.</span></div>
+          <div style="display: flex; gap: 10px; font-size: 13px; line-height: 1.4; color: #C9D2CC"><span class="ms fill" style="font-size: 18px; color: #E8B04A" aria-hidden="true">lock</span><span>Секретные чаты на этом телефоне удалятся — они живут только здесь.</span></div>
+          <div style="display: flex; gap: 10px; font-size: 13px; line-height: 1.4; color: #C9D2CC"><span class="ms fill" style="font-size: 18px; color: #9AA59F" aria-hidden="true">key</span><span>Для входа понадобится код из СМС или Telegram и облачный пароль, если он есть.</span></div>
+        </div>
+        <button onClick="{{toggleCache}}" role="switch" aria-checked="{{cacheOn}}" style="margin-top: 14px; width: 100%; min-height: 48px; padding: 0 2px; display: flex; align-items: center; gap: 12px"><span style="flex: 1; font-size: 14px; font-weight: 700">Очистить кэш на телефоне<span style="display: block; font-size: 12px; font-weight: 400; color: #9AA59F">Освободит 1,8 ГБ</span></span><span style="width: 46px; height: 28px; border-radius: 14px; background: {{trk}}; position: relative; transition: background .2s"><span style="position: absolute; top: 3px; left: {{knx}}; width: 22px; height: 22px; border-radius: 11px; background: {{knc}}; transition: left .2s"></span></span></button>
+        <div style="margin-top: 14px; display: flex; gap: 8px">
+          <button onClick="{{cancel}}" style="flex: 1; height: 50px; border-radius: 25px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Остаться</button>
+          <button onClick="{{logout}}" style="flex: 1; height: 50px; border-radius: 25px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">Выйти</button>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{out}}" hint-placeholder-val="{{false}}">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 32px">
+      <span style="width: 96px; height: 96px; border-radius: 34px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; animation: kxBye .5s ease both"><span class="ms fill" style="font-size: 50px" aria-hidden="true">waving_hand</span></span>
+      <div style="margin-top: 18px; font-size: 24px; font-weight: 800">До встречи!</div>
+      <div style="margin-top: 8px; font-size: 14px; color: #9AA59F; line-height: 1.45">{{byeText}}</div>
+      <button onClick="{{restart}}" style="margin-top: 26px; width: 100%; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; text-align: center">Войти снова</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const ALTS = [
+  ['person_add', 'Добавить аккаунт', 'Второй номер рядом с этим, переключение в один тап', '#8FD3AC', 'rgba(143,211,172,.14)', 'Откроем добавление аккаунта'],
+  ['pin', 'Поставить код-пароль', 'Закроет kiroX от чужих глаз, выходить не нужно', '#8FD3AC', 'rgba(143,211,172,.14)', 'Откроем настройки код-пароля'],
+  ['cleaning_services', 'Очистить кэш', 'Если мало места — освободите 1,8 ГБ, чаты останутся', '#E8B04A', 'rgba(232,176,74,.14)', 'Откроем «Данные и память»'],
+  ['sim_card', 'Сменить номер', 'Новая SIM — переносим аккаунт со всеми чатами', '#8FD3AC', 'rgba(143,211,172,.14)', 'Откроем смену номера'],
+  ['support_agent', 'Написать в поддержку', 'Что-то не работает? Расскажите, разберёмся', '#9AA59F', 'rgba(255,255,255,.08)', 'Откроем «Помощь»']
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { dialog: false, out: false, cache: false, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2200); };
+  return {
+    inApp: !s.out, out: s.out, dialog: s.dialog,
+    alts: ALTS.map(([i, t, sub, c, bg, msg], k) => ({ i, t, s: sub, c, bg, d: (k * 0.05) + 's', tap: () => say(msg) })),
+    ask: () => this.setState({ dialog: true }),
+    cancel: () => this.setState({ dialog: false }),
+    toggleCache: () => this.setState({ cache: !s.cache }), cacheOn: s.cache ? 'true' : 'false',
+    trk: s.cache ? '#3F9A6C' : 'rgba(255,255,255,.14)', knc: s.cache ? '#EEF3EF' : '#9AA59F', knx: s.cache ? '21px' : '3px',
+    logout: () => this.setState({ dialog: false, out: true }),
+    byeText: s.cache ? 'Вы вышли, кэш очищен. Чаты ждут вас в облаке.' : 'Вы вышли. Чаты ждут вас в облаке — войдите, когда захотите.',
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2.2s ease both',
+    restart: () => this.setState({ out: false, dialog: false, cache: false })
+  };
+}
+}
+</script>
+</body>
+</html>

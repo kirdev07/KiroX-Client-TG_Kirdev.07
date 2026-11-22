@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Аккаунты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxSwap{0%{opacity:1;transform:scale(1)}45%{opacity:0;transform:scale(.92)}55%{opacity:0;transform:scale(.92)}100%{opacity:1;transform:scale(1)}}
+@keyframes kxPop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <!-- Settings top -->
+  <div style="position: absolute; inset: 0; display: flex; flex-direction: column; animation: {{swap}}">
+    <div style="position: relative; padding: 24px 16px 18px; display: flex; flex-direction: column; align-items: center; background: radial-gradient(90% 70% at 50% 0%, {{glow}}, transparent 70%)">
+      <button onClick="{{open}}" aria-label="Сменить аккаунт" style="position: relative; width: 96px; height: 96px; border-radius: 48px; background: {{av}}; color: {{ink}}; font-size: 36px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 40px rgba(0,0,0,.5); text-align: center">{{init}}
+        <span style="position: absolute; right: -2px; bottom: -2px; width: 32px; height: 32px; border-radius: 16px; background: #1E2622; border: 3px solid #0A0C0B; color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">swap_horiz</span></span>
+      </button>
+      <div style="margin-top: 12px; font-size: 22px; font-weight: 800">{{name}}</div>
+      <div style="margin-top: 2px; font-size: 13px; color: #9AA59F">{{handle}}</div>
+      <button onClick="{{open}}" style="margin-top: 12px; height: 36px; padding: 0 14px; border-radius: 18px; background: rgba(255,255,255,.07); font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">group</span>Аккаунты · {{count}}</button>
+    </div>
+    <div style="padding: 0 16px">
+      <div style="border-radius: 22px; background: rgba(255,255,255,.045); overflow: hidden">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 14px; height: 56px; padding: 0 16px; border-top: {{r.line}}"><span class="ms" style="color: #8FD3AC" aria-hidden="true">{{r.icon}}</span><span style="flex: 1; font-size: 15px; font-weight: 600">{{r.label}}</span><span class="ms" style="color: #8A958F" aria-hidden="true">chevron_right</span></div>
+        </sc-for>
+      </div>
+      <button onClick="{{askLogout}}" style="margin-top: 14px; width: 100%; height: 54px; border-radius: 20px; background: rgba(255,138,128,.08); border: 1px solid rgba(255,138,128,.2); color: #FF8A80; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 700"><span class="ms" aria-hidden="true">logout</span>Выйти из {{name}}</button>
+    </div>
+  </div>
+
+  <!-- Switcher sheet -->
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{true}}">
+    <button aria-label="Закрыть" onClick="{{close}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px 10px; font-size: 18px; font-weight: 800">Аккаунты</div>
+      <sc-for list="{{accounts}}" as="a" hint-placeholder-count="3">
+        <button onClick="{{a.tap}}" style="width: 100%; padding: 10px; border-radius: 20px; background: {{a.bg}}; border: 1px solid {{a.border}}; display: flex; align-items: center; gap: 12px; margin-bottom: 6px; animation: kxIn .3s ease {{a.d}} both">
+          <span style="position: relative; flex-shrink: 0">
+            <span style="width: 48px; height: 48px; border-radius: 24px; background: {{a.av}}; color: {{a.ink}}; font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{a.init}}</span>
+            <sc-if value="{{a.hasBadge}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: -4px; top: -4px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; background: #8FD3AC; color: #06150D; border: 2px solid #121614; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{a.badge}}</span></sc-if>
+          </span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{a.name}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{a.sub}}</span></span>
+          <sc-if value="{{a.active}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="color: #8FD3AC; animation: kxPop .3s ease both" aria-hidden="true">check_circle</span></sc-if>
+        </button>
+      </sc-for>
+      <sc-if value="{{canAdd}}" hint-placeholder-val="{{true}}">
+        <button style="width: 100%; height: 56px; padding: 0 10px; border-radius: 20px; display: flex; align-items: center; gap: 12px; color: #8FD3AC">
+          <span style="width: 48px; height: 48px; border-radius: 24px; border: 2px dashed rgba(143,211,172,.5); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">add</span></span>
+          <span style="font-size: 15px; font-weight: 700">Добавить аккаунт</span>
+        </button>
+      </sc-if>
+      <div style="padding: 6px 6px 0; font-size: 12px; color: #8A958F">До 3 аккаунтов в одном kiroX. Уведомления приходят со всех.</div>
+    </div>
+  </sc-if>
+
+  <!-- Logout confirm -->
+  <sc-if value="{{confirm}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cancelLogout}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.6); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 22px 20px 16px; border-radius: 30px; background: #161B18; border: 1px solid rgba(255,255,255,.08); box-shadow: 0 30px 60px rgba(0,0,0,.6); animation: kxPop .3s ease both">
+      <div style="display: flex; justify-content: center"><span style="width: 60px; height: 60px; border-radius: 20px; background: rgba(255,138,128,.12); color: #FF8A80; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 32px" aria-hidden="true">logout</span></span></div>
+      <div style="margin-top: 14px; text-align: center; font-size: 19px; font-weight: 800">Выйти из аккаунта?</div>
+      <div style="margin-top: 8px; text-align: center; font-size: 14px; line-height: 20px; color: #9AA59F">Чаты останутся в облаке. Секретные чаты на этом телефоне удалятся.</div>
+      <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{alts}}" as="a" hint-placeholder-count="3"><button style="height: 46px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,.05); display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600"><span class="ms" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{a.icon}}</span>{{a.label}}</button></sc-for>
+      </div>
+      <div style="margin-top: 14px; display: flex; gap: 8px">
+        <button onClick="{{cancelLogout}}" style="flex: 1; height: 48px; border-radius: 16px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button>
+        <button onClick="{{doLogout}}" style="flex: 1; height: 48px; border-radius: 16px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">Выйти</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const ACC = [
+  { name: 'Алекс', handle: '@alex_m · +7 ••• •• 00', av: 'linear-gradient(140deg,#3F9A6C,#1F4D36)', ink: '#DFF5E8', glow: 'rgba(63,154,108,.28)', badge: 0 },
+  { name: 'Работа', handle: '@alex_work · +7 ••• •• 17', av: 'linear-gradient(140deg,#2F6E9E,#14243A)', ink: '#CFE6FF', glow: 'rgba(47,110,158,.3)', badge: 4 },
+  { name: 'Магазин', handle: '@shop_alex · +7 ••• •• 52', av: 'linear-gradient(140deg,#B07A2E,#3A2A14)', ink: '#FFE2B8', glow: 'rgba(176,122,46,.3)', badge: 12 }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { ids: [0, 1, 2], cur: 0, sheet: true, confirm: false, swapAt: 0 }; }
+renderVals() {
+  const s = this.state;
+  const A = ACC[s.cur];
+  return {
+    name: A.name, handle: A.handle, av: A.av, ink: A.ink, glow: A.glow, init: A.name[0], count: String(s.ids.length),
+    swap: s.swapAt && Date.now() - s.swapAt < 600 ? 'kxSwap .55s ease' : 'none',
+    rows: [['person', 'Мой профиль'], ['palette', 'Кастомизация'], ['lock', 'Конфиденциальность'], ['devices', 'Устройства']].map(([icon, label], i) => ({ icon, label, line: i ? '1px solid rgba(255,255,255,.06)' : '0' })),
+    sheet: s.sheet, open: () => this.setState({ sheet: true }), close: () => this.setState({ sheet: false }),
+    accounts: s.ids.map((id, k) => { const a = ACC[id]; const active = id === s.cur; return {
+      name: a.name, sub: active ? 'Текущий · ' + a.handle.split(' · ')[0] : a.handle.split(' · ')[0] + (a.badge ? ' · ' + a.badge + ' новых' : ''),
+      av: a.av, ink: a.ink, init: a.name[0], active, hasBadge: !active && a.badge > 0, badge: String(a.badge),
+      bg: active ? 'rgba(143,211,172,.08)' : 'rgba(255,255,255,.03)', border: active ? 'rgba(143,211,172,.35)' : 'transparent', d: (k * 0.05) + 's',
+      tap: () => { if (!active) this.setState({ cur: id, sheet: false, swapAt: Date.now() }); } }; }),
+    canAdd: s.ids.length < 3,
+    confirm: s.confirm, askLogout: () => this.setState({ confirm: true, sheet: false }), cancelLogout: () => this.setState({ confirm: false }),
+    alts: [{ icon: 'swap_horiz', label: 'Просто переключиться на другой' }, { icon: 'notifications_off', label: 'Выключить уведомления' }, { icon: 'lock', label: 'Поставить код-пароль' }],
+    doLogout: () => {
+      const ids = s.ids.filter(x => x !== s.cur);
+      if (!ids.length) { this.setState({ ids: [0, 1, 2], cur: 0, confirm: false, swapAt: Date.now() }); return; }
+      this.setState({ ids, cur: ids[0], confirm: false, sheet: true, swapAt: Date.now() });
+    }
+  };
+}
+}
+</script>
+</body>
+</html>

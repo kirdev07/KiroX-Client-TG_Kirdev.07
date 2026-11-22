@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Обрезка видео</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxSun{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #050606; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Закрыть" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+    <div style="flex: 1; text-align: center"><div style="font-size: 15px; font-weight: 800">Обрезка видео</div><div style="font-size: 11px; color: #9AA59F">{{headSub}}</div></div>
+    <button onClick="{{toggleMute}}" aria-label="{{muteLabel}}" style="width: 44px; height: 44px; border-radius: 22px; background: {{muteBg}}; color: {{muteInk}}; display: flex; align-items: center; justify-content: center; transition: all .2s"><span class="ms" aria-hidden="true">{{muteIcon}}</span></button>
+  </header>
+
+  <!-- Video -->
+  <div style="margin: 0 16px; height: 420px; position: relative; border-radius: 26px; overflow: hidden; background: {{sky}}; transition: background .3s">
+    <span style="position: absolute; left: {{sunX}}; top: {{sunY}}; width: 60px; height: 60px; border-radius: 30px; background: radial-gradient(circle, #FFE3A3, #F2B866 60%, transparent 70%); animation: kxSun 3s ease-in-out 2; transition: left .3s linear, top .3s linear" aria-hidden="true"></span>
+    <svg viewBox="0 0 358 420" width="358" height="420" style="position: absolute; inset: 0" aria-hidden="true" preserveAspectRatio="none">
+      <path d="M0 300 L70 220 L120 260 L190 170 L250 240 L300 200 L358 250 L358 420 L0 420 Z" fill="#2B3E35"></path>
+      <path d="M0 340 L90 290 L160 320 L240 280 L358 330 L358 420 L0 420 Z" fill="#1A2620"></path>
+    </svg>
+    <button onClick="{{togglePlay}}" aria-label="{{playLabel}}" style="position: absolute; left: 50%; top: 50%; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 35px; background: rgba(0,0,0,.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; opacity: {{playOp}}; transition: opacity .3s"><span class="ms fill" style="font-size: 40px" aria-hidden="true">{{playIcon}}</span></button>
+    <span style="position: absolute; left: 12px; bottom: 12px; padding: 4px 10px; border-radius: 10px; background: rgba(0,0,0,.5); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums">{{timeText}}</span>
+    <sc-if value="{{isCover}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 12px; bottom: 12px; padding: 4px 10px; border-radius: 10px; background: #8FD3AC; color: #06150D; font-size: 12px; font-weight: 800; animation: kxIn .2s ease both">Обложка</span></sc-if>
+  </div>
+
+  <!-- Timeline -->
+  <div style="margin: 18px 16px 0">
+    <div style="position: relative; height: 56px; border-radius: 12px; overflow: hidden; display: flex">
+      <sc-for list="{{frames}}" as="f" hint-placeholder-count="10"><span style="flex: 1; background: {{f.bg}}; border-right: 1px solid rgba(0,0,0,.4)"></span></sc-for>
+      <span style="position: absolute; top: 0; bottom: 0; left: 0; width: {{dimL}}; background: rgba(0,0,0,.65)"></span>
+      <span style="position: absolute; top: 0; bottom: 0; right: 0; width: {{dimR}}; background: rgba(0,0,0,.65)"></span>
+      <span style="position: absolute; top: 0; bottom: 0; left: {{selL}}; width: {{selW}}; border: 3px solid #8FD3AC; border-radius: 10px; box-sizing: border-box; transition: all .15s"></span>
+      <span style="position: absolute; top: -4px; bottom: -4px; left: {{headX}}; width: 3px; border-radius: 2px; background: #fff; box-shadow: 0 0 6px rgba(0,0,0,.6); transition: left .1s linear"></span>
+    </div>
+    <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px">
+      <div style="display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 16px; background: rgba(255,255,255,.06)">
+        <button onClick="{{sMinus}}" aria-label="Начало раньше" style="width: 32px; height: 32px; border-radius: 12px; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">chevron_left</span></button>
+        <span style="min-width: 42px; text-align: center; font-size: 13px; font-weight: 800; color: #8FD3AC; font-variant-numeric: tabular-nums">{{startText}}</span>
+        <button onClick="{{sPlus}}" aria-label="Начало позже" style="width: 32px; height: 32px; border-radius: 12px; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">chevron_right</span></button>
+      </div>
+      <span style="flex: 1; text-align: center; font-size: 13px; color: #C9D2CC">{{lenText}}</span>
+      <div style="display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 16px; background: rgba(255,255,255,.06)">
+        <button onClick="{{eMinus}}" aria-label="Конец раньше" style="width: 32px; height: 32px; border-radius: 12px; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">chevron_left</span></button>
+        <span style="min-width: 42px; text-align: center; font-size: 13px; font-weight: 800; color: #8FD3AC; font-variant-numeric: tabular-nums">{{endText}}</span>
+        <button onClick="{{ePlus}}" aria-label="Конец позже" style="width: 32px; height: 32px; border-radius: 12px; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">chevron_right</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div style="margin: 14px 16px 0; display: flex; gap: 6px">
+    <sc-for list="{{quals}}" as="q" hint-placeholder-count="3"><button onClick="{{q.tap}}" style="flex: 1; height: 38px; border-radius: 19px; background: {{q.bg}}; color: {{q.ink}}; font-size: 13px; font-weight: 700; text-align: center; transition: all .2s">{{q.label}}</button></sc-for>
+    <button onClick="{{setCover}}" style="height: 38px; padding: 0 12px; border-radius: 19px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 17px" aria-hidden="true">image</span>Обложка</button>
+  </div>
+
+  <div style="margin-top: auto; padding: 12px 16px 20px; display: flex; align-items: center; gap: 12px">
+    <span style="flex: 1; font-size: 12px; color: #8A958F">{{sizeText}}</span>
+    <button onClick="{{send}}" style="height: 52px; padding: 0 22px; border-radius: 26px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px; box-shadow: 0 8px 24px rgba(63,154,108,.4)"><span class="ms fill" aria-hidden="true">send</span>Отправить</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 90px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const DUR = 48;
+const QUAL = [['480p', 0.35], ['720p', 0.8], ['1080p', 1.6]];
+const mmss = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+const skyAt = p => { const a = Math.round(40 + p * 60), b = Math.round(150 - p * 60); return 'linear-gradient(180deg, hsl(' + (210 - p * 180) + ',55%,' + (60 - p * 15) + '%) 0%, hsl(' + (30 + p * 10) + ',70%,' + (70 - p * 20) + '%) 70%)'; };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { start: 6, end: 30, pos: 6, playing: false, mute: false, q: 1, cover: 12, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+togglePlay() {
+  if (this.state.playing) { clearInterval(this.iv); this.setState({ playing: false }); return; }
+  this.setState({ playing: true, pos: this.state.pos >= this.state.end ? this.state.start : this.state.pos });
+  this.iv = setInterval(() => { const s = this.state; let p = s.pos + 0.25; if (p >= s.end) p = s.start; this.setState({ pos: p }); }, 100);
+}
+renderVals() {
+  const s = this.state;
+  const p = s.pos / DUR;
+  const len = s.end - s.start;
+  const mb = len * QUAL[s.q][1] * (s.mute ? 0.9 : 1);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  return {
+    headSub: mmss(len) + ' из ' + mmss(DUR),
+    sky: skyAt(p), sunX: (20 + p * 260) + 'px', sunY: (40 + Math.sin(p * Math.PI) * -20 + 30) + 'px',
+    playIcon: s.playing ? 'pause' : 'play_arrow', playLabel: s.playing ? 'Пауза' : 'Смотреть', playOp: s.playing ? '0.25' : '1',
+    togglePlay: () => this.togglePlay(),
+    timeText: mmss(s.pos) + ' / ' + mmss(DUR),
+    isCover: Math.abs(s.pos - s.cover) < 0.6,
+    frames: Array.from({ length: 10 }, (_, i) => ({ bg: skyAt((i + 0.5) / 10).replace('180deg', '180deg') + ', #1A2620' })),
+    dimL: (s.start / DUR * 100) + '%', dimR: ((DUR - s.end) / DUR * 100) + '%',
+    selL: (s.start / DUR * 100) + '%', selW: (len / DUR * 100) + '%',
+    headX: 'calc(' + (p * 100) + '% - 1px)',
+    startText: mmss(s.start), endText: mmss(s.end),
+    lenText: mmss(len),
+    sMinus: () => this.setState({ start: clamp(s.start - 1, 0, s.end - 2), pos: clamp(s.start - 1, 0, s.end - 2) }),
+    sPlus: () => this.setState({ start: clamp(s.start + 1, 0, s.end - 2), pos: clamp(s.start + 1, 0, s.end - 2) }),
+    eMinus: () => this.setState({ end: clamp(s.end - 1, s.start + 2, DUR), pos: clamp(s.end - 1, s.start + 2, DUR) - 0.5 }),
+    ePlus: () => this.setState({ end: clamp(s.end + 1, s.start + 2, DUR), pos: clamp(s.end + 1, s.start + 2, DUR) - 0.5 }),
+    toggleMute: () => this.setState({ mute: !s.mute }),
+    muteIcon: s.mute ? 'volume_off' : 'volume_up', muteLabel: s.mute ? 'Включить звук в видео' : 'Отправить без звука',
+    muteBg: s.mute ? 'rgba(229,83,75,.18)' : 'rgba(255,255,255,.08)', muteInk: s.mute ? '#FF8A80' : '#EEF3EF',
+    quals: QUAL.map(([label], i) => ({ label, bg: s.q === i ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.06)', ink: s.q === i ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ q: i }) })),
+    setCover: () => { this.setState({ cover: s.pos }); this.toastMsg('Обложка — кадр ' + mmss(s.pos), 'image'); },
+    sizeText: '≈ ' + mb.toFixed(1).replace('.', ',') + ' МБ · ' + QUAL[s.q][0] + (s.mute ? ' · без звука' : ''),
+    send: () => { clearInterval(this.iv); this.setState({ playing: false }); this.toastMsg('Видео ' + mmss(len) + ' отправлено', 'done_all'); },
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

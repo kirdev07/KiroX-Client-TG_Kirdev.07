@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Звонки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+@keyframes kxRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kxSheen{0%{transform:translateX(-140%)}55%,100%{transform:translateX(260%)}}
+@keyframes kxRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.9);opacity:0}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxUp{from{opacity:0;transform:translateY(40px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes kxDots{0%,60%,100%{opacity:.3}30%{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <div aria-hidden="true" style="position: absolute; right: -90px; top: -110px; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(circle, rgba(70,160,110,.18), rgba(70,160,110,0) 65%)"></div>
+
+  <header style="position: relative; padding: 10px 16px 4px; display: flex; align-items: center; gap: 8px">
+    <h1 style="margin: 0; flex-grow: 1; font-size: 30px; font-weight: 800; letter-spacing: -0.4px">Звонки</h1>
+    <button aria-label="Поиск" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" style="font-size: 22px" aria-hidden="true">search</span></button>
+    <button aria-label="Новый звонок" style="width: 42px; height: 42px; border-radius: 21px; background: linear-gradient(140deg, #8FD3AC, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(63,154,108,.35)"><span class="ms" style="font-size: 22px" aria-hidden="true">add_call</span></button>
+  </header>
+
+  <div style="position: relative; padding: 10px 16px 0">
+    <div role="tablist" aria-label="Фильтр" style="position: relative; height: 40px; border-radius: 20px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07); display: flex; padding: 3px; box-sizing: border-box">
+      <span aria-hidden="true" style="position: absolute; top: 3px; left: 3px; width: calc(50% - 3px); height: 32px; border-radius: 16px; background: rgba(143,211,172,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); transition: transform .45s cubic-bezier(.34,1.4,.5,1); transform: {{segX}}"></span>
+      <button role="tab" aria-selected="{{allSel}}" onClick="{{showAll}}" style="position: relative; flex: 1; text-align: center; font-size: 14px; font-weight: 600; color: {{allColor}}; transition: color .3s">Все</button>
+      <button role="tab" aria-selected="{{missSel}}" onClick="{{showMissed}}" style="position: relative; flex: 1; text-align: center; font-size: 14px; font-weight: 600; color: {{missColor}}; transition: color .3s">Пропущенные <span style="color: #FF8A80">2</span></button>
+    </div>
+  </div>
+
+  <div style="position: relative; margin: 14px 16px 0; padding: 12px; border-radius: 22px; background: linear-gradient(150deg, rgba(63,154,108,.20), rgba(255,255,255,.03)); border: 1px solid rgba(143,211,172,.16); display: flex; align-items: center; gap: 12px">
+    <span style="width: 44px; height: 44px; border-radius: 15px; background: rgba(143,211,172,.18); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">link</span></span>
+    <span style="flex-grow: 1"><span style="display: block; font-size: 15px; font-weight: 700">Ссылка на звонок</span><span style="display: block; font-size: 12px; color: #9AA59F">Позовите друзей в групповой звонок</span></span>
+    <span class="ms" style="color: #8FD3AC" aria-hidden="true">chevron_right</span>
+  </div>
+
+  <div style="position: relative; margin-top: 10px">
+    <div style="padding: 8px 16px 4px; font-size: 13px; font-weight: 700; color: #8A958F">Сегодня</div>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+      <div style="height: 68px; padding: 0 12px 0 16px; display: flex; align-items: center; gap: 13px; animation: kxRise .45s cubic-bezier(.2,.8,.2,1) both; animation-delay: {{r.delay}}">
+        <span style="width: 50px; height: 50px; border-radius: 25px; background: {{r.avatar}}; color: {{r.ink}}; font-size: 19px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{r.letter}}</span>
+        <div style="flex-grow: 1; min-width: 0">
+          <div style="font-size: 16px; font-weight: 600; color: {{r.nameColor}}">{{r.name}}</div>
+          <div style="display: flex; align-items: center; gap: 4px; font-size: 13px; color: #8A958F"><span class="ms" style="font-size: 16px; color: {{r.dirColor}}" aria-hidden="true">{{r.dirIcon}}</span>{{r.info}}</div>
+        </div>
+        <button aria-label="{{r.callLabel}}" onClick="{{r.call}}" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(143,211,172,.12); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 22px" aria-hidden="true">{{r.kindIcon}}</span></button>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{inCall}}" hint-placeholder-val="{{false}}">
+    <div role="dialog" aria-label="Звонок" style="position: absolute; inset: 0; background: radial-gradient(90% 60% at 50% 30%, #17402C 0%, #0A0C0B 70%); display: flex; flex-direction: column; align-items: center; padding-top: 120px; animation: kxFade .3s ease both">
+      <div style="position: relative; width: 140px; height: 140px; animation: kxUp .45s cubic-bezier(.2,.8,.2,1) both">
+        <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; background: rgba(143,211,172,.35); animation: kxRing 1.8s ease-out infinite"></span>
+        <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; background: rgba(143,211,172,.25); animation: kxRing 1.8s ease-out .9s infinite"></span>
+        <span style="position: relative; width: 140px; height: 140px; border-radius: 70px; background: {{callAvatar}}; color: {{callInk}}; font-size: 54px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 50px rgba(0,0,0,.5)">{{callLetter}}</span>
+      </div>
+      <div style="margin-top: 28px; font-size: 28px; font-weight: 800">{{callName}}</div>
+      <div style="margin-top: 6px; font-size: 15px; color: #8FD3AC">{{callStatus}}<span style="animation: kxDots 1.2s infinite">.</span><span style="animation: kxDots 1.2s .2s infinite">.</span><span style="animation: kxDots 1.2s .4s infinite">.</span></div>
+      <div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8A958F"><span class="ms fill" style="font-size: 14px" aria-hidden="true">lock</span>Защищено сквозным шифрованием</div>
+      <div style="flex-grow: 1"></div>
+      <div style="margin-bottom: 26px; padding: 14px; border-radius: 36px; display: flex; gap: 14px; background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); backdrop-filter: blur(22px) saturate(170%); -webkit-backdrop-filter: blur(22px) saturate(170%); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 0 1px 0 rgba(255,255,255,.3); animation: kxUp .5s cubic-bezier(.2,.8,.2,1) .1s both">
+        <button aria-label="Динамик" style="width: 56px; height: 56px; border-radius: 28px; background: rgba(255,255,255,.10); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">volume_up</span></button>
+        <button aria-label="Камера" style="width: 56px; height: 56px; border-radius: 28px; background: rgba(255,255,255,.10); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">videocam_off</span></button>
+        <button aria-label="Микрофон" onClick="{{toggleMute}}" style="width: 56px; height: 56px; border-radius: 28px; background: {{muteBg}}; color: {{muteInk}}; display: flex; align-items: center; justify-content: center; transition: background .25s"><span class="ms" aria-hidden="true">{{muteIcon}}</span></button>
+        <button aria-label="Завершить" onClick="{{endCall}}" style="width: 56px; height: 56px; border-radius: 28px; background: #E5484D; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(229,72,77,.4)"><span class="ms fill" aria-hidden="true">call_end</span></button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showBar}}" hint-placeholder-val="{{true}}">
+    <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, rgba(10,12,11,0), rgba(10,12,11,.85) 70%)"></div>
+    <nav aria-label="Разделы" style="position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); height: 64px; padding: 0 6px; border-radius: 32px; display: flex; align-items: center; overflow: hidden; background: rgba(28,34,31,.92); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 14px 34px rgba(0,0,0,.55); z-index: 5">
+    <span aria-hidden="true" style="position: absolute; left: 6px; top: 6px; width: 78px; height: 52px; border-radius: 26px; background: rgba(143,211,172,.18); border: 1px solid rgba(166,227,193,.3); display: {{lensShow}}; transition: transform .45s cubic-bezier(.34,1.3,.5,1); transform: {{lensTransform}}"></span>
+    <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="4">
+      <button aria-label="{{tab.label}}" aria-current="{{tab.current}}" onClick="{{tab.pick}}" style="position: relative; width: 78px; height: 52px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: {{tab.color}}">
+        <span class="{{tab.cls}}" style="font-size: 23px" aria-hidden="true">{{tab.icon}}</span>
+        <span style="font-size: 11px; font-weight: {{tab.fw}}; line-height: 13px">{{tab.label}}</span>
+        <sc-if value="{{tab.badge}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 12px; top: 3px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: {{tab.badgeColor}}; color: #06150D; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{tab.badge}}</span></sc-if>
+      </button>
+    </sc-for>
+  </nav>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { tab: 1, missed: false, call: null, muted: false, connected: false }; }
+componentWillUnmount() { clearTimeout(this.t); }
+renderVals() {
+  const s = this.state;
+  const calls = [
+    { name: 'Анна', letter: 'А', avatar: 'linear-gradient(140deg,#4B3F7A,#2A2240)', ink: '#DCD0FF', dir: 'in', video: false, info: 'Входящий · 21:40 · 12 мин' },
+    { name: 'Максим', letter: 'М', avatar: 'linear-gradient(140deg,#2D4E73,#1A2A40)', ink: '#C6DBF5', dir: 'missed', video: false, info: 'Пропущенный · 20:15' },
+    { name: 'Команда kiroX', letter: 'K', avatar: 'linear-gradient(140deg,#2E6B66,#18403C)', ink: '#BDEDE8', dir: 'out', video: true, info: 'Видеочат · 18:02 · 41 мин' },
+    { name: 'Мама', letter: 'М', avatar: 'linear-gradient(140deg,#6B4E2E,#3A2A1A)', ink: '#F2DDBF', dir: 'out', video: false, info: 'Исходящий · 16:30 · 3 мин' },
+    { name: 'Света', letter: 'С', avatar: 'linear-gradient(140deg,#3C7BD0,#1A3A6A)', ink: '#D6E6FF', dir: 'missed', video: true, info: 'Пропущенный видеозвонок · 12:08' },
+    { name: 'Илья', letter: 'И', avatar: 'linear-gradient(140deg,#D08A3C,#7A4A16)', ink: '#FFE9C9', dir: 'in', video: false, info: 'Входящий · 10:21 · 1 мин' }
+  ];
+  const shown = s.missed ? calls.filter(c => c.dir === 'missed') : calls;
+  const rows = shown.map((c, i) => ({
+    name: c.name, letter: c.letter, avatar: c.avatar, ink: c.ink, info: c.info,
+    delay: (i * 0.05) + 's',
+    nameColor: c.dir === 'missed' ? '#FF8A80' : '#EEF3EF',
+    dirIcon: c.dir === 'in' ? 'call_received' : c.dir === 'out' ? 'call_made' : 'call_missed',
+    dirColor: c.dir === 'missed' ? '#FF8A80' : '#8FD3AC',
+    kindIcon: c.video ? 'videocam' : 'call',
+    callLabel: (c.video ? 'Видеозвонок: ' : 'Позвонить: ') + c.name,
+    call: () => {
+      this.setState({ call: c, connected: false, muted: false });
+      clearTimeout(this.t);
+      this.t = setTimeout(() => this.setState({ connected: true }), 2200);
+    }
+  }));
+  const items = [
+    { icon: 'chat', label: 'Чаты', badge: '16', badgeColor: '#8FD3AC' },
+    { icon: 'call', label: 'Звонки', badge: '1', badgeColor: '#FF8A80' },
+    { icon: 'motion_photos_on', label: 'Истории' },
+    { icon: 'settings', label: 'Настройки' }
+  ];
+  const tabs = items.map((t, i) => {
+    const on = i === 1;
+    return {
+      icon: t.icon, label: t.label, badge: t.badge || false, badgeColor: t.badgeColor || '#8FD3AC',
+      current: on ? 'page' : 'false', cls: on ? 'ms fill' : 'ms', fw: on ? 800 : 600, fill: on ? 'fill' : '', color: on ? '#E6F6EC' : '#B4BEB8',
+      iconTransform: on ? 'translateY(-1px) scale(1.08)' : 'translateY(6px) scale(1)',
+      labelOpacity: on ? '1' : '0', labelTransform: on ? 'translateY(0)' : 'translateY(6px)',
+      pick: () => this.setState({ tab: i })
+    };
+  });
+  const c = s.call || {};
+  return {
+    rows, tabs, lensTransform: 'translateX(78px)', lensShow: 'block',
+    segX: s.missed ? 'translateX(100%)' : 'translateX(0)',
+    allSel: s.missed ? 'false' : 'true', missSel: s.missed ? 'true' : 'false',
+    allColor: s.missed ? '#8A958F' : '#EEF3EF', missColor: s.missed ? '#EEF3EF' : '#8A958F',
+    showAll: () => this.setState({ missed: false }), showMissed: () => this.setState({ missed: true }),
+    inCall: !!s.call, showBar: !s.call,
+    callName: c.name || '', callLetter: c.letter || '', callAvatar: c.avatar || '#222', callInk: c.ink || '#fff',
+    callStatus: s.connected ? 'Идёт звонок' : (c.video ? 'Видеовызов' : 'Вызов'),
+    muteBg: s.muted ? '#EEF3EF' : 'rgba(255,255,255,.10)', muteInk: s.muted ? '#0A0C0B' : '#EEF3EF', muteIcon: s.muted ? 'mic_off' : 'mic',
+    toggleMute: () => this.setState({ muted: !s.muted }),
+    endCall: () => { clearTimeout(this.t); this.setState({ call: null }); }
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Ночной режим</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(90deg,#F2C66A,#C0587E 45%,#2C2F6E 70%,#0D0F22)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:13px;background:#EEF3EF;margin-top:-9px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:linear-gradient(90deg,#F2C66A,#C0587E 45%,#2C2F6E 70%,#0D0F22)}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border:0;border-radius:13px;background:#EEF3EF}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxTwinkle{0%,100%{opacity:.2}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 22px; font-weight: 800">Ночной режим</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 30px">
+    <!-- Sky preview -->
+    <div style="position: relative; height: 200px; border-radius: 26px; overflow: hidden; background: {{sky}}; transition: background .6s ease">
+      <sc-for list="{{stars}}" as="s" hint-placeholder-count="14"><span aria-hidden="true" style="position: absolute; left: {{s.x}}; top: {{s.y}}; width: {{s.z}}; height: {{s.z}}; border-radius: 50%; background: #fff; opacity: {{s.op}}; animation: kxTwinkle {{s.dur}} ease-in-out {{s.d}} 2; transition: opacity .6s"></span></sc-for>
+      <span aria-hidden="true" style="position: absolute; left: {{sunX}}; top: {{sunY}}; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: {{orb}}; box-shadow: 0 0 50px {{orbGlow}}; transition: all .6s ease"></span>
+      <span aria-hidden="true" style="position: absolute; left: -30px; right: -30px; bottom: -30px; height: 90px; border-radius: 50% 50% 0 0; background: {{hill}}; transition: background .6s"></span>
+      <div style="position: absolute; left: 16px; right: 16px; bottom: 14px; display: flex; align-items: center; gap: 10px">
+        <span style="height: 28px; padding: 0 12px; border-radius: 14px; background: rgba(0,0,0,.35); font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 5px"><span class="ms fill" style="font-size: 15px" aria-hidden="true">{{nowIcon}}</span>{{nowText}}</span>
+        <span style="flex: 1"></span>
+        <span style="font-size: 22px; font-weight: 800; text-shadow: 0 2px 8px rgba(0,0,0,.4)">{{clock}}</span>
+      </div>
+    </div>
+    <div style="padding: 8px 4px 0">
+      <input type="range" min="0" max="23" value="{{hour}}" onInput="{{onHour}}" aria-label="Время суток для проверки">
+      <div style="display: flex; justify-content: space-between; font-size: 11px; color: #8A958F"><span>00:00</span><span>Макет: время суток</span><span>23:00</span></div>
+    </div>
+
+    <div style="padding: 16px 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Когда включать</div>
+    <div style="border-radius: 22px; background: rgba(255,255,255,.045); overflow: hidden">
+      <sc-for list="{{modes}}" as="m" hint-placeholder-count="4">
+        <button onClick="{{m.tap}}" style="width: 100%; padding: 13px 16px; display: flex; align-items: center; gap: 12px; border-top: {{m.line}}">
+          <span class="ms" style="color: #8FD3AC" aria-hidden="true">{{m.icon}}</span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{m.label}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #9AA59F">{{m.sub}}</span></span>
+          <span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{m.ring}}; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{m.dot}}; transition: background .2s"></span></span>
+        </button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{isSchedule}}" hint-placeholder-val="{{true}}">
+      <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{times}}" as="t" hint-placeholder-count="2">
+          <div style="padding: 12px; border-radius: 20px; background: rgba(255,255,255,.045); text-align: center">
+            <div style="font-size: 12px; color: #9AA59F; display: flex; align-items: center; justify-content: center; gap: 4px"><span class="ms" style="font-size: 16px" aria-hidden="true">{{t.icon}}</span>{{t.label}}</div>
+            <div style="margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 4px">
+              <button onClick="{{t.dec}}" aria-label="Раньше" style="width: 32px; height: 32px; border-radius: 16px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">remove</span></button>
+              <span style="min-width: 70px; font-size: 24px; font-weight: 800; color: #8FD3AC">{{t.val}}</span>
+              <button onClick="{{t.inc}}" aria-label="Позже" style="width: 32px; height: 32px; border-radius: 16px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">add</span></button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <div style="padding: 16px 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">Тема ночью</div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{themes}}" as="t" hint-placeholder-count="3">
+        <button onClick="{{t.tap}}" style="padding: 8px; border-radius: 18px; background: rgba(255,255,255,.045); border: 1px solid {{t.border}}; display: flex; flex-direction: column; gap: 6px; transition: border-color .2s">
+          <span style="height: 58px; border-radius: 12px; background: {{t.bg}}; padding: 8px; box-sizing: border-box; display: flex; flex-direction: column; gap: 5px"><span style="height: 8px; width: 60%; border-radius: 4px; background: {{t.a}}"></span><span style="height: 8px; width: 80%; border-radius: 4px; background: rgba(255,255,255,.18); align-self: flex-end"></span><span style="height: 8px; width: 50%; border-radius: 4px; background: {{t.a}}"></span></span>
+          <span style="font-size: 12px; font-weight: 700; text-align: center">{{t.label}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { mode: 1, from: 22, to: 7, hour: 23, theme: 0 }; }
+renderVals() {
+  const s = this.state;
+  const h = s.hour;
+  const inRange = (x, a, b) => a <= b ? (x >= a && x < b) : (x >= a || x < b);
+  const sunrise = 8, sunset = 17;
+  const night = s.mode === 0 ? true : s.mode === 1 ? inRange(h, s.from, s.to) : s.mode === 2 ? !inRange(h, sunrise, sunset) : (h >= 20 || h < 7);
+  const isDaySky = inRange(h, 7, 18), dusk = h === 17 || h === 18 || h === 6;
+  const sky = dusk ? 'linear-gradient(180deg, #2C2F6E 0%, #C0587E 65%, #F2A65A 100%)' : isDaySky ? 'linear-gradient(180deg, #5FA8D3 0%, #A9D8EE 100%)' : 'linear-gradient(180deg, #05060F 0%, #141B3A 70%, #1E2A4A 100%)';
+  const t = isDaySky ? (h - 7) / 11 : ((h + 24 - 18) % 24) / 13;
+  const sunX = (12 + t * 76) + '%', sunY = (80 - Math.sin(t * Math.PI) * 60) + '%';
+  const pad = n => String(n).padStart(2, '0') + ':00';
+  const T = [['kiroX тёмная', '#0A0C0B', '#8FD3AC'], ['Чистый чёрный', '#000000', '#8FD3AC'], ['Ночное небо', '#0D1222', '#9FB7FF']];
+  return {
+    sky, sunX, sunY, orb: isDaySky ? '#FFE9A8' : '#E6ECFF', orbGlow: isDaySky ? 'rgba(255,220,140,.8)' : 'rgba(200,215,255,.6)',
+    hill: isDaySky ? '#3F9A6C' : '#0D1A14',
+    stars: Array.from({ length: 14 }, (_, i) => ({ x: ((i * 37) % 95 + 2) + '%', y: ((i * 23) % 55 + 5) + '%', z: (i % 3 + 1.5) + 'px', op: isDaySky ? '0' : '1', dur: (1.5 + (i % 4) * .6) + 's', d: (-i * .3) + 's' })),
+    clock: pad(h), hour: String(h), onHour: e => this.setState({ hour: +e.target.value }),
+    nowIcon: night ? 'dark_mode' : 'light_mode', nowText: night ? 'Ночная тема включена' : 'Дневная тема',
+    modes: [
+      ['dark_mode', 'Всегда тёмная', 'Без переключений'],
+      ['schedule', 'По расписанию', 'С ' + pad(s.from) + ' до ' + pad(s.to)],
+      ['wb_twilight', 'От заката до рассвета', 'Сегодня с 17:12 до 08:04'],
+      ['smartphone', 'Как в системе', 'Следовать настройке Android']
+    ].map(([icon, label, sub], i) => ({ icon, label, sub, line: i ? '1px solid rgba(255,255,255,.06)' : '0', ring: i === s.mode ? '#8FD3AC' : '#3A4540', dot: i === s.mode ? '#8FD3AC' : 'transparent', tap: () => this.setState({ mode: i }) })),
+    isSchedule: s.mode === 1,
+    times: [
+      { icon: 'bedtime', label: 'Включать в', val: pad(s.from), dec: () => this.setState({ from: (s.from + 23) % 24 }), inc: () => this.setState({ from: (s.from + 1) % 24 }) },
+      { icon: 'wb_sunny', label: 'Выключать в', val: pad(s.to), dec: () => this.setState({ to: (s.to + 23) % 24 }), inc: () => this.setState({ to: (s.to + 1) % 24 }) }
+    ],
+    themes: T.map(([label, bg, a], i) => ({ label, bg, a, border: i === s.theme ? 'rgba(143,211,172,.5)' : 'transparent', tap: () => this.setState({ theme: i }) }))
+  };
+}
+}
+</script>
+</body>
+</html>

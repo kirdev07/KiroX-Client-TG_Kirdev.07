@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Медиа чата</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes kxRow{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxBar{from{transform:translateY(100%)}to{transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 4px; display: flex; align-items: center; gap: 8px">
+    <button onClick="{{clearSel}}" aria-label="{{backLabel}}" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">{{backIcon}}</span></button>
+    <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">{{title}}</div><div style="font-size: 12px; color: #9AA59F">{{sub}}</div></div>
+    <button aria-label="Календарь" style="width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">calendar_month</span></button>
+  </header>
+
+  <!-- Tabs with lens -->
+  <div style="padding: 6px 12px 8px">
+    <div style="position: relative; display: flex; padding: 4px; border-radius: 22px; background: rgba(255,255,255,.05)">
+      <span aria-hidden="true" style="position: absolute; top: 4px; left: 4px; width: calc((100% - 8px) / 5); height: 36px; border-radius: 18px; background: rgba(143,211,172,.16); border: 1px solid rgba(143,211,172,.35); box-sizing: border-box; transform: translateX({{lens}}); transition: transform .4s cubic-bezier(.34,1.45,.5,1)"></span>
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5"><button onClick="{{t.tap}}" style="position: relative; flex: 1; height: 36px; border-radius: 18px; color: {{t.ink}}; font-size: 12px; font-weight: 800; text-align: center; transition: color .2s">{{t.label}}</button></sc-for>
+    </div>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 0 12px 100px">
+    <!-- Media grid -->
+    <sc-if value="{{isMedia}}" hint-placeholder-val="{{true}}">
+      <sc-for list="{{months}}" as="mo" hint-placeholder-count="2">
+        <div style="padding: 8px 4px 6px; font-size: 13px; font-weight: 800; color: #8FD3AC">{{mo.name}}</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px">
+          <sc-for list="{{mo.items}}" as="m" hint-placeholder-count="9">
+            <button onPointerDown="{{m.down}}" onPointerUp="{{m.up}}" onPointerLeave="{{m.leave}}" aria-label="{{m.label}}" style="position: relative; aspect-ratio: 1; border-radius: {{m.r}}; background: {{m.bg}}; overflow: hidden; transform: scale({{m.scale}}); transition: transform .2s; animation: kxIn .3s ease {{m.d}} both">
+              <sc-if value="{{m.video}}" hint-placeholder-val="{{false}}"><span style="position: absolute; left: 6px; bottom: 6px; height: 18px; padding: 0 6px; border-radius: 9px; background: rgba(0,0,0,.5); font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 2px"><span class="ms fill" style="font-size: 12px" aria-hidden="true">play_arrow</span>{{m.dur}}</span></sc-if>
+              <sc-if value="{{m.selMode}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 6px; top: 6px; width: 22px; height: 22px; border-radius: 11px; border: 2px solid #fff; background: {{m.dot}}; color: #06150D; display: flex; align-items: center; justify-content: center; box-sizing: border-box"><sc-if value="{{m.sel}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="font-size: 14px" aria-hidden="true">check</span></sc-if></span></sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <!-- Files -->
+    <sc-if value="{{isFiles}}" hint-placeholder-val="{{false}}">
+      <sc-for list="{{files}}" as="f" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 6px; animation: kxRow .25s ease {{f.d}} both">
+          <span style="width: 48px; height: 48px; border-radius: 14px; background: {{f.c}}; color: #fff; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center">{{f.ext}}</span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{f.name}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{f.size}} · {{f.date}}</span></span>
+          <span class="ms" style="color: #8FD3AC" aria-hidden="true">download</span>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <!-- Links -->
+    <sc-if value="{{isLinks}}" hint-placeholder-val="{{false}}">
+      <sc-for list="{{links}}" as="l" hint-placeholder-count="4">
+        <div style="display: flex; gap: 12px; padding: 10px 6px; animation: kxRow .25s ease {{l.d}} both">
+          <span style="width: 48px; height: 48px; border-radius: 14px; background: {{l.c}}; color: #fff; font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{l.init}}</span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{l.title}}</span><span style="display: block; margin-top: 2px; font-size: 13px; color: #9AA59F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{l.desc}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8FD3AC">{{l.url}}</span></span>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <!-- Voice -->
+    <sc-if value="{{isVoice}}" hint-placeholder-val="{{false}}">
+      <sc-for list="{{voices}}" as="v" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 6px; animation: kxRow .25s ease {{v.d}} both">
+          <span style="width: 44px; height: 44px; border-radius: 22px; background: linear-gradient(140deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">{{v.icon}}</span></span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{v.who}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{v.kind}} · {{v.dur}} · {{v.date}}</span></span>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <!-- Music -->
+    <sc-if value="{{isMusic}}" hint-placeholder-val="{{false}}">
+      <sc-for list="{{music}}" as="m" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 6px; animation: kxRow .25s ease {{m.d}} both">
+          <span style="width: 48px; height: 48px; border-radius: 14px; background: {{m.c}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="color: rgba(255,255,255,.85)" aria-hidden="true">music_note</span></span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{m.title}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F">{{m.artist}} · {{m.dur}}</span></span>
+          <span class="ms" style="color: #8FD3AC" aria-hidden="true">play_circle</span>
+        </div>
+      </sc-for>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{selecting}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 14px; right: 14px; bottom: 22px; padding: 8px; border-radius: 30px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); display: flex; justify-content: space-around; animation: kxBar .3s cubic-bezier(.34,1.45,.5,1) both">
+      <sc-for list="{{acts}}" as="a" hint-placeholder-count="4"><button onClick="{{a.tap}}" style="width: 76px; padding: 6px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: {{a.ink}}; text-align: center"><span class="ms" aria-hidden="true">{{a.icon}}</span><span style="font-size: 11px; font-weight: 600">{{a.label}}</span></button></sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const G = ['linear-gradient(150deg,#F2A65A,#C0587E)', 'linear-gradient(150deg,#7EC8E3,#3F9A6C)', 'linear-gradient(150deg,#141B3A,#2C2F6E)', 'linear-gradient(150deg,#D9E4EE,#5B7389)', 'linear-gradient(150deg,#F7D774,#7A3A16)', 'linear-gradient(150deg,#3F9A6C,#14243A)', 'linear-gradient(150deg,#9E3F5C,#2E1420)', 'linear-gradient(150deg,#B07A2E,#3A2A14)', 'linear-gradient(150deg,#6A4C9C,#14121C)'];
+const M = [['Ноябрь', 9], ['Октябрь', 6]];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { tab: 0, sel: [], selMode: false }; }
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+lp(tap, long) { return { down: () => { clearTimeout(this._lp); this._lpDone = false; this._lp = setTimeout(() => { this._lpDone = true; long(); }, 450); }, up: () => { clearTimeout(this._lp); if (!this._lpDone) tap(); this._lpDone = true; }, leave: () => { clearTimeout(this._lp); this._lpDone = true; } }; }
+renderVals() {
+  const s = this.state;
+  const T = ['Медиа', 'Файлы', 'Ссылки', 'Голос', 'Музыка'];
+  let idx = 0;
+  const months = M.map(([name, n]) => ({ name, items: Array.from({ length: n }, () => { const k = idx++; const sel = s.sel.includes(k); return {
+
+    bg: G[(k * 5) % G.length], label: 'Медиа ' + (k + 1), video: k % 4 === 2, dur: '0:' + String(10 + (k * 7) % 50).padStart(2, '0'),
+    d: (k * 0.02) + 's', selMode: s.selMode, sel, dot: sel ? '#8FD3AC' : 'rgba(0,0,0,.25)', scale: sel ? '.9' : '1', r: sel ? '14px' : '6px',
+    ...this.lp(() => s.selMode ? this.setState({ sel: sel ? s.sel.filter(x => x !== k) : [...s.sel, k] }) : this.setState({ viewing: k }), () => s.selMode ? this.setState({ sel: sel ? s.sel.filter(x => x !== k) : [...s.sel, k] }) : this.setState({ selMode: true, sel: [k] }))
+  }; }) }));
+  const total = M.reduce((a, m) => a + m[1], 0);
+  const n = s.sel.length;
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    tabs: T.map((label, i) => ({ label, ink: i === s.tab ? '#8FD3AC' : '#9AA59F', tap: () => this.setState({ tab: i, selMode: false, sel: [] }) })),
+    lens: 'calc(' + s.tab + ' * 100%)',
+    isMedia: s.tab === 0, isFiles: s.tab === 1, isLinks: s.tab === 2, isVoice: s.tab === 3, isMusic: s.tab === 4,
+    months,
+    title: s.selMode ? 'Выбрано: ' + n : 'Анна', sub: s.selMode ? 'Нажимайте, чтобы выбрать ещё' : [total + ' фото и видео', '5 файлов', '4 ссылки', '4 голосовых и кружка', '4 трека'][s.tab],
+    backIcon: s.selMode ? 'close' : 'arrow_back', backLabel: s.selMode ? 'Отменить выбор' : 'Назад',
+    clearSel: () => this.setState({ selMode: false, sel: [] }),
+    selecting: s.selMode && n > 0,
+    acts: [{ icon: 'forward', label: 'Переслать', ink: '#EEF3EF' }, { icon: 'download', label: 'Сохранить', ink: '#EEF3EF' }, { icon: 'chat', label: 'В чате', ink: '#EEF3EF' }, { icon: 'delete', label: 'Удалить', ink: '#FF8A80' }].map(a => ({ ...a, tap: a.label === 'Удалить' ? () => this.ask('Удалить выбранное?', 'Сообщения с этими файлами удалятся у вас. В личном чате можно удалить и у собеседника.', 'Удалить', () => this.setState({ selMode: false, sel: [] })) : () => this.setState({ selMode: false, sel: [] }) })),
+    files: [['PDF', 'Билеты_на_поезд.pdf', '284 КБ', '20 нояб', '#C0443C'], ['DOC', 'Список покупок.docx', '18 КБ', '18 нояб', '#2F6E9E'], ['ZIP', 'Фото с дачи.zip', '42 МБ', '12 нояб', '#B07A2E'], ['XLS', 'Бюджет поездки.xlsx', '36 КБ', '3 нояб', '#3F9A6C'], ['APK', 'kiroX-beta.apk', '31 МБ', '28 окт', '#6A4C9C']].map(([ext, name, size, date, c], i) => ({ ext, name, size, date, c, d: (i * 0.04) + 's' })),
+    links: [['Р', 'Рецепт паэльи', 'Классический рецепт за 40 минут', 'recipes.example.com', '#B07A2E'], ['К', 'Карта маршрута', 'Поездка за город · 54 км', 'maps.example.com', '#3F9A6C'], ['Б', 'Билеты в кино', 'Сеанс в субботу, 19:30', 'cinema.example.org', '#A8456A'], ['П', 'Погода на выходные', '+3°, без осадков', 'weather.example.net', '#2F6E9E']].map(([init, title, desc, url, c], i) => ({ init, title, desc, url, c, d: (i * 0.04) + 's' })),
+    voices: [['Анна', 'Голосовое', '0:21', 'сегодня', 'mic'], ['Вы', 'Голосовое', '0:06', 'сегодня', 'mic'], ['Анна', 'Кружок', '0:15', 'вчера', 'radio_button_checked'], ['Анна', 'Голосовое', '1:02', '18 нояб', 'mic']].map(([who, kind, dur, date, icon], i) => ({ who, kind, dur, date, icon, d: (i * 0.04) + 's' })),
+    music: [['Морской бриз', 'Lumen Band', '3:42', G[1]], ['Ночной город', 'Neon Drive', '4:05', G[2]], ['Осень', 'Тёплый ламповый', '2:58', G[4]], ['Дорога домой', 'Tvoi Druz’ya', '3:21', G[5]]].map(([title, artist, dur, c], i) => ({ title, artist, dur, c, d: (i * 0.04) + 's' }))
+  };
+}
+}
+</script>
+</body>
+</html>

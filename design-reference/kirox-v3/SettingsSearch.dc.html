@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Поиск по настройкам</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes kxCaret{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes kxFlash{0%{background:rgba(143,211,172,.28)}100%{background:rgba(255,255,255,.04)}}
+@keyframes kxFlash2{0%{background:rgba(143,211,172,.28)}100%{background:rgba(255,255,255,.04)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <div style="flex: 1; height: 48px; padding: 0 8px 0 14px; border-radius: 24px; background: rgba(255,255,255,.08); border: 1px solid rgba(143,211,172,.35); display: flex; align-items: center; gap: 8px">
+      <span class="ms" style="color: #8FD3AC" aria-hidden="true">search</span>
+      <span style="flex: 1; min-width: 0; font-size: 16px; color: {{qInk}}" aria-label="Поиск по настройкам">{{qText}}<span style="display: inline-block; width: 2px; height: 18px; margin-left: 1px; vertical-align: -3px; background: #8FD3AC; animation: kxCaret 1s step-end infinite"></span></span>
+      <button onClick="{{clear}}" aria-label="Очистить" style="width: 32px; height: 32px; border-radius: 16px; display: {{clearShow}}; align-items: center; justify-content: center; color: #9AA59F"><span class="ms" style="font-size: 20px" aria-hidden="true">close</span></button>
+    </div>
+  </header>
+
+  <div class="scroll" style="padding: 4px 12px 6px; display: flex; gap: 6px; overflow-x: auto; flex-shrink: 0">
+    <sc-for list="{{tries}}" as="t" hint-placeholder-count="5"><button onClick="{{t.tap}}" style="flex-shrink: 0; height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); font-size: 13px; font-weight: 700; color: #C9D2CC">{{t.t}}</button></sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 6px 16px 18px">
+    <sc-if value="{{idle}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; align-items: center; margin-top: 6px"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">Недавние</span><button onClick="{{clearRecent}}" style="height: 30px; padding: 0 10px; border-radius: 15px; font-size: 12px; font-weight: 700; color: #9AA59F">Очистить</button></div>
+      <sc-for list="{{recent}}" as="r" hint-placeholder-count="3"><button onClick="{{r.tap}}" style="width: 100%; min-height: 48px; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: #8A958F" aria-hidden="true">history</span><span style="flex: 1; font-size: 15px">{{r.t}}</span><span class="ms" style="font-size: 18px; color: #8A958F" aria-hidden="true">north_west</span></button></sc-for>
+      <div style="margin-top: 18px; padding: 16px; border-radius: 20px; background: rgba(255,255,255,.04); text-align: center; color: #9AA59F; font-size: 13px; line-height: 1.45"><span class="ms" style="font-size: 36px; color: #8A958F" aria-hidden="true">manage_search</span><br>Ищите по словам: «звук», «пароль», «тема», «память». Найдём и настройку, и ответ из «Помощи».</div>
+    </sc-if>
+
+    <sc-if value="{{hasRes}}" hint-placeholder-val="{{false}}">
+      <div style="margin-top: 6px; font-size: 13px; font-weight: 700; color: #8FD3AC">Настройки · {{count}}</div>
+      <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{res}}" as="r" hint-placeholder-count="4"><button onClick="{{r.tap}}" style="width: 100%; padding: 10px 12px; border-radius: 18px; background: rgba(255,255,255,.04); display: flex; align-items: center; gap: 12px; animation: {{r.anim}}"><span style="width: 38px; height: 38px; border-radius: 13px; background: {{r.ibg}}; color: {{r.ic}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 20px" aria-hidden="true">{{r.i}}</span></span><span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{r.pre}}<span style="color: #8FD3AC; background: rgba(143,211,172,.14); border-radius: 4px">{{r.hit}}</span>{{r.post}}</span><span style="display: block; margin-top: 2px; font-size: 12px; color: #8A958F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{r.path}}</span></span><span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">chevron_right</span></button></sc-for>
+      </div>
+      <sc-if value="{{hasFaq}}" hint-placeholder-val="{{false}}">
+        <div style="margin-top: 14px; font-size: 13px; font-weight: 700; color: #8FD3AC">Ответы из «Помощи»</div>
+        <sc-for list="{{faq}}" as="f" hint-placeholder-count="2"><button onClick="{{f.tap}}" style="width: 100%; margin-top: 6px; padding: 10px 12px; border-radius: 16px; background: rgba(127,184,224,.06); border: 1px solid rgba(127,184,224,.15); display: flex; align-items: center; gap: 10px"><span class="ms" style="color: #7FB8E0" aria-hidden="true">help</span><span style="flex: 1; font-size: 14px">{{f.t}}</span></button></sc-for>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{none}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 60px 20px; text-align: center; color: #9AA59F"><span class="ms" style="font-size: 44px; color: #8A958F" aria-hidden="true">search_off</span><div style="margin-top: 8px; font-size: 15px; font-weight: 700; color: #C9D2CC">Ничего не нашли по «{{q}}»</div><div style="margin-top: 4px; font-size: 13px">Попробуйте другое слово или напишите в «Помощь»</div></div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{opened}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: #0A0C0B; display: flex; flex-direction: column; animation: kxIn .25s ease both">
+      <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+        <button onClick="{{back}}" aria-label="Назад к поиску" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+        <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">{{opSection}}</div><div style="font-size: 12px; color: #9AA59F">{{opPath}}</div></div>
+      </header>
+      <div style="padding: 8px 16px; display: flex; flex-direction: column; gap: 6px">
+        <div style="min-height: 52px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,.04); display: flex; align-items: center; color: #8A958F; font-size: 15px">…</div>
+        <div style="min-height: 60px; padding: 0 14px; border-radius: 16px; display: flex; align-items: center; gap: 12px; border: 1.5px solid rgba(143,211,172,.55); animation: {{flash}} 1.6s ease-out both"><span class="ms" style="color: #8FD3AC" aria-hidden="true">{{opIcon}}</span><span style="flex: 1; font-size: 15px; font-weight: 800">{{opTitle}}</span><span class="ms" style="color: #8FD3AC" aria-hidden="true">arrow_back</span></div>
+        <div style="min-height: 52px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,.04); display: flex; align-items: center; color: #8A958F; font-size: 15px">…</div>
+        <div style="margin-top: 8px; font-size: 12px; color: #8A958F; text-align: center">Нужная строка подсвечена, чтобы её было легко найти</div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const ITEMS = [
+  ['Звук уведомлений', 'Настройки › Уведомления и звуки', 'music_note', '#8FD3AC', 'звук мелодия'],
+  ['Звук в приложении', 'Настройки › Уведомления и звуки', 'volume_up', '#8FD3AC', 'звук'],
+  ['Звонки: шумоподавление', 'Настройки › Звонки', 'graphic_eq', '#7FB8E0', 'звук микрофон'],
+  ['Облачный пароль', 'Настройки › Конфиденциальность › Двухэтапная проверка', 'password', '#E8B04A', 'пароль'],
+  ['Код-пароль', 'Настройки › Конфиденциальность', 'pin', '#E8B04A', 'пароль код блокировка'],
+  ['Тема оформления', 'Настройки › Кастомизация', 'palette', '#C9A0E0', 'тема цвет ночь'],
+  ['Ночной режим по расписанию', 'Настройки › Кастомизация › Ночной режим', 'dark_mode', '#C9A0E0', 'тема ночь тёмная'],
+  ['Очистить кэш', 'Настройки › Данные и память', 'cleaning_services', '#FF8A80', 'память кэш место'],
+  ['Автозагрузка медиа', 'Настройки › Данные и память', 'download', '#FF8A80', 'память загрузка трафик'],
+  ['Размер текста', 'Настройки › Специальные возможности', 'format_size', '#9AA59F', 'шрифт текст размер']
+];
+const FAQ = { 'звук': ['Почему не приходят уведомления?'], 'пароль': ['Что делать, если забыли облачный пароль?'], 'память': ['Куда делось место на телефоне?'] };
+const TRIES = ['звук', 'пароль', 'тема', 'память', 'шрифт'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { q: '', recent: ['Тема оформления', 'Очистить кэш', 'Код-пароль'], open: null, k: 0, fk: 0 }; }
+renderVals() {
+  const s = this.state;
+  const q = s.q.trim().toLowerCase();
+  const res = q ? ITEMS.filter(x => x[0].toLowerCase().includes(q) || x[4].includes(q)) : [];
+  const faq = q ? (Object.keys(FAQ).find(k => k.startsWith(q) || q.startsWith(k)) ? FAQ[Object.keys(FAQ).find(k => k.startsWith(q) || q.startsWith(k))] : []) : [];
+  const openItem = (x) => this.setState({ open: x, fk: s.fk + 1, recent: [x[0], ...s.recent.filter(r => r !== x[0])].slice(0, 3) });
+  return {
+    q: s.q, qText: s.q || 'Поиск по настройкам', qInk: s.q ? '#EEF3EF' : '#8A958F',
+    clear: () => this.setState({ q: '' }), clearShow: s.q ? 'flex' : 'none',
+    tries: TRIES.map(t => ({ t, tap: () => this.setState({ q: t, k: s.k + 1 }) })),
+    idle: !q,
+    recent: s.recent.map(t => ({ t, tap: () => { const x = ITEMS.find(i => i[0] === t); if (x) openItem(x); } })),
+    clearRecent: () => this.setState({ recent: [] }),
+    hasRes: !!res.length, count: res.length, none: !!q && !res.length,
+    res: res.map((x, i) => { const name = x[0]; const at = name.toLowerCase().indexOf(q); const hitOk = at >= 0;
+      return { i: x[2], ic: x[3], ibg: x[3] + '24', path: x[1], pre: hitOk ? name.slice(0, at) : name, hit: hitOk ? name.slice(at, at + q.length) : '', post: hitOk ? name.slice(at + q.length) : '',
+        anim: 'kxIn .2s ease ' + (i * 0.03) + 's both', tap: () => openItem(x) }; }),
+    hasFaq: !!faq.length, faq: faq.map(t => ({ t, tap: () => {} })),
+    opened: !!s.open,
+    opSection: s.open ? s.open[1].split(' › ').slice(-1)[0] : '', opPath: s.open ? s.open[1] : '', opTitle: s.open ? s.open[0] : '', opIcon: s.open ? s.open[2] : 'tune',
+    flash: s.fk % 2 ? 'kxFlash2' : 'kxFlash',
+    back: () => this.setState({ open: null })
+  };
+}
+}
+</script>
+</body>
+</html>

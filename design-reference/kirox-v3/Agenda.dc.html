@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>События из чатов</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes kxNow{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes kxCheck{0%{transform:scale(0)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1"><h1 style="margin: 0; font-size: 20px; font-weight: 800">События из чатов</h1><div style="font-size: 12px; color: #9AA59F">kiroX нашёл договорённости в переписках</div></div>
+  </header>
+
+  <!-- Week strip -->
+  <div style="padding: 8px 16px 0; display: flex; gap: 6px">
+    <sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+      <button onClick="{{d.tap}}" style="flex: 1; padding: 8px 0; border-radius: 16px; background: {{d.bg}}; border: 1px solid {{d.bd}}; text-align: center; color: {{d.ink}}">
+        <span style="display: block; font-size: 11px; opacity: .8">{{d.wd}}</span>
+        <span style="display: block; font-size: 17px; font-weight: 800">{{d.n}}</span>
+        <span style="display: flex; justify-content: center; gap: 2px; height: 6px; margin-top: 3px"><sc-if value="{{d.has}}" hint-placeholder-val="{{false}}"><span style="width: 5px; height: 5px; border-radius: 3px; background: {{d.dot}}"></span></sc-if></span>
+      </button>
+    </sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px 16px 30px">
+    <div style="font-size: 13px; font-weight: 700; color: #8FD3AC; padding: 0 4px 8px">{{dayTitle}}</div>
+    <sc-for list="{{events}}" as="e" hint-placeholder-count="3">
+      <div style="margin-bottom: 10px; display: flex; gap: 12px; animation: kxIn .3s ease {{e.d}} both">
+        <div style="width: 50px; text-align: right; padding-top: 12px"><div style="font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums">{{e.time}}</div><div style="font-size: 11px; color: #8A958F">{{e.dur}}</div></div>
+        <div style="flex: 1; position: relative; padding: 12px 14px; border-radius: 20px; background: {{e.bg}}; border: 1px solid {{e.bd}}; border-left: 4px solid {{e.c}}">
+          <sc-if value="{{e.now}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: 12px; top: 12px; padding: 2px 8px; border-radius: 8px; background: #8FD3AC; color: #06150D; font-size: 11px; font-weight: 900; animation: kxNow 1.4s ease-in-out 2">СКОРО</span></sc-if>
+          <div style="font-size: 15px; font-weight: 800; padding-right: 50px">{{e.title}}</div>
+          <div style="margin-top: 3px; font-size: 12px; color: #9AA59F; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 14px" aria-hidden="true">{{e.placeIcon}}</span>{{e.place}}</div>
+          <div style="margin-top: 8px; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.25); font-size: 12px; color: #C9D2CC; display: flex; gap: 6px; align-items: center"><span style="width: 18px; height: 18px; border-radius: 9px; background: {{e.c}}; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{e.l}}</span><span style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis">«{{e.quote}}»</span></div>
+          <div style="margin-top: 8px; display: flex; gap: 6px">
+            <button onClick="{{e.add}}" style="height: 30px; padding: 0 10px; border-radius: 15px; background: {{e.addBg}}; color: {{e.addInk}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 15px; animation: {{e.addAnim}}" aria-hidden="true">{{e.addIcon}}</span>{{e.addText}}</button>
+            <button onClick="{{e.open}}" style="height: 30px; padding: 0 10px; border-radius: 15px; background: rgba(255,255,255,.06); font-size: 12px; font-weight: 700; color: #C9D2CC">В чат</button>
+            <button onClick="{{e.hide}}" aria-label="Это не событие" style="margin-left: auto; width: 30px; height: 30px; border-radius: 15px; color: #8A958F; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 18px" aria-hidden="true">close</span></button>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><div style="padding: 50px 30px 0; text-align: center; color: #8A958F"><span class="ms" style="font-size: 50px; color: #3A4540; display: block" aria-hidden="true">event_busy</span><div style="margin-top: 8px; font-size: 15px; font-weight: 700; color: #C9D2CC">В этот день ничего</div><div style="margin-top: 4px; font-size: 12px">Свободный день — тоже план 🙂</div></div></sc-if>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 30px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const DAYS = [['Вс', 22], ['Пн', 23], ['Вт', 24], ['Ср', 25], ['Чт', 26], ['Пт', 27], ['Сб', 28]];
+const DLONG = ['Сегодня, 22 ноября', 'Понедельник, 23 ноября', 'Вторник, 24 ноября', 'Среда, 25 ноября', 'Четверг, 26 ноября', 'Пятница, 27 ноября', 'Суббота, 28 ноября'];
+const EV = [
+  { id: 1, day: 0, time: '19:00', dur: '2 ч', title: 'Кино · Анна', place: 'Кинотеатр «Арман»', placeIcon: 'movie', chat: 'Анна', l: 'А', c: '#C0443C', quote: 'Давай в 7 на новый фильм?', now: true },
+  { id: 2, day: 1, time: '11:00', dur: '1 ч', title: 'Созвон по проекту', place: 'Видеозвонок в «Работа»', placeIcon: 'videocam', chat: 'Работа', l: 'Р', c: '#5C6661', quote: 'Созвон в понедельник в 11, не забудьте', now: false },
+  { id: 3, day: 3, time: '10:30', dur: '30 мин', title: 'Бабушка к врачу', place: 'Поликлиника №4', placeIcon: 'local_hospital', chat: 'Мама', l: 'М', c: '#B07A2E', quote: 'Записала бабушку на 25-е в 10:30', now: false },
+  { id: 4, day: 6, time: '11:00', dur: '4 ч', title: 'Митап Kotlin-клуба', place: 'Абая 52, вход со двора', placeIcon: 'location_on', chat: 'Kotlin-клуб', l: 'K', c: '#3F9A6C', quote: 'Начало в 11:00. Алекс ведёт второй доклад', now: false },
+  { id: 5, day: 6, time: '18:00', dur: '3 ч', title: 'Шашлыки на даче', place: 'Дача', placeIcon: 'outdoor_grill', chat: 'Семья', l: 'С', c: '#2F6E9E', quote: 'В субботу вечером все на дачу!', now: false }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { day: 0, added: {}, hidden: {}, pop: 0, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+renderVals() {
+  const s = this.state;
+  const vis = EV.filter(e => !s.hidden[e.id]);
+  const list = vis.filter(e => e.day === s.day);
+  return {
+    days: DAYS.map(([wd, n], i) => { const on = s.day === i; const evs = vis.filter(e => e.day === i); return { wd: i === 0 ? 'Сег' : wd, n: String(n), has: evs.length > 0, dot: on ? '#06150D' : '#8FD3AC', bg: on ? 'linear-gradient(160deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.04)', bd: on ? 'transparent' : 'rgba(255,255,255,.08)', ink: on ? '#06150D' : '#EEF3EF', tap: () => this.setState({ day: i }) }; }),
+    dayTitle: DLONG[s.day] + (list.length ? ' · ' + list.length : ''),
+    events: list.map((e, k) => { const added = !!s.added[e.id]; return {
+      ...e, d: (k * 0.06) + 's', bg: e.now ? 'rgba(143,211,172,.08)' : 'rgba(255,255,255,.04)', bd: e.now ? 'rgba(143,211,172,.3)' : 'rgba(255,255,255,.08)',
+      addIcon: added ? 'event_available' : 'calendar_add_on', addText: added ? 'В календаре' : 'В календарь', addBg: added ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.06)', addInk: added ? '#8FD3AC' : '#EEF3EF',
+      addAnim: s.pop === e.id ? 'kxCheck .3s ease both' : 'none',
+      add: () => { if (added) return; this.setState({ added: { ...s.added, [e.id]: true }, pop: e.id }); this.toastMsg('Добавлено: ' + e.title, 'event_available'); },
+      open: () => this.toastMsg('Откроется сообщение в «' + e.chat + '»', 'chat'),
+      hide: () => { this.setState({ hidden: { ...s.hidden, [e.id]: true } }); this.toastMsg('Больше не покажем', 'visibility_off'); }
+    }; }),
+    empty: list.length === 0,
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

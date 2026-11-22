@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Вход, код из Telegram</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+a{color:#8FD3AC}a:hover{color:#B3E8C8}
+@keyframes kxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes kxGlow{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+@keyframes kxRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kxPop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes kxCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes kxFocus{0%,100%{box-shadow:0 0 0 4px rgba(143,211,172,.06)}50%{box-shadow:0 0 0 7px rgba(143,211,172,.16)}}
+@keyframes kxRing{0%{transform:scale(.9);opacity:.6}100%{transform:scale(1.5);opacity:0}}
+@keyframes kxShine{0%{transform:translateX(-120%) skewX(-20deg)}60%,100%{transform:translateX(620%) skewX(-20deg)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0B0D0C; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column; padding: 0 24px">
+  <div aria-hidden="true" style="position: absolute; left: 50%; top: 96px; width: 300px; height: 300px; margin-left: -150px; border-radius: 50%; background: radial-gradient(circle, rgba(70,160,110,.22), rgba(70,160,110,0) 65%); animation: kxGlow 4s ease-in-out 2"></div>
+  <div style="height: 64px; display: flex; align-items: center; margin-left: -12px">
+    <button aria-label="Назад" style="width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+  </div>
+  <div style="margin: 36px auto 0; position: relative; width: 96px; height: 96px; border-radius: 30px; background: linear-gradient(145deg, #1D2A23, #121714); border: 1px solid #2A3A31; display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 40px rgba(0,0,0,.5); animation: kxPop .6s cubic-bezier(.2,.8,.2,1) both, kxFloat 4.5s ease-in-out .6s 2">
+    <span aria-hidden="true" style="position: absolute; inset: -1px; border-radius: 30px; border: 2px solid rgba(143,211,172,.5); animation: kxRing 2.4s ease-out 1s infinite"></span>
+    <span class="ms" style="font-size: 44px; color: #8FD3AC" aria-hidden="true">sms</span>
+  </div>
+  <h1 style="margin: 32px 0 0; text-align: center; font-size: 28px; line-height: 34px; font-weight: 700; animation: kxRise .7s cubic-bezier(.2,.8,.2,1) .15s both">Введите код</h1>
+  <p style="margin: 10px 0 0; text-align: center; font-size: 15px; line-height: 22px; color: #9AA59F; animation: kxRise .7s cubic-bezier(.2,.8,.2,1) .25s both">Отправили код в Telegram на другом устройстве<br><span style="color: #EEF3EF; font-weight: 600">+7 700 *** ** 00</span></p>
+  <div role="group" aria-label="Код из пяти цифр" style="margin-top: 36px; display: flex; justify-content: center; gap: 10px">
+    <span style="width: 54px; height: 64px; border-radius: 16px; background: #151917; border: 1px solid #2E4A3A; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 600; animation: kxPop .45s cubic-bezier(.2,.8,.2,1) .4s both">4</span>
+    <span style="width: 54px; height: 64px; border-radius: 16px; background: #151917; border: 1px solid #2E4A3A; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 600; animation: kxPop .45s cubic-bezier(.2,.8,.2,1) .5s both">8</span>
+    <span style="width: 54px; height: 64px; border-radius: 16px; background: #151917; border: 1px solid #4E8F6B; display: flex; align-items: center; justify-content: center; animation: kxPop .45s cubic-bezier(.2,.8,.2,1) .6s both, kxFocus 2.4s ease-in-out 1.1s 2"><span style="width: 2px; height: 26px; background: #8FD3AC; animation: kxCaret 1s steps(1) infinite"></span></span>
+    <span style="width: 54px; height: 64px; border-radius: 16px; background: #151917; border: 1px solid #232A26; animation: kxPop .45s cubic-bezier(.2,.8,.2,1) .7s both"></span>
+    <span style="width: 54px; height: 64px; border-radius: 16px; background: #151917; border: 1px solid #232A26; animation: kxPop .45s cubic-bezier(.2,.8,.2,1) .8s both"></span>
+  </div>
+  <p style="margin: 24px 0 0; text-align: center; font-size: 14px; color: #9AA59F; animation: kxRise .7s ease .9s both">Отправить снова через <span style="color: #8FD3AC; font-weight: 600">0:42</span></p>
+  <button type="button" style="margin: 14px auto 0; height: 40px; padding: 0 16px; border-radius: 12px; font-size: 14px; font-weight: 500; color: #8FD3AC">Получить по СМС</button>
+  <div style="flex-grow: 1"></div>
+  <button type="button" style="margin-bottom: 28px; height: 56px; border-radius: 16px; background: linear-gradient(100deg, #6FC497 0%, #3F9A6C 100%); color: #06150D; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 28px rgba(63,154,108,.35); position: relative; overflow: hidden; animation: kxRise .7s cubic-bezier(.2,.8,.2,1) 1s both"><span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 60px; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0)); animation: kxShine 3.2s ease-in-out 1.8s 2"></span>Продолжить</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

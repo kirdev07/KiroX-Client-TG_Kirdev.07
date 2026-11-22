@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Переписка</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input::placeholder{color:#8A958F}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes kxWave{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+@keyframes kxBlink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes kxRing{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.9);opacity:0}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxPop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
+@keyframes kxSlideHint{0%,100%{transform:translateX(0);opacity:.6}50%{transform:translateX(-8px);opacity:1}}
+@keyframes kxSwap{0%{transform:scale(.4) rotate(-90deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; user-select: none">
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(70% 40% at 100% 20%, rgba(63,154,108,.16), rgba(63,154,108,0)), radial-gradient(60% 35% at 0% 75%, rgba(63,154,108,.10), rgba(63,154,108,0))"></div>
+
+  <div style="position: absolute; left: 0; right: 0; top: 128px; bottom: 96px; padding: 0 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; overflow: hidden">
+    <div style="align-self: center; margin: 4px 0 8px; padding: 4px 12px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.07); font-size: 12px; font-weight: 600; color: #9AA59F">Сегодня</div>
+    <div style="align-self: flex-start; max-width: 78%; padding: 9px 13px 7px; border-radius: 20px 20px 20px 6px; background: #161B18; font-size: 15px; line-height: 21px">Привет! Ты завтра свободна вечером? <span style="font-size: 11px; color: #8A958F">19:02</span></div>
+    <div style="align-self: flex-start; width: 230px; padding: 4px; border-radius: 22px 22px 22px 6px; background: #161B18">
+      <div style="height: 118px; border-radius: 18px; background: linear-gradient(150deg, #355E49 0%, #1A2C22 55%, #0F1712 100%); position: relative; display: flex; align-items: flex-end; padding: 8px; box-sizing: border-box"><span class="ms" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size: 36px; color: rgba(166,227,193,.7)" aria-hidden="true">image</span><span style="margin-left: auto; padding: 2px 7px; border-radius: 8px; background: rgba(0,0,0,.45); font-size: 11px">19:10</span></div>
+      <div style="padding: 7px 9px 4px; font-size: 15px">Новый фильм в «Октябре» 🎬</div>
+    </div>
+    <div style="align-self: flex-start; display: flex; gap: 4px; margin: -1px 0 2px 6px"><span style="padding: 2px 8px; border-radius: 11px; background: rgba(143,211,172,.16); border: 1px solid rgba(143,211,172,.3); font-size: 13px">🔥 2</span><span style="padding: 2px 8px; border-radius: 11px; background: rgba(255,255,255,.06); font-size: 13px">❤ 1</span></div>
+    <div style="align-self: flex-end; max-width: 80%; border-radius: 20px 20px 6px 20px; background: linear-gradient(160deg, #2E6B4B, #1F4D36); color: #E6F6EC; overflow: hidden">
+      <div style="margin: 6px 6px 0; padding: 5px 10px; border-radius: 6px 12px 12px 6px; border-left: 3px solid #A6E3C1; background: rgba(0,0,0,.18)"><div style="font-size: 13px; font-weight: 700; color: #A6E3C1">Анна</div><div style="font-size: 13px; color: #BFDCCB">Новый фильм в «Октябре» 🎬</div></div>
+      <div style="padding: 6px 12px 7px; font-size: 15px; line-height: 21px">Беру билеты на 19:30 <span style="font-size: 11px; color: #A6E3C1">изм. 19:12 <span class="ms" style="font-size: 14px; vertical-align: -3px" aria-hidden="true">done_all</span></span></div>
+    </div>
+    <div style="align-self: flex-start; display: flex; align-items: flex-end; gap: 8px; margin: 2px 0">
+      <div style="position: relative; width: 150px; height: 150px; border-radius: 50%; padding: 3px; box-sizing: border-box; background: conic-gradient(#8FD3AC 0 38%, rgba(255,255,255,.12) 38% 100%)">
+        <div style="width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 50% 38%, #4B3F7A 0%, #2A2240 45%, #141019 100%); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden">
+          <span class="ms fill" style="font-size: 64px; color: rgba(220,208,255,.35); margin-top: 26px" aria-hidden="true">person</span>
+          <span style="position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.5); font-size: 11px">0:05 · 🔇</span>
+        </div>
+      </div>
+      <span style="font-size: 11px; color: #8A958F; padding-bottom: 6px">19:13</span>
+    </div>
+    <div style="align-self: flex-end; width: 236px; padding: 9px 10px 7px; border-radius: 20px 6px 20px 20px; background: linear-gradient(160deg, #2E6B4B, #1F4D36); color: #E6F6EC; display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <button aria-label="Слушать" style="width: 38px; height: 38px; border-radius: 19px; background: #A6E3C1; color: #0B2216; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" aria-hidden="true">play_arrow</span></button>
+        <div aria-hidden="true" style="flex-grow: 1; height: 26px; display: flex; align-items: center; gap: 2px">
+          <span style="width: 3px; height: 40%; border-radius: 2px; background: #A6E3C1"></span><span style="width: 3px; height: 75%; border-radius: 2px; background: #A6E3C1"></span><span style="width: 3px; height: 55%; border-radius: 2px; background: #A6E3C1"></span><span style="width: 3px; height: 90%; border-radius: 2px; background: #A6E3C1"></span><span style="width: 3px; height: 60%; border-radius: 2px; background: rgba(166,227,193,.45)"></span><span style="width: 3px; height: 35%; border-radius: 2px; background: rgba(166,227,193,.45)"></span><span style="width: 3px; height: 70%; border-radius: 2px; background: rgba(166,227,193,.45)"></span><span style="width: 3px; height: 95%; border-radius: 2px; background: rgba(166,227,193,.45)"></span><span style="width: 3px; height: 50%; border-radius: 2px; background: rgba(166,227,193,.45)"></span><span style="width: 3px; height: 30%; border-radius: 2px; background: rgba(166,227,193,.45)"></span><span style="width: 3px; height: 65%; border-radius: 2px; background: rgba(166,227,193,.45)"></span><span style="width: 3px; height: 45%; border-radius: 2px; background: rgba(166,227,193,.45)"></span><span style="width: 3px; height: 25%; border-radius: 2px; background: rgba(166,227,193,.45)"></span><span style="width: 3px; height: 55%; border-radius: 2px; background: rgba(166,227,193,.45)"></span>
+        </div>
+        <button aria-label="Расшифровать голосовое" style="width: 40px; height: 40px; border-radius: 12px; background: rgba(0,0,0,.2); color: #A6E3C1; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">→A</button>
+      </div>
+      <div style="display: flex; font-size: 11px; color: #A6E3C1"><span style="flex-grow: 1">0:18</span><span>19:13 <span class="ms" style="font-size: 14px; vertical-align: -3px" aria-hidden="true">done_all</span></span></div>
+    </div>
+    <sc-for list="{{sent}}" as="m" hint-placeholder-count="0">
+      <sc-if value="{{m.isText}}" hint-placeholder-val="{{false}}">
+        <div style="align-self: flex-end; max-width: 80%; padding: 8px 12px 7px; border-radius: 20px 20px 6px 20px; background: linear-gradient(160deg, #2E6B4B, #1F4D36); color: #E6F6EC; font-size: 15px; line-height: 21px; animation: kxIn .35s cubic-bezier(.2,.8,.2,1) both">{{m.text}} <span style="font-size: 11px; color: #A6E3C1">{{m.time}} ✓</span></div>
+      </sc-if>
+      <sc-if value="{{m.isVoice}}" hint-placeholder-val="{{false}}">
+        <div style="align-self: flex-end; width: 220px; padding: 9px 10px 7px; border-radius: 20px 20px 6px 20px; background: linear-gradient(160deg, #2E6B4B, #1F4D36); color: #E6F6EC; display: flex; align-items: center; gap: 10px; animation: kxIn .35s cubic-bezier(.2,.8,.2,1) both">
+          <span style="width: 38px; height: 38px; border-radius: 19px; background: #A6E3C1; color: #0B2216; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" aria-hidden="true">play_arrow</span></span>
+          <span aria-hidden="true" style="flex-grow: 1; height: 22px; display: flex; align-items: center; gap: 2px"><span style="width: 3px; height: 50%; border-radius: 2px; background: rgba(166,227,193,.6)"></span><span style="width: 3px; height: 85%; border-radius: 2px; background: rgba(166,227,193,.6)"></span><span style="width: 3px; height: 40%; border-radius: 2px; background: rgba(166,227,193,.6)"></span><span style="width: 3px; height: 70%; border-radius: 2px; background: rgba(166,227,193,.6)"></span><span style="width: 3px; height: 95%; border-radius: 2px; background: rgba(166,227,193,.6)"></span><span style="width: 3px; height: 55%; border-radius: 2px; background: rgba(166,227,193,.6)"></span><span style="width: 3px; height: 30%; border-radius: 2px; background: rgba(166,227,193,.6)"></span><span style="width: 3px; height: 65%; border-radius: 2px; background: rgba(166,227,193,.6)"></span><span style="width: 3px; height: 45%; border-radius: 2px; background: rgba(166,227,193,.6)"></span><span style="width: 3px; height: 80%; border-radius: 2px; background: rgba(166,227,193,.6)"></span></span>
+          <span style="font-size: 11px; color: #A6E3C1">{{m.dur}} ✓</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{m.isCircle}}" hint-placeholder-val="{{false}}">
+        <div style="align-self: flex-end; width: 150px; height: 150px; border-radius: 50%; padding: 3px; box-sizing: border-box; background: rgba(143,211,172,.5); animation: kxPop .45s cubic-bezier(.2,.8,.2,1) both">
+          <div style="width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 50% 38%, #2F6E4D 0%, #173A28 45%, #0B1510 100%); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden">
+            <span class="ms fill" style="font-size: 64px; color: rgba(200,240,216,.3); margin-top: 26px" aria-hidden="true">person</span>
+            <span style="position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.5); font-size: 11px">{{m.dur}} ✓</span>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{m.isPhoto}}" hint-placeholder-val="{{false}}">
+        <div style="align-self: flex-end; width: 230px; padding: 4px; border-radius: 22px 22px 6px 22px; background: linear-gradient(160deg, #2E6B4B, #1F4D36); animation: kxIn .35s cubic-bezier(.2,.8,.2,1) both">
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; border-radius: 18px; overflow: hidden">
+            <sc-for list="{{m.photos}}" as="p" hint-placeholder-count="2"><div style="height: 86px; background: {{p.bg}}"></div></sc-for>
+          </div>
+          <div style="padding: 6px 8px 3px; font-size: 11px; color: #A6E3C1; text-align: right">{{m.caption}} {{m.time}} ✓</div>
+        </div>
+      </sc-if>
+    </sc-for>
+  </div>
+
+  <button aria-label="Вниз" style="position: absolute; right: 14px; bottom: 112px; width: 44px; height: 44px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(18px) saturate(170%); -webkit-backdrop-filter: blur(18px) saturate(170%); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 8px 20px rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; color: #EEF3EF"><span class="ms" aria-hidden="true">keyboard_arrow_down</span></button>
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; padding: 4px 6px 8px; display: flex; flex-direction: column; gap: 6px; background: #0D100E; border-bottom: 1px solid rgba(255,255,255,.06); z-index: 3">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <button aria-label="Назад" style="width: 48px; height: 48px; border-radius: 24px; background: transparent; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+      <div style="flex-grow: 1; height: 56px; padding: 0 2px; display: flex; align-items: center; gap: 10px; background: transparent">
+        <span style="position: relative; width: 42px; height: 42px; border-radius: 21px; background: linear-gradient(140deg, #4B3F7A, #2A2240); color: #DCD0FF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">А<span style="position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 6px; background: #8FD3AC; border: 2px solid #1B221E"></span></span>
+        <div style="flex-grow: 1; min-width: 0"><div style="font-size: 16px; font-weight: 700">Анна</div><div style="font-size: 12px; color: #8FD3AC">{{status}}</div></div>
+        <button aria-label="Позвонить" style="width: 48px; height: 48px; border-radius: 24px; background: rgba(143,211,172,.18); display: flex; align-items: center; justify-content: center; color: #8FD3AC"><span class="ms" style="font-size: 21px" aria-hidden="true">call</span></button>
+      </div>
+      <button aria-label="Меню чата" style="width: 48px; height: 48px; border-radius: 24px; background: transparent; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">more_vert</span></button>
+    </div>
+    <button style="height: 48px; margin: 0 4px; border-radius: 16px; padding: 0 12px; display: flex; align-items: center; gap: 10px; text-align: left; background: #121614; border: 1px solid rgba(255,255,255,.06)">
+      <span style="width: 3px; height: 28px; border-radius: 2px; background: #8FD3AC"></span>
+      <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 12px; font-weight: 700; color: #8FD3AC">Закреплённое сообщение</span><span style="display: block; font-size: 13px; color: #C9D2CC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Встречаемся у кинотеатра в 19:15</span></span>
+      <span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">keep</span>
+    </button>
+  </header>
+
+  <sc-if value="{{recCircle}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: rgba(5,7,6,.82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; flex-direction: column; align-items: center; padding-top: 170px; animation: kxFade .25s ease both">
+      <div style="position: relative; width: 272px; height: 272px; border-radius: 50%; padding: 5px; box-sizing: border-box; background: {{circleRing}}; animation: kxPop .4s cubic-bezier(.2,.8,.2,1) both">
+        <div style="width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 50% 36%, #2F6E4D 0%, #173A28 45%, #070B09 100%); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative">
+          <span class="ms fill" style="font-size: 120px; color: rgba(200,240,216,.28); margin-top: 60px" aria-hidden="true">person</span>
+          <button aria-label="Сменить камеру" style="position: absolute; right: 30px; bottom: 34px; width: 40px; height: 40px; border-radius: 20px; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 22px" aria-hidden="true">cameraswitch</span></button>
+        </div>
+      </div>
+      <div style="margin-top: 22px; display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600"><span style="width: 10px; height: 10px; border-radius: 5px; background: #FF5A5A; animation: kxBlink 1s infinite"></span>{{recTime}}</div>
+      <div style="margin-top: 8px; font-size: 13px; color: #9AA59F">Отпустите кнопку — кружок отправится</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{attachOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть вложения" onClick="{{closeAttach}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.5); animation: kxFade .2s ease both"></button>
+    <div role="dialog" aria-label="Вложения" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 14px 18px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(34,44,39,.92), rgba(16,20,18,.96)); border-top: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); animation: kxSheet .38s cubic-bezier(.2,.9,.25,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 12px"></div>
+      <div style="display: flex; align-items: center; margin-bottom: 10px"><span style="flex-grow: 1; font-size: 17px; font-weight: 700">{{attachTitle}}</span><button onClick="{{closeAttach}}" aria-label="Закрыть" style="width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">close</span></button></div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; border-radius: 18px; overflow: hidden">
+        <button aria-label="Снять фото" style="height: 108px; background: #151A17; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #8FD3AC; font-size: 12px; font-weight: 600"><span class="ms" style="font-size: 30px" aria-hidden="true">photo_camera</span>Камера</button>
+        <sc-for list="{{tiles}}" as="t" hint-placeholder-count="5">
+          <button aria-label="{{t.label}}" onClick="{{t.pick}}" style="position: relative; height: 108px; background: {{t.bg}}; transition: transform .2s ease; transform: {{t.scale}}">
+            <span style="position: absolute; right: 7px; top: 7px; width: 24px; height: 24px; border-radius: 12px; box-sizing: border-box; border: 2px solid rgba(255,255,255,.85); background: {{t.markBg}}; color: #06150D; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{t.mark}}</span>
+            <sc-if value="{{t.video}}" hint-placeholder-val="{{false}}"><span style="position: absolute; left: 7px; bottom: 7px; padding: 1px 6px; border-radius: 8px; background: rgba(0,0,0,.5); font-size: 11px; color: #fff">0:12</span></sc-if>
+          </button>
+        </sc-for>
+      </div>
+      <sc-if value="{{noneSelected}}" hint-placeholder-val="{{true}}">
+        <div style="margin-top: 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 4px">
+          <sc-for list="{{attachKinds}}" as="k" hint-placeholder-count="8">
+            <button style="display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: #C9D2CC"><span style="width: 52px; height: 52px; border-radius: 18px; background: {{k.bg}}; color: {{k.fg}}; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 1px 0 rgba(255,255,255,.18)"><span class="ms fill" aria-hidden="true">{{k.icon}}</span></span>{{k.label}}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{someSelected}}" hint-placeholder-val="{{false}}">
+        <div style="margin-top: 14px; display: flex; gap: 8px; align-items: center; animation: kxIn .25s ease both">
+          <div style="flex-grow: 1; height: 50px; border-radius: 25px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; padding: 0 16px; font-size: 15px; color: #8A958F">Подпись…</div>
+          <button aria-label="Редактировать фото" style="width: 50px; height: 50px; border-radius: 25px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" aria-hidden="true">tune</span></button>
+          <button onClick="{{sendPhotos}}" style="height: 50px; padding: 0 18px; border-radius: 25px; background: linear-gradient(140deg, #8FD3AC, #3F9A6C); color: #06150D; font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 6px"><span class="ms fill" style="font-size: 20px" aria-hidden="true">send</span>{{sendLabel}}</button>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showComposer}}" hint-placeholder-val="{{true}}">
+    <div style="position: absolute; left: 10px; right: 78px; bottom: 22px; min-height: 58px; border-radius: 29px; padding: 0 6px; display: flex; align-items: center; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 14px 34px rgba(0,0,0,.55)">
+      <button aria-label="Вложения" onClick="{{openAttach}}" style="width: 46px; height: 46px; border-radius: 23px; display: flex; align-items: center; justify-content: center; color: #C9D2CC; transition: transform .3s cubic-bezier(.34,1.5,.5,1); transform: {{plusRotate}}"><span class="ms" aria-hidden="true">add_circle</span></button>
+      <label for="msg" style="position: absolute; left: -9999px">Сообщение</label>
+      <input id="msg" placeholder="Сообщение" value="{{text}}" onChange="{{onText}}" style="flex-grow: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #EEF3EF; font: inherit; font-size: 16px">
+      <button aria-label="Стикеры и эмодзи" style="width: 44px; height: 46px; display: flex; align-items: center; justify-content: center; color: #C9D2CC"><span class="ms" aria-hidden="true">mood</span></button>
+    </div>
+  </sc-if>
+  <sc-if value="{{recVoice}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 10px; right: 78px; bottom: 22px; height: 58px; border-radius: 29px; padding: 0 14px; display: flex; align-items: center; gap: 10px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 14px 34px rgba(0,0,0,.55); animation: kxFade .2s ease both">
+      <span style="width: 10px; height: 10px; border-radius: 5px; background: #FF5A5A; animation: kxBlink 1s infinite; flex-shrink: 0"></span>
+      <span style="font-size: 15px; font-weight: 600; width: 38px">{{recTime}}</span>
+      <span aria-hidden="true" style="flex-grow: 1; height: 26px; display: flex; align-items: center; gap: 2px">
+        <span style="width: 3px; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxWave .7s ease-in-out infinite"></span><span style="width: 3px; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxWave .7s ease-in-out .1s infinite"></span><span style="width: 3px; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxWave .7s ease-in-out .2s infinite"></span><span style="width: 3px; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxWave .7s ease-in-out .3s infinite"></span><span style="width: 3px; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxWave .7s ease-in-out .15s infinite"></span><span style="width: 3px; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxWave .7s ease-in-out .25s infinite"></span><span style="width: 3px; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxWave .7s ease-in-out .05s infinite"></span><span style="width: 3px; height: 100%; border-radius: 2px; background: #8FD3AC; animation: kxWave .7s ease-in-out .35s infinite"></span>
+      </span>
+      <button onClick="{{cancelRec}}" style="font-size: 13px; color: #9AA59F; display: flex; align-items: center; gap: 2px; animation: kxSlideHint 1.4s ease-in-out 2"><span class="ms" style="font-size: 18px" aria-hidden="true">chevron_left</span>Отмена</button>
+    </div>
+    <div style="position: absolute; right: 18px; bottom: 102px; width: 42px; height: 72px; border-radius: 21px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.16); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #C9D2CC; animation: kxIn .25s ease both"><span class="ms" style="font-size: 20px" aria-hidden="true">lock</span><span class="ms" style="font-size: 18px" aria-hidden="true">keyboard_arrow_up</span></div>
+  </sc-if>
+
+  <div style="position: absolute; right: 10px; bottom: 22px; width: 58px; height: 58px">
+    <sc-if value="{{recording}}" hint-placeholder-val="{{false}}">
+      <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; background: rgba(143,211,172,.45); animation: kxRing 1.2s ease-out infinite"></span>
+      <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; background: rgba(143,211,172,.35); animation: kxRing 1.2s ease-out .6s infinite"></span>
+    </sc-if>
+    <button aria-label="{{actionLabel}}" onPointerDown="{{press}}" onPointerUp="{{release}}" style="position: relative; width: 58px; height: 58px; border-radius: 29px; background: #8FD3AC; color: #06150D; display: flex; align-items: center; justify-content: center; touch-action: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 10px 26px rgba(63,154,108,.4); transition: transform .3s cubic-bezier(.34,1.5,.5,1); transform: {{actionScale}}">
+      <span class="ms fill" style="font-size: 26px; animation: kxSwap .3s cubic-bezier(.34,1.5,.5,1) both" aria-hidden="true">{{actionIcon}}</span>
+    </button>
+  </div>
+  <sc-if value="{{showHint}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; right: 12px; bottom: 90px; padding: 7px 12px; border-radius: 14px; background: rgba(30,40,35,.95); border: 1px solid rgba(255,255,255,.12); font-size: 12px; color: #C9D2CC; animation: kxIn .25s ease both">{{hint}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { media: 'mic', text: '', rec: null, secs: 0, attach: false, picked: [], sent: [], hint: '' };
+}
+componentWillUnmount() { clearTimeout(this.hold); clearInterval(this.tick); clearTimeout(this.hintT); }
+now() { const d = new Date(); return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+fmt(s) { return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+say(hint) { clearTimeout(this.hintT); this.setState({ hint }); this.hintT = setTimeout(() => this.setState({ hint: '' }), 1800); }
+add(m) { this.setState({ sent: this.state.sent.concat([m]).slice(-4) }); }
+startRec() {
+  this.setState({ rec: this.state.media, secs: 0, hint: '' });
+  this.tick = setInterval(() => this.setState({ secs: this.state.secs + 1 }), 1000);
+}
+stopRec(send) {
+  clearInterval(this.tick);
+  const kind = this.state.rec, secs = Math.max(1, this.state.secs);
+  this.setState({ rec: null, secs: 0 });
+  if (!send) return;
+  if (kind === 'mic') this.add({ isVoice: true, dur: this.fmt(secs) });
+  else this.add({ isCircle: true, dur: this.fmt(secs) });
+}
+renderVals() {
+  const s = this.state;
+  const hasText = s.text.trim().length > 0;
+  const recording = !!s.rec;
+  const tileBg = [
+    'linear-gradient(150deg,#3E7A5A,#173A28)', 'linear-gradient(150deg,#4B3F7A,#1E1830)', 'linear-gradient(150deg,#C08A4A,#4A3018)',
+    'linear-gradient(150deg,#3C7BD0,#142A4A)', 'linear-gradient(150deg,#A24B5B,#3A1820)'
+  ];
+  const tiles = tileBg.map((bg, i) => {
+    const order = s.picked.indexOf(i);
+    return {
+      bg, video: i === 3, label: 'Фото ' + (i + 1),
+      mark: order >= 0 ? String(order + 1) : '',
+      markBg: order >= 0 ? '#8FD3AC' : 'rgba(0,0,0,.25)',
+      scale: order >= 0 ? 'scale(.92)' : 'scale(1)',
+      pick: () => {
+        const p = s.picked.slice(); const k = p.indexOf(i);
+        if (k >= 0) p.splice(k, 1); else p.push(i);
+        this.setState({ picked: p });
+      }
+    };
+  });
+  const kinds = [
+    ['photo_library', 'Галерея', '#2E5C45', '#C8F0D8'], ['description', 'Файл', '#2D4E73', '#C6DBF5'], ['location_on', 'Место', '#6B4E2E', '#F2DDBF'], ['ballot', 'Опрос', '#4B3F7A', '#DCD0FF'],
+    ['person', 'Контакт', '#2E6B66', '#BDEDE8'], ['music_note', 'Музыка', '#A24B5B', '#FFD6DE'], ['casino', 'Игры', '#5A6B2E', '#E6F2BF'], ['schedule_send', 'Позже', '#3A4540', '#C9D2CC']
+  ].map(([icon, label, bg, fg]) => ({ icon, label, bg, fg }));
+  const sent = s.sent.map(m => m.isPhoto ? Object.assign({}, m, { photos: m.pics.map(i => ({ bg: tileBg[i] })) }) : m);
+  let actionIcon = s.media === 'mic' ? 'mic' : 'radio_button_checked';
+  if (hasText) actionIcon = 'send';
+  return {
+    sent,
+    text: s.text,
+    onText: (e) => this.setState({ text: e.target.value }),
+    status: recording ? (s.rec === 'mic' ? 'записывает голосовое…' : 'записывает видео…') : 'в сети',
+    recording,
+    recVoice: s.rec === 'mic',
+    recCircle: s.rec === 'circle',
+    showComposer: s.rec !== 'mic',
+    recTime: this.fmt(s.secs),
+    circleRing: 'conic-gradient(#8FD3AC 0 ' + Math.min(100, s.secs / 60 * 100) + '%, rgba(255,255,255,.14) 0 100%)',
+    actionIcon,
+    actionLabel: hasText ? 'Отправить' : (s.media === 'mic' ? 'Голосовое: удерживайте; нажмите — кружок' : 'Кружок: удерживайте; нажмите — голосовое'),
+    actionScale: recording ? 'scale(1.35)' : 'scale(1)',
+    plusRotate: s.attach ? 'rotate(45deg)' : 'rotate(0)',
+    showHint: !!s.hint,
+    hint: s.hint,
+    attachOpen: s.attach,
+    attachTitle: s.picked.length ? 'Выбрано: ' + s.picked.length : 'Недавние',
+    tiles,
+    attachKinds: kinds,
+    noneSelected: s.picked.length === 0,
+    someSelected: s.picked.length > 0,
+    sendLabel: s.picked.length > 1 ? 'Отправить ' + s.picked.length : 'Отправить',
+    openAttach: () => this.setState({ attach: true, picked: [] }),
+    closeAttach: () => this.setState({ attach: false, picked: [] }),
+    sendPhotos: () => { const pics = s.picked.slice(0, 4); this.setState({ attach: false, picked: [] }); this.add({ isPhoto: true, pics, caption: '', time: this.now() }); },
+    cancelRec: () => this.stopRec(false),
+    press: () => {
+      if (hasText) return;
+      this.pressed = true;
+      this.hold = setTimeout(() => { if (this.pressed) this.startRec(); }, 260);
+    },
+    release: () => {
+      clearTimeout(this.hold);
+      const was = this.pressed; this.pressed = false;
+      if (this.state.rec) { this.stopRec(true); return; }
+      if (hasText) { this.add({ isText: true, text: s.text.trim(), time: this.now() }); this.setState({ text: '' }); return; }
+      if (!was) return;
+      const media = s.media === 'mic' ? 'circle' : 'mic';
+      this.setState({ media });
+      this.say(media === 'mic' ? 'Удерживайте, чтобы записать голосовое' : 'Удерживайте, чтобы записать кружок');
+    }
+  };
+}
+}
+</script>
+</body>
+</html>

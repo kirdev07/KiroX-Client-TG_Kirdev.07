@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Всплывающие чаты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+input{font:inherit;color:inherit}
+@keyframes kxPop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+@keyframes kxOpen{from{opacity:0;transform:translateY(-20px) scale(.9);transform-origin:top right}to{opacity:1;transform:none}}
+@keyframes kxBadge{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+@keyframes kxMsg{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxX{0%{transform:translate(-50%,40px);opacity:0}100%{transform:translate(-50%,0);opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #F3F1EC; color: #1C1F1D; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <!-- Some other app (maps) -->
+  <div style="position: absolute; inset: 0; background: #E9E6DE; background-image: linear-gradient(rgba(0,0,0,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.05) 1px, transparent 1px); background-size: 40px 40px" aria-hidden="true">
+    <span style="position: absolute; left: 0; right: 0; top: 300px; height: 22px; background: #FFFFFF"></span>
+    <span style="position: absolute; top: 0; bottom: 0; left: 180px; width: 22px; background: #FFFFFF"></span>
+    <span style="position: absolute; left: 30px; top: 120px; width: 120px; height: 140px; border-radius: 12px; background: #CFE3C8"></span>
+    <span style="position: absolute; right: 30px; top: 420px; width: 140px; height: 120px; border-radius: 12px; background: #C9DCEB"></span>
+    <svg width="390" height="844" viewBox="0 0 390 844" style="position: absolute; inset: 0"><path d="M90 620 C 150 520, 170 420, 191 311 S 260 200, 300 140" fill="none" stroke="#3A7BD5" stroke-width="6" stroke-linecap="round"></path><circle cx="300" cy="140" r="10" fill="#E5534B"></circle></svg>
+    <div style="position: absolute; left: 16px; right: 16px; top: 16px; height: 50px; border-radius: 25px; background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.12); display: flex; align-items: center; gap: 10px; padding: 0 16px; font-size: 15px; color: #8A958F"><span class="ms">search</span>Медеу</div>
+    <div style="position: absolute; left: 16px; right: 16px; bottom: 20px; padding: 14px 16px; border-radius: 20px; background: #fff; box-shadow: 0 -2px 14px rgba(0,0,0,.1)"><div style="font-size: 17px; font-weight: 800">24 мин · 11 км</div><div style="font-size: 13px; color: #8A958F">Через пр. Достык · пробок нет</div></div>
+  </div>
+  <div style="position: absolute; left: 16px; top: 76px; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px">Другое приложение — карты</div>
+
+  <!-- Expanded chat -->
+  <sc-if value="{{open}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{collapse}}" aria-label="Свернуть" style="position: absolute; inset: 0; background: rgba(0,0,0,.35)"></button>
+    <div style="position: absolute; left: 12px; right: 12px; top: 150px; height: 470px; border-radius: 28px; background: #0A0C0B; color: #EEF3EF; box-shadow: 0 24px 60px rgba(0,0,0,.45); display: flex; flex-direction: column; overflow: hidden; animation: kxOpen .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="padding: 12px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+        <span style="width: 36px; height: 36px; border-radius: 18px; background: {{curC}}; display: flex; align-items: center; justify-content: center; font-weight: 800">{{curL}}</span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 800">{{curName}}</span><span style="display: block; font-size: 11px; color: #8FD3AC">в сети</span></span>
+        <button onClick="{{openFull}}" aria-label="Открыть в kiroX" style="width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">open_in_full</span></button>
+        <button onClick="{{collapse}}" aria-label="Свернуть в пузырь" style="width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">remove</span></button>
+      </div>
+      <div style="flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 6px; justify-content: flex-end; overflow: hidden">
+        <sc-for list="{{msgs}}" as="m" hint-placeholder-count="3"><div style="align-self: {{m.side}}; max-width: 80%; padding: 7px 11px; border-radius: {{m.r}}; background: {{m.bg}}; color: {{m.ink}}; font-size: 14px; animation: kxMsg .25s ease both">{{m.t}}</div></sc-for>
+      </div>
+      <div style="padding: 8px 10px 12px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none">
+        <sc-for list="{{quick}}" as="q" hint-placeholder-count="3"><button onClick="{{q.tap}}" style="flex-shrink: 0; height: 34px; padding: 0 12px; border-radius: 17px; background: rgba(143,211,172,.12); border: 1px solid rgba(143,211,172,.3); color: #8FD3AC; font-size: 13px; font-weight: 700">{{q.t}}</button></sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Bubbles stack -->
+  <div style="position: absolute; right: 10px; top: {{stackTop}}; display: flex; flex-direction: column; gap: 10px; transition: top .35s cubic-bezier(.2,.8,.2,1); z-index: 5">
+    <sc-for list="{{bubbles}}" as="b" hint-placeholder-count="2">
+      <button onClick="{{b.tap}}" aria-label="{{b.label}}" style="position: relative; width: 58px; height: 58px; border-radius: 29px; background: {{b.c}}; color: #fff; font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 22px rgba(0,0,0,.35); border: 2.5px solid {{b.ring}}; animation: kxPop .4s cubic-bezier(.3,1.4,.5,1) {{b.d}} both">{{b.l}}
+        <sc-if value="{{b.unread}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: -3px; top: -3px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; background: #8FD3AC; color: #06150D; font-size: 11px; font-weight: 800; border: 2px solid #F3F1EC; display: flex; align-items: center; justify-content: center; animation: kxBadge 1.4s ease-in-out 2">{{b.n}}</span></sc-if>
+      </button>
+    </sc-for>
+  </div>
+
+  <!-- Dismiss target -->
+  <sc-if value="{{showX}}" hint-placeholder-val="{{true}}">
+    <button onClick="{{dismiss}}" aria-label="Убрать пузыри" style="position: absolute; left: 50%; bottom: 120px; width: 60px; height: 60px; border-radius: 30px; background: rgba(0,0,0,.55); color: #fff; display: flex; align-items: center; justify-content: center; animation: kxX .3s ease both; z-index: 4"><span class="ms" style="font-size: 30px" aria-hidden="true">close</span></button>
+  </sc-if>
+  <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{restore}}" style="position: absolute; left: 50%; bottom: 130px; transform: translateX(-50%); height: 44px; padding: 0 18px; border-radius: 22px; background: #0A0C0B; color: #8FD3AC; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; box-shadow: 0 8px 20px rgba(0,0,0,.3); white-space: nowrap"><span class="ms" style="font-size: 18px" aria-hidden="true">chat_bubble</span>Показать пример снова</button>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const B = [
+  { name: 'Анна', l: 'А', c: 'linear-gradient(135deg, #C0443C, #6A4C9C)', n: 2, msgs: [['Ты уже в пути?', 0], ['Мы у входа на каток 🙂', 0]] },
+  { name: 'Мама', l: 'М', c: 'linear-gradient(135deg, #B07A2E, #6A4C9C)', n: 1, msgs: [['Возьми шарф, там холодно', 0]] }
+];
+const QUICK = ['Еду, буду через 20 минут', 'Уже паркуюсь', '👍'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { list: B.map(b => ({ ...b, msgs: b.msgs.slice() })), open: -1, gone: false }; }
+renderVals() {
+  const s = this.state;
+  const cur = s.open >= 0 ? s.list[s.open] : s.list[0];
+  return {
+    open: s.open >= 0, collapse: () => this.setState({ open: -1 }), openFull: () => this.setState({ open: -1 }),
+    curName: cur.name, curL: cur.l, curC: cur.c,
+    msgs: cur.msgs.map(([t, mine]) => ({ t, side: mine ? 'flex-end' : 'flex-start', r: mine ? '16px 16px 6px 16px' : '16px 16px 16px 6px', bg: mine ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.08)', ink: mine ? '#06150D' : '#EEF3EF' })),
+    quick: QUICK.map(t => ({ t, tap: () => this.setState({ list: s.list.map((b, i) => i === s.open ? { ...b, msgs: [...b.msgs, [t, 1]] } : b) }) })),
+    stackTop: s.open >= 0 ? '86px' : '220px',
+    bubbles: s.gone ? [] : s.list.map((b, i) => ({ l: b.l, c: b.c, n: String(b.n), unread: b.n > 0 && s.open !== i, ring: s.open === i ? '#8FD3AC' : '#fff', d: (i * 0.08) + 's', label: b.name + (b.n ? ', ' + b.n + ' новых' : ''), tap: () => this.setState({ open: s.open === i ? -1 : i, list: s.list.map((x, k) => k === i ? { ...x, n: 0 } : x) }) })),
+    showX: !s.gone && s.open < 0, dismiss: () => this.setState({ gone: true, open: -1 }),
+    empty: s.gone, restore: () => this.setState({ gone: false, list: B.map(b => ({ ...b, msgs: b.msgs.slice() })) })
+  };
+}
+}
+</script>
+</body>
+</html>

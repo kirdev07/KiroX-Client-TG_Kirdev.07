@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Чувствительный контент</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxDots{0%{background-position:0 0}100%{background-position:12px 12px}}
+@keyframes kxReveal{from{filter:blur(24px);transform:scale(1.06)}to{filter:blur(0);transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxDim{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 12px; background: #6A4C9C; display: flex; align-items: center; justify-content: center; font-weight: 800">Х</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Хирургия: учебные кейсы</div><div style="font-size: 12px; color: #9AA59F">канал · 12 тыс. подписчиков</div></div>
+    <button onClick="{{openSettings}}" aria-label="Настройки контента" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">tune</span></button>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; gap: 12px">
+    <sc-for list="{{posts}}" as="p" hint-placeholder-count="2">
+      <div style="align-self: flex-start; width: 300px; border-radius: 20px 20px 20px 6px; background: rgba(255,255,255,.06); overflow: hidden">
+        <button onClick="{{p.tap}}" aria-label="{{p.aria}}" style="position: relative; display: block; width: 100%; height: 200px; overflow: hidden">
+          <span style="position: absolute; inset: 0; background: {{p.img}}; filter: {{p.blur}}; transform: {{p.scale}}; animation: {{p.anim}}; display: flex; align-items: center; justify-content: center; font-size: 60px">{{p.e}}</span>
+          <span style="position: absolute; inset: 0; display: {{p.coverShow}}; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: radial-gradient(rgba(255,255,255,.12) 1px, transparent 1.5px) 0 0 / 12px 12px, rgba(0,0,0,.35); animation: kxDots 2s linear infinite">
+            <span style="width: 52px; height: 52px; border-radius: 26px; background: rgba(0,0,0,.5); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 26px" aria-hidden="true">{{p.ci}}</span></span>
+            <span style="font-size: 14px; font-weight: 800">{{p.ct}}</span>
+            <span style="font-size: 12px; color: #C9D2CC">Нажмите, чтобы посмотреть</span>
+          </span>
+        </button>
+        <div style="padding: 10px 12px; font-size: 14px; line-height: 1.4">{{p.text}}<span style="display: block; margin-top: 4px; font-size: 11px; color: #8A958F">{{p.meta}}</span></div>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{close}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxDim .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 18px 24px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.99), rgba(18,22,20,1)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+      <div style="font-size: 18px; font-weight: 800">Чувствительный контент</div>
+      <div style="margin-top: 4px; font-size: 13px; color: #9AA59F; line-height: 1.4">Фото и видео, которые автор или Telegram пометили как откровенные или жестокие.</div>
+      <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{modes}}" as="m" hint-placeholder-count="2"><button onClick="{{m.tap}}" role="radio" aria-checked="{{m.on}}" style="padding: 12px 14px; border-radius: 18px; background: {{m.bg}}; border: 1.5px solid {{m.bd}}; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: {{m.ic}}" aria-hidden="true">{{m.i}}</span><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 800">{{m.t}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{m.s}}</span></span><span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{m.rb}}; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{m.dot}}"></span></span></button></sc-for>
+      </div>
+      <sc-if value="{{ageAsk}}" hint-placeholder-val="{{false}}">
+        <div style="margin-top: 12px; padding: 12px 14px; border-radius: 18px; background: rgba(232,176,74,.08); border: 1px solid rgba(232,176,74,.3)">
+          <div style="font-size: 14px; font-weight: 800">Вам уже есть 18 лет?</div>
+          <div style="margin-top: 2px; font-size: 12px; color: #C9D2CC">Без этого показывать такой контент без размытия нельзя.</div>
+          <div style="margin-top: 10px; display: flex; gap: 8px"><button onClick="{{ageNo}}" style="flex: 1; height: 42px; border-radius: 21px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700; text-align: center">Нет</button><button onClick="{{ageYes}}" style="flex: 1; height: 42px; border-radius: 21px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 14px; font-weight: 800; text-align: center">Да, мне 18+</button></div>
+        </div>
+      </sc-if>
+      <div style="margin-top: 10px; font-size: 11px; color: #8A958F; line-height: 1.4">Настройка общая для всех ваших устройств и хранится в Telegram.</div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const P = [
+  { id: 1, kind: 'sens', e: '🩺', img: 'linear-gradient(160deg, #6B2A2A, #2A1010)', text: 'Разбор операции: этапы и типичные ошибки. Осторожно, реальные кадры.', meta: 'вчера · 8,4 тыс. просмотров' },
+  { id: 2, kind: 'spoiler', e: '🧠', img: 'linear-gradient(160deg, #2F6E9E, #0B1F2E)', text: 'Ответ на вчерашний тест — под спойлером, не подглядывайте 😉', meta: 'сегодня · 2,1 тыс. просмотров' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { open: {}, mode: 'blur', sheet: false, ageAsk: false, k: 0 }; }
+renderVals() {
+  const s = this.state;
+  return {
+    posts: P.map(p => { const sens = p.kind === 'sens'; const shown = !!s.open[p.id] || (sens && s.mode === 'show');
+      return { e: p.e, img: p.img, text: p.text, meta: p.meta,
+        blur: shown ? 'none' : 'blur(24px)', scale: shown ? 'none' : 'scale(1.06)', anim: shown && s.open[p.id] ? 'kxReveal .5s ease both' : 'none',
+        coverShow: shown ? 'none' : 'flex', ci: sens ? 'visibility_off' : 'auto_awesome', ct: sens ? 'Чувствительный контент' : 'Спойлер',
+        aria: shown ? 'Медиа открыто' : (sens ? 'Показать чувствительный контент' : 'Показать спойлер'),
+        tap: () => !shown && this.setState({ open: { ...s.open, [p.id]: true } }) }; }),
+    openSettings: () => this.setState({ sheet: true, ageAsk: false }), close: () => this.setState({ sheet: false, ageAsk: false }), sheet: s.sheet,
+    modes: [['blur', 'blur_on', 'Размывать', 'Покажем по нажатию — как сейчас'], ['show', 'visibility', 'Показывать сразу', 'Без размытия, только для 18+']].map(([k, i, t, sub]) => { const on = s.mode === k; return { i, t, s: sub, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.1)' : 'rgba(255,255,255,.04)', bd: on ? 'rgba(143,211,172,.5)' : 'transparent', ic: on ? '#8FD3AC' : '#9AA59F', rb: on ? '#8FD3AC' : 'rgba(255,255,255,.3)', dot: on ? '#8FD3AC' : 'transparent',
+      tap: () => k === 'show' && s.mode !== 'show' ? this.setState({ ageAsk: true }) : this.setState({ mode: k, ageAsk: false, open: {} }) }; }),
+    ageAsk: s.ageAsk,
+    ageYes: () => this.setState({ mode: 'show', ageAsk: false }),
+    ageNo: () => this.setState({ mode: 'blur', ageAsk: false })
+  };
+}
+}
+</script>
+</body>
+</html>

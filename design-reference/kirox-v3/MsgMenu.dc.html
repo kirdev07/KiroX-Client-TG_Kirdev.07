@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Меню сообщения</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxLift{from{opacity:.4;transform:scale(.96)}to{opacity:1;transform:scale(1.02)}}
+@keyframes kxStrip{from{opacity:0;transform:translateY(10px) scale(.8)}to{opacity:1;transform:none}}
+@keyframes kxMenu{from{opacity:0;transform:translateY(-8px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes kxEmoji{from{opacity:0;transform:translateY(12px) scale(.4)}to{opacity:1;transform:none}}
+@keyframes kxPop{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes kxGone{to{opacity:0;transform:scale(.85);height:0;margin:0;padding:0}}
+@keyframes kxToast{0%{opacity:0;transform:translateY(10px)}15%,80%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; user-select: none">
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(70% 40% at 100% 20%, rgba(63,154,108,.16), rgba(63,154,108,0))"></div>
+
+  <header style="position: absolute; left: 10px; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 2">
+    <div style="height: 54px; border-radius: 27px; padding: 0 6px 0 6px; display: flex; align-items: center; gap: 10px; background: transparent; border: 1px solid rgba(255,255,255,.16)">
+      <span style="width: 42px; height: 42px; border-radius: 21px; background: linear-gradient(140deg, #4B3F7A, #2A2240); color: #DCD0FF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">А</span>
+      <span style="flex-grow: 1"><span style="display: block; font-size: 16px; font-weight: 700">Анна</span><span style="display: block; font-size: 12px; color: #8FD3AC">в сети</span></span>
+    </div>
+    <sc-if value="{{pinned}}" hint-placeholder-val="{{false}}">
+      <div style="height: 44px; border-radius: 18px; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: transparent; border: 1px solid rgba(255,255,255,.12); animation: kxIn .3s ease both"><span style="width: 3px; height: 26px; border-radius: 2px; background: #8FD3AC"></span><span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 12px; font-weight: 700; color: #8FD3AC">Закреплено</span><span style="display: block; font-size: 13px; color: #C9D2CC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{pinned}}</span></span><span class="ms" style="font-size: 18px; color: #8A958F" aria-hidden="true">keep</span></div>
+    </sc-if>
+  </header>
+
+  <div style="position: absolute; left: 0; right: 0; top: 130px; bottom: 100px; padding: 0 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px">
+    <div style="align-self: center; margin-bottom: 4px; font-size: 12px; color: #8A958F">Нажмите на сообщение — откроется меню</div>
+    <sc-for list="{{msgs}}" as="m" hint-placeholder-count="4">
+      <div style="align-self: {{m.align}}; display: flex; flex-direction: column; align-items: {{m.itemsAlign}}; gap: 3px; animation: {{m.anim}}">
+        <button onClick="{{m.open}}" style="max-width: 290px; padding: 9px 13px 7px; border-radius: {{m.radius}}; background: {{m.bg}}; color: {{m.ink}}; font-size: 15px; line-height: 21px; opacity: {{m.dim}}; transition: opacity .2s">
+          <sc-if value="{{m.reply}}" hint-placeholder-val="{{false}}"><span style="display: block; margin-bottom: 4px; padding: 3px 8px; border-left: 3px solid #A6E3C1; border-radius: 4px 8px 8px 4px; background: rgba(0,0,0,.18); font-size: 12px; color: #BFDCCB">{{m.reply}}</span></sc-if>
+          {{m.text}} <span style="font-size: 11px; color: {{m.timeInk}}">{{m.edited}}{{m.time}}</span>
+        </button>
+        <sc-if value="{{m.react}}" hint-placeholder-val="{{false}}"><span style="padding: 2px 9px; border-radius: 11px; background: rgba(143,211,172,.16); border: 1px solid rgba(143,211,172,.35); font-size: 13px; animation: kxPop .35s ease both">{{m.react}} 1</span></sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position: absolute; left: 10px; right: 10px; bottom: 22px; display: flex; flex-direction: column; gap: 6px">
+    <sc-if value="{{replyTo}}" hint-placeholder-val="{{false}}">
+      <div style="height: 46px; border-radius: 18px; padding: 0 6px 0 12px; display: flex; align-items: center; gap: 10px; background: rgba(143,211,172,.10); border: 1px solid rgba(143,211,172,.25); animation: kxIn .25s ease both"><span class="ms" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">reply</span><span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 12px; font-weight: 700; color: #8FD3AC">Ответ</span><span style="display: block; font-size: 13px; color: #C9D2CC; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{replyTo}}</span></span><button aria-label="Отменить ответ" onClick="{{cancelReply}}" style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: #8A958F"><span class="ms" style="font-size: 20px" aria-hidden="true">close</span></button></div>
+    </sc-if>
+    <div style="display: flex; gap: 8px">
+      <div style="flex-grow: 1; height: 56px; border-radius: 28px; padding: 0 16px; display: flex; align-items: center; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border: 1px solid rgba(255,255,255,.16); font-size: 15px; color: #8A958F">Сообщение</div>
+      <span style="width: 56px; height: 56px; border-radius: 28px; background: #8FD3AC; color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">mic</span></span>
+    </div>
+  </div>
+
+  <sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть меню" onClick="{{close}}" style="position: absolute; inset: 0; width: 100%; background: rgba(5,7,6,.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; left: 14px; right: 14px; top: 170px; display: flex; flex-direction: column; align-items: {{selAlign}}; gap: 10px; pointer-events: none">
+      <div role="toolbar" aria-label="Реакции" style="pointer-events: auto; height: 52px; padding: 0 8px; border-radius: 26px; display: flex; align-items: center; gap: 2px; background: linear-gradient(180deg, rgba(46,58,52,.95), rgba(24,30,27,.96)); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 14px 30px rgba(0,0,0,.5); animation: kxStrip .3s cubic-bezier(.34,1.4,.5,1) both">
+        <sc-for list="{{emojis}}" as="e" hint-placeholder-count="7"><button aria-label="Реакция {{e.e}}" onClick="{{e.pick}}" style="width: 40px; height: 40px; border-radius: 20px; font-size: 24px; display: flex; align-items: center; justify-content: center; background: {{e.bg}}; animation: kxEmoji .3s cubic-bezier(.34,1.5,.5,1) both; animation-delay: {{e.d}}">{{e.e}}</button></sc-for>
+        <button aria-label="Все реакции" style="width: 34px; height: 34px; border-radius: 17px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">expand_more</span></button>
+      </div>
+      <div style="max-width: 300px; padding: 9px 13px 7px; border-radius: {{selRadius}}; background: {{selBg}}; color: {{selInk}}; font-size: 15px; line-height: 21px; box-shadow: 0 16px 40px rgba(0,0,0,.5); animation: kxLift .25s ease both">{{selText}}</div>
+      <div role="menu" style="pointer-events: auto; width: 230px; padding: 6px; border-radius: 22px; background: linear-gradient(180deg, rgba(46,58,52,.95), rgba(24,30,27,.96)); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 18px 40px rgba(0,0,0,.6); transform-origin: top; animation: kxMenu .25s cubic-bezier(.2,.8,.2,1) .05s both">
+        <sc-for list="{{actions}}" as="a" hint-placeholder-count="7">
+          <button role="menuitem" onClick="{{a.run}}" style="width: 100%; height: 44px; padding: 0 12px; border-radius: 14px; display: flex; align-items: center; gap: 12px; font-size: 15px; color: {{a.ink}}"><span class="ms" style="font-size: 20px; color: {{a.iconInk}}" aria-hidden="true">{{a.icon}}</span>{{a.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{delOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{delCancel}}" style="position: absolute; inset: 0; width: 100%; background: rgba(5,7,6,.6); animation: kxFade .2s ease both"></button>
+    <div role="dialog" aria-label="Удалить сообщение" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 18px 24px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, #1E2421, #121614); border-top: 1px solid rgba(255,255,255,.14); animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+      <div style="font-size: 18px; font-weight: 800">Удалить сообщение?</div>
+      <div style="margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.05); font-size: 14px; color: #C9D2CC; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{delText}}</div>
+      <button onClick="{{delToggle}}" role="checkbox" aria-checked="{{delBothOn}}" style="margin-top: 10px; width: 100%; min-height: 52px; display: {{delBothShow}}; align-items: center; gap: 12px"><span style="width: 24px; height: 24px; border-radius: 7px; border: 2px solid {{delCb}}; background: {{delCf}}; color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 17px; font-weight: 700; display: {{delTick}}" aria-hidden="true">check</span></span><span style="flex: 1; font-size: 15px">Также удалить у: Анна</span></button>
+      <div style="margin-top: 6px; font-size: 12px; color: #8A958F; display: {{delNoteShow}}">Чужое сообщение удалится только у вас.</div>
+      <div style="margin-top: 14px; display: flex; gap: 8px">
+        <button onClick="{{delCancel}}" style="flex: 1; height: 50px; border-radius: 25px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button>
+        <button onClick="{{delConfirm}}" style="flex: 1; height: 50px; border-radius: 25px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">Удалить</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{undo}}" hint-placeholder-val="{{false}}">
+    <div role="status" style="position: absolute; left: 12px; right: 12px; bottom: 104px; height: 52px; padding: 0 8px 0 16px; border-radius: 18px; background: rgba(40,50,45,.97); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; gap: 10px; animation: kxIn .25s ease both"><span style="font-size: 14px; font-weight: 800; color: #8FD3AC; font-variant-numeric: tabular-nums; width: 14px">{{undoLeft}}</span><span style="flex: 1; font-size: 14px; font-weight: 600">{{undoText}}</span><button onClick="{{undoRun}}" style="height: 40px; padding: 0 14px; border-radius: 20px; color: #8FD3AC; font-size: 14px; font-weight: 800">Отменить</button></div>
+  </sc-if>
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div role="status" style="position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%); padding: 10px 16px; border-radius: 18px; background: rgba(40,50,45,.95); border: 1px solid rgba(255,255,255,.12); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; white-space: nowrap; animation: kxToast 1.8s ease both"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toast}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { list: [
+    { id: 1, mine: false, text: 'Привет! Есть планы на завтрашний вечер?', en: 'Hi! Any plans for tomorrow evening?', time: '19:02' },
+    { id: 2, mine: true, text: 'Да, после шести', en: 'Yes, after six', time: '19:04' },
+    { id: 3, mine: false, text: 'Новый фильм в «Октябре», пойдём?', en: 'New movie at "Oktyabr", shall we go?', time: '19:10' },
+    { id: 4, mine: true, text: 'Беру билеты на 19:30', en: 'Getting tickets for 7:30 pm', time: '19:12' }
+  ], sel: null, react: {}, tr: {}, pinned: null, reply: null, gone: null, toast: '', toastKey: 0, edited: {}, del: null, both: true, hidden: {}, undoId: null, undoLeft: 5 };
+}
+componentWillUnmount() { clearTimeout(this.t); clearTimeout(this.g); clearInterval(this.u); }
+say(toast) { clearTimeout(this.t); this.setState({ toast: '' }); setTimeout(() => this.setState({ toast }), 20); this.t = setTimeout(() => this.setState({ toast: '' }), 1900); }
+renderVals() {
+  const s = this.state;
+  const txt = m => s.tr[m.id] ? m.en : m.text;
+  const msgs = s.list.filter(m => !s.hidden[m.id]).map(m => ({
+    align: m.mine ? 'flex-end' : 'flex-start', itemsAlign: m.mine ? 'flex-end' : 'flex-start',
+    radius: m.mine ? '20px 20px 6px 20px' : '20px 20px 20px 6px',
+    bg: m.mine ? 'linear-gradient(160deg, #2E6B4B, #1F4D36)' : '#161B18', ink: m.mine ? '#E6F6EC' : '#EEF3EF', timeInk: m.mine ? '#A6E3C1' : '#8A958F',
+    text: txt(m), time: m.time, edited: s.edited[m.id] ? 'изм. ' : '', react: s.react[m.id] || false,
+    reply: m.replyTo || false,
+    dim: s.sel && s.sel !== m.id ? '1' : '1',
+    anim: s.gone === m.id ? 'kxGone .35s ease both' : 'none',
+    open: () => this.setState({ sel: m.id })
+  }));
+  const sm = s.list.find(m => m.id === s.sel);
+  const dm = s.list.find(m => m.id === s.del);
+  const emojis = ['❤️', '🔥', '👍', '😂', '😮', '😢', '🎉'].map((e, i) => ({ e, d: (i * 0.03) + 's', bg: sm && s.react[sm.id] === e ? 'rgba(143,211,172,.25)' : 'transparent', pick: () => this.setState({ react: Object.assign({}, s.react, { [s.sel]: s.react[s.sel] === e ? null : e }), sel: null }) }));
+  const A = [
+    ['reply', 'Ответить', () => this.setState({ reply: txt(sm), sel: null })],
+    ['content_copy', 'Копировать', () => { this.setState({ sel: null }); this.say('Текст скопирован'); }],
+    ['translate', s.tr[s.sel] ? 'Показать оригинал' : 'Перевести', () => this.setState({ tr: Object.assign({}, s.tr, { [s.sel]: !s.tr[s.sel] }), sel: null })],
+    ['forward', 'Переслать', () => { this.setState({ sel: null }); this.say('Выберите чат для пересылки'); }],
+    ['keep', s.pinned === (sm && txt(sm)) ? 'Открепить' : 'Закрепить', () => this.setState({ pinned: s.pinned === txt(sm) ? null : txt(sm), sel: null })]
+  ];
+  if (sm && sm.mine) A.push(['edit', 'Изменить', () => { this.setState({ edited: Object.assign({}, s.edited, { [s.sel]: true }), sel: null }); this.say('Сообщение изменено'); }]);
+  A.push(['check_circle', 'Выбрать', () => { this.setState({ sel: null }); this.say('Выбрано: 1'); }]);
+  A.splice(4, 0, ['bookmark', 'В Избранное', () => { this.setState({ sel: null }); this.say('Сохранено в Избранное'); }]);
+  A.push(['delete', 'Удалить…', () => this.setState({ del: s.sel, sel: null, both: true })]);
+  const actions = A.map(([icon, label, run]) => ({ icon, label, run, ink: icon === 'delete' ? '#FF8A80' : '#EEF3EF', iconInk: icon === 'delete' ? '#FF8A80' : '#8FD3AC' }));
+  return {
+    msgs, emojis, actions,
+    menuOpen: !!sm, close: () => this.setState({ sel: null }),
+    selAlign: sm && sm.mine ? 'flex-end' : 'flex-start',
+    selText: sm ? txt(sm) : '', selRadius: sm && sm.mine ? '20px 20px 6px 20px' : '20px 20px 20px 6px',
+    selBg: sm && sm.mine ? 'linear-gradient(160deg, #2E6B4B, #1F4D36)' : '#1B211E', selInk: sm && sm.mine ? '#E6F6EC' : '#EEF3EF',
+    pinned: s.pinned || false, replyTo: s.reply || false, cancelReply: () => this.setState({ reply: null }),
+    toast: s.toast || false,
+    delOpen: !!dm, delText: dm ? txt(dm) : '',
+    delBothShow: dm && dm.mine ? 'flex' : 'none', delNoteShow: dm && !dm.mine ? 'block' : 'none',
+    delBothOn: s.both ? 'true' : 'false', delCb: s.both ? '#8FD3AC' : 'rgba(255,255,255,.3)', delCf: s.both ? '#8FD3AC' : 'transparent', delTick: s.both ? 'inline-block' : 'none',
+    delToggle: () => this.setState({ both: !s.both }),
+    delCancel: () => this.setState({ del: null }),
+    delConfirm: () => { const id = s.del; clearInterval(this.u); this.setState({ del: null, hidden: Object.assign({}, s.hidden, { [id]: true }), undoId: id, undoLeft: 5, undoBoth: dm && dm.mine && s.both });
+      this.u = setInterval(() => { const l = this.state.undoLeft - 1; if (l <= 0) { clearInterval(this.u); this.setState({ undoId: null }); } else this.setState({ undoLeft: l }); }, 1000); },
+    undo: s.undoId !== null, undoLeft: s.undoLeft, undoText: s.undoBoth ? 'Удалено у вас и у собеседника' : 'Удалено у вас',
+    undoRun: () => { clearInterval(this.u); const h = Object.assign({}, s.hidden); delete h[s.undoId]; this.setState({ hidden: h, undoId: null }); }
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Группа рядом</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+@keyframes kxSweep{to{transform:rotate(360deg)}}
+@keyframes kxPulse{0%{transform:scale(.3);opacity:.8}100%{transform:scale(1);opacity:0}}
+@keyframes kxPop{0%{transform:translate(-50%,-50%) scale(0)}60%{transform:translate(-50%,-50%) scale(1.2)}100%{transform:translate(-50%,-50%) scale(1)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1"><h1 style="margin: 0; font-size: 20px; font-weight: 800">Группа рядом</h1><div style="font-size: 12px; color: #9AA59F">Для тех, кто сейчас в одной комнате</div></div>
+  </header>
+  <div role="note" style="margin: 0 12px 6px; padding: 10px 12px; border-radius: 14px; background: rgba(232,176,74,.1); border: 1px solid rgba(232,176,74,.35); display: flex; gap: 8px; font-size: 12px; line-height: 17px; color: #F2D9A6"><span class="ms" style="font-size: 18px; color: #E8B04A" aria-hidden="true">construction</span><span>Идея, не решено. Telegram убрал «Людей рядом», поэтому для этого экрана нужен свой сервер kiroX. Без него экран не делаем.</span></div>
+
+  <!-- Radar -->
+  <div style="position: relative; height: 340px; display: flex; align-items: center; justify-content: center">
+    <div style="position: relative; width: 300px; height: 300px">
+      <span style="position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(143,211,172,.15)"></span>
+      <span style="position: absolute; inset: 50px; border-radius: 50%; border: 1px solid rgba(143,211,172,.18)"></span>
+      <span style="position: absolute; inset: 100px; border-radius: 50%; border: 1px solid rgba(143,211,172,.22)"></span>
+      <span style="position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(143,211,172,.5); animation: kxPulse 2.4s ease-out infinite; animation-play-state: {{run}}"></span>
+      <span style="position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, rgba(143,211,172,.35), transparent 25%); animation: kxSweep 3s linear 2; animation-play-state: {{run}}"></span>
+      <span style="position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 32px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-weight: 900; font-size: 22px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(143,211,172,.5)">Вы</span>
+      <sc-for list="{{dots}}" as="d" hint-placeholder-count="5">
+        <button onClick="{{d.tap}}" aria-label="{{d.label}}" style="position: absolute; left: {{d.x}}; top: {{d.y}}; transform: translate(-50%,-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; animation: kxPop .4s cubic-bezier(.3,1.4,.5,1) both">
+          <span style="width: 48px; height: 48px; border-radius: 24px; background: {{d.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; box-shadow: {{d.ring}}; transition: box-shadow .2s">{{d.l}}</span>
+          <span style="font-size: 11px; font-weight: 700; color: {{d.ink}}">{{d.name}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 0 20px; text-align: center">
+    <div style="font-size: 16px; font-weight: 800">{{title}}</div>
+    <div style="margin-top: 4px; font-size: 13px; color: #9AA59F">{{sub}}</div>
+  </div>
+
+  <div style="margin: 14px 16px 0; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 10px">
+    <span style="font-size: 12px; color: #9AA59F; flex: 1">Код комнаты — скажите его вслух</span>
+    <span style="display: flex; gap: 6px">
+      <sc-for list="{{code}}" as="c" hint-placeholder-count="4"><span style="width: 32px; height: 40px; border-radius: 10px; background: rgba(143,211,172,.12); color: #8FD3AC; font-size: 22px; font-weight: 900; display: flex; align-items: center; justify-content: center">{{c}}</span></sc-for>
+    </span>
+  </div>
+
+  <div style="margin-top: auto; padding: 14px 16px 22px">
+    <button onClick="{{create}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{btnBg}}; color: {{btnInk}}; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" aria-hidden="true">{{btnIcon}}</span>{{btnText}}</button>
+    <div style="margin-top: 8px; font-size: 11px; color: #8A958F; text-align: center">Видят только те, кто тоже открыл этот экран и ввёл код. Местоположение не сохраняется.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const P = [['Мария', 'М', '#B07A2E', '22%', '30%'], ['Дмитрий', 'Д', '#2F6E9E', '80%', '24%'], ['Олег', 'О', '#5C6661', '84%', '70%'], ['Дана', 'Д', '#C0443C', '18%', '74%'], ['Ерлан', 'Е', '#6A4C9C', '52%', '90%']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { found: 0, pick: { 0: true, 1: true }, done: false }; }
+componentDidMount() { this.iv = setInterval(() => { if (this.state.found < P.length) this.setState({ found: this.state.found + 1 }); else clearInterval(this.iv); }, 1100); }
+componentWillUnmount() { clearInterval(this.iv); }
+renderVals() {
+  const s = this.state;
+  const n = Object.keys(s.pick).filter(k => s.pick[k] && +k < s.found).length;
+  return {
+    run: s.done ? 'paused' : 'running',
+    dots: P.slice(0, s.found).map(([name, l, c, x, y], i) => { const on = !!s.pick[i]; return { name, l, c, x, y, ink: on ? '#8FD3AC' : '#C9D2CC', ring: on ? '0 0 0 3px #0A0C0B, 0 0 0 5px #8FD3AC' : 'none', label: name + (on ? ', выбран(а)' : ''), tap: () => !s.done && this.setState({ pick: { ...s.pick, [i]: !on } }) }; }),
+    title: s.done ? 'Группа «Митап 22.11» создана' : s.found < P.length ? 'Ищем людей рядом…' : 'Нашли ' + P.length + ' человек',
+    sub: s.done ? 'Участникам пришло приглашение' : 'Нажмите на тех, кого добавить · выбрано ' + n,
+    code: ['4', '7', '1', '9'],
+    btnBg: n && !s.done ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', btnInk: n && !s.done ? '#06150D' : '#9AA59F',
+    btnIcon: s.done ? 'check_circle' : 'group_add', btnText: s.done ? 'Открыть группу' : 'Создать группу · ' + (n + 1),
+    create: () => n && this.setState({ done: true })
+  };
+}
+}
+</script>
+</body>
+</html>

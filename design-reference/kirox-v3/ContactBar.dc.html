@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Добавить и поделиться номером</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+@keyframes kxDrop{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+@keyframes kxDrop2{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxDim{from{opacity:0}to{opacity:1}}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px) scale(.95)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #C0443C; display: flex; align-items: center; justify-content: center; font-weight: 800">Е</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">{{title}}</div><div style="font-size: 12px; color: #9AA59F">{{sub}}</div></div>
+  </header>
+
+  <sc-if value="{{bar}}" hint-placeholder-val="{{true}}">
+    <div style="padding: 10px 12px; display: flex; gap: 8px; background: rgba(255,255,255,.03); border-bottom: 1px solid rgba(255,255,255,.06); animation: {{barAnim}}">
+      <sc-for list="{{btns}}" as="b" hint-placeholder-count="2"><button onClick="{{b.tap}}" style="flex: {{b.flex}}; height: 40px; border-radius: 20px; background: {{b.bg}}; color: {{b.ink}}; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">{{b.i}}</span>{{b.t}}</button></sc-for>
+      <button onClick="{{dismiss}}" aria-label="Скрыть" style="width: 40px; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: #8A958F"><span class="ms" style="font-size: 20px" aria-hidden="true">close</span></button>
+    </div>
+  </sc-if>
+
+  <div style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px">
+    <div style="align-self: flex-start; max-width: 80%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">Привет! Это Ерлан с митапа, вы просили скинуть презентацию 📎</div>
+    <div style="align-self: flex-start; width: 240px; padding: 10px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); display: flex; align-items: center; gap: 10px"><span style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,138,128,.16); color: #FF8A80; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900">PDF</span><span style="flex: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">compose-tips.pdf</span><span style="display: block; font-size: 11px; color: #9AA59F">3,2 МБ</span></span></div>
+    <sc-for list="{{sys}}" as="m" hint-placeholder-count="0"><div style="align-self: center; padding: 5px 12px; border-radius: 12px; background: rgba(143,211,172,.1); font-size: 12px; color: #8FD3AC; font-weight: 700; animation: kxIn .3s ease both">{{m.t}}</div></sc-for>
+  </div>
+  <div style="padding: 8px 12px 16px; border-top: 1px solid rgba(255,255,255,.06)"><div style="height: 48px; padding: 0 16px; border-radius: 24px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 15px; color: #8A958F">Сообщение</div></div>
+
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{closeSheet}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxDim .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 18px 24px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.99), rgba(18,22,20,1)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+      <div style="font-size: 18px; font-weight: 800">Новый контакт</div>
+      <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px">
+        <div style="height: 52px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,.06); display: flex; align-items: center; gap: 10px"><span class="ms" style="color: #9AA59F" aria-hidden="true">person</span><span style="font-size: 15px">Ерлан</span></div>
+        <div style="height: 52px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,.06); display: flex; align-items: center; gap: 10px"><span class="ms" style="color: #9AA59F" aria-hidden="true">badge</span><span style="font-size: 15px; color: #8A958F">Фамилия (необязательно)</span></div>
+        <div style="height: 52px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,.03); display: flex; align-items: center; gap: 10px"><span class="ms" style="color: #8A958F" aria-hidden="true">call</span><span style="font-size: 14px; color: #8A958F">Номер скрыт пользователем</span></div>
+      </div>
+      <button onClick="{{toggleShare}}" role="switch" aria-checked="{{shareOn}}" style="margin-top: 10px; width: 100%; min-height: 60px; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: #9AA59F" aria-hidden="true">contact_phone</span><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">Поделиться моим номером</span><span style="display: block; font-size: 12px; color: #9AA59F">Ерлан увидит ваш номер, даже если он скрыт</span></span><span style="width: 46px; height: 28px; border-radius: 14px; background: {{trk}}; position: relative; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{knx}}; width: 22px; height: 22px; border-radius: 11px; background: {{knc}}; transition: left .2s"></span></span></button>
+      <button onClick="{{save}}" style="margin-top: 10px; width: 100%; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; text-align: center">Сохранить</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { st: 'stranger', share: false, sheet: false, sys: [], bk: 0, hidden: false }; }
+renderVals() {
+  const s = this.state;
+  const stranger = s.st === 'stranger';
+  const added = s.st === 'added';
+  const msg = (t) => [...s.sys, { t }];
+  const btns = stranger
+    ? [{ i: 'person_add', t: 'Добавить в контакты', flex: '1.4', bg: 'rgba(143,211,172,.14)', ink: '#8FD3AC', tap: () => this.setState({ sheet: true }) }, { i: 'block', t: 'Заблокировать', flex: '1', bg: 'rgba(229,83,75,.1)', ink: '#FF8A80', tap: () => this.setState({ st: 'blocked', sys: msg('Ерлан в чёрном списке'), bk: s.bk + 1 }) }]
+    : added && !s.share
+      ? [{ i: 'contact_phone', t: 'Поделиться моим номером', flex: '1', bg: 'rgba(143,211,172,.14)', ink: '#8FD3AC', tap: () => this.setState({ share: true, sys: msg('Номер отправлен · Ерлан'), bk: s.bk + 1 }) }]
+      : s.st === 'blocked' ? [{ i: 'lock_open', t: 'Разблокировать', flex: '1', bg: 'rgba(255,255,255,.08)', ink: '#EEF3EF', tap: () => this.setState({ st: 'stranger', sys: msg('Ерлан снова может вам писать'), bk: s.bk + 1 }) }] : [];
+  return {
+    title: 'Ерлан',
+    sub: added ? (s.share ? 'в контактах · видит ваш номер' : 'в контактах') : s.st === 'blocked' ? 'в чёрном списке' : 'нет в контактах · 1 общая группа',
+    bar: !s.hidden && btns.length > 0, btns, barAnim: (s.bk % 2 ? 'kxDrop2' : 'kxDrop') + ' .3s ease both',
+    dismiss: () => this.setState({ hidden: true }),
+    sys: s.sys.slice(-2),
+    sheet: s.sheet, closeSheet: () => this.setState({ sheet: false }),
+    toggleShare: () => this.setState({ share: !s.share }), shareOn: s.share ? 'true' : 'false',
+    trk: s.share ? '#3F9A6C' : 'rgba(255,255,255,.14)', knc: s.share ? '#EEF3EF' : '#9AA59F', knx: s.share ? '21px' : '3px',
+    save: () => this.setState({ sheet: false, st: 'added', hidden: false, bk: s.bk + 1, sys: msg(s.share ? 'Ерлан в контактах, номер отправлен' : 'Ерлан теперь в контактах') })
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Анимации</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+@keyframes kxTwinkle{0%,100%{opacity:.15;transform:scale(.6)}50%{opacity:1;transform:scale(1)}}
+@keyframes kxFall{0%{transform:translateY(-20px) translateX(0) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(240px) translateX(18px) rotate(180deg);opacity:.2}}
+@keyframes kxFloatUp{0%{transform:translateY(40px);opacity:0}20%{opacity:1}100%{transform:translateY(-200px);opacity:0}}
+@keyframes kxBlinkBulb{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes kxBurst{0%{transform:scale(0);opacity:1}70%{opacity:1}100%{transform:scale(1);opacity:0}}
+@keyframes kxSway{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <header style="position: relative; padding: 10px 12px 2px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="margin: 0; flex-grow: 1; font-size: 22px; font-weight: 800">Анимации</h1>
+    <button role="switch" aria-checked="{{onChecked}}" aria-label="Анимации" onClick="{{toggleOn}}" style="width: 52px; height: 30px; border-radius: 15px; background: {{onTrack}}; position: relative; transition: background .3s"><span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px; background: #FFFFFF; transition: transform .35s cubic-bezier(.34,1.5,.5,1); transform: {{onKnob}}"></span></button>
+  </header>
+
+  <div style="position: relative; margin: 10px 16px 0; height: 240px; border-radius: 26px; overflow: hidden; background: {{sceneBg}}; border: 1px solid rgba(255,255,255,.08); transition: background .6s">
+    <sc-if value="{{animOn}}" hint-placeholder-val="{{true}}">
+      <sc-for list="{{parts}}" as="p" hint-placeholder-count="14"><span aria-hidden="true" style="position: absolute; left: {{p.x}}; top: {{p.y}}; width: {{p.s}}; height: {{p.s}}; border-radius: {{p.r}}; background: {{p.c}}; box-shadow: {{p.glow}}; animation: {{p.anim}}; animation-delay: {{p.d}}; font-size: {{p.fs}}; color: {{p.c}}; display: flex; align-items: center; justify-content: center"><sc-if value="{{p.icon}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="font-size: inherit; color: inherit">{{p.icon}}</span></sc-if></span></sc-for>
+    </sc-if>
+    <sc-if value="{{animOff}}" hint-placeholder-val="{{false}}"><div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #8A958F">Анимации выключены</div></sc-if>
+    <div style="position: absolute; left: 0; right: 0; bottom: 18px; text-align: center">
+      <div style="font-size: 30px; font-weight: 300">kiro<span style="color: #8FD3AC; font-weight: 800">X</span></div>
+      <div style="font-size: 12px; color: rgba(255,255,255,.7)">{{sceneSub}}</div>
+    </div>
+  </div>
+
+  <div style="position: relative; padding: 14px 16px 0; display: flex; flex-direction: column; gap: 12px; opacity: {{panelOpacity}}; transition: opacity .3s">
+    <div style="padding: 0 4px; font-size: 13px; font-weight: 800; color: #8FD3AC">Сцена</div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <sc-for list="{{scenes}}" as="c" hint-placeholder-count="5">
+        <button role="radio" aria-checked="{{c.checked}}" onClick="{{c.pick}}" style="height: 56px; padding: 0 12px; border-radius: 18px; background: {{c.bg}}; border: 1px solid {{c.border}}; display: flex; align-items: center; gap: 12px; transition: all .2s">
+          <span style="width: 38px; height: 38px; border-radius: 13px; background: {{c.tile}}; color: {{c.ink}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" style="font-size: 20px" aria-hidden="true">{{c.icon}}</span></span>
+          <span style="flex-grow: 1"><span style="display: block; font-size: 14px; font-weight: 700">{{c.title}}</span><span style="display: block; font-size: 11px; color: #8A958F">{{c.sub}}</span></span>
+          <span style="width: 20px; height: 20px; border-radius: 10px; border: 2px solid {{c.ring}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><span style="width: 9px; height: 9px; border-radius: 5px; background: #8FD3AC; transition: transform .3s cubic-bezier(.34,1.6,.5,1); transform: {{c.dot}}"></span></span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <div style="flex: 1">
+        <div style="padding: 0 4px 6px; font-size: 12px; font-weight: 700; color: #9AA59F">Скорость интерфейса</div>
+        <div style="display: flex; gap: 4px"><sc-for list="{{speeds}}" as="v" hint-placeholder-count="3"><button onClick="{{v.pick}}" style="flex: 1; height: 34px; border-radius: 12px; background: {{v.bg}}; color: {{v.color}}; font-size: 11px; font-weight: 700; text-align: center">{{v.label}}</button></sc-for></div>
+      </div>
+      <div style="flex: 1">
+        <div style="padding: 0 4px 6px; font-size: 12px; font-weight: 700; color: #9AA59F">Качество эффектов</div>
+        <div style="display: flex; gap: 4px"><sc-for list="{{quals}}" as="q" hint-placeholder-count="3"><button onClick="{{q.pick}}" style="flex: 1; height: 34px; border-radius: 12px; background: {{q.bg}}; color: {{q.color}}; font-size: 11px; font-weight: 700; text-align: center">{{q.label}}</button></sc-for></div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { on: true, scene: 1, speed: 0, qual: 0 }; }
+renderVals() {
+  const s = this.state;
+  const C = [
+    ['auto_mode', 'Авто (по дате)', 'Сама меняется к праздникам', '#26302B', '#C9D2CC'],
+    ['auto_awesome', 'Основная', 'Мерцающие частицы kiroX', '#1F3A2C', '#8FD3AC'],
+    ['dark_mode', 'Хэллоуин', 'Тыквы, летучие мыши, паутина', '#3B2A1A', '#FFAE5E'],
+    ['ac_unit', 'Зима', 'Снежинки, сугробы и иней', '#1F2E40', '#BFE3FF'],
+    ['celebration', 'Новый год', 'Гирлянда, ёлка и салют', '#3A1E2A', '#FF9CC8']
+  ];
+  const real = s.scene === 0 ? 3 : s.scene; // «Авто» в ноябре → зима
+  const k = [1, 2, 4][s.speed];
+  const n = s.qual === 2 ? 7 : 14;
+  const rnd = i => ((i * 47) % 100);
+  let parts = [], bg, sub;
+  if (real === 1) {
+    bg = 'radial-gradient(90% 70% at 50% 35%, #12301F, #0A0C0B 75%)'; sub = 'Основная';
+    parts = Array.from({ length: n }, (_, i) => ({ x: rnd(i + 3) + '%', y: ((i * 29) % 70 + 6) + '%', s: (3 + i % 3) + 'px', r: '50%', c: '#A6E3C1', glow: '0 0 8px #8FD3AC', anim: 'kxTwinkle ' + (2.2 * k) + 's ease-in-out infinite', d: (i * .25) + 's', icon: false, fs: '0' }));
+  } else if (real === 2) {
+    bg = 'linear-gradient(180deg, #2A1A3A 0%, #1A1020 60%, #0A0C0B 100%)'; sub = 'Хэллоуин';
+    parts = Array.from({ length: n }, (_, i) => i % 4 === 0
+      ? { x: rnd(i + 7) + '%', y: '70%', s: '22px', r: '0', c: '#FF9A3C', glow: 'none', anim: 'kxFloatUp ' + (4 * k) + 's ease-out infinite', d: (i * .5) + 's', icon: 'flutter_dash', fs: '20px' }
+      : { x: rnd(i + 2) + '%', y: ((i * 31) % 60 + 10) + '%', s: '4px', r: '50%', c: '#FFAE5E', glow: '0 0 8px #FF8A3C', anim: 'kxTwinkle ' + (1.8 * k) + 's ease-in-out infinite', d: (i * .2) + 's', icon: false, fs: '0' });
+    parts.push({ x: '72%', y: '10%', s: '46px', r: '50%', c: '#FFE3A8', glow: '0 0 30px rgba(255,200,120,.6)', anim: 'none', d: '0s', icon: false, fs: '0' });
+  } else if (real === 3) {
+    bg = 'linear-gradient(180deg, #13243A 0%, #0D1726 60%, #0A0C0B 100%)'; sub = s.scene === 0 ? 'Авто → Зима' : 'Зима';
+    parts = Array.from({ length: n + 4 }, (_, i) => ({ x: rnd(i + 5) + '%', y: '-10px', s: (12 + (i % 3) * 4) + 'px', r: '0', c: 'rgba(225,240,255,.9)', glow: 'none', anim: 'kxFall ' + ((4 + i % 3) * k) + 's linear infinite', d: (i * .35) + 's', icon: 'ac_unit', fs: (10 + (i % 3) * 4) + 'px' }));
+  } else {
+    bg = 'linear-gradient(180deg, #1E1830 0%, #120E1C 60%, #0A0C0B 100%)'; sub = 'Новый год';
+    const cols = ['#FF6B6B', '#FFD27A', '#8FD3AC', '#7FC4F0', '#FF9CC8'];
+    parts = Array.from({ length: 10 }, (_, i) => ({ x: (6 + i * 9.5) + '%', y: (8 + (i % 2) * 5) + '%', s: '9px', r: '50%', c: cols[i % 5], glow: '0 0 10px ' + cols[i % 5], anim: 'kxBlinkBulb ' + (1.2 * k) + 's ease-in-out infinite', d: (i * .15) + 's', icon: false, fs: '0' }));
+    [[22, 34], [70, 30], [48, 22]].forEach(([x, y], j) => parts.push({ x: (x - 9) + '%', y: (y - 4) + '%', s: '70px', r: '50%', c: 'transparent', glow: '0 0 0 3px ' + cols[j + 1] + ', 0 0 24px ' + cols[j + 1], anim: 'kxBurst ' + (2.2 * k) + 's ease-out infinite', d: (j * .7) + 's', icon: false, fs: '0' }));
+    parts.push({ x: '42%', y: '42%', s: '50px', r: '0', c: '#5FBF7F', glow: 'none', anim: 'kxSway ' + (3 * k) + 's ease-in-out infinite', d: '0s', icon: 'park', fs: '48px' });
+  }
+  const scenes = C.map(([icon, title, sub2, tile, ink], i) => {
+    const on = i === s.scene;
+    return { icon, title, sub: sub2, tile, ink, checked: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.10)' : 'rgba(255,255,255,.045)', border: on ? 'rgba(143,211,172,.4)' : 'rgba(255,255,255,0)', ring: on ? '#8FD3AC' : '#5E6964', dot: on ? 'scale(1)' : 'scale(0)', pick: () => this.setState({ scene: i }) };
+  });
+  const mk = (arr, cur, key) => arr.map((label, i) => ({ label, bg: i === cur ? '#8FD3AC' : 'rgba(255,255,255,.07)', color: i === cur ? '#06150D' : '#C9D2CC', pick: () => this.setState({ [key]: i }) }));
+  return {
+    parts, scenes,
+    speeds: mk(['Обычные', 'Меньше', 'Выкл.'], s.speed, 'speed'),
+    quals: mk(['Авто', 'Высокое', 'Лёгкое'], s.qual, 'qual'),
+    sceneBg: s.on ? bg : '#0E1210', sceneSub: s.on ? sub : 'Без анимаций',
+    animOn: s.on && s.speed !== 2, animOff: !s.on || s.speed === 2,
+    onChecked: s.on ? 'true' : 'false', onTrack: s.on ? '#8FD3AC' : '#2A322E', onKnob: s.on ? 'translateX(22px)' : 'translateX(0)',
+    toggleOn: () => this.setState({ on: !s.on }),
+    panelOpacity: s.on ? '1' : '.45'
+  };
+}
+}
+</script>
+</body>
+</html>

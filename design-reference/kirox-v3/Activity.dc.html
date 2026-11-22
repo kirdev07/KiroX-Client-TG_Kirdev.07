@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Кто что делает</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+@keyframes kxDot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-3px);opacity:1}}
+@keyframes kxRec{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+@keyframes kxSpin{to{transform:rotate(360deg)}}
+@keyframes kxWig{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+@keyframes kxRoll{to{transform:rotate(360deg)}}
+@keyframes kxBar{0%{width:10%}100%{width:95%}}
+@keyframes kxIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes kxIn2{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes kxEye{0%,100%{transform:translateX(-2px)}50%{transform:translateX(2px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <!-- Header preview -->
+  <div style="margin: 12px 12px 0; padding: 10px 12px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05)); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; gap: 10px">
+    <span class="ms" style="color: #C9D2CC" aria-hidden="true">arrow_back</span>
+    <span style="width: 42px; height: 42px; border-radius: 21px; background: {{hc}}; display: flex; align-items: center; justify-content: center; font-weight: 800">{{hl}}</span>
+    <div style="flex: 1; min-width: 0">
+      <div style="font-size: 16px; font-weight: 800">{{hname}}</div>
+      <div style="height: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #8FD3AC; animation: {{stAnim}}">
+        <span style="display: {{dotsShow}}; gap: 3px; align-items: center" aria-hidden="true"><span style="width: 5px; height: 5px; border-radius: 3px; background: #8FD3AC; animation: kxDot 1.2s ease-in-out infinite"></span><span style="width: 5px; height: 5px; border-radius: 3px; background: #8FD3AC; animation: kxDot 1.2s ease-in-out .15s infinite"></span><span style="width: 5px; height: 5px; border-radius: 3px; background: #8FD3AC; animation: kxDot 1.2s ease-in-out .3s infinite"></span></span>
+        <span style="display: {{recShow}}; width: 9px; height: 9px; border-radius: 5px; background: #FF5A4E; animation: kxRec 1s ease-in-out infinite" aria-hidden="true"></span>
+        <span style="display: {{circShow}}; width: 12px; height: 12px; border-radius: 6px; border: 2px solid #FF5A4E; box-sizing: border-box; animation: kxRec 1s ease-in-out infinite" aria-hidden="true"></span>
+        <span style="display: {{upShow}}; width: 28px; height: 5px; border-radius: 3px; background: rgba(143,211,172,.2); overflow: hidden" aria-hidden="true"><span style="display: block; height: 100%; background: #8FD3AC; animation: kxBar 1.6s ease-in-out infinite alternate"></span></span>
+        <span style="display: {{emoShow}}; font-size: 14px; animation: {{emoAnim}}" aria-hidden="true">{{emo}}</span>
+        <span style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{stText}}</span>
+      </div>
+    </div>
+    <span class="ms" style="color: #C9D2CC" aria-hidden="true">call</span>
+  </div>
+
+  <div style="padding: 14px 16px 6px; font-size: 13px; font-weight: 700; color: #8FD3AC">Нажмите, чтобы увидеть состояние</div>
+  <div style="padding: 0 12px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px">
+    <sc-for list="{{states}}" as="x" hint-placeholder-count="8"><button onClick="{{x.tap}}" aria-pressed="{{x.on}}" style="min-height: 54px; padding: 8px 12px; border-radius: 18px; background: {{x.bg}}; border: 1.5px solid {{x.bd}}; display: flex; align-items: center; gap: 10px; transition: all .2s"><span style="font-size: 20px">{{x.e}}</span><span style="font-size: 13px; font-weight: 700; line-height: 1.25">{{x.t}}</span></button></sc-for>
+  </div>
+
+  <!-- Chat list with live statuses -->
+  <div style="padding: 16px 16px 6px; display: flex; align-items: center"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">В списке чатов</span><span style="font-size: 11px; color: #8A958F">меняется само</span></div>
+  <div style="flex: 1; min-height: 0; padding: 0 8px; overflow: hidden">
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 9px 8px">
+        <span style="width: 48px; height: 48px; border-radius: 24px; background: {{r.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0">{{r.l}}</span>
+        <span style="flex: 1; min-width: 0"><span style="display: flex"><span style="flex: 1; font-size: 15px; font-weight: 700">{{r.n}}</span><span style="font-size: 12px; color: #8A958F">{{r.t}}</span></span><span style="display: block; font-size: 13px; color: {{r.ink}}; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; animation: {{r.anim}}">{{r.msg}}</span></span>
+      </div>
+    </sc-for>
+  </div>
+
+  <button onClick="{{privacy}}" style="margin: 0 16px 18px; min-height: 52px; padding: 0 14px; border-radius: 18px; background: rgba(255,255,255,.05); display: flex; align-items: center; gap: 10px"><span class="ms" style="color: #9AA59F; animation: kxEye 3s ease-in-out 2" aria-hidden="true">visibility_off</span><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 700">Не показывать, что я печатаю</span><span style="display: block; font-size: 12px; color: #9AA59F">Собеседники не увидят «печатает…» от вас</span></span><span style="width: 46px; height: 28px; border-radius: 14px; background: {{trk}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{knx}}; width: 22px; height: 22px; border-radius: 11px; background: {{knc}}; transition: left .2s"></span></span></button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const S = [
+  { e: '⌨️', t: 'Печатает', k: 'dots', text: 'печатает' },
+  { e: '🎙', t: 'Записывает голосовое', k: 'rec', text: 'записывает голосовое' },
+  { e: '⭕', t: 'Записывает кружок', k: 'circ', text: 'записывает видеосообщение' },
+  { e: '🖼', t: 'Отправляет фото', k: 'up', text: 'отправляет фото' },
+  { e: '🐱', t: 'Выбирает стикер', k: 'emo', emo: '🐱', anim: 'kxWig .8s ease-in-out 2', text: 'выбирает стикер' },
+  { e: '🎲', t: 'Играет', k: 'emo', emo: '🎲', anim: 'kxRoll 1s linear 2', text: 'бросает кубик' },
+  { e: '👥', t: 'Несколько в группе', k: 'dots', group: true, text: 'Дмитрий и Сергей печатают' },
+  { e: '💤', t: 'Ничего не делает', k: 'none', text: 'в сети' }
+];
+const ROWS = [
+  { n: 'Анна', l: 'А', c: '#C0443C', t: '19:40', base: 'До завтра 👋', live: ['печатает…', 'записывает голосовое…', 'До завтра 👋'] },
+  { n: 'Kotlin-клуб', l: 'K', c: '#3F9A6C', t: '17:40', base: 'Дмитрий: PR готов', live: ['Сергей печатает…', 'Дмитрий: PR готов', 'Айгерим отправляет файл…'] },
+  { n: 'Лиза', l: 'Л', c: '#6A4C9C', t: '15:30', base: 'Сюрприз готов 🎁', live: ['Сюрприз готов 🎁', 'выбирает стикер…', 'Сюрприз готов 🎁'] },
+  { n: 'Олег', l: 'О', c: '#9AA59F', t: 'вчера', base: 'Ок', live: ['Ок', 'Ок', 'записывает кружок…'] }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { i: 0, k: 0, tick: 0, hide: false }; }
+componentDidMount() { this.iv = setInterval(() => this.setState({ tick: this.state.tick + 1 }), 2200); }
+componentWillUnmount() { clearInterval(this.iv); }
+renderVals() {
+  const s = this.state;
+  const st = S[s.i];
+  const g = !!st.group;
+  return {
+    hc: g ? '#3F9A6C' : '#C0443C', hl: g ? 'K' : 'А', hname: g ? 'Kotlin-клуб' : 'Анна',
+    stAnim: (s.k % 2 ? 'kxIn2' : 'kxIn') + ' .25s ease both',
+    dotsShow: st.k === 'dots' ? 'flex' : 'none', recShow: st.k === 'rec' ? 'inline-block' : 'none', circShow: st.k === 'circ' ? 'inline-block' : 'none',
+    upShow: st.k === 'up' ? 'inline-block' : 'none', emoShow: st.k === 'emo' ? 'inline-block' : 'none', emo: st.emo || '', emoAnim: st.anim || 'none',
+    stText: st.text,
+    states: S.map((x, i) => { const on = s.i === i; return { e: x.e, t: x.t, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.04)', bd: on ? 'rgba(143,211,172,.5)' : 'transparent', tap: () => this.setState({ i, k: s.k + 1 }) }; }),
+    rows: ROWS.map(r => { const m = r.live[s.tick % r.live.length]; const live = m.endsWith('…'); return { n: r.n, l: r.l, c: r.c, t: r.t, msg: m, ink: live ? '#8FD3AC' : '#9AA59F', anim: (s.tick % 2 ? 'kxIn2' : 'kxIn') + ' .3s ease both' }; }),
+    privacy: () => this.setState({ hide: !s.hide }),
+    trk: s.hide ? '#3F9A6C' : 'rgba(255,255,255,.14)', knc: s.hide ? '#EEF3EF' : '#9AA59F', knx: s.hide ? '21px' : '3px'
+  };
+}
+}
+</script>
+</body>
+</html>

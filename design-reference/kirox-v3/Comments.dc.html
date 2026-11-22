@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Комментарии</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+input{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxHeart{0%{transform:scale(1)}40%{transform:scale(1.4)}100%{transform:scale(1)}}
+@keyframes kxNew{0%{background:rgba(143,211,172,.16)}100%{background:transparent}}
+@keyframes kxDot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1; min-width: 0">
+      <h1 style="margin: 0; font-size: 20px; font-weight: 800">{{title}}</h1>
+      <div style="font-size: 12px; color: #9AA59F">Android Weekly · обсуждение</div>
+    </div>
+    <button onClick="{{toggleMute}}" aria-label="{{muteLabel}}" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; color: {{muteInk}}"><span class="ms" aria-hidden="true">{{muteIcon}}</span></button>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 0 16px">
+    <!-- Post -->
+    <div style="margin: 0 16px; padding: 14px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.1)">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <span style="width: 34px; height: 34px; border-radius: 17px; background: linear-gradient(135deg, #6FC497, #2F6E9E); display: flex; align-items: center; justify-content: center; color: #06150D"><span class="ms fill" style="font-size: 18px" aria-hidden="true">campaign</span></span>
+        <span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 800">Android Weekly</span><span style="display: block; font-size: 11px; color: #8A958F">Сегодня в 09:30 · 18,4 тыс. просмотров</span></span>
+      </div>
+      <div style="margin-top: 10px; height: 120px; border-radius: 16px; background: radial-gradient(80% 90% at 30% 20%, rgba(111,196,151,.55), transparent 60%), radial-gradient(70% 80% at 85% 90%, rgba(47,110,158,.6), transparent 60%), #121816; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 46px; color: rgba(255,255,255,.85)" aria-hidden="true">developer_mode</span></div>
+      <div style="margin-top: 10px; font-size: 14px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: {{clamp}}; -webkit-box-orient: vertical; overflow: hidden">Вышел Compose 1.9: общие переходы между экранами стали стабильными, ленивые списки быстрее на 30%, а превью теперь понимают тёмную тему. Делитесь, что уже попробовали.</div>
+      <button onClick="{{toggleMore}}" style="margin-top: 4px; font-size: 13px; font-weight: 700; color: #8FD3AC">{{moreText}}</button>
+    </div>
+
+    <!-- Sort -->
+    <div style="padding: 14px 16px 6px; display: flex; align-items: center; gap: 6px">
+      <span style="flex: 1; font-size: 15px; font-weight: 800">{{countText}}</span>
+      <sc-for list="{{sorts}}" as="o" hint-placeholder-count="2"><button onClick="{{o.tap}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: {{o.bg}}; color: {{o.ink}}; font-size: 12px; font-weight: 700; transition: all .2s">{{o.label}}</button></sc-for>
+    </div>
+
+    <sc-for list="{{items}}" as="c" hint-placeholder-count="5">
+      <div style="padding: 10px 16px 10px {{c.pad}}; display: flex; gap: 10px; animation: {{c.anim}}">
+        <span style="width: {{c.av}}; height: {{c.av}}; border-radius: 50%; background: {{c.c}}; color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{c.l}}</span>
+        <div style="flex: 1; min-width: 0">
+          <div style="display: flex; align-items: center; gap: 6px">
+            <span style="font-size: 13px; font-weight: 800; color: {{c.nameInk}}">{{c.name}}</span>
+            <sc-if value="{{c.admin}}" hint-placeholder-val="{{false}}"><span style="padding: 1px 6px; border-radius: 6px; background: rgba(143,211,172,.14); color: #8FD3AC; font-size: 11px; font-weight: 800">автор</span></sc-if>
+            <span style="font-size: 11px; color: #8A958F">{{c.time}}</span>
+          </div>
+          <sc-if value="{{c.hasTo}}" hint-placeholder-val="{{false}}"><div style="margin-top: 2px; font-size: 12px; color: #8FD3AC">{{c.to}}</div></sc-if>
+          <div style="margin-top: 3px; font-size: 14px; line-height: 1.4; color: #E2E9E4">{{c.text}}</div>
+          <div style="margin-top: 6px; display: flex; align-items: center; gap: 14px">
+            <button onClick="{{c.reply}}" style="font-size: 12px; font-weight: 700; color: #9AA59F">Ответить</button>
+            <sc-if value="{{c.hasMore}}" hint-placeholder-val="{{false}}"><button onClick="{{c.expand}}" style="font-size: 12px; font-weight: 700; color: #8FD3AC; display: flex; align-items: center; gap: 2px"><span class="ms" style="font-size: 16px" aria-hidden="true">{{c.moreIcon}}</span>{{c.moreText}}</button></sc-if>
+          </div>
+        </div>
+        <button onClick="{{c.like}}" aria-label="{{c.likeLabel}}" style="width: 36px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: {{c.likeInk}}; flex-shrink: 0">
+          <span class="ms" style="font-size: 20px; font-variation-settings: {{c.likeFill}}; animation: {{c.likeAnim}}" aria-hidden="true">favorite</span>
+          <span style="font-size: 11px; font-weight: 700">{{c.likes}}</span>
+        </button>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{typing}}" hint-placeholder-val="{{true}}">
+      <div style="padding: 6px 16px 0 60px; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8A958F">
+        <span style="display: flex; gap: 3px" aria-hidden="true"><span style="width: 5px; height: 5px; border-radius: 3px; background: #8FD3AC; animation: kxDot 1.2s infinite"></span><span style="width: 5px; height: 5px; border-radius: 3px; background: #8FD3AC; animation: kxDot 1.2s .15s infinite"></span><span style="width: 5px; height: 5px; border-radius: 3px; background: #8FD3AC; animation: kxDot 1.2s .3s infinite"></span></span>
+        Ирина пишет комментарий
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- Composer -->
+  <div style="padding: 8px 12px 16px; background: linear-gradient(180deg, rgba(10,12,11,.6), #0A0C0B); border-top: 1px solid rgba(255,255,255,.06)">
+    <sc-if value="{{replying}}" hint-placeholder-val="{{false}}">
+      <div style="margin: 0 4px 8px; padding: 8px 10px 8px 12px; border-radius: 14px; background: rgba(143,211,172,.08); border-left: 3px solid #8FD3AC; display: flex; align-items: center; gap: 8px; animation: kxIn .2s ease both">
+        <span class="ms" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">reply</span>
+        <span style="flex: 1; min-width: 0; font-size: 13px"><span style="font-weight: 700; color: #8FD3AC">{{replyName}}</span> <span style="color: #9AA59F">{{replySnippet}}</span></span>
+        <button onClick="{{cancelReply}}" aria-label="Отменить ответ" style="width: 28px; height: 28px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #9AA59F"><span class="ms" style="font-size: 18px" aria-hidden="true">close</span></button>
+      </div>
+    </sc-if>
+    <div style="display: flex; align-items: center; gap: 8px">
+      <label style="flex: 1; height: 50px; padding: 0 6px 0 16px; border-radius: 25px; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; gap: 6px">
+        <input value="{{draft}}" onInput="{{onDraft}}" placeholder="{{placeholder}}" aria-label="Комментарий" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 15px">
+        <span class="ms" style="color: #9AA59F; padding: 0 6px" aria-hidden="true">mood</span>
+      </label>
+      <button onClick="{{send}}" aria-label="Отправить" style="width: 50px; height: 50px; border-radius: 25px; background: {{sendBg}}; color: {{sendInk}}; display: flex; align-items: center; justify-content: center; transition: all .2s"><span class="ms fill" aria-hidden="true">send</span></button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const SEED = [
+  { id: 1, name: 'Дмитрий', l: 'Д', c: '#2F6E9E', time: '09:41', text: 'Переходы наконец-то без костылей, перевёл два экрана за вечер.', likes: 48, mine: false, at: 1, replies: [
+    { id: 11, name: 'Android Weekly', l: 'A', c: '#3F9A6C', admin: true, time: '09:50', text: 'Покажете в следующем выпуске? Пришлите гифку 🙂', likes: 21, to: 'Дмитрий', at: 2 },
+    { id: 12, name: 'Мария', l: 'М', c: '#B07A2E', time: '10:02', text: 'А на старых телефонах не тормозит?', likes: 6, to: 'Дмитрий', at: 3 }
+  ] },
+  { id: 2, name: 'Алекс', l: 'А', c: '#6A4C9C', time: '10:15', text: 'Прирост в списках чувствуется даже на эмуляторе.', likes: 17, mine: false, at: 4, replies: [] },
+  { id: 3, name: 'Анна', l: 'А', c: '#C0443C', time: '10:31', text: 'Превью в тёмной теме — лучшая новость недели 🌙', likes: 63, mine: false, at: 5, replies: [
+    { id: 31, name: 'Олег', l: 'О', c: '#5C6661', time: '10:40', text: 'Согласен, раньше переключал вручную каждый раз', likes: 4, to: 'Анна', at: 6 }
+  ] }
+];
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  this.state = { list: SEED, sort: 0, open: { 1: true }, liked: {}, pop: 0, draft: '', reply: null, more: false, mute: false, next: 100, fresh: 0, typing: true };
+}
+componentDidMount() { this.tm = setTimeout(() => this.setState({ typing: false }), 6000); }
+componentWillUnmount() { clearTimeout(this.tm); }
+renderVals() {
+  const s = this.state;
+  const total = s.list.reduce((a, c) => a + 1 + c.replies.length, 0);
+  const top = [...s.list].sort((a, b) => s.sort === 0 ? b.likes - a.likes : b.at - a.at);
+  const items = [];
+  const row = (c, child, parent) => {
+    const liked = !!s.liked[c.id];
+    const n = c.likes + (liked ? 1 : 0);
+    const isOpen = !!s.open[c.id];
+    items.push({
+      name: c.mine ? 'Вы' : c.name, l: c.l, c: c.c, admin: !!c.admin, time: c.time, text: c.text,
+      nameInk: c.mine ? '#8FD3AC' : '#EEF3EF',
+      pad: child ? '60px' : '16px', av: child ? '28px' : '36px',
+      hasTo: !!c.to && child, to: c.to ? '↳ ' + c.to : '',
+      hasMore: !child && c.replies.length > 0, moreIcon: isOpen ? 'expand_less' : 'expand_more',
+      moreText: isOpen ? 'Скрыть ответы' : c.replies.length + ' ' + (c.replies.length === 1 ? 'ответ' : c.replies.length < 5 ? 'ответа' : 'ответов'),
+      expand: () => this.setState({ open: { ...s.open, [c.id]: !isOpen } }),
+      reply: () => this.setState({ reply: { id: parent ? parent.id : c.id, name: c.mine ? 'себе' : c.name, text: c.text } }),
+      likes: n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n),
+      likeInk: liked ? '#FF8A80' : '#8A958F', likeFill: liked ? "'FILL' 1" : "'FILL' 0",
+      likeAnim: liked && s.pop === c.id ? 'kxHeart .35s ease' : 'none',
+      likeLabel: liked ? 'Убрать ❤️' : 'Нравится',
+      like: () => this.setState({ liked: { ...s.liked, [c.id]: !liked }, pop: c.id }),
+      anim: c.id === s.fresh ? 'kxIn .3s ease both, kxNew 1.6s ease .3s both' : 'none'
+    });
+  };
+  top.forEach(c => { row(c, false); if (s.open[c.id]) c.replies.forEach(r => row(r, true, c)); });
+  const can = s.draft.trim().length > 0;
+  const now = '10:' + String(Math.min(59, 44 + (s.next - 100)));
+  return {
+    title: total + ' ' + (total % 10 === 1 && total % 100 !== 11 ? 'комментарий' : [2, 3, 4].includes(total % 10) && ![12, 13, 14].includes(total % 100) ? 'комментария' : 'комментариев'),
+    countText: 'Обсуждение',
+    clamp: s.more ? '12' : '2', moreText: s.more ? 'Свернуть' : 'Читать полностью', toggleMore: () => this.setState({ more: !s.more }),
+    toggleMute: () => this.setState({ mute: !s.mute }), muteIcon: s.mute ? 'notifications_off' : 'notifications', muteInk: s.mute ? '#9AA59F' : '#8FD3AC',
+    muteLabel: s.mute ? 'Включить уведомления об ответах' : 'Выключить уведомления об ответах',
+    sorts: [['По реакциям', 0], ['Новые', 1]].map(([label, i]) => ({ label, bg: s.sort === i ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.sort === i ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ sort: i }) })),
+    items, typing: s.typing,
+    replying: !!s.reply, replyName: s.reply ? (s.reply.name === 'себе' ? 'Вы' : s.reply.name) : '', replySnippet: s.reply ? s.reply.text : '',
+    cancelReply: () => this.setState({ reply: null }),
+    draft: s.draft, onDraft: e => this.setState({ draft: e.target.value }),
+    placeholder: s.reply ? 'Ваш ответ…' : 'Комментарий…',
+    sendBg: can ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', sendInk: can ? '#06150D' : '#5C6661',
+    send: () => {
+      if (!can) return;
+      const id = s.next;
+      const c = { id, name: 'Вы', l: 'Я', c: '#3F9A6C', time: now, text: s.draft.trim(), likes: 0, mine: true, at: 100 + id, replies: [] };
+      if (s.reply) {
+        const pid = s.reply.id;
+        this.setState({ list: s.list.map(p => p.id === pid ? { ...p, replies: [...p.replies, { ...c, to: s.reply.name === 'себе' ? 'Вы' : s.reply.name }] } : p), open: { ...s.open, [pid]: true }, draft: '', reply: null, next: id + 1, fresh: id });
+      } else {
+        this.setState({ list: [...s.list, c], sort: 1, draft: '', next: id + 1, fresh: id });
+      }
+    }
+  };
+}
+}
+</script>
+</body>
+</html>

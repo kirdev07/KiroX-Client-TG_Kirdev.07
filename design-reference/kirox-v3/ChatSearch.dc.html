@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Поиск в чате</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+input{font:inherit;color:inherit;background:none;border:0;outline:0}
+input::placeholder{color:#8A958F}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+mark{background:rgba(232,176,74,.35);color:inherit;border-radius:4px;padding:0 2px}
+@keyframes kxFlash{0%{box-shadow:0 0 0 0 rgba(143,211,172,.0)}30%{box-shadow:0 0 0 4px rgba(143,211,172,.55)}100%{box-shadow:0 0 0 0 rgba(143,211,172,0)}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 10px 8px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <button aria-label="Закрыть поиск" style="width: 42px; height: 42px; border-radius: 21px; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <div style="flex: 1; height: 44px; border-radius: 22px; background: rgba(255,255,255,.07); border: 1px solid rgba(143,211,172,.3); display: flex; align-items: center; gap: 6px; padding: 0 6px 0 12px">
+      <span class="ms" style="font-size: 20px; color: #8A958F" aria-hidden="true">search</span>
+      <sc-if value="{{hasFrom}}" hint-placeholder-val="{{false}}"><button onClick="{{clearFrom}}" style="height: 28px; padding: 0 6px 0 4px; border-radius: 14px; background: rgba(143,211,172,.16); color: #8FD3AC; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; flex-shrink: 0"><span style="width: 20px; height: 20px; border-radius: 10px; background: {{fromAv}}; color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center">{{fromInit}}</span>{{fromName}}<span class="ms" style="font-size: 14px" aria-hidden="true">close</span></button></sc-if>
+      <input aria-label="Поиск в чате" placeholder="Поиск в чате" value="{{q}}" onInput="{{onQ}}" style="flex: 1; min-width: 0; font-size: 15px">
+      <sc-if value="{{hasQ}}" hint-placeholder-val="{{true}}"><button onClick="{{clearQ}}" aria-label="Очистить" style="width: 30px; height: 30px; border-radius: 15px; display: flex; align-items: center; justify-content: center; color: #8A958F"><span class="ms" style="font-size: 18px" aria-hidden="true">cancel</span></button></sc-if>
+    </div>
+  </header>
+
+  <!-- Chips -->
+  <div style="padding: 8px 12px; display: flex; gap: 6px">
+    <button onClick="{{openFrom}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px"><span class="ms" style="font-size: 17px" aria-hidden="true">person_search</span>От кого</button>
+    <button onClick="{{openCal}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px"><span class="ms" style="font-size: 17px" aria-hidden="true">calendar_month</span>По дате</button>
+    <button onClick="{{toggleList}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: {{listBg}}; color: {{listInk}}; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; transition: all .2s"><span class="ms" style="font-size: 17px" aria-hidden="true">list</span>Списком</button>
+  </div>
+
+  <!-- Chat view -->
+  <sc-if value="{{chatView}}" hint-placeholder-val="{{true}}">
+    <div class="scroll" style="flex: 1; min-height: 0; padding: 6px 12px 12px; display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{msgs}}" as="m" hint-placeholder-count="8">
+        <sc-if value="{{m.isDay}}" hint-placeholder-val="{{false}}"><div style="align-self: center; margin: 6px 0; padding: 4px 12px; border-radius: 12px; background: {{m.dayBg}}; color: {{m.dayInk}}; font-size: 12px; font-weight: 600; transition: all .3s">{{m.text}}</div></sc-if>
+        <sc-if value="{{m.isMsg}}" hint-placeholder-val="{{true}}">
+          <div style="align-self: {{m.side}}; max-width: 80%; padding: 8px 12px; border-radius: {{m.r}}; background: {{m.bg}}; color: {{m.ink}}; font-size: 15px; line-height: 1.35; opacity: {{m.op}}; animation: {{m.anim}}; transition: opacity .25s">
+            <sc-if value="{{m.showName}}" hint-placeholder-val="{{false}}"><div style="font-size: 12px; font-weight: 800; color: {{m.nameInk}}; margin-bottom: 2px">{{m.name}}</div></sc-if>
+            <span>{{m.pre}}</span><sc-if value="{{m.hit}}" hint-placeholder-val="{{false}}"><mark>{{m.mid}}</mark></sc-if><span>{{m.post}}</span>
+            <span style="margin-left: 8px; font-size: 11px; color: {{m.meta}}">{{m.time}}</span>
+          </div>
+        </sc-if>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- List view -->
+  <sc-if value="{{listView}}" hint-placeholder-val="{{false}}">
+    <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 8px">
+      <div style="padding: 4px 8px 8px; font-size: 13px; font-weight: 800; color: #8FD3AC">{{resultsTitle}}</div>
+      <sc-for list="{{results}}" as="r" hint-placeholder-count="4">
+        <button onClick="{{r.tap}}" style="width: 100%; padding: 10px 8px; border-radius: 18px; display: flex; gap: 12px; animation: kxIn .25s ease both">
+          <span style="width: 42px; height: 42px; border-radius: 21px; background: {{r.av}}; color: #fff; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{r.init}}</span>
+          <span style="flex: 1; min-width: 0">
+            <span style="display: flex"><span style="flex: 1; font-size: 14px; font-weight: 700">{{r.name}}</span><span style="font-size: 12px; color: #8A958F">{{r.date}}</span></span>
+            <span style="display: block; margin-top: 2px; font-size: 14px; color: #9AA59F; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{r.pre}}<mark>{{r.mid}}</mark>{{r.post}}</span>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- Bottom nav -->
+  <div style="padding: 8px 12px 18px; border-top: 1px solid rgba(255,255,255,.06); display: flex; align-items: center; gap: 8px">
+    <span style="flex: 1; font-size: 14px; color: {{countInk}}">{{countText}}</span>
+    <button onClick="{{up}}" aria-label="Предыдущее совпадение" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.07); color: {{upInk}}; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">keyboard_arrow_up</span></button>
+    <button onClick="{{down}}" aria-label="Следующее совпадение" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.07); color: {{downInk}}; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">keyboard_arrow_down</span></button>
+  </div>
+
+  <!-- From sheet -->
+  <sc-if value="{{fromSheet}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeFrom}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px 10px; font-size: 18px; font-weight: 800">Сообщения от</div>
+      <sc-for list="{{people}}" as="p" hint-placeholder-count="4">
+        <button onClick="{{p.tap}}" style="width: 100%; padding: 8px 6px; border-radius: 16px; display: flex; align-items: center; gap: 12px">
+          <span style="width: 40px; height: 40px; border-radius: 20px; background: {{p.av}}; color: #fff; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{p.init}}</span>
+          <span style="flex: 1; font-size: 15px; font-weight: 600">{{p.name}}</span>
+          <span style="font-size: 12px; color: #8A958F">{{p.count}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- Calendar sheet -->
+  <sc-if value="{{calSheet}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeCal}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px 12px; font-size: 18px; font-weight: 800">Ноябрь 2026</div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center">
+        <sc-for list="{{wd}}" as="w" hint-placeholder-count="7"><span style="font-size: 11px; color: #8A958F; padding-bottom: 4px">{{w}}</span></sc-for>
+        <sc-for list="{{days}}" as="d" hint-placeholder-count="35">
+          <button onClick="{{d.tap}}" aria-label="{{d.label}}" style="position: relative; height: 40px; border-radius: 20px; background: {{d.bg}}; color: {{d.ink}}; font-size: 14px; font-weight: {{d.fw}}; text-align: center; opacity: {{d.op}}">
+            {{d.n}}<sc-if value="{{d.has}}" hint-placeholder-val="{{false}}"><span style="position: absolute; left: 50%; bottom: 5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 2px; background: #8FD3AC"></span></sc-if>
+          </button>
+        </sc-for>
+      </div>
+      <div style="padding: 10px 4px 0; font-size: 12px; color: #8A958F">Точкой отмечены дни с сообщениями</div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PEOPLE = { m: ['Марина', 'linear-gradient(140deg,#4B3F7A,#2A2240)', '#C7B5FF'], o: ['Олег', 'linear-gradient(140deg,#2F6E9E,#14243A)', '#9FCBFF'], d: ['Дана', 'linear-gradient(140deg,#9E3F5C,#2E1420)', '#FFB0C4'], me: ['Вы', 'linear-gradient(140deg,#3F9A6C,#1F4D36)', '#A9D9BF'] };
+const LOG = [
+  { day: '18 ноября', d: 18 },
+  { by: 'm', t: 'Всем привет! Домашка на неделю в закрепе', time: '10:02' },
+  { by: 'o', t: 'А когда следующий урок?', time: '10:15' },
+  { by: 'm', t: 'Урок в четверг в 19:00, не опаздывайте', time: '10:16' },
+  { day: '20 ноября', d: 20 },
+  { by: 'me', t: 'Скиньте, пожалуйста, ссылку на урок', time: '18:50' },
+  { by: 'd', t: 'Вот ссылка на урок, заходите', time: '18:52' },
+  { by: 'o', t: 'Спасибо, отличный урок был!', time: '20:31' },
+  { day: 'Сегодня', d: 22 },
+  { by: 'm', t: 'Напоминаю: тест после урока в субботу', time: '09:40' },
+  { by: 'me', t: 'Понял, буду готов', time: '09:58' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { q: 'урок', from: '', cur: -1, list: false, fromSheet: false, calSheet: false, jump: 0, flashAt: 0 }; }
+renderVals() {
+  const s = this.state;
+  const q = s.q.trim().toLowerCase();
+  const hitIdx = LOG.map((m, i) => (!m.day && q && m.t.toLowerCase().includes(q) && (!s.from || m.by === s.from)) ? i : -1).filter(i => i >= 0);
+  const curPos = hitIdx.length ? (s.cur < 0 || s.cur >= hitIdx.length ? hitIdx.length - 1 : s.cur) : -1;
+  const curIdx = curPos >= 0 ? hitIdx[curPos] : -1;
+  let lastDay = 0;
+  const split = t => { const k = t.toLowerCase().indexOf(q); return k < 0 || !q ? [t, '', ''] : [t.slice(0, k), t.slice(k, k + q.length), t.slice(k + q.length)]; };
+  const msgs = LOG.map((m, i) => {
+    if (m.day) { lastDay = m.d; return { isDay: true, isMsg: false, text: m.day, dayBg: s.jump === m.d ? 'rgba(143,211,172,.2)' : 'rgba(255,255,255,.06)', dayInk: s.jump === m.d ? '#8FD3AC' : '#9AA59F' }; }
+    const P = PEOPLE[m.by];
+    const mine = m.by === 'me';
+    const hit = hitIdx.includes(i);
+    const [pre, mid, post] = hit ? split(m.t) : [m.t, '', ''];
+    return {
+      isDay: false, isMsg: true, pre, mid, post, hit, time: m.time,
+      side: mine ? 'flex-end' : 'flex-start', r: mine ? '18px 18px 5px 18px' : '18px 18px 18px 5px',
+      bg: mine ? 'linear-gradient(160deg, #2E6B4B, #1F4D36)' : '#161B18', ink: mine ? '#E6F6EC' : '#EEF3EF', meta: mine ? '#A9D9BF' : '#8A958F',
+      showName: !mine, name: P[0], nameInk: P[2],
+      op: q && !hit ? '.45' : '1',
+      anim: i === curIdx ? 'kxFlash 1.4s ease 2' : 'none'
+    };
+  });
+  let dateOf = {}; let dd = '';
+  LOG.forEach((m, i) => { if (m.day) dd = m.day; else dateOf[i] = dd; });
+  const results = hitIdx.slice().reverse().map(i => {
+    const m = LOG[i]; const P = PEOPLE[m.by]; const [pre, mid, post] = split(m.t);
+    return { name: P[0], init: P[0][0], av: P[1], date: dateOf[i] + ', ' + m.time, pre, mid, post, tap: () => this.setState({ list: false, cur: hitIdx.indexOf(i), flashAt: Date.now() }) };
+  });
+  const daysWith = [18, 20, 22];
+  const days = [];
+  for (let k = 0; k < 35; k++) {
+    const n = k - 6 + 1; // Nov 1 2026 is Sunday → offset 6
+    const valid = n >= 1 && n <= 30;
+    const has = daysWith.includes(n);
+    days.push({ n: valid ? String(n) : '', label: valid ? n + ' ноября' : 'пусто', has, op: valid ? (n > 22 ? '.35' : '1') : '0',
+      bg: n === 22 ? 'rgba(143,211,172,.16)' : 'transparent', ink: has ? '#EEF3EF' : '#8A958F', fw: has ? '800' : '500',
+      tap: () => { if (valid && has) this.setState({ calSheet: false, jump: n }); } });
+  }
+  const fp = s.from ? PEOPLE[s.from] : null;
+  return {
+    q: s.q, onQ: e => this.setState({ q: e.target.value, cur: -1 }), hasQ: !!s.q, clearQ: () => this.setState({ q: '', cur: -1 }),
+    hasFrom: !!fp, fromName: fp ? fp[0] : '', fromInit: fp ? fp[0][0] : '', fromAv: fp ? fp[1] : '', clearFrom: () => this.setState({ from: '', cur: -1 }),
+    msgs, results, resultsTitle: hitIdx.length ? 'Найдено: ' + hitIdx.length : 'Ничего не найдено',
+    chatView: !s.list, listView: s.list,
+    toggleList: () => this.setState({ list: !s.list }), listBg: s.list ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.06)', listInk: s.list ? '#8FD3AC' : '#EEF3EF',
+    countText: !q && !s.from ? 'Введите слово для поиска' : hitIdx.length ? (curPos + 1) + ' из ' + hitIdx.length : 'Нет совпадений',
+    countInk: hitIdx.length ? '#C9D2CC' : '#8A958F',
+    upInk: curPos > 0 ? '#EEF3EF' : '#4A544F', downInk: curPos >= 0 && curPos < hitIdx.length - 1 ? '#EEF3EF' : '#4A544F',
+    up: () => { if (curPos > 0) this.setState({ cur: curPos - 1, flashAt: Date.now() }); },
+    down: () => { if (curPos < hitIdx.length - 1) this.setState({ cur: curPos + 1, flashAt: Date.now() }); },
+    fromSheet: s.fromSheet, openFrom: () => this.setState({ fromSheet: true }), closeFrom: () => this.setState({ fromSheet: false }),
+    people: Object.keys(PEOPLE).map(k => ({ name: PEOPLE[k][0], init: PEOPLE[k][0][0], av: PEOPLE[k][1], count: LOG.filter(m => m.by === k).length + ' сообщ.', tap: () => this.setState({ from: k, fromSheet: false, cur: -1 }) })),
+    calSheet: s.calSheet, openCal: () => this.setState({ calSheet: true }), closeCal: () => this.setState({ calSheet: false }),
+    wd: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'], days
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Перевод при наборе</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes kxShimmer{0%{background-position:-160px 0}100%{background-position:200px 0}}
+@keyframes kxIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes kxCaret{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes kxSwap{0%{transform:rotate(0)}100%{transform:rotate(180deg)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #2F6E9E; display: flex; align-items: center; justify-content: center; font-weight: 800">M</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Marco · Milano</div><div style="font-size: 12px; color: #8FD3AC">в сети · пишет на {{theirLang}}</div></div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px">
+    <div style="align-self: flex-start; max-width: 82%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px; line-height: 1.4">{{theirMsg}}<span style="display: block; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,.08); font-size: 13px; color: #9AA59F">↳ Привет! Когда ты прилетаешь в Милан? Встречу тебя в аэропорту.</span></div>
+    <sc-for list="{{sent}}" as="m" hint-placeholder-count="0">
+      <div style="align-self: flex-end; max-width: 82%; padding: 8px 12px; border-radius: 18px 18px 6px 18px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px; line-height: 1.4; animation: kxIn .3s cubic-bezier(.2,.8,.2,1) both">{{m.tr}}<span style="display: block; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(6,21,13,.18); font-size: 12px; opacity: .75; display: {{m.oShow}}">Вы написали: {{m.orig}}</span></div>
+    </sc-for>
+  </div>
+
+  <!-- translation preview -->
+  <sc-if value="{{on}}" hint-placeholder-val="{{true}}">
+    <div style="margin: 0 10px; padding: 10px 12px; border-radius: 20px 20px 6px 6px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.14); border-bottom: 0; animation: kxUp .25s ease both">
+      <div style="display: flex; align-items: center; gap: 6px">
+        <span class="ms" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">translate</span>
+        <span style="font-size: 12px; font-weight: 800; color: #8FD3AC">Русский</span>
+        <span class="ms" style="font-size: 16px; color: #8A958F" aria-hidden="true">arrow_forward</span>
+        <span style="font-size: 12px; font-weight: 800; color: #EEF3EF">{{targetName}}</span>
+        <span style="flex: 1"></span>
+        <button onClick="{{toggle}}" aria-label="Выключить перевод" style="width: 28px; height: 28px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #9AA59F"><span class="ms" style="font-size: 18px" aria-hidden="true">close</span></button>
+      </div>
+      <div style="margin-top: 6px; min-height: 40px; font-size: 15px; line-height: 1.4; color: {{prevInk}}">
+        <span style="display: {{shimShow}}; height: 12px; width: 80%; margin-top: 6px; border-radius: 6px; background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.22), rgba(255,255,255,.06)); background-size: 160px 100%; animation: kxShimmer 1s linear infinite"></span>
+        <span style="display: {{prevShow}}">{{preview}}</span>
+      </div>
+      <div style="margin-top: 6px; font-size: 11px; color: #8A958F">Уйдёт перевод · ваш текст останется у вас под сообщением</div>
+    </div>
+  </sc-if>
+
+  <div style="padding: 8px 12px 8px; border-top: 1px solid rgba(255,255,255,.06); display: flex; gap: 8px; align-items: center">
+    <button onClick="{{toggle}}" aria-label="{{tLabel}}" aria-pressed="{{onStr}}" style="width: 44px; height: 44px; border-radius: 22px; background: {{tBg}}; color: {{tInk}}; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">translate</span></button>
+    <div style="flex: 1; min-height: 46px; padding: 8px 14px; box-sizing: border-box; border-radius: 23px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 15px; color: {{dInk}}">{{draft}}<span style="display: inline-block; width: 2px; height: 18px; margin-left: 1px; background: #8FD3AC; animation: kxCaret 1s step-end infinite"></span></div>
+    <button onClick="{{send}}" aria-label="Отправить" style="width: 46px; height: 46px; border-radius: 23px; background: {{sBg}}; color: {{sInk}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">send</span></button>
+  </div>
+  <div style="padding: 0 12px 14px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center">
+    <sc-for list="{{langs}}" as="l" hint-placeholder-count="4"><button onClick="{{l.tap}}" aria-pressed="{{l.on}}" style="height: 30px; padding: 0 10px; border-radius: 15px; background: {{l.bg}}; color: {{l.ink}}; border: 1px solid {{l.bd}}; font-size: 12px; font-weight: 700">{{l.t}}</button></sc-for>
+    <button onClick="{{type}}" style="height: 30px; padding: 0 10px; border-radius: 15px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); font-size: 12px; font-weight: 700; color: #C9D2CC; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 15px" aria-hidden="true">keyboard</span>Набрать фразу</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PH = [
+  { ru: 'Прилетаю в пятницу в 18:30, рейс из Алматы', it: 'Arrivo venerdì alle 18:30, volo da Almaty', en: 'I arrive on Friday at 18:30, flight from Almaty', es: 'Llego el viernes a las 18:30, vuelo desde Almaty' },
+  { ru: 'Спасибо большое, очень жду встречи!', it: 'Grazie mille, non vedo l’ora di vederti!', en: 'Thank you so much, can’t wait to see you!', es: '¡Muchas gracias, tengo muchas ganas de verte!' },
+  { ru: 'Возьму с собой подарок из Казахстана 🎁', it: 'Porterò un regalo dal Kazakistan 🎁', en: 'I’ll bring a gift from Kazakhstan 🎁', es: 'Traeré un regalo de Kazajistán 🎁' }
+];
+const L = [['it', 'Итальянский', 'итальянском'], ['en', 'Английский', 'английском'], ['es', 'Испанский', 'испанском']];
+const THEIR = { it: 'Ciao! Quando arrivi a Milano? Ti vengo a prendere all’aeroporto.', en: 'Hi! When do you arrive in Milan? I’ll pick you up at the airport.', es: '¡Hola! ¿Cuándo llegas a Milán? Te recojo en el aeropuerto.' };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { on: true, lang: 'it', n: 0, chars: 0, loading: false, sent: [] }; }
+componentWillUnmount() { clearInterval(this.iv); clearTimeout(this.tl); }
+type() {
+  clearInterval(this.iv); clearTimeout(this.tl);
+  const full = PH[this.state.n % PH.length].ru;
+  this.setState({ chars: 0, loading: false });
+  this.iv = setInterval(() => { const c = this.state.chars + 2; if (c >= full.length) { clearInterval(this.iv); this.setState({ chars: full.length, loading: true }); this.tl = setTimeout(() => this.setState({ loading: false }), 700); } else this.setState({ chars: c }); }, 60);
+}
+componentDidMount() { this.type(); }
+renderVals() {
+  const s = this.state;
+  const ph = PH[s.n % PH.length];
+  const full = s.chars >= ph.ru.length;
+  const txt = ph.ru.slice(0, s.chars);
+  const lang = L.find(x => x[0] === s.lang);
+  return {
+    theirLang: lang[2], theirMsg: THEIR[s.lang],
+    on: s.on, onStr: s.on ? 'true' : 'false', targetName: lang[1],
+    shimShow: s.on && (s.loading || !full) && s.chars > 0 ? 'block' : 'none',
+    prevShow: s.on && full && !s.loading ? 'inline' : 'none', preview: ph[s.lang], prevInk: '#EEF3EF',
+    draft: txt || 'Сообщение', dInk: txt ? '#EEF3EF' : '#8A958F',
+    tBg: s.on ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.06)', tInk: s.on ? '#8FD3AC' : '#9AA59F', tLabel: s.on ? 'Выключить перевод' : 'Переводить при наборе',
+    toggle: () => this.setState({ on: !s.on }),
+    sBg: full && txt ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', sInk: full && txt ? '#06150D' : '#8A958F',
+    send: () => { if (!full || s.loading) return; this.setState({ sent: [...s.sent, { tr: s.on ? ph[s.lang] : ph.ru, orig: ph.ru, oShow: s.on ? 'block' : 'none' }].slice(-2), n: s.n + 1, chars: 0 }); },
+    type: () => this.type(),
+    langs: L.map(([k, t]) => { const on = s.lang === k; return { t, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.05)', ink: on ? '#8FD3AC' : '#C9D2CC', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', tap: () => this.setState({ lang: k }) }; }),
+    sent: s.sent
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Мои наборы стикеров</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.94)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxMove{from{transform:translateY(var(--from))}to{transform:none}}
+@keyframes kxMove2{from{transform:translateY(var(--from))}to{transform:none}}
+@keyframes kxBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="flex: 1; font-size: 20px; font-weight: 800">Наборы стикеров</span>
+    <button onClick="{{toggleEdit}}" style="height: 36px; padding: 0 14px; border-radius: 18px; background: {{editBg}}; color: {{editInk}}; font-size: 13px; font-weight: 800">{{editText}}</button>
+  </header>
+
+  <div style="margin: 0 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 18px; background: rgba(255,255,255,.05)">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button onClick="{{t.tap}}" aria-pressed="{{t.on}}" style="height: 38px; border-radius: 14px; background: {{t.bg}}; color: {{t.ink}}; font-size: 13px; font-weight: 700; text-align: center">{{t.t}}</button></sc-for>
+  </div>
+  <div style="padding: 8px 18px 4px; font-size: 12px; color: #8A958F">{{hint}}</div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 12px 16px">
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-radius: 18px; --from: {{r.from}}; animation: {{r.anim}}">
+        <span style="display: {{r.arrowsShow}}; flex-direction: column; gap: 2px">
+          <button onClick="{{r.up}}" aria-label="Выше" style="width: 30px; height: 24px; border-radius: 8px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; opacity: {{r.upOp}}"><span class="ms" style="font-size: 18px" aria-hidden="true">keyboard_arrow_up</span></button>
+          <button onClick="{{r.down}}" aria-label="Ниже" style="width: 30px; height: 24px; border-radius: 8px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; opacity: {{r.downOp}}"><span class="ms" style="font-size: 18px" aria-hidden="true">keyboard_arrow_down</span></button>
+        </span>
+        <span style="width: 52px; height: 52px; border-radius: 16px; background: rgba(255,255,255,.05); display: flex; align-items: center; justify-content: center; font-size: 32px; flex-shrink: 0"><span style="display: inline-block; animation: kxBob 2.4s ease-in-out {{r.d}} 2">{{r.cover}}</span></span>
+        <span style="flex: 1; min-width: 0"><span style="display: flex; align-items: center; gap: 6px"><span style="font-size: 15px; font-weight: 800; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{r.name}}</span><span style="display: {{r.tagShow}}; height: 18px; padding: 0 6px; border-radius: 9px; background: {{r.tagBg}}; color: {{r.tagInk}}; font-size: 11px; font-weight: 800; line-height: 18px">{{r.tag}}</span></span><span style="display: block; font-size: 12px; color: #9AA59F">{{r.meta}}</span><span style="display: block; margin-top: 3px; font-size: 16px; letter-spacing: 2px">{{r.peek}}</span></span>
+        <button onClick="{{r.act1}}" aria-label="{{r.a1Label}}" style="width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,.06); color: {{r.a1Ink}}; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">{{r.a1Icon}}</span></button>
+        <button onClick="{{r.act2}}" aria-label="{{r.a2Label}}" style="width: 40px; height: 40px; border-radius: 20px; background: rgba(229,83,75,.1); color: #FF8A80; display: {{r.a2Show}}; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">delete</span></button>
+      </div>
+    </sc-for>
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 60px 20px; text-align: center; color: #9AA59F"><span class="ms" style="font-size: 44px; color: #8A958F" aria-hidden="true">inventory_2</span><div style="margin-top: 8px; font-size: 15px; font-weight: 700; color: #C9D2CC">Архив пуст</div><div style="margin-top: 4px; font-size: 13px">Сюда попадают наборы, которые вы убрали из панели</div></div>
+    </sc-if>
+  </div>
+
+  <div style="padding: 0 16px 18px"><div style="min-height: 52px; padding: 0 14px; border-radius: 18px; background: rgba(255,255,255,.04); display: flex; align-items: center; gap: 12px"><span class="ms" style="color: #9AA59F" aria-hidden="true">auto_awesome</span><span style="flex: 1; font-size: 14px; font-weight: 700">Подсказывать стикеры по эмодзи</span><span style="width: 46px; height: 28px; border-radius: 14px; background: #3F9A6C; position: relative"><span style="position: absolute; top: 3px; left: 21px; width: 22px; height: 22px; border-radius: 11px; background: #EEF3EF"></span></span></div></div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 90px; padding: 10px 8px 10px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 10px; animation: {{toastAnim}}">{{toastText}}<button onClick="{{undo}}" style="display: {{undoShow}}; height: 30px; padding: 0 10px; border-radius: 15px; color: #8FD3AC; font-size: 13px; font-weight: 800">Вернуть</button></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PL = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
+
+const SETS = {
+  cat: { name: 'Котлин-кот', cover: '🐱', n: 24, peek: '😺😹😻🙀😿', mine: true },
+  bug: { name: 'Баги и фичи', cover: '🐛', n: 18, peek: '🐞🦋🐜🪲🐝', mine: true },
+  cof: { name: 'Кофе и код', cover: '☕', n: 30, peek: '💻⌨️🚀✅🔥', anim: true },
+  dl: { name: 'Дедлайн', cover: '⏰', n: 20, peek: '😰😤🥵😵🫠' },
+  dog: { name: 'Пёс Бублик', cover: '🐶', n: 42, peek: '🐕🦴🎾🐾😴', anim: true },
+  gr: { name: 'Добрые слова', cover: '💚', n: 16, peek: '👏🤝🙌🌟💡' },
+  old1: { name: 'Новый год 2024', cover: '🎄', n: 28, peek: '🎅❄️🎁✨🥂' },
+  old2: { name: 'Лесные зверята', cover: '🐰', n: 22, peek: '🐻🦔🐧🐷🐑' }
+};
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { tab: 0, edit: false, act: ['cat', 'cof', 'dog', 'bug', 'dl', 'gr'], arch: ['old1', 'old2'], moved: '', dir: 0, mk: 0, toast: '', tk: 0, last: null }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const say = (t, last) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1, last: last || null }); this.tt = setTimeout(() => this.setState({ toast: '', last: null }), 3000); };
+  const list = s.tab === 0 ? s.act : s.arch;
+  const move = (i, d) => { const j = i + d; if (j < 0 || j >= s.act.length) return; const a = [...s.act]; [a[i], a[j]] = [a[j], a[i]]; this.setState({ act: a, moved: a[j], dir: d, mk: s.mk + 1 }); };
+  return {
+    editText: s.edit ? 'Готово' : 'Порядок', editBg: s.edit ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.06)', editInk: s.edit ? '#06150D' : '#8FD3AC',
+    toggleEdit: () => this.setState({ edit: !s.edit, tab: 0 }),
+    tabs: [['В панели · ' + s.act.length, 0], ['Архив · ' + s.arch.length, 1]].map(([t, i]) => { const on = s.tab === i; return { t, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.18)' : 'transparent', ink: on ? '#8FD3AC' : '#9AA59F', tap: () => this.setState({ tab: i, edit: false }) }; }),
+    hint: s.tab === 0 ? (s.edit ? 'Стрелками поменяйте порядок — так наборы встанут в панели' : 'Первые наборы видны в панели сразу') : 'Архивные наборы не мешают в панели, но остаются у вас',
+    rows: list.map((k, i) => { const x = SETS[k]; const isAct = s.tab === 0;
+      return { name: x.name, cover: x.cover, peek: x.peek, d: (i * 0.2) + 's', meta: x.n + ' ' + PL(x.n, 'стикер', 'стикера', 'стикеров') + (x.anim ? ' · анимированные' : ''),
+        tagShow: x.mine ? 'inline-block' : 'none', tag: 'МОЙ', tagBg: 'rgba(143,211,172,.16)', tagInk: '#8FD3AC',
+        arrowsShow: isAct && s.edit ? 'flex' : 'none', upOp: i === 0 ? .3 : 1, downOp: i === list.length - 1 ? .3 : 1,
+        up: () => move(i, -1), down: () => move(i, 1),
+        from: s.moved === k ? (s.dir * 60) + 'px' : '0px', anim: s.moved === k && s.mk ? (s.mk % 2 ? 'kxMove2' : 'kxMove') + ' .25s ease both' : 'none',
+        a1Icon: isAct ? 'archive' : 'unarchive', a1Label: isAct ? 'В архив' : 'Вернуть в панель', a1Ink: '#C9D2CC',
+        act1: () => isAct ? (this.setState({ act: s.act.filter(y => y !== k), arch: [k, ...s.arch] }), say('«' + x.name + '» в архиве', { k, from: 'act', i })) : (this.setState({ arch: s.arch.filter(y => y !== k), act: [...s.act, k] }), say('«' + x.name + '» снова в панели')),
+        a2Show: isAct && !s.edit ? 'flex' : (isAct ? 'none' : 'flex'), a2Label: 'Удалить набор',
+        act2: () => { const was = isAct ? 'act' : 'arch'; this.setState(isAct ? { act: s.act.filter(y => y !== k) } : { arch: s.arch.filter(y => y !== k) }); say('«' + x.name + '» удалён', { k, from: was, i }); } }; }),
+    empty: !list.length,
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 3s ease both',
+    undoShow: s.last ? 'inline-block' : 'none',
+    undo: () => { const L = s.last; if (!L) return; const act = s.act.filter(y => y !== L.k); const arch = s.arch.filter(y => y !== L.k); if (L.from === 'act') act.splice(L.i, 0, L.k); else arch.splice(L.i, 0, L.k); clearTimeout(this.tt); this.setState({ act, arch, toast: '', last: null }); }
+  };
+}
+}
+</script>
+</body>
+</html>

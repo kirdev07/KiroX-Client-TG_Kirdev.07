@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Знакомство с kiroX</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+@keyframes kxGlow{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+@keyframes kxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes kxOrbit{from{transform:rotate(0) translateX(96px) rotate(0)}to{transform:rotate(360deg) translateX(96px) rotate(-360deg)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes kxPop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes kxShine{0%{transform:translateX(-120%) skewX(-20deg)}60%,100%{transform:translateX(620%) skewX(-20deg)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0B0D0C; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <div style="position: absolute; top: 0; right: 0; padding: 16px 16px 0; z-index: 2">
+    <sc-if value="{{canSkip}}" hint-placeholder-val="{{true}}"><button onClick="{{skip}}" style="height: 36px; padding: 0 14px; border-radius: 18px; background: rgba(255,255,255,.06); font-size: 13px; font-weight: 700; color: #C9D2CC">Пропустить</button></sc-if>
+  </div>
+
+  <!-- Slides track -->
+  <div style="position: absolute; left: 0; top: 0; width: 1560px; height: 640px; display: flex; transform: translateX({{trackX}}); transition: transform .55s cubic-bezier(.2,.9,.3,1)">
+    <!-- 1 -->
+    <div style="position: relative; width: 390px; height: 100%; flex-shrink: 0">
+      <div aria-hidden="true" style="position: absolute; left: 50%; top: 120px; width: 300px; height: 300px; margin-left: -150px; border-radius: 50%; background: radial-gradient(circle, rgba(70,160,110,.3), transparent 65%); animation: kxGlow 4s ease-in-out 2"></div>
+      <div style="position: absolute; left: 50%; top: 200px; width: 132px; height: 132px; margin-left: -66px; border-radius: 42px; background: linear-gradient(140deg, #6FC497, #3F9A6C); display: flex; align-items: center; justify-content: center; box-shadow: 0 24px 60px rgba(63,154,108,.4); animation: kxFloat 4.5s ease-in-out 2"><span class="ms fill" style="font-size: 68px; color: #06150D" aria-hidden="true">chat_bubble</span></div>
+      <div style="position: absolute; left: 50%; top: 266px; width: 0; height: 0">
+        <sc-for list="{{orbit}}" as="o" hint-placeholder-count="3"><span aria-hidden="true" style="position: absolute; left: -20px; top: -20px; width: 40px; height: 40px; border-radius: 20px; background: #161B18; border: 1px solid rgba(143,211,172,.3); color: #8FD3AC; display: flex; align-items: center; justify-content: center; animation: kxOrbit 12s linear {{o.d}} 2"><span class="ms fill" style="font-size: 20px">{{o.icon}}</span></span></sc-for>
+      </div>
+      <div style="position: absolute; left: 30px; right: 30px; top: 470px; text-align: center">
+        <div style="font-size: 30px; font-weight: 800">Добро пожаловать в kiroX</div>
+        <div style="margin-top: 10px; font-size: 15px; line-height: 22px; color: #9AA59F">Все ваши чаты из Telegram уже здесь. Тот же аккаунт, новый вид.</div>
+      </div>
+    </div>
+    <!-- 2 -->
+    <div style="position: relative; width: 390px; height: 100%; flex-shrink: 0">
+      <div style="position: absolute; left: 50%; top: 150px; width: 250px; margin-left: -125px; display: flex; flex-direction: column; gap: 10px">
+        <sc-for list="{{themeRows}}" as="t" hint-placeholder-count="3">
+          <div style="height: 64px; border-radius: 22px; background: {{t.bg}}; border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 12px; padding: 0 14px; animation: kxIn .5s ease {{t.d}} both">
+            <span style="width: 36px; height: 36px; border-radius: 18px; background: {{t.acc}}"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 6px"><span style="height: 8px; width: 70%; border-radius: 4px; background: rgba(255,255,255,.5)"></span><span style="height: 6px; width: 45%; border-radius: 3px; background: rgba(255,255,255,.25)"></span></span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="position: absolute; left: 30px; right: 30px; top: 470px; text-align: center">
+        <div style="font-size: 30px; font-weight: 800">Сделайте под себя</div>
+        <div style="margin-top: 10px; font-size: 15px; line-height: 22px; color: #9AA59F">Темы, обои для каждого чата, свой цвет и стеклянная нижняя панель.</div>
+      </div>
+    </div>
+    <!-- 3 -->
+    <div style="position: relative; width: 390px; height: 100%; flex-shrink: 0">
+      <div style="position: absolute; left: 50%; top: 150px; width: 270px; margin-left: -135px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+        <sc-for list="{{feats}}" as="f" hint-placeholder-count="4">
+          <div style="height: 120px; border-radius: 24px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.07); padding: 14px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; animation: kxPop .45s ease {{f.d}} both">
+            <span style="width: 40px; height: 40px; border-radius: 14px; background: rgba(143,211,172,.14); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">{{f.icon}}</span></span>
+            <span style="font-size: 14px; font-weight: 700; line-height: 18px">{{f.label}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="position: absolute; left: 30px; right: 30px; top: 470px; text-align: center">
+        <div style="font-size: 30px; font-weight: 800">Больше возможностей</div>
+        <div style="margin-top: 10px; font-size: 15px; line-height: 22px; color: #9AA59F">Код-пароль, музыка, переводчик и функции, которых нет в обычном клиенте.</div>
+      </div>
+    </div>
+    <!-- 4 permissions -->
+    <div style="position: relative; width: 390px; height: 100%; flex-shrink: 0">
+      <div style="position: absolute; left: 24px; right: 24px; top: 110px">
+        <div style="font-size: 28px; font-weight: 800; text-align: center">Пара разрешений</div>
+        <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #9AA59F; text-align: center">Можно включить сейчас или позже в настройках</div>
+        <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{perms}}" as="p" hint-placeholder-count="3">
+            <div style="padding: 14px; border-radius: 22px; background: rgba(255,255,255,.045); border: 1px solid {{p.border}}; display: flex; align-items: center; gap: 12px; transition: border-color .3s">
+              <span style="width: 44px; height: 44px; border-radius: 15px; background: rgba(143,211,172,.12); color: #8FD3AC; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" aria-hidden="true">{{p.icon}}</span></span>
+              <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{p.label}}</span><span style="display: block; margin-top: 2px; font-size: 12px; line-height: 16px; color: #9AA59F">{{p.sub}}</span></span>
+              <button onClick="{{p.tap}}" style="height: 34px; padding: 0 12px; border-radius: 17px; background: {{p.btnBg}}; color: {{p.btnInk}}; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 4px; flex-shrink: 0; transition: all .25s"><sc-if value="{{p.on}}" hint-placeholder-val="{{false}}"><span class="ms fill" style="font-size: 16px; animation: kxPop .3s ease both" aria-hidden="true">check</span></sc-if>{{p.btn}}</button>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: 12px; font-size: 12px; line-height: 17px; color: #8A958F; text-align: center">Система спросит разрешение сама. kiroX ничего не включает без вас.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dots -->
+  <div style="position: absolute; left: 0; right: 0; top: 660px; display: flex; justify-content: center; gap: 8px">
+    <sc-for list="{{dots}}" as="d" hint-placeholder-count="4"><button onClick="{{d.go}}" aria-label="{{d.label}}" style="width: {{d.w}}; height: 8px; border-radius: 4px; background: {{d.bg}}; transition: all .35s cubic-bezier(.34,1.45,.5,1)"></button></sc-for>
+  </div>
+
+  <!-- CTA -->
+  <div style="position: absolute; left: 24px; right: 24px; bottom: 34px; display: flex; gap: 10px">
+    <sc-if value="{{canBack}}" hint-placeholder-val="{{false}}"><button onClick="{{back}}" aria-label="Назад" style="width: 56px; height: 56px; border-radius: 18px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms" aria-hidden="true">arrow_back</span></button></sc-if>
+    <button onClick="{{next}}" style="flex: 1; height: 56px; border-radius: 18px; background: linear-gradient(100deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; position: relative; overflow: hidden; box-shadow: 0 10px 28px rgba(63,154,108,.35)"><span aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 60px; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0)); animation: kxShine 3.2s ease-in-out 1s 2"></span>{{cta}}</button>
+  </div>
+
+  <sc-if value="{{finished}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: radial-gradient(70% 45% at 50% 45%, rgba(63,154,108,.25), #0B0D0C 70%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; animation: kxIn .4s ease both; z-index: 3">
+      <span style="width: 96px; height: 96px; border-radius: 30px; background: linear-gradient(140deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; animation: kxPop .5s cubic-bezier(.34,1.45,.5,1) both"><span class="ms fill" style="font-size: 52px" aria-hidden="true">check</span></span>
+      <span style="margin-top: 8px; font-size: 22px; font-weight: 800">Всё готово</span>
+      <span style="font-size: 14px; color: #9AA59F">Открываем ваши чаты…</span>
+      <button onClick="{{restart}}" style="margin-top: 18px; height: 42px; padding: 0 18px; border-radius: 21px; background: rgba(255,255,255,.08); font-size: 14px; font-weight: 700">Посмотреть ещё раз</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { i: 0, perms: [false, false, false], done: false, seen: 0 }; }
+renderVals() {
+  const s = this.state;
+  const last = 3;
+  const P = [['notifications', 'Уведомления', 'Чтобы не пропустить сообщения и звонки'], ['contacts', 'Контакты', 'Найти друзей, которые уже в Telegram'], ['mic', 'Микрофон', 'Для голосовых и звонков']];
+  return {
+    trackX: (-s.i * 390) + 'px',
+    canSkip: s.i < last, skip: () => this.setState({ i: last }),
+    canBack: s.i > 0, back: () => this.setState({ i: s.i - 1 }),
+    next: () => s.i < last ? this.setState({ i: s.i + 1 }) : this.setState({ done: true }),
+    cta: s.i === 0 ? 'Начать' : s.i < last ? 'Дальше' : 'Готово',
+    dots: [0, 1, 2, 3].map(k => ({ label: 'Слайд ' + (k + 1), w: k === s.i ? '26px' : '8px', bg: k === s.i ? '#8FD3AC' : 'rgba(255,255,255,.18)', go: () => this.setState({ i: k }) })),
+    orbit: [{ icon: 'palette', d: '0s' }, { icon: 'lock', d: '-4s' }, { icon: 'music_note', d: '-8s' }],
+    themeRows: [
+      { bg: 'linear-gradient(120deg,#1C3A2B,#121614)', acc: '#8FD3AC', d: '.05s' },
+      { bg: 'linear-gradient(120deg,#2A2240,#14121C)', acc: '#C7B5FF', d: '.15s' },
+      { bg: 'linear-gradient(120deg,#3A2414,#17110C)', acc: '#E8B04A', d: '.25s' }
+    ],
+    feats: [{ icon: 'lock', label: 'Код-пароль и отпечаток', d: '.05s' }, { icon: 'music_note', label: 'Музыка из чатов', d: '.12s' }, { icon: 'translate', label: 'Перевод сообщений', d: '.19s' }, { icon: 'folder_special', label: 'Папки и архив', d: '.26s' }],
+    perms: P.map(([icon, label, sub], k) => {
+      const on = s.perms[k];
+      return { icon, label, sub, on, btn: on ? 'Включено' : 'Включить', btnBg: on ? 'rgba(143,211,172,.16)' : '#8FD3AC', btnInk: on ? '#8FD3AC' : '#06150D', border: on ? 'rgba(143,211,172,.35)' : 'rgba(255,255,255,.07)',
+        tap: () => { const perms = s.perms.slice(); perms[k] = !on; this.setState({ perms }); } };
+    }),
+    finished: s.done, restart: () => this.setState({ i: 0, done: false, perms: [false, false, false] })
+  };
+}
+}
+</script>
+</body>
+</html>

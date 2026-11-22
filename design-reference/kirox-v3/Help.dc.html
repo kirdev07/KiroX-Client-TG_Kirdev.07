@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Помощь</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+input,textarea{font:inherit;color:inherit}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxLogo{0%,100%{transform:rotate(-4deg) scale(1)}50%{transform:rotate(4deg) scale(1.05)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Помощь</h1>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 16px 30px">
+    <label style="height: 50px; padding: 0 16px; border-radius: 25px; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; gap: 10px">
+      <span class="ms" style="color: #9AA59F" aria-hidden="true">search</span>
+      <input value="{{q}}" onInput="{{onQ}}" placeholder="Поиск по вопросам" aria-label="Поиск по вопросам" style="flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 15px">
+      <sc-if value="{{hasQ}}" hint-placeholder-val="{{false}}"><button onClick="{{clearQ}}" aria-label="Очистить" style="width: 30px; height: 30px; border-radius: 15px; display: flex; align-items: center; justify-content: center; color: #9AA59F"><span class="ms" style="font-size: 18px" aria-hidden="true">close</span></button></sc-if>
+    </label>
+
+    <!-- Quick actions -->
+    <sc-if value="{{noQ}}" hint-placeholder-val="{{true}}">
+      <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+        <button onClick="{{openBug}}" style="padding: 14px; border-radius: 20px; background: linear-gradient(150deg, rgba(229,83,75,.16), rgba(255,255,255,.03)); border: 1px solid rgba(229,83,75,.25)"><span class="ms fill" style="color: #FF8A80" aria-hidden="true">bug_report</span><span style="display: block; margin-top: 8px; font-size: 14px; font-weight: 700">Сообщить об ошибке</span><span style="display: block; margin-top: 2px; font-size: 11px; color: #9AA59F">С отчётом и скриншотом</span></button>
+        <button onClick="{{idea}}" style="padding: 14px; border-radius: 20px; background: linear-gradient(150deg, rgba(63,154,108,.2), rgba(255,255,255,.03)); border: 1px solid rgba(143,211,172,.25)"><span class="ms fill" style="color: #8FD3AC" aria-hidden="true">lightbulb</span><span style="display: block; margin-top: 8px; font-size: 14px; font-weight: 700">Предложить идею</span><span style="display: block; margin-top: 2px; font-size: 11px; color: #9AA59F">Чего не хватает в kiroX</span></button>
+      </div>
+    </sc-if>
+
+    <!-- FAQ -->
+    <div style="margin-top: 16px; display: flex; align-items: center; padding: 0 4px 8px"><span style="flex: 1; font-size: 13px; font-weight: 700; color: #8FD3AC">{{faqTitle}}</span></div>
+    <div style="border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+      <sc-for list="{{faq}}" as="f" hint-placeholder-count="5">
+        <div style="border-bottom: 1px solid rgba(255,255,255,.05)">
+          <button onClick="{{f.tap}}" aria-expanded="{{f.open}}" style="width: 100%; padding: 14px 16px; display: flex; align-items: center; gap: 12px">
+            <span class="ms" style="color: {{f.ic}}; font-size: 22px" aria-hidden="true">{{f.icon}}</span>
+            <span style="flex: 1; font-size: 15px; font-weight: 600">{{f.q}}</span>
+            <span class="ms" style="color: #9AA59F; transform: {{f.rot}}; transition: transform .25s" aria-hidden="true">expand_more</span>
+          </button>
+          <sc-if value="{{f.open}}" hint-placeholder-val="{{false}}">
+            <div style="padding: 0 16px 14px 50px; font-size: 14px; line-height: 1.5; color: #C9D2CC; animation: kxIn .2s ease both">{{f.a}}
+              <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8A958F">
+                <span>{{f.askText}}</span>
+                <sc-if value="{{f.ask}}" hint-placeholder-val="{{true}}">
+                  <button onClick="{{f.yes}}" aria-label="Да, помогло" style="width: 32px; height: 32px; border-radius: 16px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; color: #8FD3AC"><span class="ms" style="font-size: 18px" aria-hidden="true">thumb_up</span></button>
+                  <button onClick="{{f.no}}" aria-label="Нет, не помогло" style="width: 32px; height: 32px; border-radius: 16px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; color: #9AA59F"><span class="ms" style="font-size: 18px" aria-hidden="true">thumb_down</span></button>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 24px 16px; text-align: center; font-size: 14px; color: #9AA59F">Ничего не нашли.<br><button onClick="{{openBug}}" style="margin-top: 8px; font-size: 14px; font-weight: 700; color: #8FD3AC">Написать нам</button></div>
+      </sc-if>
+    </div>
+
+    <!-- About -->
+    <sc-if value="{{noQ}}" hint-placeholder-val="{{true}}">
+      <div style="margin-top: 18px; padding: 18px 16px; border-radius: 24px; background: radial-gradient(90% 80% at 50% 0%, rgba(63,154,108,.22), transparent 70%), rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column; align-items: center; text-align: center">
+        <button onClick="{{tapLogo}}" aria-label="Логотип kiroX" style="width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 900; animation: {{logoAnim}}">kX</button>
+        <div style="margin-top: 10px; font-size: 18px; font-weight: 800">kiroX</div>
+        <div style="margin-top: 2px; font-size: 13px; color: #9AA59F">{{version}}</div>
+        <sc-if value="{{egg}}" hint-placeholder-val="{{false}}"><div style="margin-top: 8px; padding: 6px 12px; border-radius: 12px; background: rgba(143,211,172,.12); color: #8FD3AC; font-size: 12px; font-weight: 700; animation: kxIn .25s ease both">Режим разработчика уже включён</div></sc-if>
+        <button onClick="{{checkUpd}}" style="margin-top: 12px; height: 40px; padding: 0 16px; border-radius: 20px; background: rgba(255,255,255,.07); font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px"><span class="ms" style="font-size: 18px" aria-hidden="true">{{updIcon}}</span>{{updText}}</button>
+      </div>
+      <div style="margin-top: 10px; border-radius: 22px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); overflow: hidden">
+        <sc-for list="{{links}}" as="l" hint-placeholder-count="3">
+          <button onClick="{{l.tap}}" style="width: 100%; height: 52px; padding: 0 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.05)"><span class="ms" style="color: #9AA59F" aria-hidden="true">{{l.icon}}</span><span style="flex: 1; font-size: 15px">{{l.label}}</span><span class="ms" style="color: #8A958F" aria-hidden="true">chevron_right</span></button>
+        </sc-for>
+      </div>
+      <p style="margin: 12px 4px 0; font-size: 11px; line-height: 1.45; color: #8A958F; text-align: center">Неофициальный клиент Telegram. Работает на TDLib.</p>
+    </sc-if>
+  </div>
+
+  <!-- Bug sheet -->
+  <sc-if value="{{bug}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{closeBug}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 22px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.96), rgba(18,22,20,.98)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+      <div style="font-size: 19px; font-weight: 800">Что случилось?</div>
+      <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap">
+        <sc-for list="{{areas}}" as="a" hint-placeholder-count="5"><button onClick="{{a.tap}}" style="height: 34px; padding: 0 12px; border-radius: 17px; background: {{a.bg}}; color: {{a.ink}}; border: 1px solid {{a.bd}}; font-size: 13px; font-weight: 600; transition: all .2s">{{a.label}}</button></sc-for>
+      </div>
+      <textarea onInput="{{onBug}}" placeholder="Опишите, что делали и что пошло не так" aria-label="Описание ошибки" style="margin-top: 12px; width: 100%; box-sizing: border-box; height: 90px; padding: 12px 14px; border-radius: 16px; background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.1); outline: none; resize: none; font-size: 14px"></textarea>
+      <sc-for list="{{attach}}" as="t" hint-placeholder-count="2">
+        <button onClick="{{t.tap}}" aria-pressed="{{t.on}}" style="margin-top: 8px; width: 100%; padding: 8px 0; display: flex; align-items: center; gap: 12px">
+          <span class="ms" style="color: #9AA59F" aria-hidden="true">{{t.icon}}</span>
+          <span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 600">{{t.label}}</span><span style="display: block; font-size: 11px; color: #8A958F">{{t.sub}}</span></span>
+          <span style="width: 44px; height: 26px; border-radius: 13px; background: {{t.track}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{t.knob}}; width: 20px; height: 20px; border-radius: 10px; background: {{t.knobBg}}; transition: left .2s"></span></span>
+        </button>
+      </sc-for>
+      <button onClick="{{sendBug}}" style="margin-top: 12px; width: 100%; height: 52px; border-radius: 26px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px"><span class="ms fill" aria-hidden="true">send</span>Отправить разработчику</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 34px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 2.4s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const FAQ = [
+  ['notifications_off', 'Не приходят уведомления', 'Проверьте «Уведомления и звуки» в kiroX и разрешите kiroX работать в фоне в настройках батареи Android. На Xiaomi включите «Автозапуск».'],
+  ['lock_reset', 'Забыли облачный пароль?', 'На экране ввода пароля нажмите «Забыли пароль?». Код придёт на почту восстановления, если вы её указывали.'],
+  ['sd_storage', 'kiroX занимает много места', 'Откройте «Данные и память» и очистите кэш. Сообщения останутся в облаке и скачаются снова, когда понадобятся.'],
+  ['devices', 'Как войти на компьютере', 'В «Устройствах» нажмите «Подключить устройство» и наведите камеру на QR-код на экране компьютера.'],
+  ['translate', 'Как перевести сообщение', 'Нажмите на сообщение и выберите «Перевести». Языки, которые переводить не нужно, задаются в «Перевод сообщений».'],
+  ['vpn_lock', 'Telegram не подключается', 'Попробуйте другую сеть или включите прокси в «Данные и память → Прокси». kiroX покажет, какой прокси быстрее.']
+];
+const AREAS = ['Сообщения', 'Звонки', 'Медиа', 'Уведомления', 'Вход', 'Другое'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { q: '', open: 0, voted: {}, bug: false, area: 0, logs: true, shot: false, taps: 0, upd: 'idle', toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); clearTimeout(this.tu); }
+toastMsg(text, icon) { clearTimeout(this.tt); this.setState({ toast: this.state.toast + 1, toastText: text, toastIcon: icon }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2400); }
+renderVals() {
+  const s = this.state;
+  const q = s.q.trim().toLowerCase();
+  const list = FAQ.map((f, i) => ({ f, i })).filter(({ f }) => !q || (f[1] + ' ' + f[2]).toLowerCase().includes(q));
+  const sw = v => ({ track: v ? '#3F9A6C' : 'rgba(255,255,255,.14)', knob: v ? '21px' : '3px', knobBg: v ? '#EEF3EF' : '#9AA59F' });
+  return {
+    q: s.q, onQ: e => this.setState({ q: e.target.value }), clearQ: () => this.setState({ q: '' }), hasQ: !!s.q, noQ: !q,
+    faqTitle: q ? 'Найдено: ' + list.length : 'Частые вопросы',
+    faq: list.map(({ f, i }) => {
+      const open = s.open === i || (!!q && list.length <= 2);
+      const v = s.voted[i];
+      return {
+        icon: f[0], q: f[1], a: f[2], open, ic: open ? '#8FD3AC' : '#9AA59F', rot: open ? 'rotate(180deg)' : 'none',
+        tap: () => this.setState({ open: s.open === i ? -1 : i }),
+        ask: !v, askText: v === 'yes' ? 'Спасибо! Рады, что помогло.' : v === 'no' ? 'Жаль. Напишите нам — разберёмся.' : 'Помогло?',
+        yes: () => this.setState({ voted: { ...s.voted, [i]: 'yes' } }), no: () => this.setState({ voted: { ...s.voted, [i]: 'no' } })
+      };
+    }),
+    empty: list.length === 0,
+    openBug: () => this.setState({ bug: true }), closeBug: () => this.setState({ bug: false }), bug: s.bug,
+    idea: () => this.toastMsg('Откроется чат с разработчиком', 'lightbulb'),
+    areas: AREAS.map((label, i) => ({ label, bg: s.area === i ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.area === i ? '#8FD3AC' : '#C9D2CC', bd: s.area === i ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', tap: () => this.setState({ area: i }) })),
+    onBug: () => {},
+    attach: [
+      { icon: 'receipt_long', label: 'Технический отчёт', sub: 'Версия, модель телефона, последние ошибки. Без переписки и номера', on: s.logs, k: 'logs' },
+      { icon: 'screenshot', label: 'Последний скриншот', sub: 'Вы сможете посмотреть его перед отправкой', on: s.shot, k: 'shot' }
+    ].map(t => { const w = sw(t.on); return { ...t, track: w.track, knob: w.knob, knobBg: w.knobBg, tap: () => this.setState({ [t.k]: !s[t.k] }) }; }),
+    sendBug: () => { this.setState({ bug: false }); this.toastMsg('Отчёт отправлен. Спасибо!', 'check_circle'); },
+    tapLogo: () => this.setState({ taps: s.taps + 1 }), egg: s.taps >= 5, logoAnim: s.taps ? 'kxLogo .5s ease' : 'none',
+    version: 'Версия 1.0.0-rc.1 · TDLib',
+    updIcon: s.upd === 'checking' ? 'sync' : s.upd === 'ok' ? 'check_circle' : 'system_update',
+    updText: s.upd === 'checking' ? 'Проверяем…' : s.upd === 'ok' ? 'Установлена последняя версия' : 'Проверить обновления',
+    checkUpd: () => { this.setState({ upd: 'checking' }); clearTimeout(this.tu); this.tu = setTimeout(() => this.setState({ upd: 'ok' }), 1300); },
+    links: [['new_releases', 'Что нового'], ['policy', 'Политика конфиденциальности'], ['description', 'Лицензии открытых библиотек']].map(([icon, label]) => ({ icon, label, tap: () => this.toastMsg('Откроется «' + label + '»', icon) })),
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Закреплённые сообщения</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.98)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxSlide2{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxHi{0%{box-shadow:0 0 0 0 rgba(143,211,172,.0);background-color:rgba(143,211,172,.28)}100%{box-shadow:0 0 0 0 rgba(143,211,172,0)}}
+@keyframes kxHi2{0%{box-shadow:0 0 0 0 rgba(143,211,172,.0);background-color:rgba(143,211,172,.28)}100%{box-shadow:0 0 0 0 rgba(143,211,172,0)}}
+@keyframes kxIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes kxOut{to{opacity:0;transform:translateX(-60px);height:0;padding:0;margin:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #2F6E9E; display: flex; align-items: center; justify-content: center; font-weight: 800">С</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Семья</div><div style="font-size: 12px; color: #9AA59F">5 участников</div></div>
+  </header>
+
+  <!-- Pinned bar -->
+  <sc-if value="{{hasPins}}" hint-placeholder-val="{{true}}">
+    <div style="margin: 0 10px; padding: 8px 8px 8px 10px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05)); border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; gap: 10px">
+      <div style="width: 3px; height: 36px; display: flex; flex-direction: column; gap: 2px" aria-hidden="true"><sc-for list="{{segs}}" as="g" hint-placeholder-count="4"><span style="flex: 1; border-radius: 2px; background: {{g.c}}; transition: background .2s"></span></sc-for></div>
+      <button onClick="{{nextPin}}" aria-label="Следующее закреплённое" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px">
+        <span style="width: 36px; height: 36px; border-radius: 8px; background: {{pinThumb}}; display: {{thumbShow}}; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0">{{pinThumbE}}</span>
+        <span style="flex: 1; min-width: 0; animation: {{barAnim}}"><span style="display: block; font-size: 12px; font-weight: 800; color: #8FD3AC">{{pinLabel}}</span><span style="display: block; font-size: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{pinText}}</span></span>
+      </button>
+      <button onClick="{{openList}}" aria-label="Все закреплённые" style="width: 38px; height: 38px; border-radius: 19px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 20px" aria-hidden="true">view_list</span></button>
+    </div>
+  </sc-if>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+    <sc-for list="{{msgs}}" as="m" hint-placeholder-count="8">
+      <div style="align-self: {{m.side}}; max-width: 80%; padding: 8px 12px; border-radius: {{m.rad}}; background-color: {{m.bgc}}; background-image: {{m.bgi}}; color: {{m.ink}}; font-size: 15px; line-height: 1.4; animation: {{m.hi}}; position: relative">
+        <span style="display: {{m.whoShow}}; font-size: 12px; font-weight: 800; color: {{m.nc}}">{{m.who}}</span>
+        <span style="display: {{m.photoShow}}; width: 220px; height: 120px; border-radius: 12px; margin: 2px 0 6px; background: {{m.photo}}; align-items: center; justify-content: center; font-size: 40px">{{m.pe}}</span>
+        {{m.text}}<span style="font-size: 11px; opacity: .6; margin-left: 6px">{{m.t}}</span><span class="ms fill" style="font-size: 13px; margin-left: 4px; color: {{m.pinC}}; display: {{m.pinShow}}; vertical-align: -2px" aria-hidden="true">push_pin</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="padding: 8px 12px 16px; border-top: 1px solid rgba(255,255,255,.06)"><div style="height: 48px; padding: 0 16px; border-radius: 24px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 15px; color: #8A958F">Сообщение</div></div>
+
+  <!-- All pinned list -->
+  <sc-if value="{{list}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: #0A0C0B; display: flex; flex-direction: column; animation: kxIn .25s ease both">
+      <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+        <button onClick="{{closeList}}" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+        <span style="flex: 1; font-size: 20px; font-weight: 800">{{listTitle}}</span>
+      </header>
+      <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 14px">
+        <sc-for list="{{pinRows}}" as="p" hint-placeholder-count="4"><div style="margin-bottom: 10px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07)">
+          <div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 13px; font-weight: 800; color: {{p.nc}}">{{p.who}}</span><span style="flex: 1; font-size: 12px; color: #8A958F">{{p.t}}</span><button onClick="{{p.go}}" style="height: 30px; padding: 0 10px; border-radius: 15px; background: rgba(143,211,172,.14); color: #8FD3AC; font-size: 12px; font-weight: 800">К сообщению</button><button onClick="{{p.unpin}}" aria-label="Открепить" style="width: 30px; height: 30px; border-radius: 15px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; color: #9AA59F"><span class="ms" style="font-size: 17px" aria-hidden="true">keep_off</span></button></div>
+          <div style="margin-top: 6px; display: flex; gap: 10px; align-items: center"><span style="width: 44px; height: 44px; border-radius: 10px; background: {{p.photo}}; display: {{p.photoShow}}; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0">{{p.pe}}</span><span style="font-size: 14px; line-height: 1.4; color: #DDE5E0">{{p.text}}</span></div>
+        </div></sc-for>
+      </div>
+      <div style="padding: 10px 16px 20px"><button onClick="{{unpinAll}}" style="width: 100%; height: 52px; border-radius: 26px; background: rgba(229,83,75,.1); color: #FF8A80; font-size: 15px; font-weight: 800; text-align: center">Открепить все</button></div>
+    </div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PL = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
+
+const M = [
+  { id: 1, who: 'Мама', nc: '#E8B04A', text: 'Код от домофона на даче: 2580#', t: 'пн, 10:02', pin: true },
+  { id: 2, who: 'Папа', nc: '#7FB8E0', text: 'Кто едет в субботу — отпишитесь', t: 'вт, 18:40' },
+  { id: 3, who: 'Мама', nc: '#E8B04A', text: 'Список продуктов на выходные', t: 'ср, 09:15', pin: true, photo: 'linear-gradient(160deg, #3F9A6C, #1B3A2C)', pe: '🛒' },
+  { id: 4, me: true, text: 'Я еду, буду к обеду', t: 'ср, 12:30' },
+  { id: 5, who: 'Бабушка', nc: '#C9A0E0', text: 'Рецепт пирога, как просили: мука 300 г, яблоки 4 шт, сахар 150 г…', t: 'чт, 14:22', pin: true },
+  { id: 6, who: 'Папа', nc: '#7FB8E0', text: 'Электричка в 9:40 с вокзала, не опаздывайте!', t: 'пт, 20:05', pin: true },
+  { id: 7, who: 'Мама', nc: '#E8B04A', text: 'Ура, до завтра! 🌻', t: 'пт, 21:10' }
+];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { pins: [6, 5, 3, 1], cur: 0, hi: 6, hk: 0, list: false };
+}
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const pins = s.pins;
+  const curId = pins[s.cur % Math.max(1, pins.length)];
+  const cm = M.find(x => x.id === curId);
+  const jump = (id) => this.setState({ hi: id, hk: s.hk + 1 });
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    hasPins: pins.length > 0,
+    segs: pins.map((_, i) => ({ c: i === s.cur % pins.length ? '#8FD3AC' : 'rgba(143,211,172,.25)' })),
+    pinLabel: pins.length > 1 ? 'Закреплённое #' + (pins.length - (s.cur % pins.length)) : 'Закреплённое сообщение',
+    pinText: cm ? cm.text : '', pinThumb: cm && cm.photo ? cm.photo : 'transparent', pinThumbE: cm && cm.pe ? cm.pe : '', thumbShow: cm && cm.photo ? 'flex' : 'none',
+    barAnim: (s.hk % 2 ? 'kxSlide2' : 'kxSlide') + ' .25s ease both',
+    nextPin: () => { if (!pins.length) return; jump(curId); this.setState({ cur: (s.cur + 1) % pins.length }); },
+    openList: () => this.setState({ list: true }), closeList: () => this.setState({ list: false }),
+    msgs: M.map(m => { const pinned = pins.includes(m.id); return { side: m.me ? 'flex-end' : 'flex-start', rad: m.me ? '18px 18px 6px 18px' : '18px 18px 18px 6px',
+      bgc: m.me ? 'transparent' : 'rgba(255,255,255,.07)', bgi: m.me ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'none', ink: m.me ? '#06150D' : '#EEF3EF',
+      who: m.who || '', nc: m.nc || '#8FD3AC', whoShow: m.me ? 'none' : 'block', text: m.text, t: m.t,
+      photoShow: m.photo ? 'flex' : 'none', photo: m.photo || 'none', pe: m.pe || '',
+      pinShow: pinned ? 'inline-block' : 'none', pinC: m.me ? '#06150D' : '#8FD3AC',
+      hi: s.hi === m.id && s.hk ? (s.hk % 2 ? 'kxHi2' : 'kxHi') + ' 1.4s ease-out both' : 'none' }; }),
+    list: s.list, listTitle: pins.length + ' ' + PL(pins.length, 'закреплённое', 'закреплённых', 'закреплённых'),
+    pinRows: pins.map(id => { const m = M.find(x => x.id === id); return { who: m.who || 'Вы', nc: m.nc || '#8FD3AC', t: m.t, text: m.text, photo: m.photo || 'none', photoShow: m.photo ? 'flex' : 'none', pe: m.pe || '',
+      go: () => { this.setState({ list: false, cur: pins.indexOf(id) }); jump(id); },
+      unpin: () => { const np = pins.filter(x => x !== id); this.setState({ pins: np, cur: 0, list: np.length > 0 }); } }; }),
+    unpinAll: () => this.ask('Открепить все?', 'Сообщения открепятся у всех участников чата.', 'Открепить все', () => this.setState({ pins: [], list: false, cur: 0 }))
+  };
+}
+}
+</script>
+</body>
+</html>

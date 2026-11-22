@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Участники группы</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes kxIn2{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxDim{from{opacity:0}to{opacity:1}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <div style="flex: 1"><div style="font-size: 20px; font-weight: 800">Участники</div><div style="font-size: 12px; color: #9AA59F">Kotlin-клуб · 1 284 · 96 в сети</div></div>
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(143,211,172,.14); color: #8FD3AC; display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">person_add</span></span>
+  </header>
+
+  <div style="margin: 0 16px; height: 44px; padding: 0 14px; border-radius: 22px; background: rgba(255,255,255,.07); display: flex; align-items: center; gap: 8px; font-size: 14px; color: #8A958F"><span class="ms" style="font-size: 20px" aria-hidden="true">search</span>Найти участника</div>
+
+  <div class="scroll" style="padding: 10px 12px 4px; display: flex; gap: 6px; overflow-x: auto; flex-shrink: 0">
+    <sc-for list="{{chips}}" as="c" hint-placeholder-count="5"><button onClick="{{c.tap}}" aria-pressed="{{c.on}}" style="flex-shrink: 0; height: 34px; padding: 0 12px; border-radius: 17px; background: {{c.bg}}; color: {{c.ink}}; border: 1px solid {{c.bd}}; font-size: 13px; font-weight: 700">{{c.t}}</button></sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 8px 16px">
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+      <button onClick="{{r.tap}}" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 16px; animation: {{r.anim}}">
+        <span style="position: relative; width: 46px; height: 46px; border-radius: 23px; background: {{r.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0">{{r.l}}<span style="position: absolute; right: 0; bottom: 0; width: 12px; height: 12px; border-radius: 6px; background: #8FD3AC; border: 2px solid #0A0C0B; display: {{r.onlineShow}}"></span></span>
+        <span style="flex: 1; min-width: 0"><span style="display: flex; align-items: center; gap: 6px"><span style="font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{r.n}}</span><span class="ms fill" style="font-size: 15px; color: #7FB8E0; display: {{r.botShow}}" aria-hidden="true">smart_toy</span></span><span style="display: block; font-size: 12px; color: {{r.subInk}}">{{r.sub}}</span></span>
+        <span style="display: {{r.tagShow}}; height: 22px; padding: 0 8px; border-radius: 11px; background: {{r.tagBg}}; color: {{r.tagInk}}; font-size: 11px; font-weight: 800; line-height: 22px">{{r.tag}}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+    <button onClick="{{close}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: kxDim .2s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 22px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(40,48,44,.99), rgba(18,22,20,1)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .3s cubic-bezier(.2,.8,.2,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 12px"></div>
+      <div style="display: flex; align-items: center; gap: 12px"><span style="width: 52px; height: 52px; border-radius: 26px; background: {{sc}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px">{{sl}}</span><div style="flex: 1"><div style="font-size: 17px; font-weight: 800">{{sn}}</div><div style="font-size: 12px; color: #9AA59F">{{ssub}}</div></div></div>
+      <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 2px">
+        <sc-for list="{{acts}}" as="a" hint-placeholder-count="5"><button onClick="{{a.tap}}" style="width: 100%; min-height: 50px; padding: 0 8px; border-radius: 14px; display: flex; align-items: center; gap: 12px; color: {{a.ink}}"><span class="ms" aria-hidden="true">{{a.i}}</span><span style="flex: 1; font-size: 15px; font-weight: 700">{{a.t}}</span></button></sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 26px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const P = [
+  { id: 1, n: 'Вы', l: 'В', c: 'linear-gradient(135deg, #6FC497, #3F9A6C)', role: 'owner', on: true, seen: 'в сети' },
+  { id: 2, n: 'Дмитрий', l: 'Д', c: '#3F9A6C', role: 'admin', title: 'модератор', on: true, seen: 'в сети' },
+  { id: 3, n: 'Айгерим', l: 'А', c: '#B07A2E', role: 'admin', title: 'ведёт митапы', on: false, seen: 'в сети час назад' },
+  { id: 4, n: 'Модер-бот', l: 'М', c: '#2F6E9E', role: 'bot', bot: true, on: false, seen: 'бот · чистит спам' },
+  { id: 5, n: 'Сергей', l: 'С', c: '#6A4C9C', role: 'member', on: true, seen: 'в сети', recent: true },
+  { id: 6, n: 'Ерлан', l: 'Е', c: '#C0443C', role: 'member', on: false, seen: 'в сети вчера', recent: true },
+  { id: 7, n: 'Дана', l: 'Д', c: '#7FB8E0', role: 'member', on: false, seen: 'в сети недавно' },
+  { id: 8, n: 'Олег', l: 'О', c: '#9AA59F', role: 'restricted', on: false, seen: 'без медиа до завтра' },
+  { id: 9, n: 'Лиза', l: 'Л', c: '#C9A0E0', role: 'member', on: true, seen: 'в сети', recent: true }
+];
+const F = [['all', 'Все · 1 284'], ['admins', 'Админы · 3'], ['recent', 'Новые'], ['bots', 'Боты · 1'], ['restricted', 'Ограничены · 1']];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { f: 'all', k: 0, sel: null, roles: {}, gone: {}, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+renderVals() {
+  const s = this.state;
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2000); };
+  const role = (p) => s.roles[p.id] || p.role;
+  const list = P.filter(p => !s.gone[p.id]).filter(p => s.f === 'all' || (s.f === 'admins' && (role(p) === 'admin' || role(p) === 'owner')) || (s.f === 'recent' && p.recent) || (s.f === 'bots' && p.bot) || (s.f === 'restricted' && role(p) === 'restricted'));
+  const tag = (r, p) => r === 'owner' ? ['Владелец', 'rgba(232,176,74,.16)', '#E8B04A'] : r === 'admin' ? [p.title || 'админ', 'rgba(143,211,172,.16)', '#8FD3AC'] : r === 'restricted' ? ['ограничен', 'rgba(255,138,128,.14)', '#FF8A80'] : null;
+  const p = s.sel ? P.find(x => x.id === s.sel) : null;
+  const pr = p ? role(p) : '';
+  const done = (t, patch) => { this.setState({ sel: null, ...(patch || {}) }); say(t); };
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    chips: F.map(([k, t]) => { const on = s.f === k; return { t, on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.05)', ink: on ? '#8FD3AC' : '#C9D2CC', bd: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.08)', tap: () => this.setState({ f: k, k: s.k + 1 }) }; }),
+    rows: list.map(x => { const r = role(x); const tg = tag(r, x); return { n: x.n, l: x.l, c: x.c, onlineShow: x.on ? 'block' : 'none', botShow: x.bot ? 'inline-block' : 'none',
+      sub: r === 'restricted' && !x.role.startsWith('restr') ? 'без медиа на 1 день' : x.seen, subInk: x.on ? '#8FD3AC' : r === 'restricted' ? '#C9A06A' : '#9AA59F',
+      tagShow: tg ? 'inline-block' : 'none', tag: tg ? tg[0] : '', tagBg: tg ? tg[1] : 'transparent', tagInk: tg ? tg[2] : '#fff',
+      anim: (s.k % 2 ? 'kxIn2' : 'kxIn') + ' .2s ease both', tap: () => x.role !== 'owner' && this.setState({ sel: x.id }) }; }),
+    sheet: !!p, close: () => this.setState({ sel: null }),
+    sc: p ? p.c : '#333', sl: p ? p.l : '', sn: p ? p.n : '', ssub: p ? (tag(pr, p) ? tag(pr, p)[0] + ' · ' : '') + p.seen : '',
+    acts: p ? [
+      { i: 'chat', t: 'Написать', ink: '#EEF3EF', tap: () => done('Открываем чат: ' + p.n) },
+      pr === 'admin' ? { i: 'remove_moderator', t: 'Снять права админа', ink: '#EEF3EF', tap: () => done(p.n + ' больше не админ', { roles: { ...s.roles, [p.id]: 'member' } }) } : { i: 'add_moderator', t: 'Назначить админом', ink: '#EEF3EF', tap: () => this.ask('Назначить админом?', 'Будут выданы стандартные права админа без права назначать других. Права можно изменить позже.', 'Назначить', () => done(p.n + ' теперь админ', { roles: { ...s.roles, [p.id]: 'admin' } }) )},
+      pr === 'restricted' ? { i: 'lock_open', t: 'Снять ограничения', ink: '#EEF3EF', tap: () => done('Ограничения сняты', { roles: { ...s.roles, [p.id]: 'member' } }) } : { i: 'block', t: 'Ограничить', ink: '#EEF3EF', tap: () => done(p.n + ': без медиа на 1 день', { roles: { ...s.roles, [p.id]: 'restricted' } }) },
+      { i: 'person_remove', t: 'Удалить из группы', ink: '#FF8A80', tap: () => this.ask('Удалить из группы?', 'Участник больше не будет в группе. Вернуть можно по ссылке-приглашению.', 'Удалить', () => done(p.n + ' больше не в группе', { gone: { ...s.gone, [p.id]: true } }) )}
+    ] : [],
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

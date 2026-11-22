@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Значок приложения</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxMorph{0%{transform:scale(1)}35%{transform:scale(.6) rotate(-12deg);opacity:.4}70%{transform:scale(1.15) rotate(4deg);opacity:1}100%{transform:none}}
+@keyframes kxMorph2{0%{transform:scale(1)}35%{transform:scale(.6) rotate(-12deg);opacity:.4}70%{transform:scale(1.15) rotate(4deg);opacity:1}100%{transform:none}}
+@keyframes kxGlow{0%,100%{box-shadow:0 0 18px rgba(143,211,172,.35)}50%{box-shadow:0 0 30px rgba(143,211,172,.7)}}
+@keyframes kxFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@keyframes kxToast2{0%{opacity:0;transform:translate(-50%,16px)}12%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="font-size: 20px; font-weight: 800">Значок приложения</span>
+  </header>
+
+  <!-- Home screen preview -->
+  <div style="margin: 0 16px; height: 300px; border-radius: 28px; position: relative; overflow: hidden; background: {{homeBg}}; border: 1px solid rgba(255,255,255,.12); transition: background .4s" aria-hidden="true">
+    <div style="position: absolute; top: 14px; left: 0; right: 0; text-align: center"><div style="font-size: 44px; font-weight: 300; letter-spacing: -1px">19:52</div><div style="font-size: 12px; color: rgba(255,255,255,.75)">воскресенье, 22 ноября</div></div>
+    <div style="position: absolute; left: 22px; right: 22px; bottom: 22px; display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 14px; justify-items: center">
+      <sc-for list="{{apps}}" as="a" hint-placeholder-count="8"><div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px"><span style="width: 54px; height: 54px; border-radius: 18px; background: {{a.bg}}; background-size: {{a.size}}; border: {{a.bd}}; color: {{a.ink}}; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; letter-spacing: -1px; animation: {{a.anim}}; box-shadow: {{a.sh}}"><span class="ms fill" style="font-size: 26px; display: {{a.icShow}}">{{a.ic}}</span><span style="display: {{a.xShow}}">{{a.x}}</span></span><span style="font-size: 11px; color: rgba(255,255,255,.9); font-weight: {{a.fw}}">{{a.name}}</span></div></sc-for>
+    </div>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 16px 16px 0">
+    <div style="font-size: 13px; font-weight: 700; color: #8FD3AC">Выберите стиль</div>
+    <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px">
+      <sc-for list="{{icons}}" as="i" hint-placeholder-count="6"><button onClick="{{i.tap}}" aria-pressed="{{i.on}}" aria-label="{{i.name}}" style="padding: 12px 6px 10px; border-radius: 22px; background: {{i.card}}; border: 1.5px solid {{i.cbd}}; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: all .2s"><span style="width: 58px; height: 58px; border-radius: 19px; background: {{i.bg}}; background-size: {{i.size}}; border: {{i.bd}}; color: {{i.ink}}; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; letter-spacing: -1px; box-shadow: {{i.sh}}; animation: {{i.flow}}">X</span><span style="font-size: 12px; font-weight: 700; color: {{i.lab}}">{{i.name}}</span></button></sc-for>
+    </div>
+
+    <button onClick="{{toggleYou}}" role="switch" aria-checked="{{youOn}}" style="margin-top: 14px; width: 100%; min-height: 62px; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: #9AA59F" aria-hidden="true">palette</span><span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 700">Тематический значок</span><span style="display: block; font-size: 12px; color: #9AA59F">Цвет под обои, если в Android включены тематические значки</span></span><span style="width: 46px; height: 28px; border-radius: 14px; background: {{trk}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{knx}}; width: 22px; height: 22px; border-radius: 11px; background: {{knc}}; transition: left .2s"></span></span></button>
+    <div style="margin-top: 4px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.04); font-size: 12px; color: #9AA59F; line-height: 1.4; display: flex; gap: 8px"><span class="ms" style="font-size: 18px" aria-hidden="true">info</span><span>Ярлык на рабочем столе обновится через пару секунд. На некоторых лаунчерах его придётся перетащить заново.</span></div>
+  </div>
+
+  <div style="padding: 12px 16px 20px">
+    <button onClick="{{apply}}" style="width: 100%; height: 54px; border-radius: 27px; background: {{applyBg}}; color: {{applyInk}}; font-size: 16px; font-weight: 800; text-align: center; transition: all .2s">{{applyText}}</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 92px; padding: 12px 16px; border-radius: 18px; background: rgba(40,48,44,.96); border: 1px solid rgba(255,255,255,.12); font-size: 13px; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: {{toastAnim}}"><span class="ms fill" style="font-size: 18px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const IC = [
+  { name: 'Классика', bg: 'linear-gradient(135deg, #6FC497, #3F9A6C)', size: '100% 100%', bd: 'none', ink: '#06150D', sh: '0 6px 16px rgba(63,154,108,.35)', flow: false, home: 'linear-gradient(170deg, #1C3A2C, #0E1A14 60%, #0A0C0B)' },
+  { name: 'Ночь', bg: '#0A0C0B', size: '100% 100%', bd: '2px solid #8FD3AC', ink: '#8FD3AC', sh: 'none', flow: false, home: 'linear-gradient(170deg, #15201B, #050706)' },
+  { name: 'Мята', bg: 'linear-gradient(135deg, #E6F5EC, #BFE6CF)', size: '100% 100%', bd: 'none', ink: '#1F6B47', sh: '0 6px 16px rgba(191,230,207,.25)', flow: false, home: 'linear-gradient(170deg, #4A6B5C, #23332B)' },
+  { name: 'Неон', bg: '#06150D', size: '100% 100%', bd: '1.5px solid rgba(143,211,172,.8)', ink: '#B8F5D2', sh: 'glow', flow: false, home: 'radial-gradient(circle at 50% 70%, #10301F, #050706 70%)' },
+  { name: 'Аврора', bg: 'linear-gradient(120deg, #3F9A6C, #2F6E9E, #6A4C9C, #3F9A6C)', size: '300% 300%', bd: 'none', ink: '#fff', sh: '0 6px 16px rgba(47,110,158,.35)', flow: true, home: 'linear-gradient(170deg, #1A2B45, #1C1430 60%, #0A0C0B)' },
+  { name: 'Графит', bg: 'linear-gradient(135deg, #3A403D, #1B201E)', size: '100% 100%', bd: 'none', ink: '#EEF3EF', sh: '0 6px 16px rgba(0,0,0,.4)', flow: false, home: 'linear-gradient(170deg, #2A2E2C, #0F1110)' }
+];
+const OTHER = [['Камера', 'photo_camera', '#5C6661'], ['Галерея', 'image', '#2F6E9E'], ['Карты', 'map', '#3F9A6C'], ['Музыка', 'music_note', '#C0443C'], ['Почта', 'mail', '#B07A2E'], ['Часы', 'schedule', '#6A4C9C'], ['Звонки', 'call', '#3F9A6C']];
+const YOU = { bg: '#CFE3D7', ink: '#264034' };
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { sel: 0, cur: 0, k: 0, you: false, toast: '', tk: 0 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+renderVals() {
+  const s = this.state;
+  const ic = IC[s.sel];
+  const say = (t) => { clearTimeout(this.tt); this.setState({ toast: t, tk: s.tk + 1 }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2200); };
+  const shOf = (x) => x.sh === 'glow' ? '0 0 22px rgba(143,211,172,.55)' : x.sh;
+  const kx = s.you ? { name: 'kiroX', bg: YOU.bg, size: '100% 100%', bd: 'none', ink: YOU.ink, sh: 'none' } : { name: 'kiroX', bg: ic.bg, size: ic.size, bd: ic.bd, ink: ic.ink, sh: shOf(ic) };
+  const apps = OTHER.slice(0, 5).map(([name, icn, c]) => ({ name, ic: icn, icShow: 'inline-block', xShow: 'none', x: '', bg: s.you ? '#CFE3D7' : c, size: '100% 100%', bd: 'none', ink: s.you ? '#264034' : '#fff', sh: 'none', anim: 'none', fw: 400 }));
+  apps.splice(5, 0, { ...kx, ic: '', icShow: 'none', xShow: 'inline', x: 'X', fw: 800, anim: (s.k ? (s.k % 2 ? 'kxMorph2' : 'kxMorph') + ' .6s cubic-bezier(.2,.8,.2,1) both' : (ic.flow && !s.you ? 'kxFlow 6s ease infinite' : 'none')) });
+  OTHER.slice(5, 7).forEach(([name, icn, c]) => apps.push({ name, ic: icn, icShow: 'inline-block', xShow: 'none', x: '', bg: s.you ? '#CFE3D7' : c, size: '100% 100%', bd: 'none', ink: s.you ? '#264034' : '#fff', sh: 'none', anim: 'none', fw: 400 }));
+  const changed = s.sel !== s.cur;
+  return {
+    homeBg: ic.home,
+    apps,
+    icons: IC.map((x, i) => { const on = s.sel === i; return { name: x.name + (s.cur === i ? ' ✓' : ''), bg: x.bg, size: x.size, bd: x.bd, ink: x.ink, sh: shOf(x), flow: x.flow ? 'kxFlow 6s ease infinite' : (x.sh === 'glow' ? 'kxGlow 2.4s ease-in-out 2' : 'none'), on: on ? 'true' : 'false', card: on ? 'rgba(143,211,172,.10)' : 'rgba(255,255,255,.04)', cbd: on ? '#8FD3AC' : 'transparent', lab: on ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ sel: i, k: s.k + 1 }) }; }),
+    toggleYou: () => this.setState({ you: !s.you, k: s.k + 1 }), youOn: s.you ? 'true' : 'false',
+    trk: s.you ? '#3F9A6C' : 'rgba(255,255,255,.14)', knc: s.you ? '#EEF3EF' : '#9AA59F', knx: s.you ? '21px' : '3px',
+    applyText: changed ? 'Поставить «' + ic.name + '»' : 'Этот значок уже стоит',
+    applyBg: changed ? 'linear-gradient(135deg, #6FC497, #3F9A6C)' : 'rgba(255,255,255,.07)', applyInk: changed ? '#06150D' : '#8A958F',
+    apply: () => changed && (this.setState({ cur: s.sel }), say('Значок «' + ic.name + '» на рабочем столе')),
+    toast: !!s.toast, toastText: s.toast, toastAnim: (s.tk % 2 ? 'kxToast2' : 'kxToast') + ' 2.2s ease both'
+  };
+}
+}
+</script>
+</body>
+</html>

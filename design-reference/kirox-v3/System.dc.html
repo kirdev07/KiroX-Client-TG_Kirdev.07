@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Дизайн-система kiroX M3</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400..700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1400px; height: 980px; box-sizing: border-box; padding: 48px; background: #121318; color: #E3E2E9; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px">
+  <section style="display: flex; flex-direction: column; gap: 14px">
+    <h2 style="margin: 0; font-size: 22px; font-weight: 500">Цвет: роли M3 из одного цвета</h2>
+    <p style="margin: 0; font-size: 14px; line-height: 20px; color: #C5C6D0">Все цвета считаются из одного исходного (сейчас синий kiroX) по тональной палитре Material. Темы — это просто другой исходный цвет; можно брать цвет из обоев (Material You).</p>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <div style="height: 64px; border-radius: 12px; background: #B3C5FF; color: #172E60; padding: 10px; box-sizing: border-box; font-size: 13px; font-weight: 500">primary<br>#B3C5FF</div>
+      <div style="height: 64px; border-radius: 12px; background: #2F4578; color: #DAE2FF; padding: 10px; box-sizing: border-box; font-size: 13px; font-weight: 500">primaryContainer<br>мои сообщения, FAB</div>
+      <div style="height: 64px; border-radius: 12px; background: #C0C6DC; color: #2A3042; padding: 10px; box-sizing: border-box; font-size: 13px; font-weight: 500">secondary<br>#C0C6DC</div>
+      <div style="height: 64px; border-radius: 12px; background: #404659; color: #DCE2F9; padding: 10px; box-sizing: border-box; font-size: 13px; font-weight: 500">secondaryContainer<br>вкладка, чипы</div>
+      <div style="height: 64px; border-radius: 12px; background: #E0BBDE; color: #412742; padding: 10px; box-sizing: border-box; font-size: 13px; font-weight: 500">tertiary<br>#E0BBDE</div>
+      <div style="height: 64px; border-radius: 12px; background: #593D59; color: #FFD6F8; padding: 10px; box-sizing: border-box; font-size: 13px; font-weight: 500">tertiaryContainer<br>акценты, kiroX-функции</div>
+    </div>
+    <div style="display: flex; gap: 0; border-radius: 12px; overflow: hidden; height: 64px">
+      <div style="flex: 1; background: #0D0E13; font-size: 11px; color: #C5C6D0; padding: 8px">lowest</div>
+      <div style="flex: 1; background: #121318; font-size: 11px; color: #C5C6D0; padding: 8px">surface</div>
+      <div style="flex: 1; background: #1A1B21; font-size: 11px; color: #C5C6D0; padding: 8px">low</div>
+      <div style="flex: 1; background: #1E1F25; font-size: 11px; color: #C5C6D0; padding: 8px">container</div>
+      <div style="flex: 1; background: #282A2F; font-size: 11px; color: #C5C6D0; padding: 8px">high</div>
+      <div style="flex: 1; background: #33353A; font-size: 11px; color: #C5C6D0; padding: 8px">highest</div>
+    </div>
+    <p style="margin: 0; font-size: 13px; line-height: 18px; color: #C5C6D0">Поверхности — ступени одного тона вместо полупрозрачного стекла: панели, карточки и поле поиска различаются уровнем, а не обводкой. Чужие сообщения — high, нижняя панель — container.</p>
+    <div style="display: flex; gap: 8px">
+      <div style="flex: 1; height: 44px; border-radius: 12px; background: #FFB4AB; color: #690005; font-size: 13px; font-weight: 500; display: flex; align-items: center; padding: 0 12px">error</div>
+      <div style="flex: 1; height: 44px; border-radius: 12px; border: 1px solid #8F9099; color: #E3E2E9; font-size: 13px; display: flex; align-items: center; padding: 0 12px">outline</div>
+      <div style="flex: 1; height: 44px; border-radius: 12px; border: 1px solid #45464F; color: #C5C6D0; font-size: 13px; display: flex; align-items: center; padding: 0 12px">outlineVariant</div>
+    </div>
+  </section>
+  <section style="display: flex; flex-direction: column; gap: 10px">
+    <h2 style="margin: 0 0 4px; font-size: 22px; font-weight: 500">Шрифт: шкала M3, Roboto Flex</h2>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span style="width: 120px; font-size: 12px; color: #8F9099">headlineLarge 32</span><span style="font-size: 32px; line-height: 40px">Настройки</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span style="width: 120px; font-size: 12px; color: #8F9099">headlineSmall 24</span><span style="font-size: 24px; line-height: 32px">Своя тема</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span style="width: 120px; font-size: 12px; color: #8F9099">titleLarge 22</span><span style="font-size: 22px; line-height: 28px">Кастомизация</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span style="width: 120px; font-size: 12px; color: #8F9099">titleMedium 16</span><span style="font-size: 16px; line-height: 24px; font-weight: 500">Анна · имя в списке</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span style="width: 120px; font-size: 12px; color: #8F9099">bodyLarge 16</span><span style="font-size: 16px; line-height: 24px">Текст сообщения</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span style="width: 120px; font-size: 12px; color: #8F9099">bodyMedium 14</span><span style="font-size: 14px; line-height: 20px; color: #C5C6D0">Последнее сообщение, подписи</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span style="width: 120px; font-size: 12px; color: #8F9099">labelLarge 14</span><span style="font-size: 14px; line-height: 20px; font-weight: 500">Кнопки, чипы</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span style="width: 120px; font-size: 12px; color: #8F9099">labelMedium 12</span><span style="font-size: 12px; line-height: 16px; font-weight: 500">Вкладки, время</span></div>
+    <p style="margin: 8px 0 0; font-size: 13px; line-height: 18px; color: #C5C6D0">Сейчас в коде 20 разных размеров шрифта (10–40 sp), заданных вручную в 768 местах. В новой системе — только эти 8 стилей, через MaterialTheme.typography.</p>
+  </section>
+  <section style="display: flex; flex-direction: column; gap: 14px">
+    <h2 style="margin: 0; font-size: 22px; font-weight: 500">Формы: шкала скруглений M3</h2>
+    <div style="display: flex; gap: 12px; align-items: flex-end">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div style="width: 56px; height: 56px; border-radius: 4px; background: #404659"></div><span style="font-size: 11px; color: #C5C6D0">XS 4</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div style="width: 56px; height: 56px; border-radius: 8px; background: #404659"></div><span style="font-size: 11px; color: #C5C6D0">S 8</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div style="width: 56px; height: 56px; border-radius: 12px; background: #404659"></div><span style="font-size: 11px; color: #C5C6D0">M 12</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div style="width: 56px; height: 56px; border-radius: 16px; background: #404659"></div><span style="font-size: 11px; color: #C5C6D0">L 16</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><div style="width: 56px; height: 56px; border-radius: 28px; background: #404659"></div><span style="font-size: 11px; color: #C5C6D0">XL 28</span></div>
+    </div>
+    <p style="margin: 0; font-size: 13px; line-height: 18px; color: #C5C6D0">S — чипы, M — плитки, L — FAB и группы, XL — карточки, листы и диалоги, круг — аватары и кнопки. Сейчас в коде 20 разных радиусов (1–99 dp).</p>
+    <h2 style="margin: 12px 0 0; font-size: 22px; font-weight: 500">Компоненты</h2>
+    <ul style="margin: 0; padding-left: 18px; font-size: 14px; line-height: 22px; color: #E3E2E9">
+      <li>Navigation bar 80 dp: подписи всегда, выбранная вкладка на плашке</li>
+      <li>Search bar вместо заголовка на главной</li>
+      <li>Filter chips для папок</li>
+      <li>FAB «Написать» вместо карандаша в шапке</li>
+      <li>List item 72 dp, аватар 48</li>
+      <li>Группы настроек: слитые плитки со скруглением снаружи</li>
+      <li>Segmented button, Switch, Slider, листы и диалоги M3</li>
+    </ul>
+    <h2 style="margin: 12px 0 0; font-size: 22px; font-weight: 500">Что сейчас в коде</h2>
+    <ul style="margin: 0; padding-left: 18px; font-size: 14px; line-height: 22px; color: #C5C6D0">
+      <li>2 510 ручных отступов dp; токены используются 28 раз</li>
+      <li>~270 цветов в коде мимо темы</li>
+      <li>Свои Fusion-кнопки, чипы и строки поверх M3</li>
+      <li>Нет светлой темы и Material You</li>
+    </ul>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1400,"height":980}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

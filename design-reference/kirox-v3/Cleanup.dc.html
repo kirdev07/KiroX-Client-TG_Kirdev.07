@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Чистка подписок</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxOut{0%{opacity:1;transform:none;max-height:80px}60%{opacity:0;transform:translateX(60px)}100%{opacity:0;transform:translateX(60px);max-height:0;padding:0}}
+@keyframes kxCheck{0%{transform:scale(0)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
+@keyframes kxSweep{0%{transform:translateX(-20px) rotate(-20deg)}50%{transform:translateX(20px) rotate(20deg)}100%{transform:translateX(-20px) rotate(-20deg)}}
+@keyframes kxToast{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 6px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="flex: 1; margin: 0; font-size: 20px; font-weight: 800">Чистка подписок</h1>
+  </header>
+
+  <!-- Hero -->
+  <div style="margin: 4px 16px 0; padding: 16px; border-radius: 24px; background: radial-gradient(100% 90% at 100% 0%, rgba(63,154,108,.3), transparent 60%), rgba(255,255,255,.04); border: 1px solid rgba(143,211,172,.22); display: flex; align-items: center; gap: 14px">
+    <span style="width: 56px; height: 56px; border-radius: 18px; background: rgba(143,211,172,.14); color: #8FD3AC; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span class="ms fill" style="font-size: 32px; animation: kxSweep 2.4s ease-in-out 2" aria-hidden="true">mop</span></span>
+    <div style="flex: 1; min-width: 0">
+      <div style="font-size: 17px; font-weight: 800">{{heroTitle}}</div>
+      <div style="margin-top: 2px; font-size: 13px; color: #9AA59F">{{heroSub}}</div>
+    </div>
+  </div>
+
+  <div style="padding: 12px 16px 6px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none">
+    <sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button onClick="{{f.tap}}" style="flex-shrink: 0; height: 34px; padding: 0 12px; border-radius: 17px; background: {{f.bg}}; color: {{f.ink}}; font-size: 13px; font-weight: 700; transition: all .2s">{{f.label}}</button></sc-for>
+  </div>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 4px 12px 110px">
+    <sc-for list="{{items}}" as="c" hint-placeholder-count="6">
+      <button onClick="{{c.tap}}" aria-pressed="{{c.on}}" style="width: 100%; padding: 10px 8px; margin-bottom: 4px; border-radius: 18px; background: {{c.bg}}; display: flex; align-items: center; gap: 12px; overflow: hidden; animation: {{c.anim}}; transition: background .2s">
+        <span style="width: 24px; height: 24px; border-radius: 12px; border: 2px solid {{c.ring}}; background: {{c.fillBg}}; color: #06150D; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .2s"><sc-if value="{{c.on}}" hint-placeholder-val="{{false}}"><span class="ms" style="font-size: 16px; animation: kxCheck .25s ease both" aria-hidden="true">check</span></sc-if></span>
+        <span style="width: 44px; height: 44px; border-radius: 22px; background: {{c.c}}; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0"><span class="ms fill" style="font-size: 22px" aria-hidden="true">{{c.icon}}</span></span>
+        <span style="flex: 1; min-width: 0">
+          <span style="display: flex; align-items: center; gap: 6px"><span style="flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{c.name}}</span><span style="font-size: 11px; color: #8A958F">{{c.kind}}</span></span>
+          <span style="display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 12px; color: #8A958F"><span class="ms" style="font-size: 14px; color: {{c.lastInk}}" aria-hidden="true">schedule</span><span style="color: {{c.lastInk}}">{{c.last}}</span><span>· {{c.unread}}</span></span>
+        </span>
+      </button>
+    </sc-for>
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 50px 30px 0; text-align: center; animation: kxIn .3s ease both"><span class="ms fill" style="font-size: 56px; color: #8FD3AC" aria-hidden="true">auto_awesome</span><div style="margin-top: 10px; font-size: 17px; font-weight: 800">Чисто!</div><div style="margin-top: 4px; font-size: 13px; color: #8A958F">Здесь пусто — все подписки вы читаете</div></div>
+    </sc-if>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; background: linear-gradient(180deg, rgba(10,12,11,0), #0A0C0B 40%); display: flex; gap: 8px">
+    <button onClick="{{archive}}" style="height: 54px; padding: 0 16px; border-radius: 27px; background: rgba(255,255,255,.07); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; opacity: {{btnOp}}"><span class="ms" style="font-size: 20px" aria-hidden="true">archive</span>В архив</button>
+    <button onClick="{{leave}}" style="flex: 1; height: 54px; border-radius: 27px; background: {{leaveBg}}; color: {{leaveInk}}; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .25s"><span class="ms" style="font-size: 20px" aria-hidden="true">logout</span>{{leaveText}}</button>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; bottom: 96px; padding: 12px 18px; border-radius: 18px; background: #232A26; border: 1px solid rgba(255,255,255,.16); font-size: 14px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; animation: kxToast 3s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">{{toastIcon}}</span>{{toastText}}<button onClick="{{undo}}" style="margin-left: 6px; font-size: 14px; font-weight: 800; color: #8FD3AC">Вернуть</button></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const PL = (n, a, b, c) => { const m = Math.abs(n) % 100, d = m % 10; return m > 10 && m < 20 ? c : d === 1 ? a : d >= 2 && d <= 4 ? b : c; };
+
+const SUBS = [
+  ['Скидки и акции KZ', 'sell', '#B07A2E', 'Канал', 210, 2140], ['Мемы про котов', 'pets', '#C0443C', 'Канал', 140, 860], ['Крипто-сигналы 24/7', 'currency_bitcoin', '#5C6661', 'Канал', 95, 3420],
+  ['Выпускники 2018', 'school', '#2F6E9E', 'Группа', 64, 412], ['Погода Алматы', 'partly_cloudy_day', '#3F9A6C', 'Канал', 40, 120], ['Барахолка района', 'storefront', '#6A4C9C', 'Группа', 33, 980],
+  ['Android Weekly', 'campaign', '#3F9A6C', 'Канал', 1, 0], ['Kotlin-клуб', 'code', '#2F6E9E', 'Группа', 0, 3]
+];
+const FILTERS = [['Не читаю месяц', 30], ['Не читаю неделю', 7], ['Все', 0], ['Только каналы', -1]];
+const ago = d => d === 0 ? 'сегодня' : d === 1 ? 'вчера' : d < 30 ? d + ' дн. назад' : d < 365 ? Math.floor(d / 30) + ' мес. назад' : 'больше года';
+const un = n => n ? (n > 999 ? (n / 1000).toFixed(1).replace('.', ',') + 'K' : n) + ' непрочитанных' : 'всё прочитано';
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { f: 0, sel: {}, gone: {}, leaving: {}, last: null, toast: 0, toastText: '', toastIcon: 'done' }; }
+componentWillUnmount() { clearTimeout(this.tt); clearTimeout(this.tl); }
+act(kind) {
+  const s = this.state;
+  const ids = Object.keys(s.sel).filter(k => s.sel[k] && !s.gone[k]).map(Number);
+  if (!ids.length) return;
+  const leaving = {}; ids.forEach(i => leaving[i] = true);
+  this.setState({ leaving });
+  clearTimeout(this.tl);
+  this.tl = setTimeout(() => {
+    const gone = { ...this.state.gone }; ids.forEach(i => gone[i] = true);
+    clearTimeout(this.tt);
+    this.setState({ gone, leaving: {}, sel: {}, last: ids, toast: this.state.toast + 1, toastText: (kind === 'leave' ? 'Вы отписались: ' : 'В архиве: ') + ids.length, toastIcon: kind === 'leave' ? 'logout' : 'archive' });
+    this.tt = setTimeout(() => this.setState({ toast: 0 }), 3000);
+  }, 420);
+}
+renderVals() {
+  const s = this.state;
+  const lim = FILTERS[s.f][1];
+  const list = SUBS.map((x, i) => ({ x, i })).filter(({ x, i }) => !s.gone[i] && (lim === -1 ? x[3] === 'Канал' : x[4] >= lim));
+  const n = list.filter(({ i }) => s.sel[i]).length;
+  const idle = SUBS.filter((x, i) => !s.gone[i] && x[4] >= 30).length;
+  const unreadIdle = SUBS.reduce((a, x, i) => a + (!s.gone[i] && x[4] >= 30 ? x[5] : 0), 0);
+  return {
+    heroTitle: idle ? idle + ' ' + PL(idle, 'подписку', 'подписки', 'подписок') + ' вы не открывали месяц' : 'Все подписки в деле',
+    heroSub: idle ? 'В них ' + (unreadIdle > 999 ? (unreadIdle / 1000).toFixed(1).replace('.', ',') + ' тыс.' : unreadIdle) + ' непрочитанных сообщений' : 'Нечего чистить — отлично!',
+    filters: FILTERS.map(([label], i) => ({ label, bg: s.f === i ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.f === i ? '#8FD3AC' : '#C9D2CC', tap: () => this.setState({ f: i }) })),
+    items: list.map(({ x, i }, k) => {
+      const on = !!s.sel[i];
+      return {
+        name: x[0], icon: x[1], c: x[2], kind: x[3], on, last: 'открывали ' + ago(x[4]), unread: un(x[5]),
+        lastInk: x[4] >= 30 ? '#E8B04A' : '#8A958F',
+        bg: on ? 'rgba(143,211,172,.08)' : 'transparent', ring: on ? '#8FD3AC' : 'rgba(255,255,255,.3)', fillBg: on ? '#8FD3AC' : 'transparent',
+        anim: s.leaving[i] ? 'kxOut .42s ease both' : 'kxIn .25s ease ' + (k * 0.03) + 's both',
+        tap: () => this.setState({ sel: { ...s.sel, [i]: !on } })
+      };
+    }),
+    empty: list.length === 0,
+    btnOp: n ? '1' : '.4',
+    leaveBg: n ? '#E5534B' : 'rgba(255,255,255,.07)', leaveInk: n ? '#fff' : '#5C6661',
+    leaveText: n ? 'Выйти · ' + n : 'Выберите подписки',
+    leave: () => this.act('leave'), archive: () => this.act('archive'),
+    undo: () => { if (!s.last) return; const gone = { ...s.gone }; s.last.forEach(i => delete gone[i]); clearTimeout(this.tt); this.setState({ gone, last: null, toast: 0 }); },
+    toast: s.toast > 0, toastText: s.toastText, toastIcon: s.toastIcon
+  };
+}
+}
+</script>
+</body>
+</html>

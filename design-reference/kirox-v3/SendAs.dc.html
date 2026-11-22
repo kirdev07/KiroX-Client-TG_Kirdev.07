@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Писать от имени канала</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxMenu{from{opacity:0;transform:translateY(14px) scale(.92)}to{opacity:1;transform:none}}
+@keyframes kxDim{from{opacity:0}to{opacity:1}}
+@keyframes kxSwap{0%{transform:rotateY(0)}50%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
+@keyframes kxSwap2{0%{transform:rotateY(0)}50%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
+@keyframes kxIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #B07A2E; display: flex; align-items: center; justify-content: center; font-weight: 800">A</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Android Dev KZ</div><div style="font-size: 12px; color: #9AA59F">4 820 участников</div></div>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px">
+    <div style="display: flex; gap: 8px; align-items: flex-end"><span style="width: 32px; height: 32px; border-radius: 16px; background: #6A4C9C; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800">С</span><div style="max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px"><span style="display: block; font-size: 12px; font-weight: 800; color: #C9A0E0">Сергей</span>Кто-нибудь пишет про KMP на русском? Посоветуйте канал</div></div>
+    <sc-for list="{{sent}}" as="m" hint-placeholder-count="0">
+      <div style="align-self: flex-end; display: flex; gap: 8px; align-items: flex-end; flex-direction: row-reverse; animation: kxIn .3s cubic-bezier(.2,.8,.2,1) both">
+        <span style="width: 32px; height: 32px; border-radius: {{m.rad}}; background: {{m.c}}; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0">{{m.l}}</span>
+        <div style="max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 6px 18px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px"><span style="display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 800; opacity: .8"><span class="ms fill" style="font-size: 13px; display: {{m.chShow}}" aria-hidden="true">campaign</span>{{m.who}}</span>{{m.text}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="padding: 8px 12px 16px; border-top: 1px solid rgba(255,255,255,.06); display: flex; gap: 8px; align-items: center">
+    <button onClick="{{toggleMenu}}" aria-label="{{curAria}}" aria-expanded="{{menuOn}}" style="position: relative; width: 44px; height: 44px; border-radius: {{curRad}}; background: {{curC}}; display: flex; align-items: center; justify-content: center; font-weight: 800; animation: {{swap}}; box-shadow: 0 0 0 2px #0A0C0B, 0 0 0 4px {{ringC}}">{{curL}}<span style="position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; border-radius: 9px; background: #1E2421; border: 1px solid rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 13px; color: #C9D2CC" aria-hidden="true">expand_less</span></span></button>
+    <div style="flex: 1; min-height: 46px; padding: 6px 14px; box-sizing: border-box; border-radius: 23px; background: rgba(255,255,255,.07); display: flex; flex-direction: column; justify-content: center"><span style="font-size: 11px; color: {{ringC}}; font-weight: 700">от имени: {{curName}}</span><span style="font-size: 14px; color: #EEF3EF">{{draft}}</span></div>
+    <button onClick="{{send}}" aria-label="Отправить" style="width: 46px; height: 46px; border-radius: 23px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">send</span></button>
+  </div>
+
+  <sc-if value="{{menu}}" hint-placeholder-val="{{true}}">
+    <button onClick="{{toggleMenu}}" aria-label="Закрыть" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxDim .2s ease both"></button>
+    <div style="position: absolute; left: 12px; bottom: 84px; width: 300px; padding: 8px; border-radius: 24px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,.16); box-shadow: 0 16px 40px rgba(0,0,0,.5); transform-origin: bottom left; animation: kxMenu .25s cubic-bezier(.2,.8,.2,1) both">
+      <div style="padding: 4px 8px 8px; font-size: 13px; font-weight: 800; color: #C9D2CC">Писать в группу от имени</div>
+      <sc-for list="{{ids}}" as="i" hint-placeholder-count="4"><button onClick="{{i.tap}}" role="radio" aria-checked="{{i.on}}" style="width: 100%; min-height: 56px; padding: 6px 8px; border-radius: 16px; background: {{i.bg}}; display: flex; align-items: center; gap: 12px; opacity: {{i.op}}"><span style="width: 40px; height: 40px; border-radius: {{i.rad}}; background: {{i.c}}; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0">{{i.l}}</span><span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700">{{i.n}}</span><span style="display: block; font-size: 12px; color: {{i.subInk}}">{{i.sub}}</span></span><span class="ms fill" style="font-size: 20px; color: #8FD3AC; display: {{i.tick}}" aria-hidden="true">check_circle</span><span class="ms" style="font-size: 18px; color: #E8B04A; display: {{i.lockShow}}" aria-hidden="true">lock</span></button></sc-for>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const IDS = [
+  { n: 'Вы', l: 'В', c: 'linear-gradient(135deg, #6FC497, #3F9A6C)', sub: 'Личный аккаунт', ch: false, ok: true },
+  { n: 'Kotlin по-русски', l: 'K', c: '#2F6E9E', sub: 'Канал · 48 тыс. подписчиков', ch: true, ok: true },
+  { n: 'kiroX: дневник', l: 'X', c: '#3F9A6C', sub: 'Канал · 1,2 тыс. подписчиков', ch: true, ok: true },
+  { n: 'Фото с прогулок', l: 'Ф', c: '#B07A2E', sub: 'Частный канал — писать от его имени нельзя', ch: true, ok: false }
+];
+const DRAFTS = ['Загляните в «Kotlin по-русски», там разбор KMP 👇', 'Спасибо, что упомянули!', 'Скоро будет большой пост про Compose'];
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { cur: 1, menu: true, sent: [], k: 0, n: 0 }; }
+renderVals() {
+  const s = this.state;
+  const c = IDS[s.cur];
+  return {
+    curL: c.l, curC: c.c, curRad: c.ch ? '13px' : '22px', curName: c.n, curAria: 'Писать от имени: ' + c.n, ringC: c.ch ? '#7FB8E0' : '#8FD3AC',
+    swap: s.k ? (s.k % 2 ? 'kxSwap2' : 'kxSwap') + ' .35s ease both' : 'none',
+    menu: s.menu, menuOn: s.menu ? 'true' : 'false', toggleMenu: () => this.setState({ menu: !s.menu }),
+    draft: DRAFTS[s.n % DRAFTS.length],
+    ids: IDS.map((x, i) => { const on = s.cur === i; return { n: x.n, l: x.l, c: x.c, rad: x.ch ? '12px' : '20px', sub: x.sub, subInk: x.ok ? '#9AA59F' : '#C9A06A', on: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.12)' : 'transparent', op: x.ok ? 1 : .6, tick: on ? 'inline-block' : 'none', lockShow: x.ok ? 'none' : 'inline-block', tap: () => x.ok && this.setState({ cur: i, menu: false, k: s.k + 1 }) }; }),
+    send: () => this.setState({ sent: [...s.sent, { text: DRAFTS[s.n % DRAFTS.length], who: c.n, l: c.l, c: c.c, rad: c.ch ? '10px' : '16px', chShow: c.ch ? 'inline-block' : 'none' }].slice(-3), n: s.n + 1, menu: false }),
+    sent: s.sent
+  };
+}
+}
+</script>
+</body>
+</html>

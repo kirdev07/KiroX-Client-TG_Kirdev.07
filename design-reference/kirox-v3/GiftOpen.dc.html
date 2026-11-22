@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Получен подарок</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.97)}
+@keyframes kxWobble{0%,100%{transform:rotate(0)}15%{transform:rotate(-8deg)}30%{transform:rotate(7deg)}45%{transform:rotate(-5deg)}60%{transform:rotate(3deg)}}
+@keyframes kxShakeHard{0%,100%{transform:translateX(0) rotate(0)}20%{transform:translateX(-6px) rotate(-6deg)}40%{transform:translateX(6px) rotate(6deg)}60%{transform:translateX(-4px) rotate(-3deg)}80%{transform:translateX(4px) rotate(3deg)}}
+@keyframes kxLid{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(-220px) rotate(-40deg);opacity:0}}
+@keyframes kxBoxOut{0%{transform:scale(1);opacity:1}100%{transform:scale(.6) translateY(60px);opacity:0}}
+@keyframes kxGift{0%{transform:scale(0) rotate(-30deg)}60%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes kxRays{to{transform:rotate(360deg)}}
+@keyframes kxFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes kxSpark{0%{transform:translate(0,0) scale(.4);opacity:0}20%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}}
+@keyframes kxIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes kxDim{from{opacity:0}to{opacity:1}}
+@keyframes kxCount{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <span style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></span>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: #6A4C9C; display: flex; align-items: center; justify-content: center; font-weight: 800">Л</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Лиза</div><div style="font-size: 12px; color: #8FD3AC">в сети</div></div>
+    <span style="height: 32px; padding: 0 10px; border-radius: 16px; background: rgba(232,176,74,.14); color: #E8B04A; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 4px; animation: {{starAnim}}">★ {{stars}}</span>
+  </header>
+
+  <div style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px">
+    <div style="align-self: flex-start; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 6px; background: rgba(255,255,255,.07); font-size: 15px">С днём рождения!!! 🥳</div>
+    <button onClick="{{open}}" aria-label="{{bubbleLabel}}" style="align-self: flex-start; width: 230px; padding: 16px; border-radius: 22px 22px 22px 6px; background: linear-gradient(180deg, rgba(232,176,74,.16), rgba(255,255,255,.04)); border: 1px solid rgba(232,176,74,.3); text-align: center; display: block">
+      <span style="display: inline-block; font-size: 64px; animation: {{bubbleAnim}}">{{bubbleEmoji}}</span>
+      <span style="display: block; margin-top: 6px; font-size: 15px; font-weight: 800">{{bubbleTitle}}</span>
+      <span style="display: block; margin-top: 2px; font-size: 12px; color: #C9D2CC">{{bubbleSub}}</span>
+      <span style="display: inline-block; margin-top: 10px; height: 32px; line-height: 32px; padding: 0 14px; border-radius: 16px; background: rgba(232,176,74,.2); color: #F2C66B; font-size: 13px; font-weight: 800">{{bubbleBtn}}</span>
+    </button>
+  </div>
+
+  <div style="padding: 8px 12px 16px; border-top: 1px solid rgba(255,255,255,.06); display: flex; gap: 8px; align-items: center">
+    <div style="flex: 1; height: 48px; padding: 0 16px; border-radius: 24px; background: rgba(255,255,255,.07); display: flex; align-items: center; font-size: 15px; color: #8A958F">Сообщение</div>
+  </div>
+
+  <!-- Opening overlay -->
+  <sc-if value="{{overlay}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: radial-gradient(circle at 50% 38%, rgba(232,176,74,.18), rgba(0,0,0,.88) 60%); animation: kxDim .25s ease both"></div>
+    <div style="position: absolute; left: 0; right: 0; top: 120px; height: 300px; display: flex; align-items: center; justify-content: center">
+      <sc-if value="{{boxing}}" hint-placeholder-val="{{true}}">
+        <div style="position: relative; width: 150px; height: 150px; animation: {{boxAnim}}">
+          <div style="position: absolute; left: 10px; right: 10px; bottom: 0; height: 100px; border-radius: 16px; background: linear-gradient(135deg, #C0443C, #8E2E2A)"><span style="position: absolute; left: 50%; top: 0; bottom: 0; width: 20px; margin-left: -10px; background: #F2C66B"></span></div>
+          <div style="position: absolute; left: 0; right: 0; top: 30px; height: 34px; border-radius: 12px; background: linear-gradient(135deg, #D85048, #A6372F); animation: {{lidAnim}}"><span style="position: absolute; left: 50%; top: 0; bottom: 0; width: 22px; margin-left: -11px; background: #F2C66B"></span><span style="position: absolute; left: 50%; top: -26px; margin-left: -26px; font-size: 40px; line-height: 1">🎀</span></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{revealed}}" hint-placeholder-val="{{false}}">
+        <div style="position: relative; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center">
+          <span style="position: absolute; inset: 0; border-radius: 50%; background: repeating-conic-gradient(rgba(242,198,107,.22) 0 10deg, transparent 10deg 30deg); animation: kxRays 12s linear 2; -webkit-mask: radial-gradient(circle, #000 30%, transparent 70%); mask: radial-gradient(circle, #000 30%, transparent 70%)"></span>
+          <sc-for list="{{sparks}}" as="p" hint-placeholder-count="10"><span style="position: absolute; left: 50%; top: 50%; font-size: 18px; --dx: {{p.dx}}; --dy: {{p.dy}}; animation: kxSpark 1.1s ease-out {{p.d}} both">{{p.e}}</span></sc-for>
+          <span style="position: relative; font-size: 110px; animation: kxGift .6s cubic-bezier(.2,.8,.2,1) both"><span style="display: inline-block; animation: kxFloat 2.6s ease-in-out .6s 2">🧸</span></span>
+        </div>
+      </sc-if>
+    </div>
+    <sc-if value="{{revealed}}" hint-placeholder-val="{{false}}">
+      <div style="position: absolute; left: 16px; right: 16px; bottom: 24px; animation: kxIn .4s ease .3s both">
+        <div style="text-align: center">
+          <div style="font-size: 22px; font-weight: 800">Плюшевый мишка</div>
+          <div style="margin-top: 4px; font-size: 13px; color: #C9D2CC">Лиза · стоимость 50 ★</div>
+        </div>
+        <div style="margin-top: 12px; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); font-size: 14px; line-height: 1.45; color: #DDE5E0">«Пусть этот год будет самым тёплым! 💚»</div>
+        <button onClick="{{toggleShow}}" role="switch" aria-checked="{{showOn}}" style="margin-top: 10px; width: 100%; min-height: 52px; padding: 0 4px; display: flex; align-items: center; gap: 12px"><span class="ms" style="color: #9AA59F" aria-hidden="true">badge</span><span style="flex: 1"><span style="display: block; font-size: 14px; font-weight: 700">Показать в профиле</span><span style="display: block; font-size: 12px; color: #9AA59F">Подарок увидят все, кто откроет ваш профиль</span></span><span style="width: 46px; height: 28px; border-radius: 14px; background: {{trk}}; position: relative; transition: background .2s; flex-shrink: 0"><span style="position: absolute; top: 3px; left: {{knx}}; width: 22px; height: 22px; border-radius: 11px; background: {{knc}}; transition: left .2s"></span></span></button>
+        <div style="margin-top: 10px; display: flex; gap: 8px">
+          <button onClick="{{convert}}" style="flex: 1; height: 52px; border-radius: 26px; background: rgba(232,176,74,.14); color: #F2C66B; font-size: 14px; font-weight: 800; text-align: center">Обменять на 40 ★</button>
+          <button onClick="{{keep}}" style="flex: 1; height: 52px; border-radius: 26px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px; font-weight: 800; text-align: center">Оставить</button>
+        </div>
+        <button onClick="{{thank}}" style="margin-top: 8px; width: 100%; height: 44px; border-radius: 22px; font-size: 14px; font-weight: 700; color: #8FD3AC; text-align: center">Поблагодарить в чате</button>
+      </div>
+    </sc-if>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { phase: 'closed', show: true, stars: 120, sk: 0, result: '' }; }
+componentWillUnmount() { clearTimeout(this.t1); clearTimeout(this.t2); }
+renderVals() {
+  const s = this.state;
+  const sw = s.show;
+  const close = (result, extra) => this.setState({ phase: 'done', result, ...(extra || {}) });
+  const ang = Array.from({ length: 10 }, (_, i) => i / 10 * Math.PI * 2);
+  return {
+    stars: s.stars, starAnim: s.sk ? 'kxCount .5s ease both' : 'none',
+    bubbleEmoji: s.phase === 'done' ? (s.result === 'stars' ? '⭐' : '🧸') : '🎁',
+    bubbleAnim: s.phase === 'closed' ? 'kxWobble 1.8s ease-in-out 2' : 'none',
+    bubbleTitle: s.phase === 'done' ? (s.result === 'stars' ? 'Обменяно на 40 ★' : 'Плюшевый мишка') : 'Подарок · Лиза',
+    bubbleSub: s.phase === 'done' ? (s.result === 'stars' ? 'Звёзды на вашем балансе' : (sw ? 'Виден в вашем профиле' : 'Скрыт из профиля')) : 'Нажмите, чтобы открыть',
+    bubbleBtn: s.phase === 'done' ? 'Открыть ещё раз' : 'Открыть',
+    bubbleLabel: 'Подарок · Лиза',
+    open: () => { clearTimeout(this.t1); clearTimeout(this.t2); this.setState({ phase: 'shake' }); this.t1 = setTimeout(() => this.setState({ phase: 'lid' }), 900); this.t2 = setTimeout(() => this.setState({ phase: 'open' }), 1500); },
+    overlay: s.phase === 'shake' || s.phase === 'lid' || s.phase === 'open',
+    boxing: s.phase === 'shake' || s.phase === 'lid',
+    boxAnim: s.phase === 'shake' ? 'kxShakeHard .3s ease-in-out infinite' : 'kxBoxOut .5s ease .25s both',
+    lidAnim: s.phase === 'lid' ? 'kxLid .5s cubic-bezier(.3,.6,.4,1) both' : 'none',
+    revealed: s.phase === 'open',
+    sparks: ang.map((a, i) => ({ e: i % 2 ? '✨' : '⭐', dx: Math.round(Math.cos(a) * 120) + 'px', dy: Math.round(Math.sin(a) * 120) + 'px', d: (i * 0.04) + 's' })),
+    toggleShow: () => this.setState({ show: !sw }), showOn: sw ? 'true' : 'false',
+    trk: sw ? '#3F9A6C' : 'rgba(255,255,255,.14)', knc: sw ? '#EEF3EF' : '#9AA59F', knx: sw ? '21px' : '3px',
+    convert: () => close('stars', { stars: s.stars + 40, sk: s.sk + 1 }),
+    keep: () => close('keep'),
+    thank: () => close('keep')
+  };
+}
+}
+</script>
+</body>
+</html>

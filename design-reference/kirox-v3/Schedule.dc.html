@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Отложенная отправка</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.96)}
+input{font:inherit;color:inherit;background:none;border:0;outline:0}
+input::placeholder{color:#8A958F}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+@keyframes kxIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes kxMenu{from{opacity:0;transform:scale(.85) translateY(10px);transform-origin:bottom right}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:none}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxToast{0%{opacity:0;transform:translateY(16px)}12%,85%{opacity:1;transform:none}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.05)">
+    <button onClick="{{headBack}}" aria-label="Назад" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <sc-if value="{{chatHead}}" hint-placeholder-val="{{true}}">
+      <span style="width: 38px; height: 38px; border-radius: 19px; background: linear-gradient(140deg,#3F7A5A,#1E3A2A); color: #CFF2DD; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center">С</span>
+      <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Сергей</div><div style="font-size: 12px; color: #9AA59F">в сети в 01:12</div></div>
+      <sc-if value="{{hasScheduled}}" hint-placeholder-val="{{false}}"><button onClick="{{openList}}" aria-label="Отложенные" style="position: relative; width: 42px; height: 42px; border-radius: 21px; background: rgba(143,211,172,.12); color: #8FD3AC; display: flex; align-items: center; justify-content: center; animation: kxIn .3s ease both"><span class="ms" aria-hidden="true">schedule_send</span><span style="position: absolute; right: 2px; top: 2px; min-width: 16px; height: 16px; border-radius: 8px; background: #8FD3AC; color: #06150D; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{schedCount}}</span></button></sc-if>
+    </sc-if>
+    <sc-if value="{{listHead}}" hint-placeholder-val="{{false}}"><div style="flex: 1"><div style="font-size: 18px; font-weight: 800">Отложенные</div><div style="font-size: 12px; color: #9AA59F">Сергей · {{schedCount}}</div></div></sc-if>
+  </header>
+
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; background: radial-gradient(120% 60% at 100% 0%, rgba(63,154,108,.14), #0A0C0B 60%)">
+    <sc-if value="{{chatHead}}" hint-placeholder-val="{{true}}">
+      <div style="align-self: flex-start; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 18px 5px; background: #161B18; font-size: 15px; line-height: 1.35">Напомни утром про документы, я сейчас спать <span style="font-size: 11px; color: #8A958F; margin-left: 6px">01:10</span></div>
+      <sc-for list="{{sent}}" as="m" hint-placeholder-count="1">
+        <div style="align-self: flex-end; max-width: 78%; padding: 8px 12px; border-radius: 18px 18px 5px 18px; background: linear-gradient(160deg, #2E6B4B, #1F4D36); color: #E6F6EC; font-size: 15px; line-height: 1.35; animation: kxIn .3s ease both">{{m.text}}<span style="margin-left: 6px; font-size: 11px; color: #A9D9BF; display: inline-flex; align-items: center; gap: 3px"><sc-if value="{{m.silent}}" hint-placeholder-val="{{false}}"><span class="ms" style="font-size: 13px" aria-hidden="true">notifications_off</span></sc-if>{{m.time}}</span></div>
+      </sc-for>
+    </sc-if>
+    <sc-if value="{{listHead}}" hint-placeholder-val="{{false}}">
+      <sc-for list="{{scheduled}}" as="m" hint-placeholder-count="2">
+        <div style="align-self: center; padding: 4px 12px; border-radius: 12px; background: rgba(255,255,255,.06); font-size: 12px; color: #9AA59F">{{m.when}}</div>
+        <div style="align-self: flex-end; max-width: 82%; animation: kxIn .3s ease both">
+          <div style="padding: 8px 12px; border-radius: 18px 18px 5px 18px; background: linear-gradient(160deg, #2E6B4B, #1F4D36); color: #E6F6EC; font-size: 15px; line-height: 1.35">{{m.text}}<span style="margin-left: 6px; font-size: 11px; color: #A9D9BF; display: inline-flex; align-items: center; gap: 3px"><span class="ms" style="font-size: 13px" aria-hidden="true">schedule</span>{{m.time}}</span></div>
+          <div style="margin-top: 4px; display: flex; justify-content: flex-end; gap: 6px">
+            <button onClick="{{m.now}}" style="height: 30px; padding: 0 10px; border-radius: 15px; background: rgba(143,211,172,.12); color: #8FD3AC; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 15px" aria-hidden="true">send</span>Отправить сейчас</button>
+            <button onClick="{{m.del}}" aria-label="Удалить" style="width: 30px; height: 30px; border-radius: 15px; background: rgba(255,138,128,.1); color: #FF8A80; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 16px" aria-hidden="true">delete</span></button>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{noScheduled}}" hint-placeholder-val="{{false}}"><div style="align-self: center; margin-bottom: 200px; font-size: 14px; color: #8A958F">Отложенных сообщений нет</div></sc-if>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{chatHead}}" hint-placeholder-val="{{true}}">
+    <div style="padding: 6px 10px 18px; display: flex; align-items: center; gap: 8px">
+      <div style="flex: 1; height: 46px; border-radius: 23px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; padding: 0 14px">
+        <input aria-label="Сообщение" placeholder="Сообщение" value="{{draft}}" onInput="{{onDraft}}" style="flex: 1; font-size: 15px">
+      </div>
+      <button onPointerDown="{{sb.down}}" onPointerUp="{{sb.up}}" onPointerLeave="{{sb.leave}}" aria-label="Отправить; удерживайте — ещё варианты" style="width: 46px; height: 46px; border-radius: 23px; background: linear-gradient(140deg, #6FC497, #3F9A6C); color: #06150D; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">send</span></button>
+    </div>
+  </sc-if>
+
+  <!-- Send menu -->
+  <sc-if value="{{menu}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{toggleMenu}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.45); animation: kxFade .2s ease both"></button>
+    <div style="position: absolute; right: 10px; bottom: 76px; width: 260px; padding: 6px; border-radius: 22px; background: #161B18; border: 1px solid rgba(255,255,255,.08); box-shadow: 0 20px 50px rgba(0,0,0,.6); animation: kxMenu .22s cubic-bezier(.2,.9,.3,1) both">
+      <sc-for list="{{menuItems}}" as="i" hint-placeholder-count="4">
+        <button onClick="{{i.tap}}" style="width: 100%; padding: 11px 12px; border-radius: 16px; display: flex; align-items: center; gap: 12px; color: {{i.ink}}">
+          <span class="ms" style="font-size: 22px" aria-hidden="true">{{i.icon}}</span>
+          <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600">{{i.label}}</span><sc-if value="{{i.hasSub}}" hint-placeholder-val="{{false}}"><span style="display: block; margin-top: 1px; font-size: 12px; color: #8A958F">{{i.sub}}</span></sc-if></span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- Picker sheet -->
+  <sc-if value="{{picker}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closePicker}}" style="position: absolute; inset: 0; background: rgba(0,0,0,.5); animation: kxFade .25s ease both"></button>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 26px; border-radius: 30px 30px 0 0; background: #121614; border-top: 1px solid rgba(255,255,255,.08); animation: kxSheet .32s cubic-bezier(.2,.9,.3,1) both">
+      <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4540; margin: 0 auto 14px"></div>
+      <div style="padding: 0 4px 12px; font-size: 19px; font-weight: 800">Когда отправить?</div>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 14px">
+        <sc-for list="{{quick}}" as="q" hint-placeholder-count="4"><button onClick="{{q.tap}}" style="height: 36px; padding: 0 14px; border-radius: 18px; background: {{q.bg}}; color: {{q.ink}}; border: 1px solid {{q.border}}; font-size: 13px; font-weight: 700; transition: all .2s">{{q.label}}</button></sc-for>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <sc-for list="{{wheels}}" as="w" hint-placeholder-count="3">
+          <div style="flex: {{w.flex}}; border-radius: 20px; background: rgba(255,255,255,.045); padding: 4px; display: flex; flex-direction: column; align-items: center">
+            <button onClick="{{w.up}}" aria-label="Раньше" style="width: 100%; height: 32px; display: flex; align-items: center; justify-content: center; color: #8A958F"><span class="ms" aria-hidden="true">expand_less</span></button>
+            <span style="font-size: 12px; color: #8A958F">{{w.prev}}</span>
+            <span style="margin: 4px 0; font-size: 20px; font-weight: 800; color: #8FD3AC">{{w.cur}}</span>
+            <span style="font-size: 12px; color: #8A958F">{{w.next}}</span>
+            <button onClick="{{w.down}}" aria-label="Позже" style="width: 100%; height: 32px; display: flex; align-items: center; justify-content: center; color: #8A958F"><span class="ms" aria-hidden="true">expand_more</span></button>
+          </div>
+        </sc-for>
+      </div>
+      <button onClick="{{confirm}}" style="margin-top: 14px; width: 100%; height: 54px; border-radius: 16px; background: linear-gradient(100deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px; font-weight: 800; text-align: center">Отправить {{whenLabel}}</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 20px; right: 20px; bottom: 86px; min-height: 46px; padding: 8px 14px; box-sizing: border-box; border-radius: 16px; background: #1E2622; border: 1px solid rgba(143,211,172,.25); display: flex; align-items: center; gap: 8px; font-size: 14px; animation: kxToast 2.6s ease both"><span class="ms fill" style="font-size: 20px; color: #8FD3AC" aria-hidden="true">check_circle</span>{{toastText}}</div>
+  </sc-if>
+  <sc-if value="{{cfOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Отмена" onClick="{{cfNo}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.6); z-index: 50"></button>
+    <div role="dialog" aria-label="{{cfTitle}}" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); padding: 20px; border-radius: 28px; background: linear-gradient(180deg, #232A26, #161B18); border: 1px solid rgba(255,255,255,.14); z-index: 51; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; color: #EEF3EF">
+      <div style="font-size: 18px; font-weight: 800">{{cfTitle}}</div>
+      <div style="margin-top: 8px; font-size: 14px; line-height: 20px; color: #C9D2CC">{{cfText}}</div>
+      <div style="margin-top: 16px; display: flex; gap: 8px"><button onClick="{{cfNo}}" style="flex: 1; height: 48px; border-radius: 24px; background: rgba(255,255,255,.08); font-size: 15px; font-weight: 700; text-align: center">Отмена</button><button onClick="{{cfYes}}" style="flex: 1; height: 48px; border-radius: 24px; background: #E5534B; color: #fff; font-size: 15px; font-weight: 800; text-align: center">{{cfYesText}}</button></div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const DAYS = ['Сегодня', 'Завтра', 'Вт, 24 нояб', 'Ср, 25 нояб', 'Чт, 26 нояб', 'Пт, 27 нояб', 'Сб, 28 нояб'];
+const pad = n => String(n).padStart(2, '0');
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { draft: 'Доброе утро! Не забудь про документы 📄', menu: false, picker: false, view: 'chat', day: 1, h: 8, m: 0, quick: 0, sent: [], sched: [], toast: 0, toastText: '', id: 1 }; }
+componentWillUnmount() { clearTimeout(this.tt); }
+say(t) { clearTimeout(this.tt); this.setState({ toast: Date.now(), toastText: t }); this.tt = setTimeout(() => this.setState({ toast: 0 }), 2600); }
+now() { const d = new Date(); return d.getHours() + ':' + pad(d.getMinutes()); }
+ask(title, text, yes, fn) { this._cf = fn; this.setState({ cf: { title, text, yes } }); }
+lp(tap, long) { return { down: () => { clearTimeout(this._lp); this._lpDone = false; this._lp = setTimeout(() => { this._lpDone = true; long(); }, 450); }, up: () => { clearTimeout(this._lp); if (!this._lpDone) tap(); this._lpDone = true; }, leave: () => { clearTimeout(this._lp); this._lpDone = true; } }; }
+renderVals() {
+  const s = this.state;
+  const text = s.draft.trim();
+  const whenLabel = (s.day === 0 ? 'сегодня' : s.day === 1 ? 'завтра' : DAYS[s.day].toLowerCase()) + ' в ' + s.h + ':' + pad(s.m);
+  const sendNow = silent => { if (!text) return; this.setState({ sent: [...s.sent, { text, time: this.now(), silent }], draft: '', menu: false }); if (silent) this.say('Отправлено без звука'); };
+  const addSched = (when, time) => { const id = s.id; this.setState({ sched: [...s.sched, { id, text, when, time }], draft: '', menu: false, picker: false, id: id + 1 }); this.say('Отправится ' + when.toLowerCase() + ' в ' + time); };
+  const Q = [['Завтра в 8:00', 1, 8, 0], ['Завтра в 9:00', 1, 9, 0], ['Вечером в 19:00', 0, 19, 0], ['В субботу в 10:00', 6, 10, 0]];
+  const wheel = (val, len, fmt, set, flex) => ({ flex, prev: fmt((val - 1 + len) % len), cur: fmt(val), next: fmt((val + 1) % len), up: () => set((val - 1 + len) % len), down: () => set((val + 1) % len) });
+  return {
+    cfOpen: !!this.state.cf, cfTitle: this.state.cf ? this.state.cf.title : '', cfText: this.state.cf ? this.state.cf.text : '', cfYesText: this.state.cf ? this.state.cf.yes : '', cfNo: () => this.setState({ cf: null }), cfYes: () => { const fn = this._cf; this._cf = null; this.setState({ cf: null }); if (fn) fn(); },
+    
+    chatHead: s.view === 'chat', listHead: s.view === 'list',
+    headBack: () => this.setState({ view: 'chat' }),
+    hasScheduled: s.sched.length > 0, schedCount: String(s.sched.length), openList: () => this.setState({ view: 'list' }),
+    sent: s.sent, draft: s.draft, onDraft: e => this.setState({ draft: e.target.value }),
+    menu: s.menu, toggleMenu: () => { if (text || s.menu) this.setState({ menu: !s.menu }); },
+    sb: this.lp(() => s.menu ? this.setState({ menu: false }) : sendNow(false), () => { if (text) this.setState({ menu: true }); }),
+    menuItems: [
+      { icon: 'send', label: 'Отправить', sub: '', hasSub: false, ink: '#EEF3EF', tap: () => sendNow(false) },
+      { icon: 'notifications_off', label: 'Без звука', sub: 'Придёт тихо, не разбудит', hasSub: true, ink: '#EEF3EF', tap: () => sendNow(true) },
+      { icon: 'schedule_send', label: 'Отложить', sub: 'Выбрать дату и время', hasSub: true, ink: '#8FD3AC', tap: () => this.setState({ menu: false, picker: true }) },
+      { icon: 'person_check', label: 'Когда будет в сети', sub: 'Сергей · в сети в 01:12', hasSub: true, ink: '#EEF3EF', tap: () => addSched('Когда будет в сети', '—') }
+    ],
+    picker: s.picker, closePicker: () => this.setState({ picker: false }),
+    quick: Q.map(([label, day, h, m], i) => ({ label, bg: s.quick === i ? 'rgba(143,211,172,.14)' : 'rgba(255,255,255,.05)', ink: s.quick === i ? '#8FD3AC' : '#EEF3EF', border: s.quick === i ? 'rgba(143,211,172,.45)' : 'transparent', tap: () => this.setState({ quick: i, day, h, m }) })),
+    wheels: [
+      wheel(s.day, DAYS.length, v => DAYS[v], v => this.setState({ day: v, quick: -1 }), 2),
+      wheel(s.h, 24, v => pad(v), v => this.setState({ h: v, quick: -1 }), 1),
+      wheel(s.m / 5, 12, v => pad(v * 5), v => this.setState({ m: v * 5, quick: -1 }), 1)
+    ],
+    whenLabel, confirm: () => addSched(DAYS[s.day], s.h + ':' + pad(s.m)),
+    scheduled: s.sched.map(m => ({ ...m, now: () => this.setState({ sched: s.sched.filter(x => x.id !== m.id), sent: [...s.sent, { text: m.text, time: this.now(), silent: false }] }), del: () => this.ask('Удалить отложенное сообщение?', 'Сообщение не будет отправлено.', 'Удалить', () => this.setState({ sched: s.sched.filter(x => x.id !== m.id) }) )})),
+    noScheduled: s.sched.length === 0,
+    toast: !!s.toast, toastText: s.toastText
+  };
+}
+}
+</script>
+</body>
+</html>

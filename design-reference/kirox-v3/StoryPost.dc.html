@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Новая история</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+input::placeholder{color:rgba(255,255,255,.65)}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes kxFade{from{opacity:0}to{opacity:1}}
+@keyframes kxProg{from{width:0}to{width:100%}}
+@keyframes kxDone{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #000; color: #FFFFFF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <div style="position: absolute; inset: 0; border-radius: 0 0 28px 28px; overflow: hidden; background: {{bg}}; transition: background .5s ease">
+    <span class="ms fill" style="position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%); font-size: 100px; color: rgba(255,255,255,.2)" aria-hidden="true">{{bgIcon}}</span>
+    <div style="position: absolute; left: 0; right: 0; top: 0; height: 130px; background: linear-gradient(180deg, rgba(0,0,0,.5), rgba(0,0,0,0))"></div>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 260px; background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.65))"></div>
+  </div>
+
+  <header style="position: absolute; left: 12px; right: 12px; top: 12px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="Закрыть" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(0,0,0,.35); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+    <span style="flex-grow: 1"></span>
+    <button aria-label="Текст" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(0,0,0,.35); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">title</span></button>
+    <button aria-label="Рисовать" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(0,0,0,.35); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">brush</span></button>
+    <button aria-label="Стикер" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(0,0,0,.35); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">add_reaction</span></button>
+  </header>
+
+  <sc-if value="{{isText}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; left: 50%; top: 92px; transform: translateX(-50%); display: flex; gap: 6px">
+      <sc-for list="{{bgs}}" as="b" hint-placeholder-count="5"><button aria-label="{{b.label}}" onClick="{{b.pick}}" style="width: 30px; height: 30px; border-radius: 15px; background: {{b.bg}}; box-shadow: {{b.ring}}; transition: box-shadow .2s"></button></sc-for>
+    </div>
+  </sc-if>
+  <button onClick="{{backToPick}}" style="position: absolute; left: 12px; top: 68px; height: 34px; padding: 0 12px; border-radius: 17px; background: rgba(0,0,0,.35); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700"><span class="ms" style="font-size: 17px" aria-hidden="true">{{swapIcon}}</span>{{swapLabel}}</button>
+
+  <div style="position: absolute; left: 20px; right: 20px; top: 360px; text-align: center; font-size: 26px; font-weight: 800; text-shadow: 0 2px 14px rgba(0,0,0,.5)">{{caption}}</div>
+
+  <div style="position: absolute; left: 12px; right: 12px; bottom: 22px; display: flex; flex-direction: column; gap: 10px">
+    <div style="height: 50px; border-radius: 25px; padding: 0 16px; display: flex; align-items: center; background: rgba(255,255,255,.12); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.2)">
+      <input aria-label="Подпись к истории" placeholder="Добавить подпись…" value="{{text}}" onChange="{{onText}}" style="flex-grow: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #FFFFFF; font: inherit; font-size: 15px">
+    </div>
+    <div style="display: flex; gap: 8px">
+      <button onClick="{{openAud}}" style="flex-grow: 1; height: 54px; padding: 0 14px; border-radius: 27px; background: rgba(255,255,255,.12); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.2); display: flex; align-items: center; gap: 10px">
+        <span class="ms fill" style="color: {{audInk}}" aria-hidden="true">{{audIcon}}</span>
+        <span style="flex-grow: 1"><span style="display: block; font-size: 11px; color: rgba(255,255,255,.65)">Кто увидит</span><span style="display: block; font-size: 14px; font-weight: 700">{{audLabel}}</span></span>
+        <span class="ms" style="font-size: 20px; color: rgba(255,255,255,.6)" aria-hidden="true">expand_less</span>
+      </button>
+      <button onClick="{{publish}}" style="height: 54px; padding: 0 20px; border-radius: 27px; background: linear-gradient(140deg, #8FD3AC, #3F9A6C); color: #06150D; font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 6px; box-shadow: 0 10px 24px rgba(63,154,108,.4)">Опубликовать<span class="ms fill" style="font-size: 20px" aria-hidden="true">send</span></button>
+    </div>
+  </div>
+
+  <sc-if value="{{picking}}" hint-placeholder-val="{{true}}">
+    <div role="dialog" aria-label="Выбор для истории" style="position: absolute; inset: 0; background: #0A0C0B; animation: kxFade .25s ease both">
+      <header style="padding: 12px 12px 6px; display: flex; align-items: center; gap: 8px">
+        <button aria-label="Закрыть" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">close</span></button>
+        <span style="flex-grow: 1; font-size: 20px; font-weight: 800">Новая история</span>
+      </header>
+      <div role="tablist" style="position: relative; margin: 6px 16px 12px; height: 42px; border-radius: 21px; background: rgba(255,255,255,.06); display: flex; padding: 3px; box-sizing: border-box">
+        <span aria-hidden="true" style="position: absolute; top: 3px; left: 3px; width: calc(50% - 3px); height: 36px; border-radius: 18px; background: #8FD3AC; transition: transform .4s cubic-bezier(.34,1.4,.5,1); transform: {{tabX}}"></span>
+        <button role="tab" aria-selected="{{photoSel}}" onClick="{{tabPhoto}}" style="position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 800; color: {{photoInk}}; transition: color .3s"><span class="ms fill" style="font-size: 19px" aria-hidden="true">photo_library</span>Фото</button>
+        <button role="tab" aria-selected="{{textSel}}" onClick="{{tabText}}" style="position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 800; color: {{textInk}}; transition: color .3s"><span class="ms" style="font-size: 19px" aria-hidden="true">title</span>Текст</button>
+      </div>
+      <sc-if value="{{tabIsPhoto}}" hint-placeholder-val="{{true}}">
+        <div style="padding: 0 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; border-radius: 18px; overflow: hidden; animation: kxIn .25s ease both">
+          <button aria-label="Снять фото" style="height: 150px; background: #151A17; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #8FD3AC; font-size: 12px; font-weight: 700"><span class="ms" style="font-size: 32px" aria-hidden="true">photo_camera</span>Камера</button>
+          <sc-for list="{{gallery}}" as="g" hint-placeholder-count="8">
+            <button aria-label="{{g.label}}" onClick="{{g.pick}}" style="position: relative; height: 150px; background: {{g.bg}}"><span class="ms fill" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size: 30px; color: rgba(255,255,255,.25)" aria-hidden="true">{{g.icon}}</span><sc-if value="{{g.video}}" hint-placeholder-val="{{false}}"><span style="position: absolute; left: 6px; bottom: 6px; padding: 1px 6px; border-radius: 8px; background: rgba(0,0,0,.5); font-size: 11px">0:{{g.video}}</span></sc-if></button>
+          </sc-for>
+        </div>
+        <div style="margin-top: 10px; text-align: center; font-size: 12px; color: #8A958F">Выберите фото или видео — текст добавите на следующем шаге</div>
+      </sc-if>
+      <sc-if value="{{tabIsText}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 0 16px; animation: kxIn .25s ease both">
+          <div style="height: 420px; border-radius: 26px; background: {{bg}}; display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; transition: background .4s">
+            <span style="font-size: 26px; font-weight: 800; text-align: center; text-shadow: 0 2px 14px rgba(0,0,0,.4)">Просто текст на красивом фоне</span>
+          </div>
+          <div style="margin-top: 12px; display: flex; justify-content: center; gap: 8px">
+            <sc-for list="{{bgs}}" as="b" hint-placeholder-count="5"><button aria-label="{{b.label}}" onClick="{{b.pick}}" style="width: 34px; height: 34px; border-radius: 17px; background: {{b.bg}}; box-shadow: {{b.ring}}"></button></sc-for>
+          </div>
+          <button onClick="{{startText}}" style="margin-top: 14px; width: 100%; height: 52px; border-radius: 18px; background: linear-gradient(100deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px; font-weight: 800; text-align: center">Написать текст</button>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{audOpen}}" hint-placeholder-val="{{false}}">
+    <button aria-label="Закрыть" onClick="{{closeAud}}" style="position: absolute; inset: 0; width: 100%; background: rgba(0,0,0,.5); animation: kxFade .2s ease both"></button>
+    <div role="dialog" aria-label="Кто увидит" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 24px; border-radius: 30px 30px 0 0; background: linear-gradient(180deg, rgba(34,44,39,.95), rgba(16,20,18,.97)); border-top: 1px solid rgba(255,255,255,.16); animation: kxSheet .35s cubic-bezier(.2,.9,.25,1) both">
+      <div style="width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.25); margin: 0 auto 14px"></div>
+      <div style="font-size: 19px; font-weight: 800">Кто увидит историю</div>
+      <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{auds}}" as="a" hint-placeholder-count="3">
+          <button role="radio" aria-checked="{{a.checked}}" onClick="{{a.pick}}" style="padding: 12px 14px; border-radius: 18px; background: {{a.bg}}; border: 1px solid {{a.border}}; display: flex; align-items: center; gap: 12px; transition: background .2s, border-color .2s">
+            <span style="width: 40px; height: 40px; border-radius: 14px; background: {{a.tile}}; color: {{a.ink}}; display: flex; align-items: center; justify-content: center"><span class="ms fill" aria-hidden="true">{{a.icon}}</span></span>
+            <span style="flex-grow: 1"><span style="display: block; font-size: 15px; font-weight: 700">{{a.label}}</span><span style="display: block; font-size: 12px; color: #9AA59F">{{a.sub}}</span></span>
+            <span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{a.ring}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 5px; background: #8FD3AC; transition: transform .3s cubic-bezier(.34,1.6,.5,1); transform: {{a.dot}}"></span></span>
+          </button>
+        </sc-for>
+      </div>
+      <sc-if value="{{isClose}}" hint-placeholder-val="{{false}}">
+        <div style="margin-top: 12px; animation: kxIn .25s ease both">
+          <div style="display: flex; align-items: center; margin-bottom: 8px"><span style="flex-grow: 1; font-size: 13px; font-weight: 800; color: #8FD3AC">Близкие друзья · {{closeCount}}</span><span style="font-size: 11px; color: #8A958F">Нажмите, чтобы выбрать</span></div>
+          <div style="display: flex; gap: 10px">
+            <sc-for list="{{friends}}" as="f" hint-placeholder-count="5">
+              <button onClick="{{f.flip}}" style="width: 56px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center">
+                <span style="position: relative; width: 50px; height: 50px; border-radius: 25px; background: {{f.avatar}}; color: {{f.ink}}; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: {{f.ring}}; transition: box-shadow .2s">{{f.letter}}<sc-if value="{{f.on}}" hint-placeholder-val="{{false}}"><span style="position: absolute; right: -3px; bottom: -3px; width: 20px; height: 20px; border-radius: 10px; background: #8FD3AC; color: #06150D; border: 2px solid #18201C; display: flex; align-items: center; justify-content: center"><span class="ms" style="font-size: 13px; font-weight: 800" aria-hidden="true">star</span></span></sc-if></span>
+                <span style="font-size: 11px">{{f.first}}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <button onClick="{{closeAud}}" style="margin-top: 14px; width: 100%; height: 50px; border-radius: 16px; background: #8FD3AC; color: #06150D; font-size: 15px; font-weight: 800; text-align: center">Готово</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{posting}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,.6); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; animation: kxFade .2s ease both">
+      <sc-if value="{{uploading}}" hint-placeholder-val="{{true}}">
+        <span style="font-size: 16px; font-weight: 700">Публикуем историю…</span>
+        <span style="width: 200px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.2); overflow: hidden"><span style="display: block; height: 100%; background: #8FD3AC; animation: kxProg 1.3s ease-in-out both"></span></span>
+      </sc-if>
+      <sc-if value="{{posted}}" hint-placeholder-val="{{false}}">
+        <span style="width: 86px; height: 86px; border-radius: 43px; background: #8FD3AC; color: #06150D; display: flex; align-items: center; justify-content: center; animation: kxDone .5s cubic-bezier(.2,.8,.2,1) both"><span class="ms" style="font-size: 48px; font-weight: 700" aria-hidden="true">check</span></span>
+        <span style="font-size: 20px; font-weight: 800">История опубликована</span>
+        <span style="font-size: 13px; color: rgba(255,255,255,.7)">{{postedFor}} · на 24 часа</span>
+        <button onClick="{{again}}" style="margin-top: 6px; height: 44px; padding: 0 20px; border-radius: 22px; background: rgba(255,255,255,.14); font-size: 14px; font-weight: 700">Ещё одну</button>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { mode: 'pick', tab: 'photo', photo: 0, bg: 0, text: '', aud: 0, open: false, close: [1, 3], post: null }; }
+componentWillUnmount() { clearTimeout(this.t); }
+renderVals() {
+  const s = this.state;
+  const B = [['linear-gradient(170deg,#3E7A5A 0%,#0F1A14 80%)', 'terrain', 'Горы'], ['linear-gradient(170deg,#C97A58 0%,#3A2014 80%)', 'wb_twilight', 'Закат'], ['linear-gradient(170deg,#58A6C9 0%,#14303A 80%)', 'waves', 'Море'], ['linear-gradient(170deg,#6E58C9 0%,#1E1830 80%)', 'nights_stay', 'Ночь'], ['linear-gradient(170deg,#A24B5B 0%,#3A1820 80%)', 'local_florist', 'Цветы']];
+  const bgs = B.map(([bg, , label], i) => ({ bg, label, ring: i === s.bg ? '0 0 0 2px #000, 0 0 0 4px #FFFFFF' : 'inset 0 0 0 1px rgba(255,255,255,.35)', pick: () => this.setState({ bg: i }) }));
+  const A = [
+    ['public', 'Все', 'Все, кто видит ваши истории', 'rgba(127,196,240,.18)', '#7FC4F0'],
+    ['contacts', 'Мои контакты', 'Только люди из ваших контактов', 'rgba(143,211,172,.18)', '#8FD3AC'],
+    ['star', 'Близкие друзья', 'Только выбранные вами', 'rgba(255,210,122,.18)', '#FFD27A']
+  ];
+  const auds = A.map(([icon, label, sub, tile, ink], i) => {
+    const on = i === s.aud;
+    return { icon, label, sub, tile, ink, checked: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.10)' : 'rgba(255,255,255,.05)', border: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.06)', ring: on ? '#8FD3AC' : '#5E6964', dot: on ? 'scale(1)' : 'scale(0)', pick: () => this.setState({ aud: i }) };
+  });
+  const F = [
+    { id: 1, letter: 'А', first: 'Анна', avatar: 'linear-gradient(140deg,#4B3F7A,#2A2240)', ink: '#DCD0FF' },
+    { id: 2, letter: 'М', first: 'Максим', avatar: 'linear-gradient(140deg,#2D4E73,#1A2A40)', ink: '#C6DBF5' },
+    { id: 3, letter: 'С', first: 'Света', avatar: 'linear-gradient(140deg,#3C7BD0,#1A3A6A)', ink: '#D6E6FF' },
+    { id: 4, letter: 'И', first: 'Илья', avatar: 'linear-gradient(140deg,#D08A3C,#7A4A16)', ink: '#FFE9C9' },
+    { id: 5, letter: 'Д', first: 'Дима', avatar: 'linear-gradient(140deg,#2E6B66,#18403C)', ink: '#BDEDE8' }
+  ];
+  const friends = F.map(f => { const on = s.close.includes(f.id); return Object.assign({}, f, { on, ring: on ? '0 0 0 2px #18201C, 0 0 0 4px #FFD27A' : 'none', flip: () => this.setState({ close: on ? s.close.filter(x => x !== f.id) : s.close.concat([f.id]) }) }); });
+  const audLabels = ['Все', 'Мои контакты', 'Близкие друзья · ' + s.close.length];
+  const G = [
+    ['linear-gradient(160deg,#3E7A5A,#0F1A14)', 'terrain', false], ['linear-gradient(160deg,#C97A58,#3A2014)', 'local_cafe', false], ['linear-gradient(160deg,#58A6C9,#14303A)', 'waves', '14'],
+    ['linear-gradient(160deg,#6E58C9,#1E1830)', 'nights_stay', false], ['linear-gradient(160deg,#A24B5B,#3A1820)', 'local_florist', false], ['linear-gradient(160deg,#D08A3C,#3A220A)', 'pets', '08'],
+    ['linear-gradient(160deg,#2E6B66,#0F2422)', 'forest', false], ['linear-gradient(160deg,#4A524E,#141816)', 'location_city', false]
+  ];
+  const gallery = G.map(([bg, icon, video], i) => ({ bg, icon, video, label: (video ? 'Видео ' : 'Фото ') + (i + 1), pick: () => this.setState({ mode: 'photo', photo: i, text: '' }) }));
+  const isPhoto = s.mode === 'photo';
+  const curBg = isPhoto ? G[s.photo][0] : B[s.bg][0];
+  const curIcon = isPhoto ? G[s.photo][1] : '';
+  const shown = s.text || (s.mode === 'text' ? 'Напишите что-нибудь' : '');
+  return {
+    bgs, auds, friends, gallery,
+    picking: s.mode === 'pick', isText: s.mode === 'text',
+    tabIsPhoto: s.tab === 'photo', tabIsText: s.tab === 'text',
+    tabX: s.tab === 'photo' ? 'translateX(0)' : 'translateX(100%)',
+    photoSel: s.tab === 'photo' ? 'true' : 'false', textSel: s.tab === 'text' ? 'true' : 'false',
+    photoInk: s.tab === 'photo' ? '#06150D' : '#C9D2CC', textInk: s.tab === 'text' ? '#06150D' : '#C9D2CC',
+    tabPhoto: () => this.setState({ tab: 'photo' }), tabText: () => this.setState({ tab: 'text' }),
+    startText: () => this.setState({ mode: 'text', text: '' }),
+    backToPick: () => this.setState({ mode: 'pick', tab: isPhoto ? 'photo' : 'text' }),
+    swapIcon: isPhoto ? 'photo_library' : 'palette', swapLabel: isPhoto ? 'Другое фото' : 'Фото вместо фона',
+    bg: curBg, bgIcon: curIcon,
+    text: s.text, onText: (e) => this.setState({ text: e.target.value }), caption: shown,
+    audLabel: audLabels[s.aud], audIcon: A[s.aud][0], audInk: A[s.aud][4],
+    audOpen: s.open, openAud: () => this.setState({ open: true }), closeAud: () => this.setState({ open: false }),
+    isClose: s.aud === 2, closeCount: s.close.length,
+    posting: !!s.post, uploading: s.post === 'up', posted: s.post === 'done', postedFor: audLabels[s.aud],
+    publish: () => { this.setState({ post: 'up' }); clearTimeout(this.t); this.t = setTimeout(() => this.setState({ post: 'done' }), 1350); },
+    again: () => this.setState({ post: null, mode: 'pick', tab: 'photo', text: '' })
+  };
+}
+}
+</script>
+</body>
+</html>

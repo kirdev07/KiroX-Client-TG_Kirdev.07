@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Язык и названия</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+input::placeholder{color:#8A958F}
+@keyframes kxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes kxPop{0%{transform:scale(.9)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif">
+  <div aria-hidden="true" style="position: absolute; left: -90px; top: -110px; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(circle, rgba(70,160,110,.16), rgba(70,160,110,0) 65%)"></div>
+
+  <header style="position: relative; padding: 10px 12px 2px; display: flex; align-items: center; gap: 8px">
+    <button aria-label="{{backLabel}}" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <h1 style="margin: 0; font-size: 22px; font-weight: 800">{{title}}</h1>
+  </header>
+
+  <div style="position: relative; padding: 10px 16px 0; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{langs}}" as="l" hint-placeholder-count="2">
+        <button role="radio" aria-checked="{{l.checked}}" onClick="{{l.pick}}" style="padding: 14px; border-radius: 20px; background: {{l.bg}}; border: 1px solid {{l.border}}; display: flex; flex-direction: column; gap: 8px; transition: background .25s, border-color .25s">
+          <span style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 22px; font-weight: 800; color: {{l.ink}}">{{l.code}}</span><span style="width: 22px; height: 22px; border-radius: 11px; border: 2px solid {{l.ring}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 5px; background: #8FD3AC; transition: transform .3s cubic-bezier(.34,1.6,.5,1); transform: {{l.dot}}"></span></span></span>
+          <span style="font-size: 15px; font-weight: 700">{{l.name}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <button role="switch" aria-checked="{{trChecked}}" onClick="{{toggleTr}}" style="height: 58px; padding: 0 14px; border-radius: 20px; background: rgba(255,255,255,.045); display: flex; align-items: center; gap: 12px">
+      <span class="ms" style="font-size: 22px; color: #8FD3AC" aria-hidden="true">translate</span>
+      <span style="flex-grow: 1"><span style="display: block; font-size: 15px">{{trTitle}}</span><span style="display: block; font-size: 11px; color: #8A958F">{{trSub}}</span></span>
+      <span style="width: 44px; height: 26px; border-radius: 13px; background: {{trTrack}}; position: relative; transition: background .3s"><span style="position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 10px; background: #FFFFFF; transition: transform .35s cubic-bezier(.34,1.5,.5,1); transform: {{trKnob}}"></span></span>
+    </button>
+
+    <div style="padding: 14px; border-radius: 22px; background: linear-gradient(150deg, rgba(63,154,108,.20), rgba(255,255,255,.03)); border: 1px solid rgba(143,211,172,.18)">
+      <div style="display: flex; align-items: center; gap: 8px"><span class="ms fill" style="color: #8FD3AC" aria-hidden="true">edit_note</span><span style="flex-grow: 1; font-size: 15px; font-weight: 800">{{namesTitle}}</span><span style="font-size: 11px; color: #A6B5AC">{{namesHint}}</span></div>
+      <div style="margin-top: 12px; height: 54px; padding: 0 6px; border-radius: 27px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); border: 1px solid rgba(255,255,255,.16); display: flex; align-items: center; justify-content: space-around">
+        <sc-for list="{{preview}}" as="p" hint-placeholder-count="5"><span style="display: flex; flex-direction: column; align-items: center; gap: 1px; width: 62px; padding: 4px 0; border-radius: 20px; background: {{p.bg}}"><span class="ms {{p.fill}}" style="font-size: 20px; color: {{p.ink}}" aria-hidden="true">{{p.icon}}</span><span style="font-size: 11px; font-weight: 700; color: {{p.ink}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 58px; animation: {{p.anim}}">{{p.label}}</span></span></sc-for>
+      </div>
+      <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{fields}}" as="f" hint-placeholder-count="5">
+          <label style="height: 44px; padding: 0 12px; border-radius: 14px; background: rgba(0,0,0,.22); display: flex; align-items: center; gap: 10px">
+            <span class="ms" style="font-size: 18px; color: #8A958F" aria-hidden="true">{{f.icon}}</span>
+            <span style="width: 86px; font-size: 12px; color: #8A958F">{{f.orig}}</span>
+            <input aria-label="{{f.aria}}" placeholder="{{f.orig}}" value="{{f.value}}" onChange="{{f.onChange}}" style="flex-grow: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #EEF3EF; font: inherit; font-size: 14px; font-weight: 600">
+          </label>
+        </sc-for>
+      </div>
+      <div style="margin-top: 10px; display: flex; gap: 6px">
+        <button onClick="{{presetFun}}" style="flex: 1; height: 38px; border-radius: 14px; background: rgba(255,255,255,.07); font-size: 12px; font-weight: 700; text-align: center">{{funLabel}}</button>
+        <button onClick="{{presetReset}}" style="flex: 1; height: 38px; border-radius: 14px; background: rgba(255,255,255,.07); font-size: 12px; font-weight: 700; text-align: center">{{resetLabel}}</button>
+        <button style="width: 38px; height: 38px; border-radius: 14px; background: rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center" aria-label="Поделиться набором"><span class="ms" style="font-size: 18px" aria-hidden="true">share</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { lang: 'ru', tr: true, names: {}, changed: null }; }
+renderVals() {
+  const s = this.state, en = s.lang === 'en';
+  const L = [['ru', 'RU', 'Русский'], ['en', 'EN', 'English']];
+  const langs = L.map(([k, code, name]) => {
+    const on = s.lang === k;
+    return { code, name, checked: on ? 'true' : 'false', bg: on ? 'rgba(143,211,172,.12)' : 'rgba(255,255,255,.045)', border: on ? 'rgba(143,211,172,.45)' : 'rgba(255,255,255,.06)', ink: on ? '#8FD3AC' : '#9AA59F', ring: on ? '#8FD3AC' : '#5E6964', dot: on ? 'scale(1)' : 'scale(0)', pick: () => this.setState({ lang: k }) };
+  });
+  const base = en
+    ? [['group', 'Contacts'], ['call', 'Calls'], ['chat', 'Chats'], ['motion_photos_on', 'Stories'], ['settings', 'Settings']]
+    : [['group', 'Контакты'], ['call', 'Звонки'], ['chat', 'Чаты'], ['motion_photos_on', 'Истории'], ['settings', 'Настройки']];
+  const preview = base.map(([icon, orig], i) => {
+    const label = s.names[i] || orig, on = i === 2;
+    return { icon, label, fill: on ? 'fill' : '', ink: on ? '#E6F6EC' : '#B4BEB8', bg: on ? 'rgba(143,211,172,.28)' : 'transparent', anim: s.changed === i ? 'kxPop .35s ease' : 'none' };
+  });
+  const fields = base.map(([icon, orig], i) => ({ icon, orig, aria: (en ? 'Name for ' : 'Название для ') + orig, value: s.names[i] || '', onChange: (e) => this.setState({ names: Object.assign({}, s.names, { [i]: e.target.value }), changed: i }) }));
+  const fun = en ? ['Friends', 'Rings', 'Talks', 'Moments', 'Tweaks'] : ['Друзья', 'Звоночки', 'Болталка', 'Моменты', 'Шестерёнка'];
+  return {
+    langs, preview, fields,
+    title: en ? 'Language' : 'Язык', backLabel: en ? 'Back' : 'Назад',
+    trTitle: en ? 'Translate messages' : 'Перевод сообщений', trSub: en ? 'A "Translate" button in the message menu' : 'Кнопка «Перевести» в меню сообщения',
+    trChecked: s.tr ? 'true' : 'false', trTrack: s.tr ? '#8FD3AC' : '#2A322E', trKnob: s.tr ? 'translateX(18px)' : 'translateX(0)',
+    toggleTr: () => this.setState({ tr: !s.tr }),
+    namesTitle: en ? 'Own names' : 'Свои названия', namesHint: en ? 'Only in kiroX' : 'Только в kiroX',
+    funLabel: en ? 'Fun set' : 'Весёлый набор', resetLabel: en ? 'As in kiroX' : 'Как задумано',
+    presetFun: () => { const n = {}; fun.forEach((v, i) => { n[i] = v; }); this.setState({ names: n, changed: 2 }); },
+    presetReset: () => this.setState({ names: {}, changed: null })
+  };
+}
+}
+</script>
+</body>
+</html>

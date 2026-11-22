@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Форматирование текста</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap">
+<style>
+body{margin:0}
+.ms{font-family:'Material Symbols Rounded';font-size:24px;line-height:1;font-weight:400;font-style:normal;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}
+.fill{font-variation-settings:'FILL' 1}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95)}
+.scroll{overflow-y:auto;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+.w{display:inline;padding:2px 2px;border-radius:5px;line-height:1.9;transition:all .15s}
+@keyframes kxSpoil{from{background-position:0 0}to{background-position:14px 14px}}
+@keyframes kxIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kxBar{from{opacity:0;transform:translateY(10px) scale(.95)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+button{position:relative}button::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #0A0C0B; color: #EEF3EF; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; display: flex; flex-direction: column">
+  <header style="padding: 10px 12px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06)">
+    <button aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); display: flex; align-items: center; justify-content: center"><span class="ms" aria-hidden="true">arrow_back</span></button>
+    <span style="width: 40px; height: 40px; border-radius: 20px; background: linear-gradient(135deg, #6FA9D8, #2F6E9E); display: flex; align-items: center; justify-content: center; font-weight: 800">K</span>
+    <div style="flex: 1"><div style="font-size: 16px; font-weight: 800">Kotlin-клуб</div><div style="font-size: 12px; color: #9AA59F">предпросмотр сообщения</div></div>
+  </header>
+
+  <!-- Preview of sent bubble -->
+  <div class="scroll" style="flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px">
+    <div style="align-self: center; font-size: 11px; color: #8A958F">Так увидят в чате</div>
+    <div style="align-self: flex-end; max-width: 86%; padding: 10px 12px 6px; border-radius: 18px 18px 6px 18px; background: linear-gradient(135deg, #6FC497, #3F9A6C); color: #06150D; font-size: 15px; line-height: 1.5">
+      <sc-if value="{{isQuote}}" hint-placeholder-val="{{false}}"><div style="margin-bottom: 6px; padding: 4px 10px; border-left: 3px solid #06150D; background: rgba(6,21,13,.12); border-radius: 6px; font-style: italic">Цитата: «Встречаемся у входа»</div></sc-if>
+      <sc-for list="{{pv}}" as="p" hint-placeholder-count="12"><span style="font-weight: {{p.fw}}; font-style: {{p.fs}}; text-decoration: {{p.td}}; font-family: {{p.ff}}; background: {{p.bg}}; background-size: 7px 7px; color: {{p.ink}}; padding: {{p.pad}}; border-radius: 4px; animation: {{p.anim}}">{{p.t}}</span> </sc-for>
+      <div style="text-align: right; font-size: 11px; opacity: .6">18:40</div>
+    </div>
+  </div>
+
+  <!-- Editor -->
+  <div style="padding: 10px 12px 18px; border-top: 1px solid rgba(255,255,255,.06); background: rgba(10,12,11,.95)">
+    <sc-if value="{{hasSel}}" hint-placeholder-val="{{true}}">
+      <div style="margin-bottom: 10px; padding: 6px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.05)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.14); display: flex; gap: 4px; justify-content: space-between; animation: kxBar .2s ease both">
+        <sc-for list="{{tools}}" as="t" hint-placeholder-count="7"><button onClick="{{t.tap}}" aria-label="{{t.label}}" aria-pressed="{{t.on}}" style="width: 44px; height: 44px; border-radius: 14px; background: {{t.bg}}; color: {{t.ink}}; display: flex; align-items: center; justify-content: center; transition: all .15s"><span class="ms" style="font-size: 22px" aria-hidden="true">{{t.icon}}</span></button></sc-for>
+      </div>
+    </sc-if>
+    <div style="padding: 10px 14px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.12); font-size: 16px">
+      <sc-for list="{{words}}" as="w" hint-placeholder-count="12"><button onClick="{{w.tap}}" class="w" style="background: {{w.bg}}; color: {{w.ink}}; font-weight: {{w.fw}}; font-style: {{w.fs}}; text-decoration: {{w.td}}; font-family: {{w.ff}}">{{w.t}}</button> </sc-for>
+    </div>
+    <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px">
+      <span style="flex: 1; font-size: 12px; color: #8A958F">{{hint}}</span>
+      <button onClick="{{clear}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(255,255,255,.06); font-size: 12px; font-weight: 700; color: #C9D2CC">Убрать всё</button>
+      <button onClick="{{toggleQuote}}" aria-pressed="{{isQuote}}" style="height: 32px; padding: 0 12px; border-radius: 16px; background: {{qBg}}; color: {{qInk}}; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px"><span class="ms" style="font-size: 16px" aria-hidden="true">format_quote</span>Цитата</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const TEXT = 'Митап в субботу в 11:00. Код для входа 4512. Подробности на kotlin.club';
+const W = TEXT.split(' ');
+const TOOLS = [['b', 'format_bold', 'Жирный'], ['i', 'format_italic', 'Курсив'], ['u', 'format_underlined', 'Подчёркнутый'], ['s', 'format_strikethrough', 'Зачёркнутый'], ['c', 'code', 'Моноширинный'], ['p', 'visibility_off', 'Спойлер'], ['l', 'link', 'Ссылка']];
+class Component extends DCLogic {
+constructor(props) {
+  super(props);
+  const f = {}; f[2] = { b: true }; f[4] = { b: true }; f[8] = { p: true }; f[11] = { l: true };
+  this.state = { f, sel: {}, quote: false, revealed: false };
+}
+renderVals() {
+  const s = this.state;
+  const selIds = Object.keys(s.sel).filter(k => s.sel[k]).map(Number);
+  const fmtOf = i => s.f[i] || {};
+  const allHave = k => selIds.length && selIds.every(i => fmtOf(i)[k]);
+  const style = (st, inPreview) => ({
+    fw: st.b ? '800' : '400', fs: st.i ? 'italic' : 'normal',
+    td: [st.u ? 'underline' : '', st.s ? 'line-through' : '', st.l && inPreview ? 'underline' : ''].filter(Boolean).join(' ') || 'none',
+    ff: st.c ? "'JetBrains Mono', monospace" : 'inherit'
+  });
+  return {
+    pv: W.map((t, i) => {
+      const st = fmtOf(i);
+      const spoil = st.p && !s.revealed;
+      return {
+        t: t, ...style(st, true),
+        bg: spoil ? 'radial-gradient(rgba(6,21,13,.75) 1px, transparent 1.4px), rgba(6,21,13,.35)' : st.c ? 'rgba(6,21,13,.14)' : 'transparent',
+        ink: spoil ? 'transparent' : st.l ? '#0B3A72' : '#06150D', pad: spoil || st.c ? '0 4px' : '0',
+        anim: spoil ? 'kxSpoil 1.2s linear infinite' : 'none'
+      };
+    }),
+    words: W.map((t, i) => {
+      const on = !!s.sel[i];
+      const st = fmtOf(i);
+      return { t, ...style(st, false), bg: on ? 'rgba(143,211,172,.35)' : st.p ? 'rgba(255,255,255,.12)' : 'transparent', ink: st.l ? '#8FD3AC' : '#EEF3EF', tap: () => this.setState({ sel: { ...s.sel, [i]: !on } }) };
+    }),
+    hasSel: selIds.length > 0,
+    tools: TOOLS.map(([k, icon, label]) => { const on = allHave(k); return { icon, label, on, bg: on ? '#8FD3AC' : 'transparent', ink: on ? '#06150D' : '#EEF3EF', tap: () => { const f = { ...s.f }; selIds.forEach(i => { f[i] = { ...(f[i] || {}), [k]: !on }; }); this.setState({ f }); } }; }),
+    hint: selIds.length ? 'Выбрано слов: ' + selIds.length + ' — нажмите стиль' : 'Нажмите на слова, чтобы выделить',
+    clear: () => this.setState({ f: {}, sel: {} }),
+    isQuote: s.quote, toggleQuote: () => this.setState({ quote: !s.quote }),
+    qBg: s.quote ? 'rgba(143,211,172,.16)' : 'rgba(255,255,255,.06)', qInk: s.quote ? '#8FD3AC' : '#C9D2CC'
+  };
+}
+}
+</script>
+</body>
+</html>
