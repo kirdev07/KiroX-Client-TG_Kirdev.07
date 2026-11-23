@@ -43,8 +43,20 @@ class TelegramKxAuth(
      * SetAuthenticationPhoneNumber in those states), so nothing is logged out.
      */
     private var editingFrom by mutableStateOf<TelegramAuthState?>(null)
-    /** True while the auth state is the one «Изменить номер» was pressed in (TDLib's next state ends it). */
+    /**
+     * True while the auth state is the one «Изменить номер» was pressed in. TDLib's next state ends it, and
+     * so does TDLib accepting the new number: the same number (or an unchanged state) gives an equal
+     * state that StateFlow drops, which used to leave the phone board up with nothing happening.
+     */
     private val editingPhone: Boolean get() = editingFrom != null && authState() === editingFrom
+
+    /** The digits last sent from the phone board, shown again after «←» from the code step. */
+    private var lastDigits = ""
+    override val typedPhone: String get() = lastDigits
+
+    /** maskPhone result for the last WaitCode number (the code board recomposes every second). */
+    private var maskedFor: String? = null
+    private var masked = ""
 
     /** Number check message from PhoneEntryState («Проверьте номер…»), shown before anything is sent. */
     private var localError by mutableStateOf<String?>(null)
@@ -56,7 +68,12 @@ class TelegramKxAuth(
     override val countryName: String get() = phone.country.name
     override val dialCode: String get() = phone.country.dialCode
 
-    override val phoneMasked: String get() = (authState() as? TelegramAuthState.WaitCode)?.phoneNumber?.let(::maskPhone).orEmpty()
+    override val phoneMasked: String
+        get() {
+            val raw = (authState() as? TelegramAuthState.WaitCode)?.phoneNumber ?: return ""
+            if (raw != maskedFor) { masked = maskPhone(raw); maskedFor = raw }
+            return masked
+        }
 
     override val codeLength: Int
         get() = when (val s = authState()) {
@@ -121,16 +138,20 @@ class TelegramKxAuth(
      */
     override fun submitPhone(digits: String, syncContacts: Boolean) {
         if (busy) return
+        lastDigits = digits
         // Test servers only (kiroX test build): Telegram's test numbers +99966XYYYY have no real country, so the
         // number field takes them as typed («9996610001») and skips the country check.
-        if (com.kirox.app.BuildConfig.TELEGRAM_USE_TEST_DC && digits.startsWith("99966")) {
-            localError = null; vm.auth.clearError(); vm.auth.phone("+$digits"); return
-        }
+        if (com.kirox.app.BuildConfig.TELEGRAM_USE_TEST_DC && digits.startsWith("99966")) { sendPhone("+$digits"); return }
         phone.updateNumber(digits)
         if (!phone.validate()) { localError = (phone.status as? PhoneStatus.Error)?.message; return }
+        sendPhone(phone.internationalNumber)
+    }
+
+    /** Errors stay on the phone board; TDLib's Ok ends «Изменить номер», so the code step shows. */
+    private fun sendPhone(number: String) {
         localError = null
         vm.auth.clearError()
-        vm.auth.phone(phone.internationalNumber)
+        vm.auth.phone(number) { editingFrom = null }
     }
 
     override fun submitCode(code: String) {

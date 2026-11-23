@@ -5,6 +5,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -78,8 +81,19 @@ private fun pulse(periodMs: Int, times: Int = 2, delayMs: Int = 0): Float {
 /** Board «Вход»: floating bubbles art, phone form, sync switch, gradient button with shine, QR login. */
 @Composable
 fun LoginScreen(auth: KxAuth) {
-    var digits by rememberSaveable { mutableStateOf("") }
+    // «←» from the code step keeps the number that was sent.
+    var digits by rememberSaveable { mutableStateOf(auth.typedPhone) }
     var sync by rememberSaveable { mutableStateOf(true) }
+    // With the keyboard up the board scrolls so the field, «Получить код» and «Войти по QR-коду» stay visible.
+    val scroll = rememberScrollState()
+    val qrInView = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+    val ime = WindowInsets.ime
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    LaunchedEffect(Unit) {
+        androidx.compose.runtime.snapshotFlow { ime.getBottom(density) > 0 }.collect { shown ->
+            if (shown) { delay(250); runCatching { qrInView.bringIntoView() } }
+        }
+    }
     val glow = pulse(4000); val float = pulse(5000); val tw1 = pulse(2400); val tw2 = pulse(3000, delayMs = 1000); val tw3 = pulse(2700, delayMs = 500)
     val focusPulse = pulse(2200, times = 2, delayMs = 800)
     Box(Modifier.fillMaxSize().background(AuthBg)) {
@@ -108,7 +122,10 @@ fun LoginScreen(auth: KxAuth) {
         listOf(Triple(168, 96, 6) to tw1, Triple(22, 250, 4) to tw2, Triple(120, 270, 3) to tw3).forEach { (p, a) ->
             Box(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-p.first).dp, p.second.dp).size(p.third.dp).graphicsLayer { alpha = .15f + .85f * a }.clip(CircleShape).background(Kx.accentLight))
         }
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 24.dp)) {
+        BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
+        // Without the keyboard the content is at least the screen tall, so the terms stay at the bottom as before.
+        Column(Modifier.fillMaxWidth().verticalScroll(scroll).heightIn(min = maxHeight).padding(horizontal = 24.dp), verticalArrangement = Arrangement.SpaceBetween) {
+          Column {
             Box(Modifier.height(64.dp), contentAlignment = Alignment.CenterStart) {
                 Text(buildAnnotatedString { append("kiro"); withStyle(SpanStyle(color = Kx.accent, fontWeight = FontWeight.Bold)) { append("X") } },
                     style = KxType.style(18.sp, FontWeight.Light).copy(letterSpacing = .3.sp))
@@ -151,13 +168,14 @@ fun LoginScreen(auth: KxAuth) {
             Row(Modifier.padding(top = 26.dp).kxRise(650, 700), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.weight(1f).height(1.dp).background(Color(0xFF1E2421))); Text("или", style = KxType.style(13.sp, color = Kx.text4)); Box(Modifier.weight(1f).height(1.dp).background(Color(0xFF1E2421)))
             }
-            Row(Modifier.padding(top = 18.dp).kxRise(720, 700).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(Field).border(1.dp, FieldLine, RoundedCornerShape(16.dp))
+            Row(Modifier.padding(top = 18.dp).kxRise(720, 700).bringIntoViewRequester(qrInView).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(Field).border(1.dp, FieldLine, RoundedCornerShape(16.dp))
                 .kxClick { auth.requestQr() }, horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.QrCode2, null, Modifier.size(22.dp), tint = Kx.accent); Text("Войти по QR-коду", style = KxType.style(15.sp, FontWeight.SemiBold))
             }
-            Spacer(Modifier.weight(1f))
+          }
             Text(buildAnnotatedString { append("Нажимая «Получить код», вы принимаете "); withStyle(SpanStyle(color = Kx.accent)) { append("условия Telegram") } },
-                style = KxType.style(12.sp, color = Kx.text4, lineHeight = 18.sp), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 28.dp))
+                style = KxType.style(12.sp, color = Kx.text4, lineHeight = 18.sp), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 28.dp))
+        }
         }
     }
 }
@@ -249,7 +267,8 @@ fun CodeScreen(auth: KxAuth) {
                             .border(1.dp, when { current -> Color(0xFF4E8F6B); filled -> Color(0xFF2E4A3A); else -> FieldLine }, RoundedCornerShape(16.dp))
                             .kxClick("Ячейка ${i + 1}") { runCatching { focus.requestFocus() } }, contentAlignment = Alignment.Center) {
                             if (filled) Text(code[i].toString(), style = KxType.style(26.sp, FontWeight.SemiBold))
-                            else if (current && caret.value < .5f) Box(Modifier.size(2.dp, 26.dp).background(Kx.accent))
+                            // Blink in the draw phase: reading the caret here recomposed the whole board every frame.
+                            else if (current) Box(Modifier.size(2.dp, 26.dp).graphicsLayer { alpha = if (caret.value < .5f) 1f else 0f }.background(Kx.accent))
                         }
                     }
                 }

@@ -41,6 +41,8 @@ interface KxAuth {
     val minAge: Int get() = 0
     /** Adding a second account can be cancelled. */
     val canCancel: Boolean get() = false
+    /** Digits last sent from the phone board; «←» from the code step shows them again. */
+    val typedPhone: String get() = ""
     fun submitEmail(address: String) {}
     fun requestRecovery() {}
     fun submitRecovery(code: String, newPassword: String, hint: String) {}

@@ -25,10 +25,17 @@ class TelegramAuthRepository(private val client: TelegramClient) {
         client.addFailureHandler(::setFailure)
     }
 
-    fun phone(value: String) = send(TdApi.SetAuthenticationPhoneNumber().apply {
+    /**
+     * [onOk] runs once TDLib accepted the number. A new number sent from the code / password step may
+     * leave the state equal to the old one (StateFlow drops it), so the current state is read again.
+     */
+    fun phone(value: String, onOk: () -> Unit = {}) = send(TdApi.SetAuthenticationPhoneNumber().apply {
         phoneNumber = value
         settings = TdApi.PhoneNumberAuthenticationSettings()
-    })
+    }) {
+        client.send(TdApi.GetAuthorizationState()) { r -> if (r is TdApi.AuthorizationState) apply(r) }
+        onOk()
+    }
     fun code(value: String) = send(TdApi.CheckAuthenticationCode(value))
     fun password(value: String) = send(TdApi.CheckAuthenticationPassword(value))
     fun email(value: String) = send(TdApi.SetAuthenticationEmailAddress(value))
