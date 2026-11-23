@@ -416,7 +416,11 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 onDelete = { selDelete = true })
         }
         if (recording == true) CircleRecording(recSecs)
-        when (header.composer) {
+        // lead walk-through: selecting hides the composer / channel bar (Telegram); the keyboard and the attach sheet close.
+        val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+        val focus = androidx.compose.ui.platform.LocalFocusManager.current
+        LaunchedEffect(selecting) { if (selecting) { attach = false; keyboard?.hide(); focus.clearFocus() } }
+        if (!selecting) when (header.composer) {
             KxComposer.Write -> Composer(
                 text = text, onText = { text = it; if (editing == null) store.setDraft(chatId, it) },
                 replyTo = replyTo ?: editing, editing = editing != null,
@@ -528,8 +532,9 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                                 else versions.joinToString("\n\n") { "${it.first}\n${it.second}" } + "\n\nСейчас\n" + m.text, "Готово", danger = false) {}
                         }
                     })
-                    if (m.out && header.composer == KxComposer.Write && m.kind != KxMsgKind.Service) add(Triple(Icons.Outlined.Replay, "Отправить ещё раз") {
-                        menuFor = null; store.forward(chatId, listOf(m.id), chatId, hideSender = true, dropCaption = false); toast("Отправлено ещё раз") })
+                    // lead walk-through: only a message that failed to send offers «Отправить ещё раз» (TDLib resend, as the ⚠ mark).
+                    if (m.out && m.status == KxOutState.Failed && m.kind != KxMsgKind.Service) add(Triple(Icons.Outlined.Replay, "Отправить ещё раз") {
+                        menuFor = null; store.retrySend(chatId, m.id) })
                     if (m.out && m.canEdit && (m.kind == KxMsgKind.Photo || m.kind == KxMsgKind.Video)) add(Triple(Icons.Outlined.ChangeCircle, "Заменить медиа") { menuFor = null; onOpen("ReplaceMedia:$chatId:${m.id}") })
                     // qa-real (fixer-real-media): photo / video / GIF / file — «Сохранить в галерею» and «Поделиться» (downloads first; protected chats: no items).
                     if (m.fileId != 0 && m.canCopy && !m.viewOnce && m.kind in setOf(KxMsgKind.Photo, KxMsgKind.Video, KxMsgKind.Gif, KxMsgKind.File, KxMsgKind.Music)) {
@@ -589,7 +594,8 @@ private fun ChatHeader(h: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) ->
                 Box {
                     // qa-real: Saved shows the bookmark (not my photo + online dot).
                     val saved = h.kind == KxChatKind.Saved
-                    KxAvatar(h.title, h.chatId, size = 42.dp, icon = if (saved) Icons.Rounded.Bookmark else null, colorIndex = h.colorIndex, photo = if (saved) null else h.avatar)
+                    if (saved) KxAvatar(h.title, h.chatId, size = 42.dp, icon = Icons.Rounded.Bookmark, swatch = KxAvatarPalette.saved) // lead: same green bookmark as the list
+                    else KxAvatar(h.title, h.chatId, size = 42.dp, colorIndex = h.colorIndex, photo = h.avatar)
                     if (h.online && !saved) Box(Modifier.align(Alignment.BottomEnd).offset(1.dp, 1.dp).size(16.dp).clip(CircleShape).background(Color(0xFF1B221E)).padding(2.dp).clip(CircleShape).background(Kx.accent))
                 }
                 Column(Modifier.weight(1f)) {

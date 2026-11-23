@@ -81,7 +81,12 @@ fun CallsScreen(store: KxStore, onCall: (KxCall, Boolean) -> Unit, onOpen: (Stri
                         Text(day, style = KxType.style(13.sp, FontWeight.Bold, Kx.text4), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp))
                     CallRow(c, Modifier.kxRise(i * 50, 450)) { onCall(c, c.video) }
                 }
-                if (calls.isEmpty()) item { KxEmpty(if (missed) "Пропущенных звонков нет" else "Звонков пока не было") }
+                // lead walk-through: while the log is read the tab says so, not «Звонков пока не было».
+                if (calls.isEmpty()) item {
+                    if (store.callsLoading) Box(Modifier.fillMaxWidth().padding(top = 48.dp), contentAlignment = Alignment.Center) {
+                        androidx.compose.material3.CircularProgressIndicator(Modifier.size(26.dp), color = Kx.accent, strokeWidth = 2.dp)
+                    } else KxEmpty(if (missed) "Пропущенных звонков нет" else "Звонков пока не было")
+                }
             }
         }
     }

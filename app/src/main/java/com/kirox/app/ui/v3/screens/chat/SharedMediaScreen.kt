@@ -123,7 +123,8 @@ fun SharedMediaScreen(ctx: KxScreenCtx) {
                                         .combinedClickable(onClickLabel = "Медиа ${k + 1}", onLongClick = { if (selMode) toggle(k) else { selMode = true; sel.clear(); sel.add(k) } }) {
                                             if (selMode) toggle(k) else ctx.open((if (it?.video != null) "VideoPlayer:" else "Viewer:") + "$chatId:${it?.messageId ?: 0}")
                                         }) {
-                                        val video = it?.video ?: if (k % 4 == 2) "0:${(10 + (k * 7) % 50).toString().padStart(2, '0')}" else null
+                                        com.kirox.app.ui.v3.components.KxImage(it?.media, Modifier.matchParentSize(), maxPx = 360)
+                                        val video = (it?.video?.let { v -> if (v == "video") it.sub.ifEmpty { null } else v }) ?: if (it == null && k % 4 == 2) "0:${(10 + (k * 7) % 50).toString().padStart(2, '0')}" else null
                                         if (video != null) Row(Modifier.align(Alignment.BottomStart).padding(6.dp).height(18.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(alpha = .5f))
                                             .padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                             Icon(Icons.Rounded.PlayArrow, null, Modifier.size(12.dp), tint = Kx.text); Text(video, style = ts(11, W700))

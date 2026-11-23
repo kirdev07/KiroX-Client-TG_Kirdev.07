@@ -714,17 +714,51 @@ internal const val TELEGRAM_SERVICE_USER = 777000L
  */
 internal fun hideLoginCode(preview: String): String = preview.replace(Regex("""(?<![\d-])\d{5,6}(?![\d-])""")) { "•".repeat(it.value.length) }
 
+/**
+ * lead walk-through: text under a spoiler is never shown in previews (chat list, notifications,
+ * search, reply lines): each hidden character becomes «▒», spaces stay, like Telegram's dotted spoiler.
+ */
+internal fun hideSpoilers(text: TdApi.FormattedText?): String {
+    val raw = text?.text.orEmpty()
+    return hideSpoilerRanges(raw, text?.entities.orEmpty().filter { it?.type is TdApi.TextEntityTypeSpoiler }.map { it.offset to it.length })
+}
+
+/** [raw] with the (offset, length) UTF-16 ranges masked by «▒» (see [hideSpoilers]). */
+internal fun hideSpoilerRanges(raw: String, ranges: List<Pair<Int, Int>>): String {
+    if (ranges.isEmpty()) return raw
+    val hidden = BooleanArray(raw.length)
+    for ((offset, length) in ranges) {
+        val from = offset.coerceIn(0, raw.length); val to = (offset + length).coerceIn(from, raw.length)
+        for (i in from until to) hidden[i] = true
+    }
+    val out = StringBuilder(raw.length)
+    var i = 0
+    while (i < raw.length) {
+        val c = raw[i]
+        when {
+            !hidden[i] || c.isWhitespace() -> out.append(c)
+            // One «▒» per symbol: a surrogate pair (emoji) is one symbol.
+            c.isHighSurrogate() && i + 1 < raw.length && raw[i + 1].isLowSurrogate() -> { out.append(SPOILER_CHAR); i++ }
+            else -> out.append(SPOILER_CHAR)
+        }
+        i++
+    }
+    return out.toString()
+}
+
+private const val SPOILER_CHAR = '▒'
+
 internal fun messagePreview(message: TdApi.Message?): String = when (val content = message?.content) {
-    is TdApi.MessageText -> content.text.text
-    is TdApi.MessagePhoto -> content.caption.text.ifBlank { "Фотография" }
-    is TdApi.MessageVideo -> content.caption.text.ifBlank { "Видео" }
-    is TdApi.MessageDocument -> content.caption.text.ifBlank { "Документ" }
-    is TdApi.MessageVoiceNote -> content.caption.text.ifBlank { "Голосовое сообщение" }
+    is TdApi.MessageText -> hideSpoilers(content.text)
+    is TdApi.MessagePhoto -> hideSpoilers(content.caption).ifBlank { "Фотография" }
+    is TdApi.MessageVideo -> hideSpoilers(content.caption).ifBlank { "Видео" }
+    is TdApi.MessageDocument -> hideSpoilers(content.caption).ifBlank { "Документ" }
+    is TdApi.MessageVoiceNote -> hideSpoilers(content.caption).ifBlank { "Голосовое сообщение" }
     is TdApi.MessageVideoNote -> "Видеосообщение"
     is TdApi.MessageSticker -> "Стикер ${content.sticker.emoji}".trim()
     is TdApi.MessageDice -> diceText(content)
-    is TdApi.MessageAnimation -> content.caption.text.ifBlank { "GIF" }
-    is TdApi.MessageAudio -> content.caption.text.ifBlank { "Аудио" }
+    is TdApi.MessageAnimation -> hideSpoilers(content.caption).ifBlank { "GIF" }
+    is TdApi.MessageAudio -> hideSpoilers(content.caption).ifBlank { "Аудио" }
     is TdApi.MessageCall -> "Звонок"
     is TdApi.MessageContact -> "Контакт"
     is TdApi.MessageLocation -> "Геопозиция"

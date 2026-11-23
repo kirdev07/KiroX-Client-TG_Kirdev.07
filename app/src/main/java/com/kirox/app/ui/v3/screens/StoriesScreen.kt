@@ -202,9 +202,9 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
     }) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))) {
             Box(Modifier.fillMaxSize().look(s.look)) {
-                if (player != null) androidx.compose.ui.viewinterop.AndroidView(factory = { c -> androidx.media3.ui.PlayerView(c).apply { useController = false; keepScreenOn = true } },
+                if (player != null) androidx.compose.ui.viewinterop.AndroidView(factory = { c -> androidx.media3.ui.PlayerView(c).apply { useController = false; keepScreenOn = true; resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT } },
                     update = { it.player = player }, modifier = Modifier.matchParentSize())
-                else if (photo != null) androidx.compose.foundation.Image(photo, null, Modifier.matchParentSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                else if (photo != null) androidx.compose.foundation.Image(photo, null, Modifier.matchParentSize(), contentScale = StoryScale)
             }
             if (s.media == null && !s.pending) Icon(Looks[s.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.1f)).size(90.dp), tint = Color.White.copy(alpha = .22f))
             if (waiting) androidx.compose.material3.CircularProgressIndicator(Modifier.align(Alignment.Center).size(44.dp), color = Color.White, strokeWidth = 3.dp)
@@ -278,4 +278,20 @@ private fun BoxScope.FlyingEmoji(e: String, onDone: () -> Unit) {
     LaunchedEffect(Unit) { p.animateTo(1f, tween(1000, easing = FastOutSlowInEasing)); onDone() }
     Text(e, style = KxType.style(34.sp), modifier = Modifier.align(BiasAlignment(x * 2 - 1, 1f)).padding(bottom = 100.dp)
         .graphicsLayer { translationY = -p.value * 260.dp.toPx(); alpha = 1f - p.value; scaleX = 1f + p.value * .4f; scaleY = scaleX })
+}
+
+/**
+ * lead walk-through: a story fits the screen (a 9:16 story on a 20:9 phone fills the width, black
+ * above / below) instead of cropping its sides; only a small overflow (≤ 12 %) is cropped to fill.
+ */
+internal fun storyScale(src: androidx.compose.ui.geometry.Size, dst: androidx.compose.ui.geometry.Size): Float {
+    if (src.width <= 0f || src.height <= 0f) return 1f
+    val fit = minOf(dst.width / src.width, dst.height / src.height)
+    val crop = maxOf(dst.width / src.width, dst.height / src.height)
+    return if (crop / fit <= 1.12f) crop else fit
+}
+
+private val StoryScale = object : androidx.compose.ui.layout.ContentScale {
+    override fun computeScaleFactor(srcSize: androidx.compose.ui.geometry.Size, dstSize: androidx.compose.ui.geometry.Size) =
+        storyScale(srcSize, dstSize).let { androidx.compose.ui.layout.ScaleFactor(it, it) }
 }

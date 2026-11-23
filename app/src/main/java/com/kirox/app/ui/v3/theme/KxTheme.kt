@@ -107,6 +107,8 @@ object KxLookMapping {
 /** Avatar gradients used by the mockups (top-left → bottom-right) with their letter colors. */
 object KxAvatarPalette {
     data class Swatch(val from: Color, val to: Color, val ink: Color)
+    /** «Избранное»: the green bookmark avatar, the same in the chat list and the chat header. */
+    val saved = Swatch(Color(0xFF2F6E4D), Color(0xFF173A28), Color(0xFFC8F0D8))
     val all = listOf(
         Swatch(Color(0xFF4B3F7A), Color(0xFF2A2240), Color(0xFFDCD0FF)),
         Swatch(Color(0xFF2D4E73), Color(0xFF1A2A40), Color(0xFFC6DBF5)),

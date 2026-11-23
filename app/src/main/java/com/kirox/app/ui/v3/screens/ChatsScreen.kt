@@ -280,12 +280,12 @@ fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected
             chat.avatarIcon == "campaign" -> Icons.Rounded.Campaign
             else -> null
         }
-        // Rows carry no story ring: stories live in the header chip (board «Чаты»).
+        // lead walk-through: a person with an active story gets the story ring (Telegram), besides the header chip.
         if (chat.kind == KxChatKind.Saved) KxAvatar(chat.title, chat.id, size = 54.dp, icon = icon,
-            swatch = KxAvatarPalette.Swatch(Color(0xFF2F6E4D), Color(0xFF173A28), Color(0xFFC8F0D8)))
+            swatch = KxAvatarPalette.saved)
         else Box {
             val sc by androidx.compose.animation.core.animateFloatAsState(if (selected) .9f else 1f, label = "sel")
-            KxAvatar(chat.title, chat.id, Modifier.graphicsLayer { scaleX = sc; scaleY = sc }, size = 54.dp, icon = icon, online = chat.online && !selected, colorIndex = chat.colorIndex, photo = chat.avatar)
+            KxAvatar(chat.title, chat.id, Modifier.graphicsLayer { scaleX = sc; scaleY = sc }, size = 54.dp, icon = icon, online = chat.online && !selected, story = chat.hasStory && !selected, colorIndex = chat.colorIndex, photo = chat.avatar)
             if (selected) Box(Modifier.align(Alignment.BottomEnd).offset(3.dp, 3.dp).size(22.dp).clip(CircleShape).background(Kx.accent).border(2.dp, Kx.bg, CircleShape), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.Check, null, Modifier.size(14.dp), tint = Kx.onAccent)
             }

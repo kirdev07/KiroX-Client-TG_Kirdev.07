@@ -206,7 +206,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                     onOpen = { nav.push(KxRoute.Screen(it)) }, onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) })
                 is KxRoute.Profile -> ProfileScreen(store, route.chatId, onBack = { nav.pop() },
                     onCall = { v -> val p = store.peer(route.chatId); startCall(route.chatId, p.name, v, p.colorIndex) },
-                    onSearch = { nav.push(KxRoute.Screen("ChatSearch:${route.chatId}")) }, onOpen = { nav.push(KxRoute.Screen(it)) })
+                    onSearch = { nav.push(KxRoute.Screen("ChatSearch:${route.chatId}")) }, onOpen = { nav.push(KxRoute.Screen(it)) }, onOpenStory = { nav.push(KxRoute.Story(it)) })
                 KxRoute.Archive -> ArchiveScreen(store, onBack = { nav.pop() }, onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) })
                 is KxRoute.Screen -> {
                     val name = route.name.substringBefore(':')

@@ -94,7 +94,7 @@ fun NewMsgScreen(ctx: KxScreenCtx) {
                                 Row(Modifier.height(32.dp).chPop(.6f, 300).clip(RoundedCornerShape(16.dp)).background(Kx.accent.copy(alpha = .16f))
                                     .border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(16.dp)).kxClick("Убрать ${c.name}") { picked = picked - c.id }
                                     .padding(start = 3.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    KxAvatar(c.name, c.id, size = 26.dp, colorIndex = c.colorIndex)
+                                    KxAvatar(c.name, c.id, size = 26.dp, colorIndex = c.colorIndex, photo = c.avatar)
                                     Text(c.name.substringBefore(' '), style = ts(13, W600))
                                     Icon(Icons.Outlined.Close, null, Modifier.size(15.dp), tint = Kx.accent)
                                 }
@@ -130,7 +130,7 @@ fun NewMsgScreen(ctx: KxScreenCtx) {
                             .kxClick(p.name) { if (multi) picked = if (on) picked - p.id else picked + p.id else if (mode == "msg") scope.launch { store.privateChat(p.id)?.let { ctx.openChat(it) } } }
                             .padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(Modifier.size(44.dp)) {
-                                KxAvatar(p.name, p.id, size = 44.dp, colorIndex = p.colorIndex)
+                                KxAvatar(p.name, p.id, size = 44.dp, colorIndex = p.colorIndex, photo = p.avatar, story = p.hasStory)
                                 if (on) Box(Modifier.align(Alignment.BottomEnd).offset(3.dp, 3.dp).size(20.dp).chPop(.6f, 250).clip(CircleShape).background(Kx.bg).padding(2.dp)
                                     .clip(CircleShape).background(Kx.accent), contentAlignment = Alignment.Center) {
                                     Icon(Icons.Rounded.Check, null, Modifier.size(14.dp), tint = Kx.onAccent)
@@ -220,7 +220,7 @@ private fun NameStep(isChannel: Boolean, name: String, onName: (String) -> Unit,
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 chips.forEach { c ->
                     Column(Modifier.width(56.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        KxAvatar(c.name, c.id, size = 48.dp, colorIndex = c.colorIndex)
+                        KxAvatar(c.name, c.id, size = 48.dp, colorIndex = c.colorIndex, photo = c.avatar)
                         Text(c.name.substringBefore(' '), style = ts(11), maxLines = 1)
                     }
                 }

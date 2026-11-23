@@ -99,6 +99,8 @@ interface KxStore {
     fun call(peerId: Long, video: Boolean) {}
     /** fixer-final: the Calls tab is shown / scrolled near its end — load (or retry) the next page of the call log. */
     fun loadMoreCalls() {}
+    /** lead walk-through: the call log is being read (the Calls tab shows a spinner instead of «Звонков пока не было»). */
+    val callsLoading: Boolean get() = false
 
     // ---- Round 5 (binder, additive). Lists load on first read and fill in; suspend funs answer
     // null on success / a human Russian error text, unless they return data. ----

@@ -92,6 +92,8 @@ class TelegramKxStore(
         private set
     override var missedCalls by mutableStateOf(0)
         private set
+    override var callsLoading by mutableStateOf(false)
+        private set
     override var connection by mutableStateOf<String?>(null)
         private set
     override var chatsLoading by mutableStateOf(true)
@@ -193,8 +195,8 @@ class TelegramKxStore(
         }
         scope.launch { vm.stories.storyChats.collect { list -> list.forEach { c -> c.storyIds.forEach { fetchStory(c.chatId, it) } } } }
         scope.launch {
-            combine(vm.calls.state, pathsDaily) { state, _ -> mapCalls(state.calls) }.flowOn(Dispatchers.Default)
-                .collect { (list, missed) -> calls = list; missedCalls = missed }
+            combine(vm.calls.state, pathsDaily) { state, _ -> !state.complete to mapCalls(state.calls) }.flowOn(Dispatchers.Default)
+                .collect { (loading, mapped) -> calls = mapped.first; missedCalls = mapped.second; callsLoading = loading }
         }
         scope.launch {
             combine(vm.messages.history, pathsDaily, rights, translations) { h, _, r, t -> h to mapHistory(h, r, t) }
@@ -286,7 +288,7 @@ class TelegramKxStore(
             // KxComposer has no «ЗАПУСТИТЬ» yet (proposal in tg-tasks.md): writing /start works meanwhile.
             com.kirox.app.telegram.TelegramWriteAccess.StartBot -> KxComposer.Write
         }
-        val pinned = open?.pinned?.let { KxReply(it.senderName, it.serviceText ?: KxFormat.preview(it.text, it.kind, it.media?.duration ?: 0), it.id) }
+        val pinned = open?.pinned?.let { KxReply(it.senderName, it.serviceText ?: KxFormat.preview(com.kirox.app.telegram.hideSpoilerRanges(it.text, it.entities.filter { e -> e.type == TelegramEntityType.Spoiler }.map { e -> e.offset to e.length }), it.kind, it.media?.duration ?: 0), it.id) }
         return KxChatHeader(
             chatId, title, status, kind, online = online, typing = typing, muted = muted, members = members,
             pinned = pinned, composer = composer,
@@ -795,28 +797,7 @@ class TelegramKxStore(
 
     private fun mapCalls(list: List<TelegramCall>): Pair<List<KxCall>, Int> {
         val known = paths.value
-        // Telegram groups consecutive calls with the same person, direction and day into one row «(3)».
-        val rows = ArrayList<KxCall>()
-        var lastDate = 0
-        for (c in list) { // newest first
-            val dir = when (c.kind) {
-                TelegramCallKind.Incoming -> KxCallDir.Incoming
-                TelegramCallKind.Outgoing -> KxCallDir.Outgoing
-                TelegramCallKind.Missed -> KxCallDir.Missed
-                TelegramCallKind.Unanswered -> KxCallDir.Declined
-            }
-            val prev = rows.lastOrNull()
-            if (prev != null && prev.peerId == c.chatId && prev.dir == dir && prev.video == c.isVideo && KxFormat.sameDay(lastDate, c.date)) {
-                rows[rows.lastIndex] = prev.copy(count = prev.count + 1)
-            } else {
-                rows += KxCall(c.messageId, c.chatId, c.peerName, KxFormat.messageTime(c.date), dir, c.isVideo, KxFormat.callDuration(c.durationSeconds),
-                    avatar = avatarOf(c.photo, known), colorIndex = items[c.chatId]?.accentColorId ?: -1, day = KxFormat.dayHeader(c.date))
-                lastDate = c.date
-            }
-        }
-        // TDLib has no "seen" mark for calls: the dock badge counts missed calls of the last 24 hours.
-        val since = (System.currentTimeMillis() / 1000).toInt() - 86_400
-        return rows to list.count { it.kind == TelegramCallKind.Missed && it.date >= since }
+        return kxCalls(list, avatar = { avatarOf(it.photo, known) }, colorIndex = { items[it]?.accentColorId ?: -1 })
     }
 
     private fun mapContacts(list: List<TelegramContact>, storyChats: List<TelegramStoryChat>): List<KxContact> {
@@ -1761,4 +1742,37 @@ class TelegramKxStore(
         const val GIF_AUTO_BYTES = 8L * 1024 * 1024
         val DEFAULT_REACTIONS = listOf("❤", "🔥", "👍", "😂", "😮", "😢", "🎉")
     }
+}
+
+/**
+ * Call log rows (newest first) + the dock badge (missed calls of the last 24 hours). Telegram groups
+ * consecutive calls with the same person, direction, kind and day into one row «(3)».
+ */
+internal fun kxCalls(
+    list: List<TelegramCall>,
+    avatar: (TelegramCall) -> String? = { null },
+    colorIndex: (Long) -> Int = { -1 },
+    now: Long = System.currentTimeMillis(),
+): Pair<List<KxCall>, Int> {
+    val rows = ArrayList<KxCall>()
+    var lastDate = 0
+    for (c in list.sortedByDescending { it.date }) {
+        val dir = when (c.kind) {
+            TelegramCallKind.Incoming -> KxCallDir.Incoming
+            TelegramCallKind.Outgoing -> KxCallDir.Outgoing
+            TelegramCallKind.Missed -> KxCallDir.Missed
+            TelegramCallKind.Unanswered -> KxCallDir.Declined
+        }
+        val prev = rows.lastOrNull()
+        if (prev != null && prev.peerId == c.chatId && prev.dir == dir && prev.video == c.isVideo && KxFormat.sameDay(lastDate, c.date)) {
+            rows[rows.lastIndex] = prev.copy(count = prev.count + 1)
+        } else {
+            rows += KxCall(c.messageId, c.chatId, c.peerName, KxFormat.messageTime(c.date), dir, c.isVideo, KxFormat.callDuration(c.durationSeconds),
+                avatar = avatar(c), colorIndex = colorIndex(c.chatId), day = KxFormat.dayHeader(c.date, now))
+            lastDate = c.date
+        }
+    }
+    // TDLib has no "seen" mark for calls: the dock badge counts missed calls of the last 24 hours.
+    val since = (now / 1000).toInt() - 86_400
+    return rows to list.count { it.kind == TelegramCallKind.Missed && it.date >= since }
 }

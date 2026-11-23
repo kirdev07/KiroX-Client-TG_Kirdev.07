@@ -288,7 +288,9 @@ data class TelegramCall(
     val kind: TelegramCallKind,
     val isVideo: Boolean,
     val durationSeconds: Int,
-    val date: Int
+    val date: Int,
+    /** A group call not bound to a chat (MessageGroupCall), e.g. a 1:1 call upgraded to a conference. */
+    val isGroup: Boolean = false
 )
 
 data class TelegramCallsState(

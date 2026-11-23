@@ -46,7 +46,7 @@ private val GifLooks = listOf(listOf(Color(0xFF8FD3AC), Color(0xFF2E6B4B)), list
 
 /** Peer profile (board «Профиль»): violet top glow, 112dp avatar, 5 actions, info card, gifts/groups, shared tabs. */
 @Composable
-fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit, onSearch: () -> Unit, onOpen: (String) -> Unit) {
+fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit, onSearch: () -> Unit, onOpen: (String) -> Unit, onOpenStory: (Int) -> Unit = {}) {
     val p = store.peer(chatId)
     val base = if (p.colorIndex >= 0) KxAvatarPalette.all[p.colorIndex % 8] else KxAvatarPalette.of(p.id)
     // Hero variant (board «Профиль»): lighter start colour; for the violet one exactly #6E58C9→#2A2240, ink #E6DEFF.
@@ -66,7 +66,11 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
                     Box(Modifier.matchParentSize().graphicsLayer { scaleX = 148f / 112f; scaleY = scaleX }.drawBehind {
                         drawCircle(Brush.radialGradient(listOf(Color(0x598F78E6), Color.Transparent), radius = size.minDimension / 2 * 1.41f * .65f))
                     })
-                    KxAvatar(p.name, p.id, Modifier.shadow(40.dp, CircleShape, spotColor = Color.Black.copy(alpha = .5f)), size = 112.dp, swatch = sw, letterWeight = FontWeight.ExtraBold, letterSize = 44.sp, photo = p.avatar)
+                    // lead walk-through: an active story → ring around the avatar; a tap opens the stories.
+                    val storyIndex = store.stories.indexOfFirst { it.id == chatId && !it.mine && it.slides.isNotEmpty() }
+                    KxAvatar(p.name, p.id, Modifier.shadow(40.dp, CircleShape, spotColor = Color.Black.copy(alpha = .5f))
+                        .then(if (storyIndex >= 0) Modifier.kxClick("Истории: ${p.name}") { onOpenStory(storyIndex) } else Modifier),
+                        size = 112.dp, swatch = sw, letterWeight = FontWeight.ExtraBold, letterSize = 44.sp, photo = p.avatar, story = storyIndex >= 0)
                     if (p.online) Box(Modifier.align(Alignment.BottomEnd).offset((-4).dp, (-4).dp).size(30.dp).clip(CircleShape).background(Color(0xFF141019)).padding(4.dp).clip(CircleShape).background(Kx.accent))
                 }
                 Row(Modifier.padding(top = 12.dp).kxRise(80, 500), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -180,7 +184,10 @@ private fun SharedContent(items: List<KxSharedItem>, tab: KxSharedTab, modifier:
                     row.forEachIndexed { i, it ->
                         val look = if (tab == KxSharedTab.Gif) GifLooks[(it.look - 10).coerceAtLeast(0) % 3] else MediaLooks[it.look % 6]
                         Box(Modifier.weight(1f).height(112.dp).kxRise(i * 30, 300).drawBehind { drawRect(Brush.linearGradient(look, cssAngleStart(150f, size), cssAngleEnd(150f, size))) }.kxClick("Открыть") { onItem(it) }) {
-                            it.video?.let { v -> Text(v, style = KxType.style(11.sp, FontWeight.SemiBold), modifier = Modifier.align(Alignment.BottomStart).padding(6.dp)
+                            // lead walk-through: the real preview over the placeholder (it was never drawn); fills in when downloaded.
+                            com.kirox.app.ui.v3.components.KxImage(it.media, Modifier.matchParentSize(), maxPx = 360)
+                            // Real items carry video = "video" and the length in sub.
+                            it.video?.let { v -> if (v == "video") it.sub else v }?.takeIf { v -> v.isNotEmpty() }?.let { v -> Text(v, style = KxType.style(11.sp, FontWeight.SemiBold), modifier = Modifier.align(Alignment.BottomStart).padding(6.dp)
                                 .clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .45f)).padding(horizontal = 6.dp, vertical = 1.dp)) }
                         }
                     }
