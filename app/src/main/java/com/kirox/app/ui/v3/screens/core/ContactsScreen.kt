@@ -150,7 +150,7 @@ private fun ContactSheet(c: KxContact, ctx: KxScreenCtx, onClose: () -> Unit) {
                 SheetAction(Icons.Rounded.Chat, "Написать", Modifier.weight(1f), primary = true) { onClose(); ctx.openChat(c.id) }
                 SheetAction(Icons.Outlined.Call, "Звонок", Modifier.weight(1f)) { ctx.store.call(c.id, false); onClose() }
                 SheetAction(Icons.Outlined.Videocam, "Видео", Modifier.weight(1f)) { ctx.store.call(c.id, true); onClose() }
-                SheetAction(Icons.Outlined.Edit, "Изменить", Modifier.weight(1f)) { onClose(); ctx.open("EditContact") }
+                SheetAction(Icons.Outlined.Edit, "Изменить", Modifier.weight(1f)) { onClose(); ctx.open("EditContact:${c.id}") }
             }
             // Info card (phone + username) under the actions.
             Column(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(horizontal = 14.dp, vertical = 12.dp),

@@ -121,7 +121,11 @@ object TelegramStream {
         override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
             if (length == 0) return 0
             if (remaining == 0L) return C.RESULT_END_OF_INPUT
-            if (position >= readyUntil) readyUntil = position + available()
+            if (position >= readyUntil) {
+                // Unknown size: a finished file has no more prefix at its end — that is the end, not "wait 60 s".
+                if (remaining < 0) runCatching { info() }.getOrNull()?.local?.let { l -> if (l.isDownloadingCompleted && position >= l.downloadedSize) return C.RESULT_END_OF_INPUT }
+                readyUntil = position + available()
+            }
             var want = minOf(length.toLong(), readyUntil - position)
             if (remaining > 0) want = minOf(want, remaining)
             val reader = reader()

@@ -48,8 +48,8 @@ class MessageNotifications(
         AppVisibility.listener = { refreshOnline() }
         client.addUpdateHandler { update ->
             when (update) {
-                is TdApi.UpdateMessageSendSucceeded -> sending.remove(update.oldMessageId)?.complete(true)
-                is TdApi.UpdateMessageSendFailed -> sending.remove(update.oldMessageId)?.complete(false)
+                is TdApi.UpdateMessageSendSucceeded -> sending.remove(update.oldMessageId)?.complete(true) ?: finished(update.oldMessageId, true)
+                is TdApi.UpdateMessageSendFailed -> sending.remove(update.oldMessageId)?.complete(false) ?: finished(update.oldMessageId, false)
                 is TdApi.UpdateAuthorizationState -> when (update.authorizationState) {
                     is TdApi.AuthorizationStateReady -> enable()
                     // A background pause keeps what is already shown; logout and account switch clear it.
@@ -216,7 +216,12 @@ class MessageNotifications(
                 // In a forum topic or a comment thread the answer stays there, not in the general chat.
                 client.query(TdApi.SendMessage(chatId, topic, null, null, null, TdApi.InputMessageText(TdApi.FormattedText(text, emptyArray()), null, true)))
             }.getOrNull() ?: return false
-            if (pending.sendingState == null) done.complete(true) else sending[pending.id] = done
+            if (pending.sendingState == null) done.complete(true)
+            else {
+                sending[pending.id] = done
+                // The send result may have arrived (TDLib thread) before the waiter was registered here.
+                finishedEarly.remove(pending.id)?.let { sending.remove(pending.id); done.complete(it) }
+            }
             val sent = kotlinx.coroutines.withTimeoutOrNull(SEND_WAIT) { done.await() } ?: false
             sending.remove(pending.id)
             if (sent) markRead(groupId, chatId, maxNotificationId)
@@ -225,6 +230,13 @@ class MessageNotifications(
             // Started for this reply while in the background: close TDLib again so pushes keep coming.
             client.post(PAUSE_DELAY_MS) { client.pauseIfIdle() }
         }
+    }
+
+    /** Send results that came before [reply] registered its waiter (the race between the IO and TDLib threads); kept small. */
+    private val finishedEarly = java.util.concurrent.ConcurrentHashMap<Long, Boolean>()
+    private fun finished(oldId: Long, ok: Boolean) {
+        if (finishedEarly.size > 50) finishedEarly.clear()
+        finishedEarly[oldId] = ok
     }
 
     /** Messages sent from notifications, by their temporary id, waiting for Telegram's answer. */

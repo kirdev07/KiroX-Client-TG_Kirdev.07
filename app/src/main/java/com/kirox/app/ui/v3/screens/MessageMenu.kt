@@ -48,6 +48,8 @@ fun MessageMenuSheet(
     onForward: () -> Unit = onDismiss, onPin: () -> Unit = onDismiss, onSave: () -> Unit = onDismiss, onSelect: () -> Unit = onDismiss,
     onTranslate: () -> Unit = onDismiss, onCopied: () -> Unit = onDismiss, canDeleteForAll: Boolean = m.out,
     onAllReactions: () -> Unit = {},
+    /** Group / channel: the delete sheet says «Удалить у всех участников» instead of the chat title. */
+    isGroup: Boolean = false,
     /** Extra actions opening the message's own boards (info, who read, replace media, remind…). */
     more: List<Triple<ImageVector, String, () -> Unit>> = emptyList(),
 ) {
@@ -105,13 +107,13 @@ fun MessageMenuSheet(
                 if (m.canForward) MenuItem(Icons.AutoMirrored.Outlined.Forward, "Переслать", onClick = onForward)
                 if (m.canForward) MenuItem(Icons.Outlined.BookmarkBorder, "В Избранное", onClick = onSave)
                 if (m.canPin) MenuItem(Icons.Outlined.PushPin, if (m.pinned) "Открепить" else "Закрепить", onClick = onPin)
-                if (m.canEdit && m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Text) MenuItem(Icons.Outlined.Edit, "Изменить", onClick = onEdit)
+                if (m.canEdit && m.kind in EditableKinds) MenuItem(Icons.Outlined.Edit, if (m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Text) "Изменить" else "Изменить подпись", onClick = onEdit)
                 MenuItem(Icons.Outlined.CheckCircle, "Выбрать", onClick = onSelect)
                 more.forEach { (ic, label, action) -> MenuItem(ic, label, onClick = action) }
                 if (m.canDeleteForMe || m.canDeleteForAll) MenuItem(Icons.Outlined.Delete, "Удалить…", danger = true) { deleting = true }
             }
         }
-        if (deleting) DeleteSheet(m, peerName, canDeleteForAll, onCancel = onDismiss, onDelete = onDelete, modifier = Modifier.align(Alignment.BottomCenter), canDeleteForMe = m.canDeleteForMe)
+        if (deleting) DeleteSheet(m, peerName, canDeleteForAll, onCancel = onDismiss, onDelete = onDelete, modifier = Modifier.align(Alignment.BottomCenter), canDeleteForMe = m.canDeleteForMe, isGroup = isGroup)
     }
 }
 
@@ -125,8 +127,12 @@ private fun MenuItem(icon: ImageVector, label: String, danger: Boolean = false, 
 }
 
 /** Bottom sheet «Удалить сообщение?» (radius 30 on top, solid — no glass). */
+/** Kinds whose text (or caption) can be edited when TDLib says canEdit. */
+private val EditableKinds = setOf(com.kirox.app.ui.v3.model.KxMsgKind.Text, com.kirox.app.ui.v3.model.KxMsgKind.Photo, com.kirox.app.ui.v3.model.KxMsgKind.Video,
+    com.kirox.app.ui.v3.model.KxMsgKind.Gif, com.kirox.app.ui.v3.model.KxMsgKind.File, com.kirox.app.ui.v3.model.KxMsgKind.Music, com.kirox.app.ui.v3.model.KxMsgKind.Voice)
+
 @Composable
-fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCancel: () -> Unit, onDelete: (Boolean) -> Unit, modifier: Modifier = Modifier, canDeleteForMe: Boolean = true) {
+fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCancel: () -> Unit, onDelete: (Boolean) -> Unit, modifier: Modifier = Modifier, canDeleteForMe: Boolean = true, isGroup: Boolean = false) {
     // Telegram's three cases: both (checkbox), for everyone only (supergroups/channels), only for me.
     val forAllOnly = canDeleteForAll && !canDeleteForMe
     var both by remember { mutableStateOf(true) }
@@ -149,7 +155,7 @@ fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCanc
                 .border(2.dp, if (both) Kx.accent else Kx.w(.3f), RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) {
                 if (both) Icon(Icons.Rounded.Check, null, Modifier.size(17.dp), tint = Kx.onAccent)
             }
-            Text("Также удалить у: $peerName", style = KxType.style(15.sp), modifier = Modifier.weight(1f))
+            Text(if (isGroup) "Удалить у всех участников" else "Также удалить у: $peerName", style = KxType.style(15.sp), modifier = Modifier.weight(1f))
         } else Text("Чужое сообщение удалится только у вас.", style = KxType.caption, modifier = Modifier.padding(top = 6.dp))
         Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             KxButton("Отмена", Modifier.weight(1f), KxButtonKind.Quiet, height = 50.dp, onClick = onCancel)

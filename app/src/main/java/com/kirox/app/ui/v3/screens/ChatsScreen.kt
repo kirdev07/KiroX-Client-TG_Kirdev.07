@@ -87,7 +87,7 @@ fun ChatsScreen(
             KxChip("+ Папка", selected = false, dashed = true) {}
         }
         store.connection?.let { Text(it, style = KxType.caption.copy(color = Kx.accent), modifier = Modifier.padding(start = 20.dp, top = 8.dp)) }
-        LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp).kxRise(200), contentPadding = PaddingValues(bottom = bottomPadding)) {
+        LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp).kxRise(200), state = androidx.compose.foundation.lazy.rememberLazyListState(), contentPadding = PaddingValues(bottom = bottomPadding)) {
             if (folder == 0 && store.archivedChats.isNotEmpty()) item("archive") { ArchiveRow(store.archivedChats, onOpenArchive) }
             itemsIndexed(chats, key = { _, c -> c.id }) { i, chat ->
                 if (i >= chats.size - 10) LaunchedEffect(chats.size, folder) { store.loadMoreChats(folder) }

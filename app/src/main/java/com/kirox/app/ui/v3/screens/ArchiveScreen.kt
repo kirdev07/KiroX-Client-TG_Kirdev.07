@@ -37,17 +37,20 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.KxChat
 import com.kirox.app.ui.v3.model.KxChatKind
 import com.kirox.app.ui.v3.model.KxStore
+import com.kirox.app.ui.v3.model.KxPrefsAccount
+import com.kirox.app.ui.v3.model.pref
 import com.kirox.app.ui.v3.theme.*
 
 /** Archive (board «Архив»): tip card, tap opens / long press selects, action bar, archive settings sheet. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit) {
-    var tip by rememberSaveable { mutableStateOf(true) }
+    // Archive settings are kept (KxPrefsAccount; the two Telegram flags also go to TDLib in the real store).
+    val tip = store.pref(KxPrefsAccount.ARCHIVE_TIP) != 0
     var settings by remember { mutableStateOf(false) }
-    var keepMuted by rememberSaveable { mutableStateOf(true) }
-    var hideBadge by rememberSaveable { mutableStateOf(true) }
-    var folders by rememberSaveable { mutableStateOf(false) }
+    val keepMuted = store.pref(KxPrefsAccount.ARCHIVE_KEEP) != 0
+    val hideBadge = store.pref(KxPrefsAccount.ARCHIVE_HIDE_BADGE) != 0
+    val folders = store.pref(KxPrefsAccount.ARCHIVE_FOLDERS) != 0
     val sel = remember { mutableStateListOf<Long>() }
     var confirm by remember { mutableStateOf<KxConfirm?>(null) }
     val toast = LocalKxToast.current
@@ -83,7 +86,7 @@ fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit
                                 else "Чат вернётся в список, как только придёт новое сообщение. Удерживайте чат, чтобы выбрать.",
                                 style = KxType.style(13.sp, color = Kx.text2, lineHeight = 18.sp), modifier = Modifier.padding(top = 3.dp))
                         }
-                        Box(Modifier.size(28.dp).clip(CircleShape).kxClick("Скрыть") { tip = false }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text4) }
+                        Box(Modifier.size(28.dp).clip(CircleShape).kxClick("Скрыть") { store.putPref(KxPrefsAccount.ARCHIVE_TIP, 0) }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text4) }
                     }
                 }
                 itemsIndexed(chats, key = { _, c -> c.id }) { i, c ->
@@ -107,7 +110,8 @@ fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit
                 }
             }
         }
-        if (settings) ArchiveSettings(keepMuted, hideBadge, folders, { keepMuted = it }, { hideBadge = it }, { folders = it }) { settings = false }
+        if (settings) ArchiveSettings(keepMuted, hideBadge, folders, { store.putPref(KxPrefsAccount.ARCHIVE_KEEP, if (it) 1 else 0) },
+            { store.putPref(KxPrefsAccount.ARCHIVE_HIDE_BADGE, if (it) 1 else 0) }, { store.putPref(KxPrefsAccount.ARCHIVE_FOLDERS, if (it) 1 else 0) }) { settings = false }
         confirm?.let { KxConfirmDialog(it) { confirm = null } }
     }
 }

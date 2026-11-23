@@ -1534,6 +1534,17 @@ class TelegramKxStore(
     override suspend fun recommendedChats(): List<KxPublicChat> = chat3.recommendedChats()
     override suspend fun searchPublicChats(query: String): List<KxPublicChat> = chat3.searchPublicChats(query)
     override suspend fun similarChats(chatId: Long): List<KxPublicChat> = chat3.similarChats(chatId)
+    override suspend fun commonGroups(userId: Long): List<KxPublicChat> = chat3.commonGroups(userId)
+    override suspend fun userGifts(userId: Long): List<KxReceivedGift> = chat3.giftsOf(userId)
+    override val hiddenStoryChats: List<KxPublicChat>? get() = hiddenStories
+    private var hiddenStories by mutableStateOf<List<KxPublicChat>?>(null)
+    private var hiddenWatch = false
+    override fun loadHiddenStories() {
+        if (!hiddenWatch) { hiddenWatch = true; scope.launch { vm.stories.hiddenStoryChats.collect { list ->
+            hiddenStories = list.map { KxPublicChat(it.chatId, it.title, channel = false, avatar = autoPath(it.photo, paths.value)) } } } }
+        vm.stories.loadHidden()
+    }
+    override fun hideStories(chatId: Long, hidden: Boolean) = act { vm.stories.setHidden(chatId, hidden) }
     override suspend fun birthdays(): List<KxBirthday> = chat3.birthdays()
     override fun clickBigEmoji(chatId: Long, messageId: Long) { scope.launch { chat3.clickBigEmoji(chatId, messageId) } }
     override val sensitiveAllowed: Boolean? get() = chat3.sensitive

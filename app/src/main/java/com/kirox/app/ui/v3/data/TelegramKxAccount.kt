@@ -154,6 +154,13 @@ internal class KxAccountBinder(private val app: Context, private val services: T
 
     fun start() {
         scope.launch { com.kirox.app.settings.MessageFilters.state.collect { values = readInts() } }
+        // Archive flags as Telegram has them (another device may have changed them).
+        scope.launch {
+            runCatching { client.query(org.drinkless.tdlib.TdApi.GetArchiveChatListSettings()) }.getOrNull()?.let { a ->
+                prefs.edit { putInt(KxPrefsAccount.ARCHIVE_KEEP, if (a.keepUnmutedChatsArchived) 1 else 0); putInt(KxPrefsAccount.ARCHIVE_FOLDERS, if (a.keepChatsFromFoldersArchived) 1 else 0) }
+                values = readInts()
+            }
+        }
         // Wellbeing: a minute counts when kiroX is on screen (local only, from the first start of this version).
         scope.launch {
             while (true) {
@@ -181,6 +188,17 @@ internal class KxAccountBinder(private val app: Context, private val services: T
             KxPrefsAccount.WELL_QUIET -> prefs.edit {
                 putInt(key, value); putInt(KxPrefsAccount.DND_SCHED, value); putBoolean(KxDnd.SCHED_SET, true)
                 if (value != 0) { putInt(KxPrefsAccount.DND_FROM, 23); putInt(KxPrefsAccount.DND_TO, 7) }
+            }
+            // Archive: the two Telegram flags go to TDLib too (local copy = what the sheet shows offline).
+            KxPrefsAccount.ARCHIVE_KEEP, KxPrefsAccount.ARCHIVE_FOLDERS -> {
+                prefs.edit { putInt(key, value) }
+                scope.launch {
+                    try {
+                        val cur = client.query(org.drinkless.tdlib.TdApi.GetArchiveChatListSettings())
+                        if (key == KxPrefsAccount.ARCHIVE_KEEP) cur.keepUnmutedChatsArchived = value != 0 else cur.keepChatsFromFoldersArchived = value != 0
+                        client.query(org.drinkless.tdlib.TdApi.SetArchiveChatListSettings(cur))
+                    } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { onError(KxExtrasMapping.errorText(e)) }
+                }
             }
             else -> prefs.edit { putInt(key, value) }
         }

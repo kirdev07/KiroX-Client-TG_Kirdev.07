@@ -84,7 +84,8 @@ internal class KxLocalSettings(private val app: Context, private val scope: Coro
     private val media = (app as com.kirox.app.KiroXApplication).telegram.media
     private val prefs = app.getSharedPreferences("kirox_v3_prefs", Context.MODE_PRIVATE)
     private val own = setOf(KxPrefs.THEME, KxPrefs.CHAT_WALLPAPER, KxPrefs.TRANSLATE, KxPrefs.TRANSLATE_TO, KxPrefs.POWER_OFF, KxPrefs.NOISE, KxPrefs.ECHO,
-        KxPrefs.RINGTONE, KxPrefs.NIGHT_MODE, KxPrefs.NIGHT_THEME, KxPrefs.WALL, KxPrefs.WALL_BLUR, KxPrefs.WALL_MOTION, KxPrefs.WALL_DIM)
+        KxPrefs.RINGTONE, KxPrefs.NIGHT_MODE, KxPrefs.NIGHT_THEME, KxPrefs.WALL, KxPrefs.WALL_BLUR, KxPrefs.WALL_MOTION, KxPrefs.WALL_DIM,
+        KxPrefs.ANIM_ON, KxPrefs.ANIM_SCENE, KxPrefs.ANIM_SPEED, KxPrefs.ANIM_QUAL)
 
     var values by mutableStateOf(read())
         private set

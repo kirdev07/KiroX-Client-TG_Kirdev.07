@@ -122,6 +122,7 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
     val flying = remember { mutableStateListOf<Pair<Long, String>>() }
     var paused by remember { mutableStateOf(false) }
     var reply by remember { mutableStateOf("") }
+    var replyFocused by remember { mutableStateOf(false) }
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     val toast = LocalKxToast.current
     if (peers.isEmpty()) { LaunchedEffect(Unit) { onClose() }; return }
@@ -173,18 +174,18 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
             Text(s.caption, style = KxType.style(18.sp, FontWeight.Bold).copy(shadow = androidx.compose.ui.graphics.Shadow(Color.Black.copy(alpha = .5f), blurRadius = 20f)),
                 modifier = Modifier.align(Alignment.BottomStart).navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 120.dp))
             Row(Modifier.fillMaxSize().padding(top = 80.dp, bottom = 100.dp)) {
-                Box(Modifier.weight(.35f).fillMaxHeight().clickable(interactionSource = null, indication = null) { advance(-1) }.semantics { contentDescription = "Назад" })
-                Box(Modifier.weight(.65f).fillMaxHeight().clickable(interactionSource = null, indication = null) { advance(1) }.semantics { contentDescription = "Дальше" })
+                Box(Modifier.weight(.35f).fillMaxHeight().clickable(interactionSource = null, indication = null) { if (replyFocused) focus.clearFocus() else advance(-1) }.semantics { contentDescription = "Назад" })
+                Box(Modifier.weight(.65f).fillMaxHeight().clickable(interactionSource = null, indication = null) { if (replyFocused) focus.clearFocus() else advance(1) }.semantics { contentDescription = "Дальше" })
             }
             flying.forEach { (id, e) -> key(id) { FlyingEmoji(e) { flying.removeAll { it.first == id } } } }
         }
-        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 10.dp, end = 10.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding().padding(start = 10.dp, end = 10.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Reply field: typing pauses the story; «Отправить» sends the reply to the author (store.replyStory).
             Box(Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Kx.w(.12f)).border(1.dp, Kx.w(.2f), RoundedCornerShape(25.dp))
                 .padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
                 if (reply.isEmpty()) Text("Ответить…", style = KxType.style(15.sp, color = Color.White.copy(alpha = .8f)), maxLines = 1)
                 androidx.compose.foundation.text.BasicTextField(reply, { reply = it; if (it.isNotEmpty()) paused = true }, Modifier.fillMaxWidth()
-                    .onFocusChanged { if (it.isFocused) paused = true },
+                    .onFocusChanged { replyFocused = it.isFocused; if (it.isFocused) paused = true },
                     singleLine = true, textStyle = KxType.style(15.sp, color = Color.White), cursorBrush = androidx.compose.ui.graphics.SolidColor(Kx.accent))
             }
             if (reply.isNotBlank()) Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.accent).kxClick("Отправить") {

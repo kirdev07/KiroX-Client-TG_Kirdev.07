@@ -36,7 +36,7 @@ data class PasscodeSettings(
 /**
  * Local passcode of kiroX (not the Telegram cloud password): a 4-digit code that locks the app on
  * start and after it stayed in the background for [AutoLock]. Only a salted PBKDF2 hash is stored,
- * on this device. Five wrong codes in a row block entry for 30 seconds.
+ * on this device. Five wrong codes in a row block entry (30 s, growing with each block); the counter is kept across restarts.
  */
 object PasscodeLock {
     private lateinit var prefs: SharedPreferences
@@ -62,6 +62,10 @@ object PasscodeLock {
         )
         // A fresh process always starts locked.
         _locked.value = _settings.value.enabled
+        // Wrong-code counter and block survive a process kill (no brute force by swiping the app away).
+        failures = prefs.getInt(FAILURES_KEY, 0)
+        val left = prefs.getLong(BLOCKED_WALL_KEY, 0L) - System.currentTimeMillis()
+        if (left > 0) blockedUntil = SystemClock.elapsedRealtime() + left.coerceAtMost(blockMs(prefs.getInt(BLOCKS_KEY, 1)))
     }
 
     /** From AppVisibility: going to the background starts the timer, coming back checks it. */
@@ -76,19 +80,34 @@ object PasscodeLock {
     /** Checks [code] on the lock screen; true unlocks. */
     fun unlock(code: String): Boolean {
         if (SystemClock.elapsedRealtime() < blockedUntil) return false
-        if (matches(code)) { failures = 0; _locked.value = false; return true }
+        if (matches(code)) { resetFailures(); _locked.value = false; return true }
         failures++
-        if (failures >= MAX_FAILURES) { failures = 0; blockedUntil = SystemClock.elapsedRealtime() + BLOCK_MS }
+        if (failures >= MAX_FAILURES) {
+            // Each new block in a row is longer: 30 s, 1 min, 5 min, 15 min, then 1 h.
+            val blocks = prefs.getInt(BLOCKS_KEY, 0) + 1
+            val ms = blockMs(blocks)
+            failures = 0
+            blockedUntil = SystemClock.elapsedRealtime() + ms
+            prefs.edit { putInt(BLOCKS_KEY, blocks); putLong(BLOCKED_WALL_KEY, System.currentTimeMillis() + ms) }
+        }
+        prefs.edit { putInt(FAILURES_KEY, failures) }
         return false
     }
 
     /** The fingerprint was accepted by the system. */
-    fun unlockByBiometric() { failures = 0; _locked.value = false }
+    fun unlockByBiometric() { resetFailures(); _locked.value = false }
+
+    private fun resetFailures() {
+        failures = 0
+        if (prefs.contains(FAILURES_KEY) || prefs.contains(BLOCKS_KEY)) prefs.edit { remove(FAILURES_KEY); remove(BLOCKS_KEY); remove(BLOCKED_WALL_KEY) }
+    }
+
+    private fun blockMs(blocks: Int): Long = BLOCKS_MS[(blocks - 1).coerceIn(0, BLOCKS_MS.lastIndex)]
 
     fun matches(code: String): Boolean {
         val salt = prefs.getString(SALT_KEY, null)?.let { Base64.decode(it, Base64.NO_WRAP) } ?: return false
         val stored = prefs.getString(HASH_KEY, null)?.let { Base64.decode(it, Base64.NO_WRAP) } ?: return false
-        return MessageDigest.isEqual(hash(code, salt), stored)
+        return MessageDigest.isEqual(hash(code, salt, prefs.getString(ALG_KEY, ALG_SHA256) ?: ALG_SHA256), stored)
     }
 
     /** Turns the code on, or changes it; [pattern] — it is a graphic key. The app stays unlocked. */
@@ -96,9 +115,11 @@ object PasscodeLock {
         prefs.edit { putBoolean(PATTERN_KEY, pattern) }
         _settings.value = _settings.value.copy(pattern = pattern)
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val alg = currentAlg()
         prefs.edit {
             putString(SALT_KEY, Base64.encodeToString(salt, Base64.NO_WRAP))
-            putString(HASH_KEY, Base64.encodeToString(hash(code, salt), Base64.NO_WRAP))
+            putString(HASH_KEY, Base64.encodeToString(hash(code, salt, alg), Base64.NO_WRAP))
+            putString(ALG_KEY, alg)
         }
         _settings.value = _settings.value.copy(enabled = true)
     }
@@ -107,6 +128,7 @@ object PasscodeLock {
         prefs.edit {
             remove(SALT_KEY)
             remove(HASH_KEY)
+            remove(ALG_KEY)
         }
         _settings.value = _settings.value.copy(enabled = false)
         _locked.value = false
@@ -118,14 +140,24 @@ object PasscodeLock {
     fun setBiometric(value: Boolean) { prefs.edit { putBoolean(BIOMETRIC_KEY, value) }; _settings.value = _settings.value.copy(biometric = value) }
     fun setHideContent(value: Boolean) { prefs.edit { putBoolean(HIDE_KEY, value) }; _settings.value = _settings.value.copy(hideContent = value) }
 
-    private fun hash(code: String, salt: ByteArray): ByteArray =
-        SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(PBEKeySpec(code.toCharArray(), salt, ITERATIONS, 256)).encoded
+    /** PBKDF2WithHmacSHA256 exists from Android 8; Android 7 uses PBKDF2WithHmacSHA1. The algorithm is stored with the hash
+     *  (no key = SHA-256, as written before this fallback). */
+    private fun currentAlg() = if (android.os.Build.VERSION.SDK_INT >= 26) ALG_SHA256 else ALG_SHA1
+
+    private fun hash(code: String, salt: ByteArray, alg: String): ByteArray =
+        SecretKeyFactory.getInstance(alg).generateSecret(PBEKeySpec(code.toCharArray(), salt, ITERATIONS, 256)).encoded
 
     const val LENGTH = 4
     private const val MAX_FAILURES = 5
-    private const val BLOCK_MS = 30_000L
+    private val BLOCKS_MS = longArrayOf(30_000L, 60_000L, 5 * 60_000L, 15 * 60_000L, 60 * 60_000L)
+    private const val FAILURES_KEY = "failures"
+    private const val BLOCKS_KEY = "blocks"
+    private const val BLOCKED_WALL_KEY = "blocked_until_wall"
     private const val ITERATIONS = 20_000
     private const val SALT_KEY = "salt"
+    private const val ALG_KEY = "alg"
+    private const val ALG_SHA256 = "PBKDF2WithHmacSHA256"
+    private const val ALG_SHA1 = "PBKDF2WithHmacSHA1"
     private const val HASH_KEY = "hash"
     private const val AUTO_KEY = "auto_lock"
     private const val BIOMETRIC_KEY = "biometric"

@@ -139,7 +139,9 @@ internal fun copyToCache(context: Context, uri: Uri): String? = runCatching {
 
 /** Duration (s), width and height of a local video; zeros when unreadable. */
 internal fun videoMeta(path: String): Triple<Int, Int, Int> = runCatching {
-    android.media.MediaMetadataRetriever().use { r ->
+    // Not `use {}`: MediaMetadataRetriever is AutoCloseable only from API 29 (Android 7–9 would lose the metadata).
+    val r = android.media.MediaMetadataRetriever()
+    try {
         r.setDataSource(path)
         val ms = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0
         var w = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
@@ -147,7 +149,7 @@ internal fun videoMeta(path: String): Triple<Int, Int, Int> = runCatching {
         val rotation = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
         if (rotation == 90 || rotation == 270) { val t = w; w = h; h = t }
         Triple((ms / 1000).toInt(), w, h)
-    }
+    } finally { runCatching { r.release() } }
 }.getOrDefault(Triple(0, 0, 0))
 
 /** Telegram allows up to 10 photos and videos in one album. */

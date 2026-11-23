@@ -52,9 +52,10 @@ fun Modifier.kxClick(label: String? = null, role: Role = Role.Button, enabled: B
 fun KxIconButton(icon: ImageVector, label: String, modifier: Modifier = Modifier, size: Dp = 44.dp, iconSize: Dp = 22.dp,
                  accent: Boolean = false, filled: Boolean = true, glass: Boolean = false, tint: Color = if (accent) Kx.onAccent else Kx.text2, onClick: () -> Unit) {
     Box(
-        modifier.size(size).clip(CircleShape)
+        modifier.size(if (Kx.look.bigButtons) maxOf(size, 52.dp) else size).clip(CircleShape)
             .then(if (accent) Modifier.background(Kx.accentGradient) else if (filled || glass) Modifier.background(Kx.fill) else Modifier)
             .then(if (glass) Modifier.border(1.dp, Kx.w(.09f), CircleShape).topHighlight(Kx.w(.14f)) else Modifier)
+            .then(if (Kx.look.outlines) Modifier.border(1.5.dp, Kx.w(.55f), CircleShape) else Modifier)
             .kxClick(label, onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Icon(icon, null, Modifier.size(iconSize), tint = tint) }
@@ -225,7 +226,9 @@ fun KxButton(text: String, modifier: Modifier = Modifier, kind: KxButtonKind = K
         else -> Kx.text
     }
     Row(
-        modifier.height(height).clip(shape).then(bg).kxClick(enabled = enabled, onClick = onClick).padding(horizontal = 20.dp),
+        modifier.height(if (Kx.look.bigButtons) maxOf(height, 58.dp) else height).clip(shape).then(bg)
+            .then(if (Kx.look.outlines) Modifier.border(1.5.dp, Kx.w(.55f), shape) else Modifier)
+            .kxClick(enabled = enabled, onClick = onClick).padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) { Icon(icon, null, Modifier.size(20.dp), tint = ink); Spacer(Modifier.width(8.dp)) }

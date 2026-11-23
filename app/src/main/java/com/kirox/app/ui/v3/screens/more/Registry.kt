@@ -5,6 +5,12 @@ import com.kirox.app.ui.v3.KxScreenFn
 /** Screens of this section by board name (mockup file name without .dc.html). */
 val MoreScreens: Map<String, KxScreenFn> = mapOf(
     "EditMsg" to { ctx -> EditMsgScreen(ctx) },
+    // wave4 (fixer): boards behind former «ещё переносится» entries
+    "EditContact" to { ctx -> EditContactScreen(ctx) },
+    "CommonGroups" to { ctx -> CommonGroupsScreen(ctx) },
+    "Gifts" to { ctx -> GiftsScreen(ctx) },
+    "HiddenStories" to { ctx -> HiddenStoriesScreen(ctx) },
+    "Anim" to { ctx -> AnimScreen(ctx) },
     "MultiSelect" to { ctx -> MultiSelectScreen(ctx) },
     "Pinned" to { ctx -> PinnedScreen(ctx) },
     "MsgInfo" to { ctx -> MsgInfoScreen(ctx) },

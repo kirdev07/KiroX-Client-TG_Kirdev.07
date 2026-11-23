@@ -199,3 +199,13 @@ Stories tab shows 6 cards per screen; a list mode (Telegram-style rows with ring
 
 ### P3-9 Screenshot harness variants — S
 Add fontScale 1.3, light-contrast and TalkBack-tree dumps to kxbuild test so every new board is checked for P1-5..P1-7 automatically.
+
+## from qa-lead
+- Apply the colour theme (Custom board) to the whole v3 UI: today `Kx.accent` is a constant, the 12 swatches only change the board preview. Needs `Kx` colours from a CompositionLocal (accent, accentGradient, bubble out colours, badges). Same for NightMode, Access (bold / contrast / outlines / big buttons / palettes) and Language — either apply or label the rows «скоро».
+- Search screens: focus the field and open the keyboard on entry (global Search, Settings search) — Telegram does this; today the user must tap the field first.
+- Calls tab «Поиск» opens the global chat search; Telegram searches the call log there → a call-log filter.
+- «Специальные возможности» (Access) is reachable only via Settings search → add a row (Settings or Custom).
+- Story viewer reply pill: «Ответить Анна…» → «Ответить…» (Russian case), and make it a real input (replyStory).
+- Swipe action labels/icons in the chat list stay «Закрепить»/«Без звука» for an already pinned/muted chat → show «Открепить»/«Со звуком».
+- Group profile: tapping a member row does nothing → open the member's profile (Telegram).
+- Chat header «8 участников, 3 в сети» vs group profile «128 участников» (demo data) — make the demo consistent, it is the showcase app.

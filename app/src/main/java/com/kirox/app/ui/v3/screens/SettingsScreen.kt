@@ -51,7 +51,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                 Row(Modifier.kxRise(120), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     PremiumButton(Modifier.weight(1.4f)) { onOpen("Premium") }
                     Row(Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.05f)).border(1.dp, Kx.fillHi, RoundedCornerShape(22.dp))
-                        .kxClick { onOpen("GiftOpen") }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        .kxClick { onOpen("Gifts") }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Rounded.Redeem, null, tint = Color(0xFFF2A6C0))
                         Column { Text("Подарки", style = KxType.style(15.sp, FontWeight.Bold)); Text("За звёзды", style = KxType.caption) }
                     }
@@ -94,8 +94,8 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
             Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 58.dp, end = 16.dp).width(210.dp)
                 .clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Color(0xF22E3A34), Color(0xF5181E1B)))).border(1.dp, Kx.stroke, RoundedCornerShape(20.dp)).topHighlight(Kx.w(.22f)).padding(6.dp)) {
                 listOf(androidx.compose.material.icons.Icons.Outlined.AccountCircle to "Мой профиль", androidx.compose.material.icons.Icons.Outlined.SwitchAccount to "Аккаунты", androidx.compose.material.icons.Icons.Outlined.Contacts to "Контакты",
-                    androidx.compose.material.icons.Icons.Outlined.Devices to "Устройства", androidx.compose.material.icons.Icons.Outlined.Folder to "Чаты и папки", androidx.compose.material.icons.Icons.Outlined.History to "Старый дизайн").filter { store !is com.kirox.app.ui.v3.demo.KxDemoStore || it.second != "Старый дизайн" }.forEach { (ic, t) ->
-                    Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick { menu = false; onOpen(mapOf("Мой профиль" to "EditProfile", "Аккаунты" to "Accounts", "Контакты" to "Contacts", "Устройства" to "Devices", "Чаты и папки" to "Folders")[t] ?: t) }.padding(horizontal = 12.dp),
+                    androidx.compose.material.icons.Icons.Outlined.Devices to "Устройства", androidx.compose.material.icons.Icons.Outlined.Folder to "Чаты и папки", androidx.compose.material.icons.Icons.Outlined.VisibilityOff to "Скрытые чаты", androidx.compose.material.icons.Icons.Outlined.History to "Старый дизайн").filter { store !is com.kirox.app.ui.v3.demo.KxDemoStore || it.second != "Старый дизайн" }.forEach { (ic, t) ->
+                    Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick { menu = false; onOpen(mapOf("Мой профиль" to "EditProfile", "Аккаунты" to "Accounts", "Контакты" to "Contacts", "Устройства" to "Devices", "Чаты и папки" to "Folders", "Скрытые чаты" to "Hidden")[t] ?: t) }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(ic, null, Modifier.size(20.dp), tint = Kx.accent); Text(t, style = KxType.style(15.sp))
                     }

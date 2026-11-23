@@ -13,6 +13,11 @@ object KxPrefs {
     // Кастомизация
     /** 0..11: colour look of the Custom board (11 = «Своя»). */
     const val THEME = "theme"
+    /** Anim board: animations on (1/0), scene 0 Авто 1 Основная 2 Хэллоуин 3 Зима 4 Новый год, speed 0 Обычные 1 Меньше 2 Выкл., quality 0 Авто 1 Высокое 2 Лёгкое. */
+    const val ANIM_ON = "anim.on"
+    const val ANIM_SCENE = "anim.scene"
+    const val ANIM_SPEED = "anim.speed"
+    const val ANIM_QUAL = "anim.qual"
     /** Read-only: own colour themes. */
     const val OWN_THEMES = "ownThemes"
     /** Read-only: chats with their own look. */
@@ -76,7 +81,7 @@ object KxPrefs {
     const val WALL_DIM = "wall.dim"
 
     val defaults: Map<String, Int> = mapOf(
-        THEME to 0, OWN_THEMES to 1, CHAT_LOOKS to 2,
+        THEME to 0, OWN_THEMES to 1, CHAT_LOOKS to 2, ANIM_ON to 1, ANIM_SCENE to 1, ANIM_SPEED to 0, ANIM_QUAL to 0,
         BUBBLES to 1, CHAT_WALLPAPER to 0, TEXT_SIZE to 1, DENSITY to 1,
         LANGUAGE to 0, TRANSLATE to 1, TRANSLATE_TO to 0,
         POWER_THRESHOLD to 15, POWER_OFF to 0b010111, BATTERY to 62, POWER_MODE to 0, DOUBLE_TAP to 0, FILTER_WORDS to 3,
@@ -172,6 +177,12 @@ object KxPrefsAccount {
     const val WELL_LIMIT = "well.limit"
     const val WELL_BREAK = "well.break"
     const val WELL_QUIET = "well.quiet"
+    /** Archive sheet: «Оставлять в архиве» (TDLib keep_unmuted_chats_archived), chats from folders (keep_chats_from_folders_archived),
+     *  «Скрыть счётчики» and the dismissed tip are local. */
+    const val ARCHIVE_KEEP = "archive.keepUnmuted"
+    const val ARCHIVE_FOLDERS = "archive.folders"
+    const val ARCHIVE_HIDE_BADGE = "archive.hideBadge"
+    const val ARCHIVE_TIP = "archive.tip"
 
     val defaults: Map<String, Int> = mapOf(
         FILTER_ON to 1, FILTER_ACTION to 0, FILTER_SCOPE to 3, FILTER_PRESETS to 0,
@@ -180,6 +191,7 @@ object KxPrefsAccount {
         ACCESS_SCALE to 100, ACCESS_FLAGS to 48, ACCESS_PALETTE to 0,
         WIDGET_STYLE to 0, SHORTCUT_BADGE to 1, BACKUP_AUTO to 0, BACKUP_LAST to 0, USAGE_TODAY to 0, USAGE_WEEK to 0,
         WELL_LIMIT to 0, WELL_BREAK to 0, WELL_QUIET to 0,
+        ARCHIVE_KEEP to 1, ARCHIVE_FOLDERS to 0, ARCHIVE_HIDE_BADGE to 1, ARCHIVE_TIP to 1,
     )
     val textDefaults: Map<String, String> = mapOf(FILTER_LIST to "финал\nскидка")
 }

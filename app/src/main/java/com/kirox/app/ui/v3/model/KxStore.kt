@@ -592,6 +592,15 @@ interface KxStore {
     suspend fun recommendedChats(): List<KxPublicChat> = emptyList()
     suspend fun searchPublicChats(query: String): List<KxPublicChat> = emptyList()
     suspend fun similarChats(chatId: Long): List<KxPublicChat> = emptyList()
+    /** wave4: gifts shown on another user's profile (Profile «Подарки · N»). */
+    suspend fun userGifts(userId: Long): List<KxReceivedGift> = emptyList()
+    /** wave4: chats whose stories you hid (HiddenStories board); null while loading. */
+    val hiddenStoryChats: List<KxPublicChat>? get() = emptyList()
+    fun loadHiddenStories() {}
+    /** wave4: hide a chat's stories from the Stories tab, or show them again. */
+    fun hideStories(chatId: Long, hidden: Boolean) {}
+    /** wave4: groups the user [userId] shares with you (Profile «Общие группы»). */
+    suspend fun commonGroups(userId: Long): List<KxPublicChat> = emptyList()
     /** Contacts' birthdays, the nearest first. */
     suspend fun birthdays(): List<KxBirthday> = emptyList()
     /** Tap on a big animated emoji: Telegram plays the effect on both sides. */

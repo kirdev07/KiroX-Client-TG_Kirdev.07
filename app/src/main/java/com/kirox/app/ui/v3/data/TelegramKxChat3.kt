@@ -441,8 +441,10 @@ internal class KxChat3(private val services: TelegramServices, private val app: 
     }
 
     // ---- gifts ----
-    suspend fun receivedGifts(): List<KxReceivedGift> {
-        val r = orNull { client.query(TdApi.GetReceivedGifts("", TdApi.MessageSenderUser(me()), 0, false, false, false, false, false, false, false, false, false, "", 100)) }
+    suspend fun receivedGifts(): List<KxReceivedGift> = giftsOf(me())
+
+    suspend fun giftsOf(userId: Long): List<KxReceivedGift> {
+        val r = orNull { client.query(TdApi.GetReceivedGifts("", TdApi.MessageSenderUser(userId), 0, false, false, false, false, false, false, false, false, false, "", 100)) }
             ?: return emptyList()
         return r.gifts.sortedByDescending { it.date }.map { g ->
             val (emoji, file) = when (val gift = g.gift) {
@@ -541,6 +543,7 @@ internal class KxChat3(private val services: TelegramServices, private val app: 
     suspend fun recommendedChats() = publicChats(orNull { client.query(TdApi.GetRecommendedChats()) }?.chatIds)
     suspend fun searchPublicChats(query: String) = if (query.isBlank()) emptyList() else publicChats(orNull { client.query(TdApi.SearchPublicChats(query.trim(), null)) }?.chatIds)
     suspend fun similarChats(chatId: Long) = publicChats(orNull { client.query(TdApi.GetChatSimilarChats(chatId)) }?.chatIds)
+    suspend fun commonGroups(userId: Long) = publicChats(orNull { client.query(TdApi.GetGroupsInCommon(userId, 0, 100)) }?.chatIds)
 
     suspend fun chatFacts(chatId: Long): KxChatFacts? {
         val c = orNull { client.query(TdApi.GetChat(chatId)) } ?: return null

@@ -22,6 +22,8 @@ import com.kirox.app.ui.v3.theme.KxMotion
 import com.kirox.app.ui.v3.theme.KxTheme
 import com.kirox.app.ui.v3.theme.KxAccessScale
 import com.kirox.app.ui.v3.theme.kxAccessNoMotion
+import com.kirox.app.ui.v3.theme.kxPowerNoMotion
+import com.kirox.app.ui.v3.model.pref
 
 /** Where the v3 app is. Tabs live under [KxRoute.Home]; everything else is pushed on top. */
 sealed interface KxRoute {
@@ -34,13 +36,40 @@ sealed interface KxRoute {
     data class Profile(val chatId: Long) : KxRoute
 }
 
-/** Tiny back stack for the v3 UI. */
-class KxNav(start: KxRoute = KxRoute.Home) {
-    val stack = mutableStateListOf(start)
+/** Tiny back stack for the v3 UI; [saver] keeps it over activity recreation (font size, language, process death). */
+class KxNav(start: KxRoute = KxRoute.Home, restored: List<KxRoute> = emptyList()) {
+    val stack = mutableStateListOf<KxRoute>().apply { if (restored.isEmpty()) add(start) else addAll(restored) }
     var forward by mutableStateOf(true); private set
     val current: KxRoute get() = stack.last()
     fun push(r: KxRoute) { forward = true; stack.add(r) }
     fun pop(): Boolean { if (stack.size <= 1) return false; forward = false; stack.removeAt(stack.lastIndex); return true }
+
+    companion object {
+        private const val SEP = "\u0001"
+        private fun encode(r: KxRoute): String = when (r) {
+            KxRoute.Home -> "H"; KxRoute.Archive -> "A"
+            is KxRoute.Chat -> "C${SEP}${r.chatId}"
+            is KxRoute.Screen -> "S${SEP}${r.name}"
+            is KxRoute.Profile -> "P${SEP}${r.chatId}"
+            is KxRoute.Story -> "T${SEP}${r.index}"
+            is KxRoute.Call -> "H" // a scripted demo call is not restored
+        }
+        private fun decode(s: String): KxRoute? {
+            val p = s.split(SEP, limit = 2); val v = p.getOrNull(1)
+            return when (p[0]) {
+                "H" -> KxRoute.Home; "A" -> KxRoute.Archive
+                "C" -> v?.toLongOrNull()?.let { KxRoute.Chat(it) }
+                "S" -> v?.let { KxRoute.Screen(it) }
+                "P" -> v?.toLongOrNull()?.let { KxRoute.Profile(it) }
+                "T" -> v?.toIntOrNull()?.let { KxRoute.Story(it) }
+                else -> null
+            }
+        }
+        val saver: androidx.compose.runtime.saveable.Saver<KxNav, ArrayList<String>> = androidx.compose.runtime.saveable.Saver(
+            save = { nav -> ArrayList(nav.stack.map(::encode).filterIndexed { i, e -> i == 0 || e != "H" }) },
+            restore = { list -> KxNav(restored = list.mapNotNull(::decode).ifEmpty { listOf(KxRoute.Home) }) },
+        )
+    }
 }
 
 /**
@@ -48,11 +77,29 @@ class KxNav(start: KxRoute = KxRoute.Home) {
  * the real app (ui/v3/data). [extraScreen] lets the host render named screens not built in here yet.
  */
 @Composable
-fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean = false) = KxTheme(reducedMotion || kxAccessNoMotion(store)) { KxAccessScale(store) {
-    val nav = remember { KxNav() }
+fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean = false) = KxTheme(reducedMotion || kxAccessNoMotion(store) || kxPowerNoMotion(store) || com.kirox.app.ui.v3.theme.kxAnimOff(store)) { KxAccessScale(store) {
+    // Saved look applied to the whole v3 UI: colour theme (Кастомизация) + contrast/bold/outlines/big buttons/palette (Спец. возможности).
+    val themeIdx = store.pref(com.kirox.app.ui.v3.model.KxPrefs.THEME)
+    val accessFlags = store.pref(com.kirox.app.ui.v3.model.KxPrefsAccount.ACCESS_FLAGS)
+    val accessPalette = store.pref(com.kirox.app.ui.v3.model.KxPrefsAccount.ACCESS_PALETTE)
+    remember(themeIdx, accessFlags, accessPalette) {
+        val t = com.kirox.app.ui.v3.screens.settings.CustomThemes.getOrNull(themeIdx)
+        com.kirox.app.ui.v3.theme.Kx.look = com.kirox.app.ui.v3.theme.KxLookMapping.look(themeIdx, t?.let { Triple(it.accent, it.b1, it.b2) }, accessFlags, accessPalette)
+    }
+    val nav = androidx.compose.runtime.saveable.rememberSaveable(saver = KxNav.saver) { KxNav() }
+    // Each route (and each Home tab) keeps its saveable state — list scroll, queries, chips — while it is under another screen.
+    val saveables = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+    val savedKeys = remember { mutableSetOf<String>() }
+    LaunchedEffect(nav.stack.toList()) {
+        val live = nav.stack.map { it.toString() }.toSet()
+        (savedKeys - live).forEach { saveables.removeState(it) }   // a popped screen starts fresh next time
+        savedKeys.retainAll(live); savedKeys.addAll(live)
+    }
     // v3 is always dark: light status/nav-bar icons even when the phone is in light mode (restored when v3 leaves).
     val hostView = androidx.compose.ui.platform.LocalView.current
-    DisposableEffect(hostView) {
+    // Keyed on uiMode too: a live light/dark switch (uiMode is in configChanges, no recreation) makes edge-to-edge re-apply its style.
+    val uiMode = androidx.compose.ui.platform.LocalConfiguration.current.uiMode
+    DisposableEffect(hostView, uiMode) {
         var c: android.content.Context? = hostView.context
         while (c is android.content.ContextWrapper && c !is android.app.Activity) c = c.baseContext
         val bars = (c as? android.app.Activity)?.window?.let { androidx.core.view.WindowCompat.getInsetsController(it, hostView) }
@@ -90,10 +137,10 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
             },
             label = "kx-nav"
         ) { route ->
-            when (route) {
+            saveables.SaveableStateProvider(route.toString()) { when (route) {
                 KxRoute.Home -> Box(Modifier.fillMaxSize()) {
                     AnimatedContent(tab, transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) }, label = "kx-tab") { t ->
-                        when (t) {
+                        saveables.SaveableStateProvider("tab-$t") { when (t) {
                             KxTab.Chats -> ChatsScreen(
                                 store,
                                 onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) },
@@ -107,7 +154,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                             KxTab.Stories -> StoriesScreen(store, onOpenViewer = { nav.push(KxRoute.Story(it)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                             KxTab.Settings -> SettingsScreen(store, onOpen = { if (it == "Старый дизайн") KxNewDesign.set(context, false) else nav.push(KxRoute.Screen(it)) })
                             else -> KxTabPlaceholder(t)
-                        }
+                        } }
                     }
                     if (!(selecting && tab == KxTab.Chats)) KxBottomFade(Modifier.align(Alignment.BottomCenter))
                     if (!(selecting && tab == KxTab.Chats)) KxDock(tab, { tab = it }, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 22.dp),
@@ -134,7 +181,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                 }
                 is KxRoute.Story -> StoryViewer(store, route.index, onClose = { nav.pop() })
                 is KxRoute.Call -> CallingScreen(route.name, route.peerId, route.video, route.colorIndex, onEnd = { nav.pop() })
-            }
+            } }
         }
     } }
 } }

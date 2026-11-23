@@ -16,6 +16,9 @@ class TelegramStoryRepository(
 
     private val _chats = MutableStateFlow<List<TelegramStoryChat>>(emptyList())
     val storyChats: StateFlow<List<TelegramStoryChat>> = _chats.asStateFlow()
+    /** Chats whose stories are hidden (TDLib's archive story list); filled after [loadHidden]. */
+    private val _hidden = MutableStateFlow<List<TelegramStoryChat>>(emptyList())
+    val hiddenStoryChats: StateFlow<List<TelegramStoryChat>> = _hidden.asStateFlow()
 
     init {
         client.addUpdateHandler { update ->
@@ -57,6 +60,17 @@ class TelegramStoryRepository(
     fun open(chatId: Long, storyId: Int) { if (!com.kirox.app.settings.KiroxTweaks.current.ghostStory) client.send(TdApi.OpenStory(chatId, storyId)) }
     fun close(chatId: Long, storyId: Int) { if (!com.kirox.app.settings.KiroxTweaks.current.ghostStory) client.send(TdApi.CloseStory(chatId, storyId)) }
 
+    /** Asks TDLib for the hidden (archive) story list; its chats arrive as UpdateChatActiveStories. */
+    fun loadHidden(remaining: Int = MAX_PAGES) {
+        if (remaining <= 0) return
+        client.send(TdApi.LoadActiveStories(TdApi.StoryListArchive())) { result -> if (result is TdApi.Ok) loadHidden(remaining - 1) }
+    }
+
+    /** Hides a chat's stories (archive list) or shows them again (main list). */
+    suspend fun setHidden(chatId: Long, hidden: Boolean) {
+        client.query(TdApi.SetChatActiveStoriesList(chatId, if (hidden) TdApi.StoryListArchive() else TdApi.StoryListMain()))
+    }
+
     /** Active stories arrive as updates; LoadActiveStories pages until TDLib answers 404. */
     private fun loadActive(remaining: Int) {
         if (remaining <= 0) return
@@ -71,6 +85,12 @@ class TelegramStoryRepository(
         client.post(PUBLISH_DELAY_MS) {
             publishScheduled = false
             val myChatId = users.myId()
+            _hidden.value = active.values.filter { it.list is TdApi.StoryListArchive }.sortedByDescending { it.order }.map { stories ->
+                val chat = chats.chat(stories.chatId)
+                TelegramStoryChat(chatId = stories.chatId, title = chat?.title.orEmpty(), photo = chat?.photo?.small?.toRef(),
+                    storyIds = stories.stories.sortedBy { it.date }.map { it.storyId }, hasUnread = stories.stories.any { it.storyId > stories.maxReadStoryId },
+                    isSelf = false, newestDate = stories.stories.maxOfOrNull { it.date } ?: 0)
+            }
             _chats.value = active.values.filter { it.list is TdApi.StoryListMain }.sortedByDescending { it.order }.map { stories ->
                 val chat = chats.chat(stories.chatId)
                 TelegramStoryChat(

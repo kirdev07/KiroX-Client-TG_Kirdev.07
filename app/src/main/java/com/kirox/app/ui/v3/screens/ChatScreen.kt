@@ -82,7 +82,7 @@ private val InShape @Composable get() = LocalChatLook.current.inn
 
 /** Outgoing bubble: CSS linear-gradient(160deg, #2E6B4B, #1F4D36). */
 private fun Modifier.outBubble() = this.drawBehind {
-    drawRect(Brush.linearGradient(listOf(Color(0xFF2E6B4B), Color(0xFF1F4D36)), cssAngleStart(160f, size), cssAngleEnd(160f, size)))
+    drawRect(Brush.linearGradient(listOf(Kx.accentDark, Kx.bubbleTo), cssAngleStart(160f, size), cssAngleEnd(160f, size)))
 }
 private fun Modifier.bubble(out: Boolean) = if (out) outBubble() else background(InBubble)
 
@@ -97,6 +97,8 @@ private data class PendingDelete(val message: KxMessage, val forAll: Boolean, va
 @Composable
 fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit = {}, onMenu: () -> Unit = {}, onProfile: () -> Unit = {}, onOpen: (String) -> Unit = {}, onOpenChat: (Long) -> Unit = {}) {
     val header = store.header(chatId)
+    // Restored after activity recreation (saved back stack): the history is not open yet → open it.
+    LaunchedEffect(chatId) { if (store !is com.kirox.app.ui.v3.demo.KxDemoStore && store.historyChatId != chatId) store.openChat(chatId) }
     LocalStoreDownload = store::download
     LocalOpenMedia = { m -> onOpen((if (m.kind == KxMsgKind.Video) "VideoPlayer:" else "Viewer:") + "$chatId:${m.id}") }
     val look = chatLook(store)
@@ -251,7 +253,10 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 }
             }
         }
-        if (messages.isEmpty() && header.kind != KxChatKind.Saved && header.kind != KxChatKind.Channel)
+        // Real store: the history is empty until TDLib returns the first page — no greeting card (its 👋 sends!) before that.
+        val historyKnownEmpty = demo || (!store.historyLoading(chatId) && store.historyComplete(chatId))
+        if (messages.isEmpty() && !historyKnownEmpty) KxSpinnerOrNothing(Modifier.align(Alignment.Center))
+        if (messages.isEmpty() && historyKnownEmpty && header.kind != KxChatKind.Saved && header.kind != KxChatKind.Channel)
             EmptyChatCard(if (header.kind == KxChatKind.Private) store.peer(chatId) else null, onSend = { store.send(chatId, it) },
                 Modifier.align(Alignment.Center).padding(top = 40.dp))
         val atBottom by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
@@ -282,7 +287,11 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                     }
                 },
                 attachOpen = attach, onAttach = { attach = !attach },
-                circleMode = circleMode, onToggleMode = { circleMode = !circleMode; hint = if (circleMode) "Удерживайте, чтобы записать кружок" else "Удерживайте, чтобы записать голосовое" },
+                circleMode = circleMode, onToggleMode = {
+                    // Real account: round videos have no camera recorder yet — stay on voice and say so instead of recording nothing.
+                    if (!demo) hint = "Кружки пока не поддерживаются — удерживайте для голосового"
+                    else { circleMode = !circleMode; hint = if (circleMode) "Удерживайте, чтобы записать кружок" else "Удерживайте, чтобы записать голосовое" }
+                },
                 recording = recording, recSecs = recSecs,
                 onRecStart = { recording = circleMode; store.recordStart(chatId, circleMode) },
                 onRecEnd = { send ->
@@ -337,6 +346,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 onTranslate = { store.translate(chatId, m.id, m.translation == null); menuFor = null },
                 onCopied = { menuFor = null; toast("Текст скопирован") },
                 canDeleteForAll = m.canDeleteForAll && header.kind != KxChatKind.Saved,
+                isGroup = header.kind == KxChatKind.Group || header.kind == KxChatKind.Channel,
             )
         }
         linkAsk?.let { c -> KxConfirmDialog(c) { linkAsk = null } }
@@ -492,6 +502,12 @@ private fun TextWithMeta(m: KxMessage, modifier: Modifier) {
         }
         MetaText(m, if (m.out) OutMeta else Kx.text4)
     }
+}
+
+/** A small «Загрузка…» while the first page of the history comes (real store). */
+@Composable
+private fun KxSpinnerOrNothing(modifier: Modifier) {
+    Text("Загрузка…", style = KxType.style(13.sp, color = Kx.text3), modifier = modifier.clip(RoundedCornerShape(12.dp)).background(Kx.fill).padding(horizontal = 12.dp, vertical = 6.dp))
 }
 
 /** Poll votes, inline bot buttons and «send again» from the bubbles (set by ChatScreenBody). */

@@ -130,6 +130,17 @@ private fun SignalBars(bars: Int) {
 @Composable
 internal fun RealCallBoard(ctx: KxScreenCtx, board: CallBoard) {
     val c = ctx.store.activeCall
+    // The call ended while this board was showing it → close the board (the CallEnd board offers the rating).
+    var hadCall by remember { mutableStateOf(false) }
+    if (c != null) hadCall = true
+    LaunchedEffect(c == null, hadCall) { if (c == null && hadCall) { ctx.back(); if (ctx.store.lastCall != null) ctx.open("CallEnd") } }
+    // Just after startCall (permission dialog, call not created yet): «Соединение…» for a few seconds instead of «нет звонка».
+    var grace by remember { mutableStateOf(board == CallBoard.Video) }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(4000); grace = false }
+    if (c == null && (hadCall || grace)) {
+        Box(Modifier.fillMaxSize().background(Kx.bg), contentAlignment = Alignment.Center) { T(if (hadCall) "Звонок завершён" else "Соединение…", 16.sp, color = Kx.text3) }
+        return
+    }
     if (c == null) {
         when (board) {
             CallBoard.Weak -> NoCall(ctx, sub = "Подсказки о слабой связи появятся во время звонка")

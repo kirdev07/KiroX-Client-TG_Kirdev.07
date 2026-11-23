@@ -11,11 +11,19 @@ import com.kirox.app.ui.v3.model.pref
 /*
  * wave3-account: the cheap parts of the Access board («Специальные возможности») applied to the whole
  * v3 UI: the text scale (on top of the system's) and «Анимации» off = reduced motion. Bold, contrast,
- * outlines, big buttons and colour palettes stay on the board's preview.
+ * outlines, big buttons and colour palettes go through Kx.look (KxLookMapping, set by KxApp).
  */
 
 /** «Анимации» switched off on the Access board. */
 fun kxAccessNoMotion(store: KxStore): Boolean = store.pref(KxPrefsAccount.ACCESS_FLAGS) and 16 == 0
+
+/** Anim board: animations off, or speed «Выкл.». */
+fun kxAnimOff(store: KxStore): Boolean =
+    store.pref(com.kirox.app.ui.v3.model.KxPrefs.ANIM_ON) == 0 || store.pref(com.kirox.app.ui.v3.model.KxPrefs.ANIM_SPEED) == 2
+
+/** Power saving is on now and the Power board turns «Анимации интерфейса» (bit 0) off while saving. */
+fun kxPowerNoMotion(store: KxStore): Boolean =
+    store.pref(com.kirox.app.ui.v3.model.KxPrefs.POWER_ACTIVE) != 0 && store.pref(com.kirox.app.ui.v3.model.KxPrefs.POWER_OFF) and 1 != 0
 
 /** Multiplies the font scale by the board's «Размер текста» (85–150 %). */
 @Composable
