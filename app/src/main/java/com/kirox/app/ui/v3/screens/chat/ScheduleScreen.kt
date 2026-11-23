@@ -54,6 +54,14 @@ private val Quick = listOf(Triple("Завтра в 8:00", 1, 8), Triple("Зав�
 private data class Sched(val id: Int, val text: String, val whenDay: String, val time: String)
 private data class SentMsg(val text: String, val time: String, val silent: Boolean)
 private fun p2(n: Int) = n.toString().padStart(2, '0')
+/** qa-real: real picker days from today: «Сегодня», «Завтра», «Ср, 25 нояб»… (two weeks). */
+internal fun realDays(count: Int = 14): List<String> {
+    val f = SimpleDateFormat("EE, d MMM", Locale("ru"))
+    return List(count) { i ->
+        when (i) { 0 -> "Сегодня"; 1 -> "Завтра"; else -> f.format(java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_MONTH, i) }.time)
+            .replace(".", "").replaceFirstChar { it.uppercase() } }
+    }
+}
 
 /** Board «Отложенные»: long-press send menu (silent / schedule / when online), date-time wheels, scheduled list with send-now and delete. */
 @OptIn(ExperimentalFoundationApi::class)
@@ -64,10 +72,13 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val chatId = ctx.arg?.toLongOrNull() ?: store.chats.firstOrNull { it.kind == KxChatKind.Private }?.id ?: 0L
     val h = store.header(chatId)
-    var draft by remember { mutableStateOf("Доброе утро! Не забудь про документы 📄") }
+    // qa-real: from a real chat («⋮ → Отложенные») the board opens on the real list, with no demo draft / incoming message.
+    val fromChat = ctx.arg?.toLongOrNull() != null
+    var draft by remember { mutableStateOf(if (fromChat) "" else "Доброе утро! Не забудь про документы 📄") }
     var menu by remember { mutableStateOf(false) }
     var picker by remember { mutableStateOf(false) }
-    var list by remember { mutableStateOf(false) }
+    var list by remember { mutableStateOf(fromChat) }
+    val days = if (fromChat) remember { realDays() } else Days
     var day by remember { mutableIntStateOf(1) }
     var hh by remember { mutableIntStateOf(8) }
     var mm by remember { mutableIntStateOf(0) }
@@ -87,7 +98,11 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
         if (reload > 0) kotlinx.coroutines.delay(800)
         val items = store.scheduled(chatId)
         sched.clear(); realIds.clear()
-        items.forEach { s -> val id = nextId++; realIds[id] = s.id; sched += Sched(id, s.text, s.time.substringBeforeLast(' ', s.time), s.time.substringAfterLast(' ', "—")) }
+        // «завтра в 14:00» → chip «Завтра», bubble time «14:00»; «когда будет в сети» stays whole.
+        items.forEach { s -> val id = nextId++; realIds[id] = s.id
+            val timed = s.time.contains(" в ") && !s.time.endsWith("сети")
+            sched += Sched(id, s.text, if (timed) s.time.substringBeforeLast(" в ").replaceFirstChar { it.uppercase() } else s.time.replaceFirstChar { it.uppercase() },
+                if (timed) s.time.substringAfterLast(" в ") else "—") }
     }
     fun unixAt(dayOffset: Int, h: Int, m: Int): Int = java.util.Calendar.getInstance().apply {
         add(java.util.Calendar.DAY_OF_MONTH, dayOffset); set(java.util.Calendar.HOUR_OF_DAY, h); set(java.util.Calendar.MINUTE, m); set(java.util.Calendar.SECOND, 0)
@@ -107,7 +122,7 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
         say("Отправится ${whenDay.lowercase()} в $time")
     }
     BackHandler(list) { list = false }
-    val whenLabel = (if (day == 0) "сегодня" else if (day == 1) "завтра" else Days[day].lowercase()) + " в $hh:${p2(mm)}"
+    val whenLabel = (if (day == 0) "сегодня" else if (day == 1) "завтра" else days[day].lowercase()) + " в $hh:${p2(mm)}"
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -128,7 +143,7 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
             LazyColumn(Modifier.weight(1f).fillMaxWidth().ellipseGlow(1f, 0f, .72f, .36f, Kx.accentDeep.copy(alpha = .14f)), reverseLayout = false,
                 contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Bottom)) {
                 if (!list) {
-                    item {
+                    if (!fromChat) item {
                         Box(Modifier.fillMaxWidth(.78f)) {
                             ChatBubble(false, "Напомни утром про документы, я сейчас спать", "01:10", false, null)
                         }
@@ -181,7 +196,7 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 26.dp)) {
                 Text("Когда отправить?", style = ts(19, W800), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 12.dp))
                 androidx.compose.foundation.layout.FlowRow(Modifier.padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Quick.forEachIndexed { i, (label, d, hr) ->
+                    (if (fromChat) Quick.take(3) else Quick).forEachIndexed { i, (label, d, hr) ->
                         val on = quick == i
                         Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f))
                             .border(1.dp, if (on) Kx.accent.copy(alpha = .45f) else Color.Transparent, RoundedCornerShape(18.dp))
@@ -191,11 +206,13 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Wheel(Modifier.weight(2f), day, Days.size, { Days[it] }) { day = it; quick = -1 }
+                    Wheel(Modifier.weight(2f), day, days.size, { days[it] }) { day = it; quick = -1 }
                     Wheel(Modifier.weight(1f), hh, 24, { p2(it) }) { hh = it; quick = -1 }
                     Wheel(Modifier.weight(1f), mm / 5, 12, { p2(it * 5) }) { mm = it * 5; quick = -1 }
                 }
-                ChPrimary("Отправить $whenLabel", modifier = Modifier.padding(top = 14.dp).fillMaxWidth(), height = 54.dp, radius = 16.dp) { addSched(Days[day], "$hh:${p2(mm)}", unixAt(day, hh, mm)) }
+                ChPrimary("Отправить $whenLabel", modifier = Modifier.padding(top = 14.dp).fillMaxWidth(), height = 54.dp, radius = 16.dp) {
+                    if (fromChat && unixAt(day, hh, mm) <= System.currentTimeMillis() / 1000 + 30) say("Выберите время в будущем")
+                    else addSched(days[day], "$hh:${p2(mm)}", unixAt(day, hh, mm)) }
             }
         }
         toast?.let { (t, id) -> key(id) { FwdToast(t, 0, bottom = 86.dp, side = 20.dp, minH = 46.dp, radius = 16.dp) { toast = null } } }

@@ -88,7 +88,11 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                     }
                     Column(Modifier.weight(1f)) {
                         Text(if (good) "Аккаунт хорошо защищён" else "Можно защитить лучше", style = KxType.style(15.sp, FontWeight.Bold))
-                        Text(if (good) "Код-пароль и облачный пароль включены" else "Включите код-пароль и закройте номер", style = KxType.style(12.sp, color = Color(0xFFA6B5AC)))
+                        // wave6: the advice names only what is really still open (was always «закройте номер»).
+                        val todo = listOfNotNull(if (!pin) "включите код-пароль" else null, if (!cloud) "включите облачный пароль" else null,
+                            if ((vals["phone"] ?: 0) == 0) "закройте номер" else null, if ((vals["seen"] ?: 0) == 0) "скройте время захода" else null)
+                        Text(if (good) (if (pin && cloud) "Код-пароль и облачный пароль включены" else "Основные правила закрыты")
+                            else todo.joinToString(", ").replaceFirstChar { it.uppercase() }.ifEmpty { "Закройте ещё пару правил «Кто видит»" }, style = KxType.style(12.sp, color = Color(0xFFA6B5AC)))
                     }
                 }
                 // security tiles
@@ -126,9 +130,9 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                     SSwitchRow(null, "Время прочтения", readTime, groupShape(0, 2, 20.dp), sub = "Показывать, когда вы прочитали сообщение", small = true, subSize = 11) { store.setShowReadDate(!readTime) }
                     SSwitchRow(null, "Новые чаты — в архив", archive, groupShape(1, 2, 20.dp), sub = "Сообщения от незнакомцев не мешают", small = true, subSize = 11) { store.setArchiveNewChats(!archive) }
                 }
-                // wave5 (hybrid 1.0): the remaining Telegram rules live in the old working screen.
-                if (com.kirox.app.ui.v3.KxLegacy.Local.current != null) Column(Modifier.sRise(170), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SNavRow(Icons.Rounded.Tune, "Все правила конфиденциальности", "О себе, день рождения, голосовые, подарки, поиск по номеру, звонки P2P, контакты, срок аккаунта", groupShape(0, 1, 20.dp)) { ctx.open("Old:privacy") }
+                // wave6: every Telegram rule + exceptions + account TTL on v3 (PrivacyRulesScreen).
+                Column(Modifier.sRise(170), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    SNavRow(Icons.Rounded.Tune, "Все правила конфиденциальности", "О себе, день рождения, голосовые, подарки, поиск по номеру, звонки P2P, контакты, срок аккаунта", groupShape(0, 1, 20.dp)) { ctx.open("PrivacyAll") }
                 }
                 // wave5: account security boards that had no entry.
                 Column(Modifier.sRise(200), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -152,10 +156,12 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                     SChoice(icons[i].first, icons[i].second, label, vals[cur.key] == i) { store.setPrivacy(cur.storeKey, i) }
                 }
             }
-            // wave5: no people picker exists (old UI neither) — the real account doesn't offer the buttons that only toasted.
-            if (store is com.kirox.app.ui.v3.demo.KxDemoStore) Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Всегда разрешать…", "Никогда не разрешать…").forEach { t ->
-                    Box(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(16.dp)).background(Kx.fill).kxClick { ctx.toast("Выбор людей ещё переносится") },
+            // wave6: the exceptions open the rule page with the v3 people picker.
+            Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val ex = rules.firstOrNull { it.key == cur.storeKey }?.exceptions ?: 0
+                listOf(if (ex > 0) "Исключения: $ex" else "Всегда разрешать…", "Никогда не разрешать…").forEachIndexed { i, t ->
+                    if (i == 1 && ex > 0) return@forEachIndexed
+                    Box(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(16.dp)).background(Kx.fill).kxClick { val k = cur.storeKey; picking = null; ctx.open("PrivacyRule:$k") },
                         contentAlignment = Alignment.Center) { Text(t, style = KxType.style(13.sp, FontWeight.SemiBold)) }
                 }
             }

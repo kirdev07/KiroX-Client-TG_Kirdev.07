@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status bar icon for kiroX notifications: the v3 X bubble, white silhouette with the X cut out. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd" android:pathData="M7.387,2.774 L16.613,2.774 C20.14,2.774 23,5.634 23,9.161 L23,19.806 C23,20.59 22.365,21.226 21.581,21.226 L7.387,21.226 C3.86,21.226 1,18.366 1,14.839 L1,9.161 C1,5.634 3.86,2.774 7.387,2.774 Z M13.095,12 L14.929,14.212 C15.226,14.57 15.176,15.102 14.818,15.399 C14.459,15.696 13.928,15.646 13.631,15.288 L12,13.32 L10.369,15.288 C10.072,15.646 9.541,15.696 9.182,15.399 C8.824,15.102 8.774,14.57 9.071,14.212 L10.905,12 L9.071,9.788 C8.774,9.43 8.824,8.898 9.182,8.601 C9.541,8.304 10.072,8.354 10.369,8.712 L12,10.68 L13.631,8.712 C13.928,8.354 14.459,8.304 14.818,8.601 C15.176,8.898 15.226,9.43 14.929,9.788 Z" />
+</vector>

@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,22 +79,38 @@ internal const val NOTE_SIDE = 384
 class RecordedVideoNote(val file: File, val durationSeconds: Int, val length: Int)
 
 /**
- * Full-screen recorder for round video messages: circular camera preview, tap the button to start
- * and again to send, flip between cameras before recording, cancel at any time. Recording stops by
- * itself after a minute. The clip is cropped to a [NOTE_SIDE] square before sending.
+ * The camera side of a round video message (CameraX preview + recording, one minute, cropped square), shared by the
+ * old full-screen recorder below and the v3 one (ui/v3 KxRoundRecorder, wave6). Created by [rememberVideoNoteCapture].
  */
+class VideoNoteCapture internal constructor(val preview: PreviewView) {
+    var front by mutableStateOf(true)
+        internal set
+    var recording by mutableStateOf<Recording?>(null)
+        internal set
+    var elapsedMs by mutableLongStateOf(0L)
+        internal set
+    var processing by mutableStateOf(false)
+        internal set
+    val isRecording: Boolean get() = recording != null
+    val maxMs: Long get() = MAX_NOTE_MS
+    internal var startImpl: () -> Unit = {}
+    internal var finishImpl: (Boolean) -> Unit = {}
+    /** Starts recording (stops any voice playback first). */
+    fun start() = startImpl()
+    /** Stops: [canceled] drops the clip, otherwise it is cropped and handed to onDone. */
+    fun finish(canceled: Boolean) = finishImpl(canceled)
+    /** Front/back camera; only before recording. */
+    fun flip() { if (recording == null && !processing) front = !front }
+}
+
+/** Binds the camera while composed; leaving composition any other way than finish(false) drops the clip. */
 @SuppressLint("MissingPermission") // The caller asks for CAMERA and RECORD_AUDIO before opening it.
-@OptIn(UnstableApi::class)
 @Composable
-internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: () -> Unit, onError: (String) -> Unit) {
+fun rememberVideoNoteCapture(onDone: (RecordedVideoNote) -> Unit, onCancel: () -> Unit, onError: (String) -> Unit): VideoNoteCapture {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var front by remember { mutableStateOf(true) }
-    var recording by remember { mutableStateOf<Recording?>(null) }
+    val state = remember { VideoNoteCapture(PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER; implementationMode = PreviewView.ImplementationMode.COMPATIBLE }) }
     var startedAt by remember { mutableLongStateOf(0L) }
-    var elapsed by remember { mutableLongStateOf(0L) }
-    var processing by remember { mutableStateOf(false) }
-    val preview = remember { PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER; implementationMode = PreviewView.ImplementationMode.COMPATIBLE } }
     val capture = remember {
         VideoCapture.Builder(Recorder.Builder().setQualitySelector(QualitySelector.from(Quality.SD, androidx.camera.video.FallbackStrategy.lowerQualityOrHigherThan(Quality.SD))).build())
             .setMirrorMode(MirrorMode.MIRROR_MODE_ON_FRONT_ONLY)
@@ -101,8 +118,11 @@ internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: ()
     }
     val raw = remember { File(context.cacheDir, "notes").apply { mkdirs() }.let { File(it, "note_raw_${System.currentTimeMillis()}.mp4") } }
     var discard by remember { mutableStateOf(false) }
+    val done by rememberUpdatedState(onDone)
+    val cancel by rememberUpdatedState(onCancel)
+    val fail by rememberUpdatedState(onError)
 
-    DisposableEffect(front) {
+    DisposableEffect(state.front) {
         // Both the listener and onDispose run on the main thread: a listener that comes after the
         // screen closed must not bind the camera to the activity (it would stay on).
         var disposed = false
@@ -110,54 +130,69 @@ internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: ()
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({
             if (disposed) return@addListener
-            val provider = runCatching { future.get() }.getOrNull() ?: return@addListener onError("Камера недоступна")
+            val provider = runCatching { future.get() }.getOrNull() ?: return@addListener fail("Камера недоступна")
             bound = provider
-            val selector = if (front) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
-            val surface = Preview.Builder().build().also { it.setSurfaceProvider(preview.surfaceProvider) }
+            val selector = if (state.front) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
+            val surface = Preview.Builder().build().also { it.setSurfaceProvider(state.preview.surfaceProvider) }
             runCatching {
                 provider.unbindAll()
                 provider.bindToLifecycle(lifecycleOwner, selector, surface, capture)
-            }.onFailure { onError("Не удалось открыть камеру") }
+            }.onFailure { fail("Не удалось открыть камеру") }
         }, ContextCompat.getMainExecutor(context))
         onDispose { disposed = true; runCatching { bound?.unbindAll() } }
     }
     // Leaving the recorder in any other way than «Отправить» drops the clip.
-    DisposableEffect(Unit) { onDispose { if (!processing) { discard = true; recording?.close(); raw.delete() } } }
+    DisposableEffect(Unit) { onDispose { if (!state.processing) { discard = true; state.recording?.close(); raw.delete() } } }
 
-    fun finish(canceled: Boolean) {
-        val active = recording ?: return
+    state.finishImpl = finish@{ canceled ->
+        val active = state.recording ?: return@finish
         discard = canceled
-        if (!canceled) processing = true
+        if (!canceled) state.processing = true
         active.stop()
-        recording = null
+        state.recording = null
     }
-
-    fun start() {
+    state.startImpl = begin@{
+        if (state.recording != null || state.processing) return@begin
         VoicePlayer.stop()
         discard = false
         startedAt = System.currentTimeMillis()
-        elapsed = 0
-        recording = capture.output.prepareRecording(context, FileOutputOptions.Builder(raw).build())
+        state.elapsedMs = 0
+        state.recording = capture.output.prepareRecording(context, FileOutputOptions.Builder(raw).build())
             .withAudioEnabled()
             .start(ContextCompat.getMainExecutor(context)) { event ->
                 if (event !is VideoRecordEvent.Finalize) return@start
                 val durationMs = event.recordingStats.recordedDurationNanos / 1_000_000
                 when {
-                    discard -> { raw.delete(); onCancel() }
-                    event.hasError() && event.error != VideoRecordEvent.Finalize.ERROR_DURATION_LIMIT_REACHED -> { raw.delete(); processing = false; onError("Запись прервалась") }
-                    durationMs < 1_000 -> { raw.delete(); processing = false; onError("Слишком короткое видеосообщение") }
-                    else -> cropToSquare(context, raw, durationMs, onDone = { note -> processing = false; onDone(note) }, onError = { processing = false; onError(it) })
+                    discard -> { raw.delete(); cancel() }
+                    event.hasError() && event.error != VideoRecordEvent.Finalize.ERROR_DURATION_LIMIT_REACHED -> { raw.delete(); state.processing = false; fail("Запись прервалась") }
+                    durationMs < 1_000 -> { raw.delete(); state.processing = false; fail("Слишком короткое видеосообщение") }
+                    else -> cropToSquare(context, raw, durationMs, onDone = { note -> state.processing = false; done(note) }, onError = { state.processing = false; fail(it) })
                 }
             }
     }
 
-    LaunchedEffect(recording) {
-        while (recording != null) {
-            elapsed = System.currentTimeMillis() - startedAt
-            if (elapsed >= MAX_NOTE_MS) finish(canceled = false)
+    LaunchedEffect(state.recording) {
+        while (state.recording != null) {
+            state.elapsedMs = System.currentTimeMillis() - startedAt
+            if (state.elapsedMs >= MAX_NOTE_MS) state.finish(canceled = false)
             delay(100.milliseconds)
         }
     }
+    return state
+}
+
+/**
+ * Full-screen recorder for round video messages (old design): circular camera preview, tap the button to start
+ * and again to send, flip between cameras before recording, cancel at any time. Recording stops by
+ * itself after a minute. The clip is cropped to a [NOTE_SIDE] square before sending.
+ */
+@Composable
+internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: () -> Unit, onError: (String) -> Unit) {
+    val note = rememberVideoNoteCapture(onDone, onCancel, onError)
+    val recording = note.recording
+    val processing = note.processing
+    val elapsed = note.elapsedMs
+    fun finish(canceled: Boolean) = note.finish(canceled)
 
     Dialog(onDismissRequest = { if (recording != null) finish(canceled = true) else if (!processing) onCancel() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(Modifier.fillMaxSize().background(Color.Black).navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -167,7 +202,7 @@ internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: ()
                     progress = { (elapsed.toFloat() / MAX_NOTE_MS).coerceIn(0f, 1f) },
                     modifier = Modifier.size(300.dp), color = Fusion.colors.danger, strokeWidth = 4.dp, trackColor = Color(0x33FFFFFF)
                 )
-                AndroidView({ preview }, Modifier.size(284.dp).clip(CircleShape))
+                AndroidView({ note.preview }, Modifier.size(284.dp).clip(CircleShape))
                 if (processing) CircularProgressIndicator(Modifier.size(36.dp), color = Color.White, strokeWidth = 3.dp)
             }
             Spacer(Modifier.height(20.dp))
@@ -189,12 +224,12 @@ internal fun VideoNoteRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: ()
                     Modifier.size(76.dp).border(4.dp, Color.White, CircleShape).padding(8.dp).clip(CircleShape)
                         .background(if (recording != null) Fusion.colors.danger else Color.White)
                         .clickable(enabled = !processing, onClickLabel = if (recording != null) "Отправить" else "Записать") {
-                            if (recording != null) finish(canceled = false) else start()
+                            if (recording != null) finish(canceled = false) else note.start()
                         }
                 )
                 Text(
                     "↻", color = if (recording == null && !processing) Color.White else Color(0x55FFFFFF), fontSize = 26.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clip(CircleShape).clickable(enabled = recording == null && !processing, onClickLabel = "Сменить камеру") { front = !front }.padding(12.dp)
+                    modifier = Modifier.clip(CircleShape).clickable(enabled = recording == null && !processing, onClickLabel = "Сменить камеру") { note.flip() }.padding(12.dp)
                 )
             }
         }

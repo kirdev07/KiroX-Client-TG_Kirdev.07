@@ -55,6 +55,7 @@ fun KxAuthFlow(auth: KxAuth) {
     when (auth.step) {
         KxAuthStep.Phone, KxAuthStep.Ready -> LoginScreen(auth)
         KxAuthStep.Code -> CodeScreen(auth)
+        KxAuthStep.Email -> EmailScreen(auth)
         else -> {
             // Password / Register / Qr boards live in screens/extra and read ctx.auth.
             val name = when (auth.step) { KxAuthStep.Password -> "Password"; KxAuthStep.Register -> "ProfileSetup"; KxAuthStep.Qr -> "QrLogin"; else -> "" }
@@ -226,9 +227,22 @@ fun CodeScreen(auth: KxAuth) {
     var code by rememberSaveable { mutableStateOf("") }
     val focus = remember { FocusRequester() }
     var left by remember { mutableIntStateOf(auth.resendIn) }
+    // wave6: a code sent as words / a phrase (or of a length the cells can't show) is typed into one text field.
+    val textMode = auth.codeIsWords || auth.codeLength !in 3..8
     LaunchedEffect(auth.resendIn) { left = auth.resendIn; while (left > 0) { delay(1000); left-- } }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    LaunchedEffect(code) { if (code.length == auth.codeLength) auth.submitCode(code) }
+    LaunchedEffect(code) { if (!textMode && code.length == auth.codeLength) auth.submitCode(code) }
+    val sentTo = when {
+        auth.codeIsWords -> "Отправили СМС со словами — введите их\n"
+        else -> when (auth.codeVia) {
+            com.kirox.app.ui.v3.model.KxCodeVia.App -> "Отправили код в Telegram на другом устройстве\n"
+            com.kirox.app.ui.v3.model.KxCodeVia.Call -> "Telegram позвонит и продиктует код\n"
+            com.kirox.app.ui.v3.model.KxCodeVia.Fragment -> "Отправили код в Fragment\n"
+            com.kirox.app.ui.v3.model.KxCodeVia.Email -> "Отправили код на почту — проверьте и «Спам»\n"
+            com.kirox.app.ui.v3.model.KxCodeVia.Sms -> "Отправили код по СМС\n"
+        }
+    }
+    val where = if (auth.codeVia == com.kirox.app.ui.v3.model.KxCodeVia.Email) auth.emailPattern else auth.phoneMasked
     val ring = rememberInfiniteTransition(label = "ring")
     val r by ring.animateFloat(0f, 1f, infiniteRepeatable(tween(2400, delayMillis = 1000, easing = FastOutSlowInEasing)), label = "r")
     val glow = pulse(4000)
@@ -251,10 +265,20 @@ fun CodeScreen(auth: KxAuth) {
             }
             Text("Введите код", style = KxType.style(28.sp, FontWeight.Bold, lineHeight = 34.sp), modifier = Modifier.padding(top = 32.dp).kxRise(150, 700))
             Text(buildAnnotatedString {
-                append(if (auth.codeInApp) "Отправили код в Telegram на другом устройстве\n" else "Отправили код по СМС\n")
-                withStyle(SpanStyle(color = Kx.text, fontWeight = FontWeight.SemiBold)) { append(auth.phoneMasked) }
+                append(sentTo)
+                withStyle(SpanStyle(color = Kx.text, fontWeight = FontWeight.SemiBold)) { append(where) }
             }, style = KxType.style(15.sp, color = Kx.text3, lineHeight = 22.sp), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 10.dp).kxRise(250, 700))
-            Box(Modifier.padding(top = 36.dp)) {
+            if (textMode) Row(Modifier.padding(top = 36.dp).kxRise(350, 700).fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(Field)
+                .border(1.dp, Color(0xFF4E8F6B), RoundedCornerShape(16.dp)).padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(Icons.Outlined.Sms, null, Modifier.size(22.dp), tint = Kx.accent)
+                Box(Modifier.weight(1f)) {
+                    if (code.isEmpty()) Text(if (auth.codeIsWords) "Слова из СМС" else "Код", style = KxType.style(16.sp, color = Kx.text4))
+                    BasicTextField(code, { v -> code = v.take(128) }, singleLine = true, textStyle = KxType.style(16.sp), cursorBrush = SolidColor(Kx.accent),
+                        keyboardOptions = KeyboardOptions(keyboardType = if (auth.codeIsWords) KeyboardType.Text else KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth().focusRequester(focus))
+                }
+            } else Box(Modifier.padding(top = 36.dp)) {
                 BasicTextField(code, { v -> code = v.filter(Char::isDigit).take(auth.codeLength) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     textStyle = KxType.style(1.sp, color = Color.Transparent), cursorBrush = SolidColor(Color.Transparent), modifier = Modifier.matchParentSize().focusRequester(focus))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -282,7 +306,62 @@ fun CodeScreen(auth: KxAuth) {
                 Text("Получить по СМС", style = KxType.style(14.sp, FontWeight.Medium, if (left == 0) Kx.accent else Kx.text4))
             }
             Spacer(Modifier.weight(1f))
-            ShineButton("Продолжить", Modifier.padding(bottom = 28.dp), enabled = code.length == auth.codeLength && !auth.busy) { auth.submitCode(code) }
+            val ready = if (textMode) code.isNotBlank() else code.length == auth.codeLength
+            ShineButton("Продолжить", Modifier.padding(bottom = 28.dp), enabled = ready && !auth.busy) { auth.submitCode(code) }
+        }
+    }
+}
+
+/**
+ * wave6: Telegram asks for a login e-mail during sign-in (AuthorizationStateWaitEmailAddress). Same look as the
+ * «Почта для входа» board (LoginEmail): mail tile, field with domain chips, note; the code then comes on the Code board.
+ */
+@Composable
+fun EmailScreen(auth: KxAuth) {
+    var email by rememberSaveable { mutableStateOf("") }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    val at = email.indexOf('@')
+    val valid = at > 0 && email.indexOf('.', at) > at + 1 && !email.endsWith(".")
+    val user = if (at > 0) email.substring(0, at) else email
+    val glow = pulse(4000)
+    Box(Modifier.fillMaxSize().background(AuthBg)) {
+        Canvas(Modifier.align(Alignment.TopCenter).statusBarsPadding().offset(y = 72.dp).size(300.dp).graphicsLayer { alpha = .7f + .3f * glow }) {
+            drawCircle(Brush.radialGradient(listOf(Color(0x3846A06E), Color.Transparent), radius = size.minDimension / 2 * 1.41f * .65f))
+        }
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.fillMaxWidth().height(64.dp).offset(x = (-12).dp), contentAlignment = Alignment.CenterStart) {
+                Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).kxClick("Назад") { auth.back() }, contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = Kx.text) }
+            }
+            Box(Modifier.padding(top = 20.dp).size(88.dp).clip(RoundedCornerShape(30.dp)).background(Kx.accent.copy(alpha = .14f)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Mail, null, Modifier.size(46.dp), tint = Kx.accent)
+            }
+            Text("Почта для входа", style = KxType.style(26.sp, FontWeight.Bold, lineHeight = 32.sp), modifier = Modifier.padding(top = 24.dp).kxRise(150, 700))
+            Text("Telegram просит почту, чтобы присылать коды для входа на этот номер.", style = KxType.style(15.sp, color = Kx.text3, lineHeight = 22.sp),
+                textAlign = TextAlign.Center, modifier = Modifier.padding(top = 10.dp).kxRise(250, 700))
+            Row(Modifier.padding(top = 30.dp).kxRise(350, 700).fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(Field)
+                .border(1.dp, Color(0xFF4E8F6B), RoundedCornerShape(16.dp)).padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(Icons.Outlined.Mail, null, Modifier.size(22.dp), tint = Kx.accent)
+                Box(Modifier.weight(1f)) {
+                    if (email.isEmpty()) Text("name@mail.com", style = KxType.style(16.sp, color = Kx.text4))
+                    BasicTextField(email, { email = it.trim().take(254) }, singleLine = true, textStyle = KxType.style(16.sp), cursorBrush = SolidColor(Kx.accent),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth().focusRequester(focus))
+                }
+            }
+            Row(Modifier.padding(top = 10.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("gmail.com", "mail.ru", "yandex.kz").forEach { d ->
+                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(15.dp)).kxClick("@$d") { email = "$user@$d" }
+                        .padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("@$d", style = KxType.style(12.sp, FontWeight.Bold, Kx.text2)) }
+                }
+            }
+            Row(Modifier.padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.w(.04f)).padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Outlined.Info, null, Modifier.size(18.dp), tint = Kx.text3)
+                Text("Почта нужна только для входа. Её не увидят ваши контакты.", style = KxType.style(12.sp, color = Kx.text3, lineHeight = 17.sp))
+            }
+            auth.error?.let { Text(it, style = KxType.style(13.sp, color = Kx.danger), modifier = Modifier.padding(top = 12.dp)) }
+            Spacer(Modifier.weight(1f))
+            ShineButton(if (auth.busy) "Отправляем…" else "Прислать код", Modifier.padding(bottom = 28.dp), enabled = valid && !auth.busy) { auth.submitEmail(email) }
         }
     }
 }

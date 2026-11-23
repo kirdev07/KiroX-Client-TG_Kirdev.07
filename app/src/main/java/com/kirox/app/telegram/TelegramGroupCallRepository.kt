@@ -212,6 +212,15 @@ class TelegramGroupCallRepository(private val client: TelegramClient, private va
         }
     }
 
+    /** wave6: «Поднять руку» — asks the admins for the word (mostly when they muted everyone). */
+    fun setHandRaised(raised: Boolean) = client.post {
+        val current = _call.value ?: return@post
+        if (current.groupCallId == 0) return@post
+        users.myId().takeIf { it != 0L }?.let { me ->
+            client.send(TdApi.ToggleGroupCallParticipantIsHandRaised(current.groupCallId, TdApi.MessageSenderUser(me), raised))
+        }
+    }
+
     /** Turns our camera on or off (needs CAMERA permission, asked by the screen). */
     fun setCamera(on: Boolean) = client.post {
         val current = _call.value ?: return@post

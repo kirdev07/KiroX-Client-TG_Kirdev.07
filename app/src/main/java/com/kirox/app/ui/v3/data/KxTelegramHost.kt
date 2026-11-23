@@ -56,6 +56,10 @@ fun KxTelegramHost(
                 Manifest.permission.RECORD_AUDIO,
                 if (video) Manifest.permission.CAMERA else null,
                 if (Build.VERSION.SDK_INT >= 31) Manifest.permission.BLUETOOTH_CONNECT else null,
+                // wave6 port-calls (as the old call flow): the «call in progress» notification, and on Android 17 direct
+                // calls over the local Wi-Fi; the call works without both.
+                if (Build.VERSION.SDK_INT >= 33) Manifest.permission.POST_NOTIFICATIONS else null,
+                if (Build.VERSION.SDK_INT >= 37) "android.permission.ACCESS_LOCAL_NETWORK" else null,
             ).filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
             if (needed.isEmpty()) start() else { pending[0] = start; launcher.value.launch(needed.toTypedArray()) }
         }, requestMicrophone = { micLauncher.value.launch(Manifest.permission.RECORD_AUDIO) }, requestPermission = { oneLauncher.value.launch(it) })
@@ -75,5 +79,7 @@ fun KxTelegramHost(
         legacy?.let { page ->
             com.kirox.app.ui.home.LegacyScreenHost(page, onBack = { legacy = null }, onLogOut = viewModel.auth::logOut)
         }
+        // wave6 port-calls: the v3 call UI over everything (KiroXApp no longer draws the old call overlays with v3 on).
+        com.kirox.app.ui.v3.screens.media.KxCallHost(store, Modifier.fillMaxSize(), reducedMotion = reducedMotion)
     }
 }

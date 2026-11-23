@@ -197,13 +197,12 @@ class TelegramKxAuth(
     companion object {
         /**
          * Whether the v3 auth boards can show [state]. Password, registration and QR need their boards
-         * registered in KxRegistry ([boards]: its screen names, checked at runtime). The e-mail address
-         * step and word/phrase codes always stay on the old screens.
+         * registered in KxRegistry ([boards]: its screen names, checked at runtime). wave6: the e-mail address
+         * step (EmailScreen) and word/phrase codes or odd code lengths (CodeScreen's text field) are v3 too.
          */
         fun supports(state: TelegramAuthState, boards: Set<String> = emptySet()): Boolean = when (state) {
             TelegramAuthState.WaitPhoneNumber, TelegramAuthState.Initializing, TelegramAuthState.Closing, is TelegramAuthState.Blocked -> true
-            is TelegramAuthState.WaitCode -> !state.words && state.length in 3..8
-            is TelegramAuthState.WaitEmailCode -> state.length in 3..8
+            is TelegramAuthState.WaitCode, is TelegramAuthState.WaitEmailCode, TelegramAuthState.WaitEmailAddress -> true
             is TelegramAuthState.WaitPassword -> "Password" in boards
             is TelegramAuthState.WaitRegistration -> "ProfileSetup" in boards
             is TelegramAuthState.WaitOtherDevice -> "QrLogin" in boards

@@ -120,7 +120,9 @@ fun StickersScreen(ctx: KxScreenCtx) {
             Column { Text(h.title, style = ts(16, W800), maxLines = 1); Text(h.status, style = ts(12, color = if (h.online) Kx.accent else Kx.text4), maxLines = 1) }
         }
         Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Bottom)) {
-            Text("Скинь что-нибудь смешное", style = ts(15), modifier = Modifier.fillMaxWidth(.78f).wrapContentWidth(Alignment.Start)
+            // qa-real: the real chat shows its own last incoming text (no demo «Скинь что-нибудь смешное»).
+            val lastIn = if (live) store.messages(chatId).lastOrNull { !it.out && it.text.isNotBlank() }?.text else "Скинь что-нибудь смешное"
+            if (lastIn != null) Text(lastIn, style = ts(15), maxLines = 3, modifier = Modifier.fillMaxWidth(.78f).wrapContentWidth(Alignment.Start)
                 .clip(RoundedCornerShape(18.dp, 18.dp, 18.dp, 5.dp)).background(Color(0xFF161B18)).padding(horizontal = 12.dp, vertical = 8.dp))
             sent.forEach { m ->
                 key(m.id) {

@@ -68,8 +68,28 @@ private suspend fun describeUri(context: android.content.Context, uri: android.n
 private fun cameraTarget(context: android.content.Context, video: Boolean): android.net.Uri {
     val dir = java.io.File(context.cacheDir, "camera").apply { mkdirs() }
     dir.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 24 * 3600_000L }?.forEach { it.delete() }
-    val file = java.io.File(dir, "v3_${System.currentTimeMillis()}." + if (video) "mp4" else "jpg")
+    // qa-real (fixer-real-media): a camera-style name (IMG_/VID_ + date) — «Как файл» sends it under this name.
+    val stamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+    var file = java.io.File(dir, (if (video) "VID_" else "IMG_") + stamp + if (video) ".mp4" else ".jpg")
+    var k = 1
+    while (file.exists()) file = java.io.File(dir, (if (video) "VID_" else "IMG_") + stamp + "_" + k++ + if (video) ".mp4" else ".jpg")
     return androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", file)
+}
+
+/** The camera file behind a [cameraTarget] uri (cache/camera/<name>). */
+private fun cameraFile(context: android.content.Context, uri: String): java.io.File =
+    java.io.File(java.io.File(context.cacheDir, "camera"), android.net.Uri.parse(uri).lastPathSegment.orEmpty())
+
+/**
+ * qa-real (fixer-real-media): system video capture that also returns the camera's own result uri. Some camera apps
+ * (MIUI) ignore EXTRA_OUTPUT for video or report «cancelled» although they wrote the file — the plain CaptureVideo
+ * contract then lost the video.
+ */
+private class CaptureVideoKeepingResult : androidx.activity.result.contract.ActivityResultContract<android.net.Uri, Pair<Boolean, android.net.Uri?>>() {
+    override fun createIntent(context: android.content.Context, input: android.net.Uri) =
+        android.content.Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE).putExtra(android.provider.MediaStore.EXTRA_OUTPUT, input)
+            .addFlags(android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION or android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    override fun parseResult(resultCode: Int, intent: android.content.Intent?) = (resultCode == android.app.Activity.RESULT_OK) to intent?.data
 }
 
 private class AttachKind(val icon: ImageVector, val label: String, val bg: Color, val ink: Color, val act: () -> Unit)
@@ -117,9 +137,19 @@ internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, 
         val u = camUri
         if (ok && u != null) addPicked(listOf(KxDeviceMedia(u, false)))
     }
-    val takeVideo = rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { ok ->
-        val u = camUri
-        if (ok && u != null) scope.launch { addPicked(listOf(describeUri(context, android.net.Uri.parse(u), forceVideo = true))) }
+    val takeVideo = rememberLauncherForActivityResult(CaptureVideoKeepingResult()) { (ok, returned) ->
+        val u = camUri ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            // Our file when the camera wrote it (even if it said «cancelled»), else the camera's own uri when it answered OK.
+            val written = withContext(Dispatchers.IO) { runCatching { cameraFile(context, u).length() > 0 }.getOrDefault(false) }
+            val source = when {
+                written -> android.net.Uri.parse(u)
+                ok && returned != null && returned.toString() != u -> returned
+                else -> null
+            }
+            if (source != null) addPicked(listOf(describeUri(context, source, forceVideo = true)))
+            else if (ok) toast("Камера не вернула видео — попробуйте выбрать его в «Галерее»")
+        }
     }
     fun launchCamera(video: Boolean) {
         val uri = runCatching { cameraTarget(context, video) }.getOrNull()
@@ -255,10 +285,9 @@ internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, 
                             sending = true
                             val batch = picked.toList(); val cap = caption.trim(); val sp = spoiler && !asFile; val file = asFile
                             scope.launch {
-                                var error: String? = null
-                                batch.forEachIndexed { i, m -> store.sendDeviceMediaAs(chatId, m, if (i == 0) cap else "", sp, file)?.let { error = it } }
+                                // qa-real (fixer-real-media): several picked items go out together as one album.
+                                val e = store.sendDeviceAlbum(chatId, batch, cap, sp, file)
                                 sending = false
-                                val e = error
                                 if (e != null) toast(e) else onClose()
                             }
                         }
@@ -270,7 +299,7 @@ internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, 
 }
 
 /**
- * Round video on the real account: the old UI's camera recorder (ui/chat/VideoNoteRecorder — circular preview,
+ * Round video on the real account (wave6: v3 recorder media/KxRoundRecorder over the old VideoNoteRecorder's CameraX code — circular preview,
  * tap to record / tap to send, 1 min, cropped square) sent through store.sendVideoNote. Each change of [request]
  * (> 0) opens it; camera + microphone are asked first.
  */
@@ -288,7 +317,7 @@ internal fun RealRoundVideo(store: KxStore, chatId: Long, request: Int, toast: (
     }
     if (open) {
         DisposableEffect(chatId) { store.roundActivity(chatId, true); onDispose { store.roundActivity(chatId, false) } }
-        com.kirox.app.ui.chat.VideoNoteRecorder(
+        com.kirox.app.ui.v3.screens.media.KxRoundRecorder(
             onDone = { note -> open = false; store.sendVideoNote(chatId, note.durationSeconds, note.file.absolutePath, note.length) },
             onCancel = { open = false },
             onError = { message -> open = false; toast(message) },

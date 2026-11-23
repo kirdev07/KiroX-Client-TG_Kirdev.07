@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 /*
  * wave3-media: call boards on the real account, driven by the app's call service (TelegramVoipRepository /
  * TelegramGroupCallRepository through store.activeCall / groupCall / lastCall). The demo boards keep their
- * simulated calls for KxDemoStore.
+ * simulated calls for KxDemoStore. wave6: live calls are drawn by KxCallHost (MediaCallHost.kt).
  */
 
 /** Which board shows the live call. */
@@ -65,207 +65,50 @@ private fun NoCall(ctx: KxScreenCtx, text: String = "Сейчас нет зво�
     }
 }
 
-/** Seconds since the call connected, ticking. */
+/** Blank stage while a board hands the live call over to the call host (one frame). */
 @Composable
-private fun callSeconds(c: KxCallState): Int {
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(c.sinceMs) { while (c.sinceMs > 0) { now = System.currentTimeMillis(); delay(1000) } }
-    return if (c.sinceMs > 0) ((now - c.sinceMs) / 1000).toInt().coerceAtLeast(0) else 0
+private fun HandOver(ctx: KxScreenCtx, action: () -> Unit) {
+    LaunchedEffect(Unit) { action(); ctx.back() }
+    Box(Modifier.fillMaxSize().background(Kx.bg))
 }
 
-private fun phaseText(c: KxCallState, sec: Int) = when (c.phase) {
-    KxCallPhase.Calling -> if (c.video) "Видеозвонок…" else "Вызов…"
-    KxCallPhase.Ringing -> "Звонит…"
-    KxCallPhase.Incoming -> if (c.video) "Входящий видеозвонок" else "Входящий звонок"
-    KxCallPhase.Connecting -> "Соединение…"
-    KxCallPhase.Active -> if (c.reconnecting) "Переподключаемся…" else fmtClock(sec)
-    KxCallPhase.Ended -> c.endReason.ifBlank { "Звонок завершён" }
-    KxCallPhase.Failed -> c.failure.ifBlank { "Не удалось позвонить" }
-}
-
-/** Remote camera full screen + own camera in the corner (WebRTC renderers fed by the call engine). */
-@Composable
-private fun CallVideoLayer(ctx: KxScreenCtx, c: KxCallState) {
-    val context = LocalContext.current
-    val remote = remember { org.webrtc.TextureViewRenderer(context) }
-    val local = remember { org.webrtc.TextureViewRenderer(context) }
-    DisposableEffect(Unit) {
-        val egl = com.kirox.app.voip.VideoCapturerDevice.getSharedEGLContext()
-        remote.init(egl, null); local.init(egl, null)
-        remote.setScalingType(org.webrtc.RendererCommon.ScalingType.SCALE_ASPECT_FILL)
-        local.setScalingType(org.webrtc.RendererCommon.ScalingType.SCALE_ASPECT_FILL)
-        local.setMirror(true)
-        ctx.store.attachCallVideo(remote, local)
-        onDispose { ctx.store.attachCallVideo(null, null); remote.release(); local.release() }
-    }
-    Box(Modifier.fillMaxSize()) {
-        if (c.remoteVideo) AndroidView({ remote }, Modifier.fillMaxSize())
-        if (c.cameraOn) Box(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 74.dp, end = 16.dp).size(104.dp, 150.dp).clip(RoundedCornerShape(22.dp))
-            .border(1.dp, Kx.w(.22f), RoundedCornerShape(22.dp))) { AndroidView({ local }, Modifier.fillMaxSize()) }
-    }
-}
-
-@Composable
-private fun CallBtn(icon: ImageVector, label: String, on: Boolean = false, danger: Boolean = false, accent: Boolean = false, size: androidx.compose.ui.unit.Dp = 60.dp, onClick: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.size(size).clip(CircleShape).background(when { danger -> Color(0xFFE5534B); accent -> Kx.accent; on -> Color.White; else -> Kx.w(.12f) })
-            .kxClick(label, onClick = onClick), contentAlignment = Alignment.Center) {
-            Icon(icon, null, Modifier.size(28.dp), tint = when { danger -> Color.White; accent -> Kx.onAccent; on -> Kx.bg; else -> Color.White })
-        }
-        T(label, 11.sp, color = Kx.text2)
-    }
-}
-
-@Composable
-private fun SignalBars(bars: Int) {
-    Row(Modifier.height(14.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        (1..4).forEach { i ->
-            val c = if (i <= bars) (if (bars >= 3) Kx.accent else if (bars == 2) Kx.warning else Kx.danger) else Kx.w(.25f)
-            Box(Modifier.width(3.dp).height((3 * i + 2).dp).clip(RoundedCornerShape(1.dp)).background(c))
-        }
-    }
-}
-
-/** VideoCall / Incoming / KeyCheck / CallWeak / CallWaiting / Pip on the real account. */
+/**
+ * VideoCall / Incoming / KeyCheck / CallWeak / CallWaiting / Pip on the real account. wave6 (port-calls): the live
+ * call is drawn by KxCallHost over the whole app (ringtone, audio route, proximity, lock screen, minimise chip…);
+ * these boards only bring it back full screen (Pip shrinks it to the chip / video window) and close themselves.
+ */
 @Composable
 internal fun RealCallBoard(ctx: KxScreenCtx, board: CallBoard) {
-    val c = ctx.store.activeCall
-    // The call ended while this board was showing it → close the board (the CallEnd board offers the rating).
-    var hadCall by remember { mutableStateOf(false) }
-    if (c != null) hadCall = true
-    LaunchedEffect(c == null, hadCall) { if (c == null && hadCall) { ctx.back(); if (ctx.store.lastCall != null) ctx.open("CallEnd") } }
-    // Just after startCall (permission dialog, call not created yet): «Соединение…» for a few seconds instead of «нет звонка».
-    var grace by remember { mutableStateOf(board == CallBoard.Video) }
-    LaunchedEffect(Unit) { kotlinx.coroutines.delay(4000); grace = false }
-    if (c == null && (hadCall || grace)) {
-        Box(Modifier.fillMaxSize().background(Kx.bg), contentAlignment = Alignment.Center) { T(if (hadCall) "Звонок завершён" else "Соединение…", 16.sp, color = Kx.text3) }
-        return
-    }
-    if (c == null) {
-        when (board) {
-            CallBoard.Weak -> NoCall(ctx, sub = "Подсказки о слабой связи появятся во время звонка")
-            CallBoard.Key -> NoCall(ctx, sub = "Эмодзи-ключ шифрования появляется во время звонка")
-            CallBoard.Incoming -> NoCall(ctx, "Нет входящего звонка", "Входящий звонок откроется здесь сам")
-            else -> NoCall(ctx)
+    if (ctx.store.activeCall != null) {
+        HandOver(ctx) {
+            if (board == CallBoard.Key) KxCallUi.keyOpen = true
+            if (board == CallBoard.Pip) KxCallUi.minimized = true else KxCallUi.minimized = false
         }
         return
     }
-    val sec = callSeconds(c)
-    var keyOpen by remember { mutableStateOf(board == CallBoard.Key) }
-    val live = c.phase == KxCallPhase.Active
-    Box(Modifier.fillMaxSize().background(Kx.bg)) {
-        if (c.video || c.cameraOn || c.remoteVideo) CallVideoLayer(ctx, c)
-        if (!c.remoteVideo) Box(Modifier.fillMaxSize().ellipseGlow(Kx.accentDeep.copy(alpha = .28f), .5f, .35f, .8f, .5f, .7f))
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MRoundBtn(Icons.Rounded.KeyboardArrowDown, "Свернуть", size = 42.dp, bg = Kx.w(.1f), border = Kx.w(.14f)) { ctx.back() }
-                Spacer(Modifier.weight(1f))
-                if (live) SignalBars(c.signalBars)
-                if (c.emojis.isNotEmpty()) Box(Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).background(Kx.w(.1f)).border(1.dp, Kx.w(.14f), RoundedCornerShape(19.dp))
-                    .kxClick("Ключ шифрования") { keyOpen = !keyOpen }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                    Text(c.emojis.joinToString(""), style = ts(16.sp).copy(letterSpacing = 2.sp))
-                }
-            }
-            if (board == CallBoard.Weak || c.reconnecting || (live && c.signalBars <= 1)) {
-                val (title, sub) = when {
-                    c.reconnecting -> "Переподключаемся…" to "Звонок продолжится сам, как только вернётся сеть"
-                    live && c.signalBars <= 1 -> "Слабая связь" to "Видео может подтормаживать"
-                    else -> "Связь в порядке" to "Сигнал: ${c.signalBars} из 4"
-                }
-                Row(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color(0xB83C2C0E)).padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(if (c.reconnecting) Icons.Rounded.Sync else Icons.Outlined.SignalCellularAlt, null, tint = Kx.warning)
-                    Column(Modifier.weight(1f)) { T(title, 14.sp, FontWeight.Bold); T(sub, 12.sp, color = Kx.text3) }
-                    if (c.cameraOn && live) Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.12f)).kxClick { ctx.store.turnCallCamera(false) }.padding(horizontal = 10.dp),
-                        contentAlignment = Alignment.Center) { T("Только голос", 12.sp, FontWeight.Bold) }
-                }
-            }
-            if (board == CallBoard.Waiting) Row(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.06f)).padding(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Outlined.Info, null, tint = Kx.text3)
-                T("Во время разговора Telegram отвечает другим звонящим «занято» — удержание и второй звонок недоступны.", 12.sp, color = Kx.text3)
-            }
-            if (keyOpen && c.emojis.isNotEmpty()) Column(Modifier.padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.07f)).padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(c.emojis.joinToString("  "), style = ts(40.sp))
-                T("Если у ${c.name} те же эмодзи, звонок защищён сквозным шифрованием.", 13.sp, color = Kx.text2, modifier = Modifier.padding(top = 10.dp))
-            }
-            Spacer(Modifier.weight(1f))
-            if (!c.remoteVideo) Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(132.dp)) {
-                    if (!live) CallRings(Modifier.matchParentSize())
-                    Box(Modifier.matchParentSize().clip(CircleShape).background(Kx.w(.1f)), contentAlignment = Alignment.Center) {
-                        T(c.name.take(1).uppercase(), 48.sp, FontWeight.ExtraBold)
-                        KxImage(c.avatar, Modifier.matchParentSize(), maxPx = 400)
-                    }
-                }
-            }
-            T(c.name, 28.sp, FontWeight.ExtraBold, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 18.dp), maxLines = 1)
-            Row(Modifier.align(Alignment.CenterHorizontally).padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (live && !c.remoteMuted) SpeakBars()
-                if (c.remoteMuted) Icon(Icons.Rounded.MicOff, null, Modifier.size(16.dp), tint = Kx.danger)
-                T(phaseText(c, sec), 14.sp, color = Kx.text3)
-            }
-            Spacer(Modifier.weight(1f))
-            if (c.phase == KxCallPhase.Incoming) Row(Modifier.fillMaxWidth().padding(bottom = 20.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                CallBtn(Icons.Rounded.CallEnd, "Отклонить", danger = true, size = 72.dp) { ctx.store.hangUp() }
-                CallBtn(if (c.video) Icons.Rounded.Videocam else Icons.Rounded.Call, "Ответить", accent = true, size = 72.dp) { ctx.store.answerCall() }
-            } else Row(Modifier.fillMaxWidth().padding(bottom = 20.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                CallBtn(if (c.cameraOn) Icons.Rounded.Videocam else Icons.Outlined.VideocamOff, "Камера", on = c.cameraOn) { ctx.store.turnCallCamera(!c.cameraOn) }
-                if (c.cameraOn) CallBtn(Icons.Rounded.Cameraswitch, "Повернуть") { ctx.store.flipCallCamera() }
-                CallBtn(if (c.micMuted) Icons.Rounded.MicOff else Icons.Rounded.Mic, if (c.micMuted) "Вкл. звук" else "Микрофон", on = c.micMuted) { ctx.store.muteCallMic(!c.micMuted) }
-                CallBtn(Icons.Rounded.CallEnd, "Завершить", danger = true) { ctx.store.hangUp() }
-            }
-        }
+    when (board) {
+        CallBoard.Weak -> NoCall(ctx, sub = "Подсказки о слабой связи появятся во время звонка")
+        CallBoard.Key -> NoCall(ctx, sub = "Эмодзи-ключ шифрования появляется во время звонка")
+        CallBoard.Incoming -> NoCall(ctx, "Нет входящего звонка", "Входящий звонок откроется сам поверх приложения")
+        CallBoard.Waiting -> NoCall(ctx, sub = "Во время разговора Telegram отвечает другим звонящим «занято» — удержание и второй звонок недоступны.")
+        else -> NoCall(ctx)
     }
 }
 
-/** GroupCall / VideoConf on the real account: the video chat this account is in. */
+/** GroupCall / VideoConf on the real account: brings the video chat (drawn by KxCallHost) back full screen. */
 @Composable
 internal fun RealGroupCall(ctx: KxScreenCtx) {
-    val g = ctx.store.groupCall
-    if (g == null) { NoCall(ctx, "Вы не в видеочате", "Зайдите в видеочат группы или канала — участники появятся здесь"); return }
-    var confirm by remember { mutableStateOf<KxConfirm?>(null) }
-    val clock by rememberLoopClock()
-    Box(Modifier.fillMaxSize().background(Kx.bg)) {
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MRoundBtn(Icons.Rounded.KeyboardArrowDown, "Свернуть", size = 42.dp, bg = Kx.w(.1f), border = null) { ctx.back() }
-                Column(Modifier.weight(1f)) {
-                    T(g.title.ifBlank { "Видеочат" }, 17.sp, FontWeight.ExtraBold, maxLines = 1)
-                    T(when { g.failure.isNotBlank() -> g.failure; g.reconnecting -> "Переподключаемся…"; !g.connected -> "Подключаемся…"
-                        else -> "${g.count} ${ruPlural(g.count, "участник", "участника", "участников")}" }, 12.sp, color = if (g.failure.isNotBlank()) Kx.danger else Kx.accent)
-                }
-            }
-            LazyVerticalGrid(GridCells.Fixed(3), Modifier.weight(1f), contentPadding = PaddingValues(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                items(g.members, key = { it.key }) { m ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Box(Modifier.size(78.dp).talkRing(m.speaking, clock, null)) {
-                            Box(Modifier.matchParentSize().clip(CircleShape).background(Kx.w(.1f)), contentAlignment = Alignment.Center) {
-                                T(m.name.take(1).uppercase(), 26.sp, FontWeight.ExtraBold)
-                                KxImage(m.avatar, Modifier.matchParentSize(), maxPx = 240)
-                            }
-                            Box(Modifier.align(Alignment.BottomEnd).size(24.dp).clip(CircleShape).background(Kx.bg).padding(2.dp).clip(CircleShape)
-                                .background(if (m.hand) Kx.warning else if (m.muted) Kx.w(.2f) else Kx.accent), contentAlignment = Alignment.Center) {
-                                Icon(if (m.hand) Icons.Rounded.BackHand else if (m.muted) Icons.Rounded.MicOff else Icons.Rounded.Mic, null, Modifier.size(13.dp), tint = Color.White)
-                            }
-                            if (m.video) Icon(Icons.Rounded.Videocam, null, Modifier.align(Alignment.TopEnd).size(18.dp), tint = Kx.accent)
-                        }
-                        T(m.name, 12.sp, FontWeight.SemiBold, maxLines = 1)
-                    }
-                }
-            }
-            Row(Modifier.fillMaxWidth().padding(bottom = 22.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                CallBtn(if (g.cameraOn) Icons.Rounded.Videocam else Icons.Outlined.VideocamOff, "Камера", on = g.cameraOn) { ctx.store.turnGroupCamera(!g.cameraOn) }
-                CallBtn(if (g.muted) Icons.Rounded.MicOff else Icons.Rounded.Mic, if (!g.canUnmute && g.muted) "Нельзя" else if (g.muted) "Вкл. звук" else "Микрофон", on = !g.muted, accent = !g.muted) {
-                    if (g.canUnmute || !g.muted) ctx.store.muteGroupMic(!g.muted) else ctx.toast("Админы выключили микрофоны")
-                }
-                CallBtn(Icons.Rounded.CallEnd, "Выйти", danger = true) {
-                    confirm = KxConfirm("Выйти из видеочата?", "Вы сможете вернуться, пока он идёт.", "Выйти") { ctx.store.leaveGroupCall(); ctx.back() }
-                }
-            }
+    if (ctx.store.groupCall != null) { HandOver(ctx) { KxCallUi.groupMinimized = false }; return }
+    NoCall(ctx, "Вы не в видеочате", "Зайдите в видеочат группы или канала — участники появятся здесь")
+}
+
+@Composable
+private fun EndBtn(icon: ImageVector, label: String, accent: Boolean = false, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(Modifier.size(60.dp).clip(CircleShape).background(if (accent) Kx.accent else Kx.w(.12f)).kxClick(label, onClick = onClick), contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(28.dp), tint = if (accent) Kx.onAccent else Color.White)
         }
-        confirm?.let { KxConfirmDialog(it) { confirm = null } }
+        T(label, 11.sp, color = Kx.text2)
     }
 }
 
@@ -290,9 +133,9 @@ internal fun RealCallEnd(ctx: KxScreenCtx) {
         T((if (c.phase == KxCallPhase.Failed) c.failure.ifBlank { "Не удалось позвонить" } else c.endReason.ifBlank { "Звонок завершён" }) +
             (if (c.endedSeconds > 0) " · ${fmtClock(c.endedSeconds)}" else ""), 14.sp, color = Kx.text3, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp))
         Row(Modifier.align(Alignment.CenterHorizontally).padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            CallBtn(Icons.Rounded.Call, "Позвонить", accent = true) { ctx.store.call(c.peerId, false) }
-            CallBtn(Icons.Rounded.Videocam, "Видео") { ctx.store.call(c.peerId, true) }
-            CallBtn(Icons.Rounded.ChatBubble, "Написать") { ctx.openChat(c.peerId) }
+            EndBtn(Icons.Rounded.Call, "Позвонить", accent = true) { ctx.store.call(c.peerId, false) }
+            EndBtn(Icons.Rounded.Videocam, "Видео") { ctx.store.call(c.peerId, true) }
+            EndBtn(Icons.Rounded.ChatBubble, "Написать") { ctx.openChat(c.peerId) }
         }
         if (c.endedSeconds > 0 && !sent) Column(Modifier.padding(top = 24.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Kx.w(.05f)).padding(16.dp)) {
             T("Как прошёл звонок?", 16.sp, FontWeight.ExtraBold)

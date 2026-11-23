@@ -80,6 +80,10 @@ fun ChatSearchScreen(ctx: KxScreenCtx) {
     var listMode by remember { mutableStateOf(false) }
     var fromSheet by remember { mutableStateOf(false) }
     var calSheet by remember { mutableStateOf(false) }
+    // qa-real: after «Перейти к этому дню» (JumpDate) the search steps aside so the chat shows the day.
+    var dateJump by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val jumpTarget = chatId?.let { store.jumpTarget(it) } ?: 0L
+    LaunchedEffect(jumpTarget, dateJump) { if (dateJump && jumpTarget != 0L) { dateJump = false; ctx.back() } }
     var jump by remember { mutableIntStateOf(0) }
     var flash by remember { mutableIntStateOf(0) }
     val qq = q.trim().lowercase()
@@ -120,7 +124,9 @@ fun ChatSearchScreen(ctx: KxScreenCtx) {
             }
             Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 SChip(Icons.Outlined.PersonSearch, "От кого", false) { fromSheet = true }
-                SChip(Icons.Outlined.CalendarMonth, "По дате", false) { calSheet = true }
+                SChip(Icons.Outlined.CalendarMonth, "По дате", false) {
+                    // qa-real: the real chat uses the real calendar (JumpDate: real days, today, GetChatMessageByDate); the sheet is board demo.
+                    if (!demo && chatId != null) { dateJump = true; ctx.open("JumpDate:$chatId") } else calSheet = true }
                 SChip(Icons.AutoMirrored.Outlined.List, "Списком", listMode) { listMode = !listMode }
             }
             if (!listMode) LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 12.dp),

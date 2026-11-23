@@ -38,7 +38,11 @@ class AuthMappingTest {
     @Test fun supportedStates() {
         assertTrue(TelegramKxAuth.supports(TelegramAuthState.WaitPhoneNumber))
         assertTrue(TelegramKxAuth.supports(TelegramAuthState.WaitCode("7", 5, true, 60)))
-        assertFalse(TelegramKxAuth.supports(TelegramAuthState.WaitCode("7", 5, true, 60, words = true)))
+        // wave6: word codes and the e-mail address step have v3 boards too.
+        assertTrue(TelegramKxAuth.supports(TelegramAuthState.WaitCode("7", 5, true, 60, words = true)))
+        assertTrue(TelegramKxAuth.supports(TelegramAuthState.WaitEmailAddress))
+        assertTrue(TelegramKxAuth.supports(TelegramAuthState.WaitEmailCode(6)))
         assertFalse(TelegramKxAuth.supports(TelegramAuthState.WaitPassword("", false, "")))
+        assertTrue(TelegramKxAuth.supports(TelegramAuthState.WaitPassword("", false, ""), setOf("Password")))
     }
 }

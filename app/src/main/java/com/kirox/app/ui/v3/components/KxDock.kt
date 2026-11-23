@@ -42,9 +42,13 @@ import com.kirox.app.ui.v3.theme.KxType
 @Composable
 fun KxDock(current: KxTab, onPick: (KxTab) -> Unit, modifier: Modifier = Modifier, chatsBadge: Int = 0, callsBadge: Int = 0, names: Map<Int, String> = emptyMap(),
            /** Tabs turned off in the settings (old app: «Вкладка Звонки / Истории»). */
-           hidden: Set<KxTab> = emptySet()) {
+           hidden: Set<KxTab> = emptySet(),
+           /** port-nav: the tab pager's fractional page (index among the shown tabs); the lens then tracks the swipe instead of springing. */
+           lensPosition: (() -> Float)? = null) {
     val tabs = KxTab.entries.filter { it !in hidden || it == current }
     val lensX by animateDpAsState((tabs.indexOf(current).coerceAtLeast(0) * 78).dp, tween(450, easing = KxMotion.lens), label = "lens")
+    val lensOffset: Modifier = if (lensPosition == null) Modifier.offset(x = lensX, y = 6.dp)
+        else Modifier.offset { val u = 78.dp.toPx(); androidx.compose.ui.unit.IntOffset((lensPosition().coerceIn(0f, (tabs.size - 1).toFloat()) * u).toInt(), 6.dp.roundToPx()) }
     val shape = RoundedCornerShape(32.dp)
     Box(
         modifier.shadow(34.dp, shape, ambientColor = Color.Black, spotColor = Color.Black.copy(alpha = .55f))
@@ -52,7 +56,7 @@ fun KxDock(current: KxTab, onPick: (KxTab) -> Unit, modifier: Modifier = Modifie
             .height(64.dp).padding(horizontal = 6.dp)
     ) {
         Box(
-            Modifier.offset(x = lensX, y = 6.dp).size(78.dp, 52.dp).clip(RoundedCornerShape(26.dp))
+            lensOffset.size(78.dp, 52.dp).clip(RoundedCornerShape(26.dp))
                 .background(Kx.accent.copy(alpha = .18f)).border(1.dp, Kx.accentLight.copy(alpha = .3f), RoundedCornerShape(26.dp))
         )
         Row(Modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {

@@ -18,8 +18,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kirox.app.phone.PhoneEntryState
-import com.kirox.app.ui.country.CountryPickerScreen
-import com.kirox.app.ui.splash.AnimatedSplashScreen2
 import com.kirox.app.ui.start.PhoneLoginScreen
 import com.kirox.app.telegram.TelegramAuthState
 import com.kirox.app.telegram.TelegramViewModel
@@ -131,7 +129,6 @@ fun KiroXApp() {
             backgroundIntro = com.kirox.app.ui.home.shouldShowBackgroundIntro(context)
         }
     }
-    if (backgroundIntro) com.kirox.app.ui.home.BackgroundIntroSheet { backgroundIntro = false }
     fun withCallPermissions(video: Boolean, cameraOnly: Boolean = false, action: () -> Unit) {
         val needed = listOfNotNull(
             android.Manifest.permission.RECORD_AUDIO,
@@ -200,6 +197,8 @@ fun KiroXApp() {
     }
     val chatError by telegramViewModel.chats.error.collectAsStateWithLifecycle()
     val newDesign by com.kirox.app.ui.v3.KxNewDesign.enabled(context).collectAsStateWithLifecycle()
+    /** wave6 port-calls: the v3 host (Screen.Chats with «Новый дизайн») draws calls itself — no old CallScreen / GroupCallScreen / MiniCallChip. */
+    val v3Calls = newDesign == true && stack.current == Screen.Chats
     val settings = remember { (context.applicationContext as com.kirox.app.KiroXApplication).settings }
     val palette by settings.palette.collectAsStateWithLifecycle()
     val seasonal by settings.seasonalEffects.collectAsStateWithLifecycle()
@@ -243,8 +242,7 @@ fun KiroXApp() {
     var folderInvite by remember { mutableStateOf<com.kirox.app.telegram.FolderInvite?>(null) }
     // «Встроенный браузер»: the web page open over the app, null when none.
     var browserUrl by remember { mutableStateOf<String?>(null) }
-    // «Что нового» once after an update, when the splash is gone.
-    var whatsNew by remember { mutableStateOf(false) }
+    // wave6: the old «Что нового» popup after an update is gone; the v3 WhatsNew board stays in Settings → О приложении and Help.
     val linkOpener: (String) -> Unit = remember(uriHandler) {
         { url ->
             val link = com.kirox.app.telegram.telegramLinkOf(url)
@@ -346,7 +344,8 @@ fun KiroXApp() {
                             busy = telegramBusy,
                             onCancel = if (accounts.size > 1 && tdClient.isAddingAccount()) tdClient::cancelNewAccount else null
                         )
-                        Screen.Countries -> CountryPickerScreen(state, onBack = { stack.pop() })
+                        // wave6: the v3 «Выбор страны» list; the pick goes back to the phone board (PhoneEntryState.selectCountry).
+                        Screen.Countries -> com.kirox.app.ui.v3.theme.KxTheme { com.kirox.app.ui.v3.screens.extra.KxSignInCountryPicker(state, onBack = { stack.pop() }) }
                         // «Новый дизайн» on: the kiroX v3 UI on the real account (ui/v3/data); calls and banners below still work.
                         Screen.Chats -> if (newDesign == true) com.kirox.app.ui.v3.data.KxTelegramHost(Modifier.fillMaxSize(), telegramViewModel) else CompositionLocalProvider(
                             LocalTelegramFiles provides telegramViewModel.files,
@@ -467,13 +466,23 @@ fun KiroXApp() {
                 }
             }
         }
-        groupCall?.let { call ->
+        // wave6: once after sign-in the v3 Welcome board («Пара разрешений») instead of the old sheet; calls draw over it.
+        // wave6 port-calls: the v3 call host lives inside the v3 host (under this sheet) — wait with the welcome while a call is on.
+        if (backgroundIntro && !splashVisible && stack.current.graph == NavGraph.Main && !(v3Calls && (activeCall != null || groupCall != null))) com.kirox.app.ui.v3.theme.KxTheme {
+            com.kirox.app.ui.v3.components.KxToastHost {
+                com.kirox.app.ui.v3.screens.extra.KxPostSignInWelcome {
+                    com.kirox.app.ui.home.markBackgroundIntroSeen(context)
+                    backgroundIntro = false
+                }
+            }
+        }
+        // wave6 port-calls: with the v3 UI on screen its call host (KxCallHost in KxTelegramHost) owns calls; the old
+        // overlays stay only for the old design (and the sign-in screens, where no v3 host is composed).
+        if (!v3Calls) groupCall?.let { call ->
             CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.call.GroupCallScreen(call, groupCallActions) }
         }
         // Covers and downloads in the library and the player need the file repository too.
         CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.music.MusicLibraryHost(onOpenChat = { openChat(it) }) }
-        LaunchedEffect(splashVisible) { if (!splashVisible && com.kirox.app.ui.home.WhatsNew.shouldShow(context)) whatsNew = true }
-        if (whatsNew) com.kirox.app.ui.home.WhatsNewSheet { whatsNew = false }
         CompositionLocalProvider(LocalTelegramFiles provides telegramViewModel.files) { com.kirox.app.ui.chat.MusicPlayerSheet() }
         browserUrl?.let { url -> com.kirox.app.ui.chat.InAppBrowser(url, onTelegramLink = { browserUrl = null; linkOpener(it) }) { browserUrl = null } }
         folderInvite?.let { invite ->
@@ -507,7 +516,7 @@ fun KiroXApp() {
                 confirmButton = { androidx.compose.material3.TextButton(onClick = { groupCallNotice = null }) { com.kirox.app.i18n.Text("Понятно") } }
             )
         }
-        activeCall?.let { call ->
+        if (!v3Calls) activeCall?.let { call ->
             // A live call can be minimized to a pill on top of the app; ringing and ended calls stay full screen.
             var minimized by rememberSaveable(call.id) { mutableStateOf(false) }
             val canMinimize = call.phase is com.kirox.app.telegram.CallPhase.Active || call.phase is com.kirox.app.telegram.CallPhase.Calling || call.phase == com.kirox.app.telegram.CallPhase.Connecting

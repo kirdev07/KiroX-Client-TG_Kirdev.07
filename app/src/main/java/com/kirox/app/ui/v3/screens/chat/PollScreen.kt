@@ -43,8 +43,10 @@ private val ConfColors = listOf(Color(0xFF8FD3AC), Color(0xFFE8B04A), Color(0xFF
 /** Board «Опрос»: poll / quiz creator, then the poll bubble with voting, results bars, shake and confetti. */
 @Composable
 fun PollScreen(ctx: KxScreenCtx) {
-    var q by remember { mutableStateOf("Когда удобнее заниматься?") }
-    val opts = remember { mutableStateListOf("Утром", "Днём", "Вечером") }
+    // qa-real: from a real chat the editor starts empty (the board's sample poll is demo only).
+    val realChat = ctx.arg?.toLongOrNull() != null && ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    var q by remember { mutableStateOf(if (realChat) "" else "Когда удобнее заниматься?") }
+    val opts = remember { if (realChat) mutableStateListOf("", "") else mutableStateListOf("Утром", "Днём", "Вечером") }
     var anon by remember { mutableStateOf(true) }
     var multi by remember { mutableStateOf(false) }
     var quiz by remember { mutableStateOf(false) }
@@ -69,6 +71,8 @@ fun PollScreen(ctx: KxScreenCtx) {
                         if (cid != null) {
                             val shown = opts.withIndex().filter { it.value.isNotBlank() }
                             ctx.store.sendPoll(cid, q.trim(), shown.map { it.value.trim() }, anon, multi && !quiz, if (quiz) shown.indexOfFirst { it.index == correct }.takeIf { it >= 0 } else null)
+                            // qa-real: no local preview with demo votes — the real poll (0 votes) appears in the chat.
+                            if (realChat) { ctx.toast(if (quiz) "Викторина отправлена" else "Опрос отправлен"); ctx.back() }
                         }
                     }
                 }.padding(horizontal = 16.dp),

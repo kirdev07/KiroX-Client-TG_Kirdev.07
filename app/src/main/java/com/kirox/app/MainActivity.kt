@@ -91,7 +91,8 @@ class MainActivity : ComponentActivity() {
                         if (passcode.enabled && passcode.hideContent) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
                         else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
                     }
-                    if (locked) com.kirox.app.ui.auth.PasscodeLockScreen(onForgot = {
+                    // wave6: the lock in the v3 Lock board look (the old PasscodeLockScreen stays unused).
+                    if (locked) com.kirox.app.ui.v3.screens.settings.KxAppLock(onForgot = {
                         com.kirox.app.security.PasscodeLock.disable()
                         (application as KiroXApplication).telegram.auth.logOut()
                     })

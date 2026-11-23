@@ -130,7 +130,7 @@ internal fun splitHit(text: String, q: String): AnnotatedString? {
 internal fun ChatAvatar(c: KxChat, size: Dp) {
     if (c.kind == KxChatKind.Saved) KxAvatar(c.title, c.id, size = size, icon = Icons.Rounded.Bookmark, colorIndex = 7)
     else KxAvatar(c.title, c.id, size = size, colorIndex = c.colorIndex,
-        icon = if (c.avatarIcon == "campaign") Icons.Rounded.Campaign else null)
+        icon = if (c.avatarIcon == "campaign") Icons.Rounded.Campaign else null, photo = c.avatar) // qa-real: real photos (search, «Часто пишете», forward…)
 }
 
 /** Section caption: 13px w800 accent, padding 0 4 6. */

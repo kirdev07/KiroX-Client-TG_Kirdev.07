@@ -99,7 +99,22 @@ private fun ReactionSource.toTd(): TdApi.ReactionNotificationSource = when (this
 data class BlockedSender(val id: Long, val isChat: Boolean, val name: String, val photo: TelegramFileRef?)
 
 /** Cloud password (two-step verification) state; [pendingEmailPattern] while a recovery email waits for its code. */
-data class CloudPasswordState(val hasPassword: Boolean, val hint: String, val hasRecoveryEmail: Boolean, val pendingEmailPattern: String?)
+data class CloudPasswordState(val hasPassword: Boolean, val hint: String, val hasRecoveryEmail: Boolean, val pendingEmailPattern: String?,
+                              /** Unix time when a requested password reset happens; 0 = none pending. */
+                              val pendingResetDate: Int = 0)
+
+/** Result of «Сбросить пароль» without the recovery e-mail: done now, scheduled for [date], or refused until [date] (unix seconds). */
+sealed interface PasswordResetResult {
+    data object Done : PasswordResetResult
+    data class Pending(val date: Int) : PasswordResetResult
+    data class Declined(val retryDate: Int) : PasswordResetResult
+}
+
+/** A person in a privacy exception list. */
+data class PrivacyPerson(val id: Long, val name: String, val photo: TelegramFileRef?)
+
+/** «Всегда разрешать» / «Никогда не разрешать» people of a privacy rule; [chatRules] = group-member exceptions kept as they are. */
+data class PrivacyExceptions(val allow: List<PrivacyPerson>, val never: List<PrivacyPerson>, val chatRules: Int)
 
 /** A chat whose notifications differ from the defaults. */
 data class NotificationException(val chatId: Long, val title: String, val muted: Boolean)
@@ -375,8 +390,70 @@ class TelegramSettingsRepository(private val client: TelegramClient) {
     suspend fun confirmRecoveryEmail(code: String): CloudPasswordState = client.query(TdApi.CheckRecoveryEmailAddressCode(code)).toState()
 
     private fun TdApi.PasswordState.toState() = CloudPasswordState(
-        hasPassword, passwordHint.orEmpty(), hasRecoveryEmailAddress, recoveryEmailAddressCodeInfo?.emailAddressPattern
+        hasPassword, passwordHint.orEmpty(), hasRecoveryEmailAddress, recoveryEmailAddressCodeInfo?.emailAddressPattern, pendingResetDate
     )
+
+    /** New recovery e-mail for an existing password; the address waits for its code ([confirmRecoveryEmail]). */
+    suspend fun setRecoveryEmail(password: String, email: String): CloudPasswordState =
+        client.query(TdApi.SetRecoveryEmailAddress(password, email)).toState()
+
+    suspend fun resendRecoveryEmailCode(): CloudPasswordState = client.query(TdApi.ResendRecoveryEmailAddressCode()).toState()
+
+    /** «Забыли пароль?» while signed in: a code goes to the recovery e-mail; returns its pattern («a•••@mail.com»). */
+    suspend fun requestPasswordRecovery(): String = client.query(TdApi.RequestPasswordRecovery()).emailAddressPattern.orEmpty()
+
+    /** The e-mail code; [newPassword] empty removes the password. */
+    suspend fun recoverPassword(code: String, newPassword: String, newHint: String): CloudPasswordState =
+        client.query(TdApi.RecoverPassword(code, newPassword, newHint)).toState()
+
+    /** Reset without the e-mail: Telegram removes the password after a waiting period (or refuses for now). */
+    suspend fun resetPassword(): PasswordResetResult = when (val r = client.query(TdApi.ResetPassword())) {
+        is TdApi.ResetPasswordResultPending -> PasswordResetResult.Pending(r.pendingResetDate)
+        is TdApi.ResetPasswordResultDeclined -> PasswordResetResult.Declined(r.retryDate)
+        else -> PasswordResetResult.Done
+    }
+
+    suspend fun cancelPasswordReset() { client.query(TdApi.CancelPasswordReset()) }
+
+    // ---------- Privacy exceptions ----------
+
+    private suspend fun person(userId: Long): PrivacyPerson? = runCatching {
+        client.query(TdApi.GetUser(userId)).let { u ->
+            PrivacyPerson(u.id, listOf(u.firstName, u.lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Удалённый аккаунт" }, u.profilePhoto?.small?.toRef())
+        }
+    }.getOrNull()
+
+    suspend fun privacyExceptions(item: PrivacyItem): PrivacyExceptions {
+        val rules = client.query(TdApi.GetUserPrivacySettingRules(item.toTd())).rules
+        val allow = rules.filterIsInstance<TdApi.UserPrivacySettingRuleAllowUsers>().flatMap { it.userIds.toList() }.distinct()
+        val never = rules.filterIsInstance<TdApi.UserPrivacySettingRuleRestrictUsers>().flatMap { it.userIds.toList() }.distinct()
+        val chats = rules.sumOf { r ->
+            when (r) {
+                is TdApi.UserPrivacySettingRuleAllowChatMembers -> r.chatIds.size
+                is TdApi.UserPrivacySettingRuleRestrictChatMembers -> r.chatIds.size
+                else -> 0
+            }
+        }
+        return PrivacyExceptions(allow.mapNotNull { person(it) }, never.mapNotNull { person(it) }, chats)
+    }
+
+    /** Replaces the people exceptions of [item]; the base rule and group-member exceptions stay. */
+    suspend fun setPrivacyExceptions(item: PrivacyItem, allow: List<Long>, never: List<Long>) {
+        val rules = client.query(TdApi.GetUserPrivacySettingRules(item.toTd())).rules
+        val chatRules = rules.filter { it is TdApi.UserPrivacySettingRuleAllowChatMembers || it is TdApi.UserPrivacySettingRuleRestrictChatMembers }
+        val base = rules.filter {
+            it is TdApi.UserPrivacySettingRuleAllowAll || it is TdApi.UserPrivacySettingRuleAllowContacts || it is TdApi.UserPrivacySettingRuleRestrictAll ||
+                it is TdApi.UserPrivacySettingRuleRestrictContacts || it is TdApi.UserPrivacySettingRuleAllowBots || it is TdApi.UserPrivacySettingRuleRestrictBots ||
+                it is TdApi.UserPrivacySettingRuleAllowPremiumUsers
+        }
+        val people = buildList<TdApi.UserPrivacySettingRule> {
+            val n = never.distinct(); val a = allow.distinct().filter { it !in n }
+            if (a.isNotEmpty()) add(TdApi.UserPrivacySettingRuleAllowUsers(a.toLongArray()))
+            if (n.isNotEmpty()) add(TdApi.UserPrivacySettingRuleRestrictUsers(n.toLongArray()))
+        }
+        // Exceptions go first: Telegram applies the first matching rule.
+        client.query(TdApi.SetUserPrivacySettingRules(item.toTd(), TdApi.UserPrivacySettingRules((people + chatRules + base).toTypedArray())))
+    }
 
     // ---------- Notification exceptions ----------
 

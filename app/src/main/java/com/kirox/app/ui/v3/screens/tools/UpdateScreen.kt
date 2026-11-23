@@ -42,6 +42,9 @@ private val UP_CHANGES = listOf(Triple(Icons.Rounded.Palette, Kx.accent, "Нов
 /** Board «Вышла новая версия»: floating kX icon with shine and rising sparks, versions, download progress, what's new, Wi-Fi auto switch, later / main action. */
 @Composable
 fun UpdateScreen(ctx: KxScreenCtx) {
+    // wave6: the real account runs the app's UpdateCenter here (W6Update.kt); the demo keeps the simulated board.
+    val app = w6App(ctx)
+    if (app != null) { UpdateReal(ctx, app.updates); return }
     // demo: needs the updater (latest release info, download APK with progress, install intent, auto-download on Wi-Fi pref) — progress is simulated
     var phase by remember { mutableStateOf("ready") }
     var prog by remember { mutableFloatStateOf(0f) }

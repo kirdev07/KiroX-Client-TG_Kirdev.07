@@ -65,7 +65,14 @@ fun ForwardScreen(ctx: KxScreenCtx) {
     var toast by remember { mutableStateOf<Pair<String, Long>?>(null) }
     val scope = rememberCoroutineScope()
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
-    val targets = store.chats.filter { it.kind != KxChatKind.Channel || it.canDeleteForAll }
+    // qa-real: channels only where I may post (creator / admin with canPostMessages), checked once per channel.
+    val demoStore = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val channelIds = store.chats.filter { it.kind == KxChatKind.Channel }.map { it.id }
+    val postable by produceState(emptySet<Long>(), channelIds) {
+        value = if (demoStore) store.chats.filter { it.kind == KxChatKind.Channel && it.canDeleteForAll }.map { it.id }.toSet()
+            else channelIds.filter { runCatching { store.canPost(it) }.getOrDefault(false) }.toSet()
+    }
+    val targets = store.chats.filter { it.kind != KxChatKind.Channel || it.id in postable }
     val shown = targets.filter { q.isBlank() || it.title.lowercase().contains(q.trim().lowercase()) }
     fun close() { sheet = false; sel.clear(); q = ""; note = "" }
 

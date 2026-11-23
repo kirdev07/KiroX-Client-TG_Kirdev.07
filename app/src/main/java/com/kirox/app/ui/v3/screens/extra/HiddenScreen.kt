@@ -127,8 +127,9 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Text("Скрытые чаты", style = ts(22.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 18.dp))
-                Text(if (opening) "Открываем…" else if (bad > 0) (if (tries >= 3 && demo) "Неверно. Подсказка: год рождения" else "Неверный код") else "Введите код, чтобы открыть",
-                    style = ts(14.sp, color = if (bad > 0) Kx.danger else if (opening) Kx.accent else Kx.text3), modifier = Modifier.padding(top = 6.dp))
+                Text(if (!demo && !store.passcodeSet) "Скрытые чаты защищены код-паролем kiroX — сначала задайте его" else if (opening) "Открываем…" else if (bad > 0) (if (tries >= 3 && demo) "Неверно. Подсказка: год рождения" else "Неверный код") else "Введите код, чтобы открыть",
+                    style = ts(14.sp, color = if (bad > 0) Kx.danger else if (opening) Kx.accent else Kx.text3), modifier = Modifier.padding(top = 6.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 key(bad) {
                     val sk = if (bad > 0) enter(400) else 1f
                     Row(Modifier.padding(top = 26.dp).graphicsLayer {
@@ -157,6 +158,9 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                     if (canFinger) Box(Modifier.size(70.dp).clip(RoundedCornerShape(35.dp)).kxClick("Открыть по отпечатку") { press("fp") }, contentAlignment = Alignment.Center) {
                         Icon(Icons.Outlined.Fingerprint, null, Modifier.size(34.dp), tint = Kx.accent)
                     }
+                } else if (!demo && !store.passcodeSet) {
+                    // qa-real: no kiroX passcode yet → no PIN pad that can never match; set the passcode first.
+                    com.kirox.app.ui.v3.components.KxButton("Задать код-пароль", Modifier.width(290.dp), height = 54.dp) { ctx.open("Lock") }
                 } else Column(Modifier.width(290.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "fp", "0", "del").chunked(3).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -180,8 +184,7 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                     }
                 }
                 if (demo) Text("Для примера код 1 9 9 0", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 14.dp))
-                else if (!store.passcodeSet) Text("Сначала задайте код-пароль kiroX", style = ts(13.sp, FontWeight.Bold, Kx.accent),
-                    modifier = Modifier.padding(top = 14.dp).kxClick { ctx.open("Lock") }.padding(6.dp))
+                else if (!store.passcodeSet) Text("Код-пароль закрывает и вход в kiroX", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 14.dp))
                 else Text("Код — тот же, что для входа в kiroX", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 14.dp))
             }
         } else Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {

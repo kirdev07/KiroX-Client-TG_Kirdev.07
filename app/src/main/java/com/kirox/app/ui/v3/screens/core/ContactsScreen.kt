@@ -56,7 +56,8 @@ fun ContactsScreen(ctx: KxScreenCtx) {
             item {
                 Row(Modifier.statusBarsPadding().padding(start = 8.dp, end = 16.dp, top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     KxIconButton(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", size = 42.dp, filled = false, tint = Kx.text, onClick = ctx.back)
-                    Text("Контакты", style = KxType.style(30.sp, FontWeight.ExtraBold).copy(letterSpacing = (-.4).sp), modifier = Modifier.weight(1f))
+                    Text("Контакты", style = KxType.style(30.sp, FontWeight.ExtraBold).copy(letterSpacing = (-.4).sp), modifier = Modifier.weight(1f), maxLines = 1,
+                        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 20.sp, maxFontSize = 30.sp))
                     Row(Modifier.height(42.dp).clip(RoundedCornerShape(21.dp)).background(Kx.fill).border(1.dp, Kx.w(.09f), RoundedCornerShape(21.dp)).topHighlight(Kx.w(.14f))
                         .kxClick(if (byName) "Сортировка: по имени" else "Сортировка: по времени захода") { byName = !byName }.padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -81,11 +82,13 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                             .drawBehind { drawRect(Brush.linearGradient(listOf(Color(0x383F9A6C), Kx.w(.04f)), cssAngleStart(150f, size), cssAngleEnd(150f, size))) }
                             .border(1.dp, Kx.accent.copy(alpha = .16f), RoundedCornerShape(20.dp)).kxClick { ctx.open("InviteFriends") }.padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(Icons.Rounded.Share, null, tint = Kx.accent); Text("Пригласить", style = KxType.style(14.sp, FontWeight.SemiBold))
+                            Icon(Icons.Rounded.Share, null, tint = Kx.accent); Text("Пригласить", style = KxType.style(14.sp, FontWeight.SemiBold), maxLines = 1,
+                                autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 14.sp))
                         }
                         Row(Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.045f)).kxClick { ctx.open("MyQr") }.padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(Icons.Outlined.QrCodeScanner, null, tint = Kx.link); Text("По QR-коду", style = KxType.style(14.sp, FontWeight.SemiBold))
+                            Icon(Icons.Outlined.QrCodeScanner, null, tint = Kx.link); Text("По QR-коду", style = KxType.style(14.sp, FontWeight.SemiBold), maxLines = 1,
+                                autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 14.sp))
                         }
                     }
                 }

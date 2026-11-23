@@ -112,12 +112,11 @@ fun FeaturesScreen(ctx: KxScreenCtx) {
                     L(Icons.Outlined.Backup, "Резервная копия настроек", "") { ctx.open("Backup") },
                     L(Icons.Outlined.FolderOpen, "Файлы Telegram", "") { ctx.open("Files") },
                     L(Icons.Outlined.HourglassEmpty, "Время в kiroX", "") { ctx.open("Wellbeing") },
-                ) + (if (com.kirox.app.ui.v3.KxLegacy.Local.current == null) emptyList() else listOf(
-                    // wave5 (hybrid 1.0): kiroX tools v3 has no board for — the old working screens.
-                    L(Icons.Outlined.Public, "Встроенный браузер", "") { ctx.open("Old:browser") },
-                    L(Icons.Outlined.EmojiEmotions, "Наборы стикеров", "") { ctx.open("Old:stickerSets") },
-                    L(Icons.Outlined.Build, "Ещё инструменты", "") { ctx.open("Old:advanced") },
-                ))
+                    // wave6: the old hybrid pages are v3 now (tools/W6Tools.kt, StickerManage).
+                    L(Icons.Outlined.Public, "Встроенный браузер", if (t["browser"] == true) "Вкл." else "") { ctx.open("BrowserSettings") },
+                    L(Icons.Outlined.EmojiEmotions, "Наборы стикеров", "") { ctx.open("StickerManage") },
+                    L(Icons.Outlined.Build, "Ещё инструменты", "") { ctx.open("MoreTools") },
+                )
                 Column(Modifier.sRise(120), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     links.forEachIndexed { i, l ->
                         Row(Modifier.fillMaxWidth().height(50.dp).clip(groupShape(i, links.size, 20.dp)).background(TileBg).kxClick(onClick = l.next).padding(horizontal = 14.dp),

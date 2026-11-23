@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -41,12 +42,14 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
     val me = store.me
     Box(Modifier.fillMaxSize()) {
         KxGlow(diameter = 380.dp, x = (-90).dp, y = (-110).dp, alpha = .20f, alignEnd = true)
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = bottomPadding)) {
+        // qa-real: the title row stays put under the status bar (it scrolled under the clock and could not be tapped).
+        Column(Modifier.fillMaxSize()) {
             Row(Modifier.statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp).kxRise(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Настройки", style = KxType.style(30.sp, FontWeight.ExtraBold).copy(letterSpacing = (-.4).sp), modifier = Modifier.weight(1f))
                 GlassRound(Icons.Rounded.Search, "Поиск настроек") { onOpen("SettingsSearch") }
                 GlassRound(Icons.Rounded.MoreVert, "Ещё") { menu = !menu }
             }
+        Column(Modifier.weight(1f).fillMaxWidth().clipToBounds().verticalScroll(rememberScrollState()).padding(bottom = bottomPadding)) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ProfileCard(store, onOpen)
                 Row(Modifier.kxRise(120), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -63,7 +66,8 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                         Row5(Icons.Rounded.Lock, "Конфиденциальность", null, Color(0xFF1F2E40), Color(0xFFA9CBF5), "Privacy"),
                         Row5(Icons.Rounded.Storage, "Данные и память", store.storage?.totalBytes?.let { com.kirox.app.ui.v3.screens.settings.sBytes(it) }, Color(0xFF1E3333), Color(0xFF9FDCD6), "Storage"),
                         Row5(Icons.Rounded.Palette, "Кастомизация", com.kirox.app.ui.v3.screens.settings.CustomThemes[store.pref(com.kirox.app.ui.v3.model.KxPrefs.THEME).coerceIn(0, com.kirox.app.ui.v3.screens.settings.CustomThemes.lastIndex)].name, Color(0xFF1F3A2C), Color(0xFF8FD3AC), "Custom"),
-                        Row5(Icons.Rounded.Translate, "Язык", if (store.pref(com.kirox.app.ui.v3.model.KxPrefs.LANGUAGE) == 1) "English" else "Русский", Color(0xFF2E2A3D), Color(0xFFCFC2F2), "Language"),
+                        // qa-real: «Язык» hidden in 1.0 (Russian only); «Специальные возможности» gets its own row.
+                        Row5(Icons.Rounded.Accessibility, "Специальные возможности", null, Color(0xFF2E2A3D), Color(0xFFCFC2F2), "Access"),
                     )
                     rows.forEachIndexed { i, r ->
                         val shape = when (i) { 0 -> RoundedCornerShape(22.dp, 22.dp, 6.dp, 6.dp); rows.lastIndex -> RoundedCornerShape(6.dp, 6.dp, 22.dp, 22.dp); else -> RoundedCornerShape(6.dp) }
@@ -85,10 +89,11 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Tile(Icons.Rounded.HelpOutline, "Помощь", Kx.link, Modifier.weight(1f)) { onOpen("Help") }
-                        Tile(androidx.compose.material.icons.Icons.Outlined.Info, "О приложении", Color(0xFFFFD58A), Modifier.weight(1f), corner = "v" + com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-').removeSuffix(".0")) { onOpen("WhatsNew") }
+                        Tile(androidx.compose.material.icons.Icons.Outlined.Info, "О приложении", Color(0xFFFFD58A), Modifier.weight(1f), corner = com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-')) { onOpen("WhatsNew") }
                     }
                 }
             }
+        }
         }
         if (menu) {
             Box(Modifier.fillMaxSize().kxClick("Закрыть меню") { menu = false })

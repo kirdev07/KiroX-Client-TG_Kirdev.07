@@ -84,7 +84,7 @@ fun CustomScreen(ctx: KxScreenCtx) {
     val ownThemes by com.kirox.app.settings.CustomThemes.themes.collectAsState()
     val own = remember(ownThemes, real) { ownThemeLook(real) }
     val ownCount = if (real) ownThemes.count { !it.isPreset } else store.pref(KxPrefs.OWN_THEMES)
-    val legacy = com.kirox.app.ui.v3.KxLegacy.Local.current
+    // wave6: own themes are the v3 «Свои темы» page (tools/W6Themes.kt) on the real account; the demo keeps the count.
     val t = if (theme == CustomThemes.lastIndex) own ?: CustomThemes[0] else CustomThemes[theme]
     val accent by animateColorAsState(t.accent, tween(400), label = "accent")
     val glow by animateColorAsState(t.glow, tween(600), label = "glow")
@@ -103,9 +103,9 @@ fun CustomScreen(ctx: KxScreenCtx) {
                 Column(Modifier.kxRise(60)) {
                     Row(Modifier.padding(start = 2.dp, end = 2.dp, bottom = 10.dp), verticalAlignment = Alignment.Bottom) {
                         Text("Цвет · ${t.name}", style = KxType.style(14.sp, FontWeight.Bold, Kx.text2), modifier = Modifier.weight(1f))
-                        // Real account: own themes are made/imported/exported in the theme editor (old working screen, hybrid 1.0).
-                        Text(if (legacy != null) "Свои темы: $ownCount ›" else "Своих: $ownCount", style = KxType.style(12.sp, color = if (legacy != null) Kx.accent else Kx.text4),
-                            modifier = if (legacy != null) Modifier.kxClick("Свои темы") { ctx.open("Old:themes") } else Modifier)
+                        // Real account: own themes are made/imported/exported on the v3 «Свои темы» page.
+                        Text(if (real) "Свои темы: $ownCount ›" else "Своих: $ownCount", style = KxType.style(12.sp, color = if (real) Kx.accent else Kx.text4),
+                            modifier = if (real) Modifier.kxClick("Свои темы") { ctx.open("OwnThemes") } else Modifier)
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         CustomThemes.chunked(6).forEachIndexed { r, row ->
@@ -113,9 +113,8 @@ fun CustomScreen(ctx: KxScreenCtx) {
                                 row.forEachIndexed { c, look ->
                                     val i = r * 6 + c
                                     // «Своя» without an own theme opens the theme editor instead of picking a colour that isn't the user's.
-                                    if (i == 11 && own == null && legacy == null && real) Spacer(Modifier.weight(1f))
-                                    else Swatch(if (i == 11) own ?: look else look, i == theme, i == 11, Modifier.weight(1f)) {
-                                        if (i == 11 && own == null) ctx.open("Old:themes") else store.putPref(KxPrefs.THEME, i)
+                                    Swatch(if (i == 11) own ?: look else look, i == theme, i == 11, Modifier.weight(1f)) {
+                                        if (i == 11 && own == null) ctx.open("OwnThemes") else store.putPref(KxPrefs.THEME, i)
                                     }
                                 }
                             }

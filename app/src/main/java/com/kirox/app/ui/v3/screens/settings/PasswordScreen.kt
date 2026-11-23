@@ -234,6 +234,7 @@ internal fun Spinner(size: androidx.compose.ui.unit.Dp, ink: Color = Kx.onAccent
 
 @Composable
 private fun BoxScope.RecoverySheet(step: String, mail: String, auth: com.kirox.app.ui.v3.model.KxAuth?, onClose: () -> Unit, onStep: (String) -> Unit, onMail: () -> Unit) {
+    val toast = LocalKxToast.current
     val p = remember { Animatable(0f) }
     val fade = remember { Animatable(0f) }
     LaunchedEffect(Unit) { launch { fade.animateTo(1f, tween(250)) }; p.animateTo(1f, tween(320, easing = CubicBezierEasing(.2f, .9f, .3f, 1f))) }
@@ -267,7 +268,9 @@ private fun BoxScope.RecoverySheet(step: String, mail: String, auth: com.kirox.a
                 Text("Все чаты, сообщения и файлы будут удалены. Сбросить можно через 7 дней после запроса, если за это время вы не войдёте с паролем.",
                     style = KxType.style(14.sp, color = Kx.text2, lineHeight = 21.sp), modifier = Modifier.padding(top = 10.dp))
                 Box(Modifier.padding(top = 20.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(Color(229, 83, 75).copy(alpha = .14f))
-                    .border(1.dp, Color(229, 83, 75).copy(alpha = .35f), RoundedCornerShape(16.dp)).kxClick {}, contentAlignment = Alignment.Center) {
+                    .border(1.dp, Color(229, 83, 75).copy(alpha = .35f), RoundedCornerShape(16.dp))
+                    // wave6: was a dead button — honest about what kiroX can't do at sign-in yet.
+                    .kxClick { toast("Сброс аккаунта при входе kiroX пока не делает: войдите с паролем или восстановите его через почту") }, contentAlignment = Alignment.Center) {
                     Text("Запросить сброс", style = KxType.style(15.sp, FontWeight.Bold, Kx.danger))
                 }
                 if (auth == null) BackLink { onStep("choose") } else BackLink(onClose)

@@ -134,6 +134,7 @@ internal class KxLocalSettings(private val app: Context, private val scope: Coro
         }
         scope.launch { com.kirox.app.settings.MessageFilters.state.collect { values = read() } }
         scope.launch { com.kirox.app.settings.PowerSaver.active.collect { values = read() } }
+        scope.launch { com.kirox.app.security.PasscodeLock.settings.collect { passcode = it } }
         // The DataStore value caught up with what was written: drop the pending copy.
         scope.launch { settings.autoTheme.collect { if (it == pendingAuto) pendingAuto = null } }
     }
@@ -188,8 +189,16 @@ internal class KxLocalSettings(private val app: Context, private val scope: Coro
     }
 
     // Passcode: security/PasscodeLock (the same code the old lock screen asks for).
-    val passcodeSet: Boolean get() = com.kirox.app.security.PasscodeLock.settings.value.enabled
-    val passcodeBiometric: Boolean get() = com.kirox.app.security.PasscodeLock.settings.value.biometric
+    // wave6: snapshot copy of PasscodeLock.settings so the v3 screens recompose when it changes.
+    var passcode by mutableStateOf(com.kirox.app.security.PasscodeLock.settings.value)
+        private set
+    val passcodeSet: Boolean get() = passcode.enabled
+    val passcodeBiometric: Boolean get() = passcode.biometric
+    val passcodePattern: Boolean get() = passcode.pattern
+    val passcodeAutoLock: Int get() = passcode.autoLock.seconds.toInt()
+    val passcodeHideContent: Boolean get() = passcode.hideContent
+    suspend fun passcodeMatches(code: String): Boolean = withContext(Dispatchers.Default) { com.kirox.app.security.PasscodeLock.matches(code) }
+    suspend fun setPasscode(code: String, pattern: Boolean) = withContext(Dispatchers.Default) { com.kirox.app.security.PasscodeLock.setCode(code, pattern) }
     /** PBKDF hashing takes tens of ms: off the main thread. */
     suspend fun checkPasscode(code: String): Boolean = withContext(Dispatchers.Default) { com.kirox.app.security.PasscodeLock.unlock(code) }
     fun biometricOk() = com.kirox.app.security.PasscodeLock.unlockByBiometric()

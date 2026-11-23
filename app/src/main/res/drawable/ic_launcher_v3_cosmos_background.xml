@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon «Космос»: deep space, violet to blue, a green glow behind the bubble and tiny stars. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0 L108,0 L108,108 L0,108 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="30.328" android:startY="-11.038"
+                android:endX="77.672" android:endY="119.038">
+                <item android:offset="0" android:color="#FF2D1B63" />
+                <item android:offset="0.55" android:color="#FF17205C" />
+                <item android:offset="1" android:color="#FF060A22" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M0,0 L108,0 L108,108 L0,108 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="52.5" android:centerY="52.5"
+                android:gradientRadius="40">
+                <item android:offset="0" android:color="#5550AF78" />
+                <item android:offset="1" android:color="#0050AF78" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#CCFFFFFF" android:pathData="M25.7,23 C25.7,23.387 25.387,23.7 25,23.7 C24.613,23.7 24.3,23.387 24.3,23 C24.3,22.613 24.613,22.3 25,22.3 C25.387,22.3 25.7,22.613 25.7,23 Z" />
+    <path android:fillColor="#99FFFFFF" android:pathData="M39.45,21.5 C39.45,21.749 39.249,21.95 39,21.95 C38.751,21.95 38.55,21.749 38.55,21.5 C38.55,21.251 38.751,21.05 39,21.05 C39.249,21.05 39.45,21.251 39.45,21.5 Z" />
+    <path android:fillColor="#B3FFFFFF" android:pathData="M63.55,22 C63.55,22.304 63.304,22.55 63,22.55 C62.696,22.55 62.45,22.304 62.45,22 C62.45,21.696 62.696,21.45 63,21.45 C63.304,21.45 63.55,21.696 63.55,22 Z" />
+    <path android:fillColor="#E6FFFFFF" android:pathData="M80.8,25.5 C80.8,25.942 80.442,26.3 80,26.3 C79.558,26.3 79.2,25.942 79.2,25.5 C79.2,25.058 79.558,24.7 80,24.7 C80.442,24.7 80.8,25.058 80.8,25.5 Z" />
+    <path android:fillColor="#80FFFFFF" android:pathData="M87.45,37 C87.45,37.249 87.249,37.45 87,37.45 C86.751,37.45 86.55,37.249 86.55,37 C86.55,36.751 86.751,36.55 87,36.55 C87.249,36.55 87.45,36.751 87.45,37 Z" />
+    <path android:fillColor="#99FFFFFF" android:pathData="M21,42 C21,42.276 20.776,42.5 20.5,42.5 C20.224,42.5 20,42.276 20,42 C20,41.724 20.224,41.5 20.5,41.5 C20.776,41.5 21,41.724 21,42 Z" />
+    <path android:fillColor="#B3FFFFFF" android:pathData="M87.1,58 C87.1,58.331 86.831,58.6 86.5,58.6 C86.169,58.6 85.9,58.331 85.9,58 C85.9,57.669 86.169,57.4 86.5,57.4 C86.831,57.4 87.1,57.669 87.1,58 Z" />
+    <path android:fillColor="#CCFFFFFF" android:pathData="M21.7,64 C21.7,64.387 21.387,64.7 21,64.7 C20.613,64.7 20.3,64.387 20.3,64 C20.3,63.613 20.613,63.3 21,63.3 C21.387,63.3 21.7,63.613 21.7,64 Z" />
+    <path android:fillColor="#99FFFFFF" android:pathData="M84.5,80 C84.5,80.276 84.276,80.5 84,80.5 C83.724,80.5 83.5,80.276 83.5,80 C83.5,79.724 83.724,79.5 84,79.5 C84.276,79.5 84.5,79.724 84.5,80 Z" />
+    <path android:fillColor="#B3FFFFFF" android:pathData="M30.55,84 C30.55,84.304 30.304,84.55 30,84.55 C29.696,84.55 29.45,84.304 29.45,84 C29.45,83.696 29.696,83.45 30,83.45 C30.304,83.45 30.55,83.696 30.55,84 Z" />
+    <path android:fillColor="#80FFFFFF" android:pathData="M47.4,86.5 C47.4,86.721 47.221,86.9 47,86.9 C46.779,86.9 46.6,86.721 46.6,86.5 C46.6,86.279 46.779,86.1 47,86.1 C47.221,86.1 47.4,86.279 47.4,86.5 Z" />
+    <path android:fillColor="#D9FFFFFF" android:pathData="M66.75,84.5 C66.75,84.914 66.414,85.25 66,85.25 C65.586,85.25 65.25,84.914 65.25,84.5 C65.25,84.086 65.586,83.75 66,83.75 C66.414,83.75 66.75,84.086 66.75,84.5 Z" />
+    <path android:fillColor="#80FFFFFF" android:pathData="M73.4,18.5 C73.4,18.721 73.221,18.9 73,18.9 C72.779,18.9 72.6,18.721 72.6,18.5 C72.6,18.279 72.779,18.1 73,18.1 C73.221,18.1 73.4,18.279 73.4,18.5 Z" />
+    <path android:fillColor="#66FFFFFF" android:pathData="M32.35,30 C32.35,30.193 32.193,30.35 32,30.35 C31.807,30.35 31.65,30.193 31.65,30 C31.65,29.807 31.807,29.65 32,29.65 C32.193,29.65 32.35,29.807 32.35,30 Z" />
+</vector>

@@ -48,7 +48,10 @@ fun KxSplash() {
     val load = kfLoop(1400, label = "load")
     val rise1 = enter(900, 300, KxMotion.rise); val rise2 = enter(900, 600, KxMotion.rise); val rise3 = enter(900, 900, EaseCss)
     Box(Modifier.fillMaxSize().ellipseBg(.9f, .55f, .5f, .42f, 0f to Color(0xFF0F2419), .62f to ExBg)) {
-        Box(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            // Board is 844dp tall: on shorter screens the art/wordmark move up (and the art shrinks) so they
+            // stay above the loading bar; k = 1 (board look) from ~770dp up.
+            val k = ((maxHeight.value - 190f) / 580f).coerceIn(.5f, 1f)
             // Twinkles (kxTwinkle) and drifting sparks (kxDrift).
             listOf(Tw(60, 150, 4, 2600, 0), Tw(318, 220, 5, 3100, 800), Tw(290, 560, 3, 2200, 1300), Tw(92, 520, 4, 2900, 400)).forEach { w ->
                 val raw = kfRun(w.period, delayMs = w.delay)
@@ -66,7 +69,7 @@ fun KxSplash() {
                 }.clip(CircleShape).background(Kx.accent))
             }
             // Art: glow, dashed ring, orbit dot, typing bubble, the X bubble.
-            Box(Modifier.fillMaxWidth().offset(y = 230.dp).height(240.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().offset(y = 230.dp * k).height(240.dp).graphicsLayer { scaleX = k; scaleY = k }, contentAlignment = Alignment.Center) {
                 Box(Modifier.size(260.dp).graphicsLayer { val s = 1f + .15f * glow; scaleX = s; scaleY = s; alpha = if (glowRaw < 0f) 1f else .7f + .3f * glow }.circleGlow(Color(0x5950AF78)))
                 Canvas(Modifier.size(210.dp).graphicsLayer { rotationZ = 360f * spin }) {
                     drawCircle(Kx.accent.copy(alpha = .25f), radius = size.minDimension / 2 - .5f,
@@ -98,7 +101,7 @@ fun KxSplash() {
                     }
                 }
             }
-            Column(Modifier.fillMaxWidth().offset(y = 500.dp).graphicsLayer { alpha = rise1; translationY = (1f - rise1) * 18.dp.toPx() },
+            Column(Modifier.fillMaxWidth().offset(y = 500.dp * k).graphicsLayer { alpha = rise1; translationY = (1f - rise1) * 18.dp.toPx() },
                 horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(buildAnnotatedString { append("kiro"); withStyle(SpanStyle(color = Kx.accent, fontWeight = FontWeight.ExtraBold)) { append("X") } },
                     style = ts(40.sp, FontWeight.Light, ls = .5.sp))

@@ -144,7 +144,7 @@ class MessageNotifications(
         }
         val local = prefs.current
         val notification = NotificationCompat.Builder(context, channelFor(group.chatId))
-            .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
+            .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox_v3)
             .setStyle(style)
             // «Значок на иконке»: launchers add these up; off hides the counter and the dot.
             .setNumber(if (!local.badge) 0 else if (local.badgeCountsMessages) group.items.size else 1)
@@ -159,7 +159,7 @@ class MessageNotifications(
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
                 NotificationCompat.Builder(context, CHANNEL)
-                    .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
+                    .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox_v3)
                     .setContentTitle("kiroX")
                     .setContentText(com.kirox.app.i18n.I18n.t("Новое сообщение"))
                     .build()

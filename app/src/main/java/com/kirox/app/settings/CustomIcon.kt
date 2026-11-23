@@ -15,7 +15,7 @@ import androidx.core.content.ContextCompat
 
 /**
  * «Своя иконка». Android lets an app change its launcher icon only to ones built into it, so an
- * own icon is a home-screen shortcut that opens kiroX: a color (or a photo) with the kiroX plane.
+ * own icon is a home-screen shortcut that opens kiroX: a color (or a photo) with the kiroX X bubble.
  */
 object CustomIcon {
     /** Adaptive icon size: 108 dp at 4x; the middle 72 dp are always visible. */
@@ -27,7 +27,8 @@ object CustomIcon {
         val canvas = Canvas(bitmap)
         if (photo != null) canvas.drawBitmap(photo.scale(SIZE, SIZE), 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG))
         else canvas.drawColor(background)
-        if (showPlane) ContextCompat.getDrawable(context, com.kirox.app.R.drawable.ic_launcher_foreground)?.mutate()?.let { drawable ->
+        // The v3 X bubble silhouette (the X is cut out, so the background or photo shows through it), tinted in [plane].
+        if (showPlane) ContextCompat.getDrawable(context, com.kirox.app.R.drawable.ic_launcher_v3_monochrome)?.mutate()?.let { drawable ->
             drawable.setBounds(0, 0, SIZE, SIZE)
             drawable.colorFilter = PorterDuffColorFilter(plane, PorterDuff.Mode.SRC_IN)
             drawable.draw(canvas)

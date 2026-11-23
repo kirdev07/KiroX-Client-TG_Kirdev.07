@@ -51,7 +51,7 @@ fun C3NeedChat(ctx: KxScreenCtx, title: String, text: String = "Откройте
                 Text(title, style = mts(18, W8))
             }
             Box(Modifier.weight(1f).fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                Text(text, style = mts(14, color = MoSub, lh = 20f), textAlign = TextAlign.Center)
+                Text(text, style = mts(14, color = MoSub, lh = 1.4f), textAlign = TextAlign.Center)
             }
         }
     }
@@ -60,7 +60,7 @@ fun C3NeedChat(ctx: KxScreenCtx, title: String, text: String = "Откройте
 /** Honest empty / loading line inside a board. */
 @Composable
 fun C3Empty(text: String, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { Text(text, style = mts(13, color = MoSub, lh = 18f), textAlign = TextAlign.Center) }
+    Box(modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { Text(text, style = mts(13, color = MoSub, lh = 1.4f), textAlign = TextAlign.Center) } // qa-real: lh is a multiplier (18f split the hint over the screen)
 }
 
 /** Unix time of the next [hour]:00 local (today if still ahead, else tomorrow). */
@@ -79,7 +79,10 @@ fun c3CopyUri(context: android.content.Context, uri: android.net.Uri, prefix: St
     val ext = name?.substringAfterLast('.', "")?.takeIf { it.isNotEmpty() && it.length <= 5 }
         ?: android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(cr.getType(uri)) ?: "bin"
     val dir = java.io.File(context.cacheDir, "kx_pick").apply { mkdirs() }
-    val out = java.io.File(dir, "${prefix}_${System.currentTimeMillis()}.${ext}")
+    // qa-real (fixer-real-media): the file keeps its own name (Telegram shows it), in a folder of its own so names never clash.
+    val shown = name?.replace(Regex("[\\\\/:*?\"<>|\u0000-\u001f]"), "_")?.trim()?.takeIf { it.isNotEmpty() && it != "." && it != ".." }?.take(120)
+    val out = if (shown != null) java.io.File(java.io.File(dir, "${prefix}_${System.nanoTime()}").apply { mkdirs() }, shown)
+        else java.io.File(dir, "${prefix}_${System.currentTimeMillis()}.${ext}")
     cr.openInputStream(uri)?.use { input -> out.outputStream().use { input.copyTo(it) } } ?: return null
     out.absolutePath
 }.getOrNull()

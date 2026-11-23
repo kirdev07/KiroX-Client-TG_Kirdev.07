@@ -34,4 +34,10 @@ val ToolScreens: Map<String, KxScreenFn> = mapOf(
     "LowSpace" to { ctx -> LowSpaceScreen(ctx) },
     "Update" to { ctx -> UpdateScreen(ctx) },
     "NetCheck" to { ctx -> NetCheckScreen(ctx) },
+    // wave6 (port-settings): v3 pages that replaced the old hybrid screens.
+    "NotifyExceptions" to { ctx -> NotifyExceptionsScreen(ctx) },
+    "CustomIcon" to { ctx -> CustomIconScreen(ctx) },
+    "BrowserSettings" to { ctx -> BrowserSettingsScreen(ctx) },
+    "MoreTools" to { ctx -> MoreToolsScreen(ctx) },
+    "OwnThemes" to { ctx -> OwnThemesScreen(ctx) },
 )

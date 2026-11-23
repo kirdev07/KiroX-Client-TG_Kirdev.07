@@ -61,10 +61,19 @@ fun ChatsScreen(
     bottomPadding: androidx.compose.ui.unit.Dp = 110.dp,
     /** wave5: opens a board by name («+ Папка» → FolderEdit for a new folder). */
     onOpen: (String) -> Unit = {},
+    /** port-nav: false while the Chats tab is not the dock's current page (its Back handler stays off). */
+    active: Boolean = true,
 ) {
     var folder by rememberSaveable { mutableIntStateOf(0) }
     val hiddenIds = store.prefList(KxPrefsAccount.HIDDEN_CHATS).mapNotNull { it.toLongOrNull() }.toSet() // wave3-account: Hidden board
     val chats = store.chatsIn(folder).let { all -> if (hiddenIds.isEmpty()) all else all.filter { it.id !in hiddenIds } }
+    // port-nav: «Архив · N | Сообщения» sections as in the old chats tab (Archive on the left, Messages by default),
+    // switched by tap or a horizontal swipe. The archive row of the list moved here.
+    val sections = androidx.compose.foundation.pager.rememberPagerState(initialPage = 1) { 2 }
+    val scope = rememberCoroutineScope()
+    val archived = store.archivedChats.let { all -> if (hiddenIds.isEmpty()) all else all.filter { it.id !in hiddenIds } }
+    var archiveSettings by remember { mutableStateOf(false) }
+    val onArchivePage by remember { derivedStateOf { sections.currentPage == 0 } }
     // Board «Выбор чатов»: long press starts selection, then taps toggle; the dock gives way to an action bar.
     val selected = remember { mutableStateListOf<Long>() }
     var confirm by remember { mutableStateOf<KxConfirm?>(null) }
@@ -75,9 +84,16 @@ fun ChatsScreen(
     LaunchedEffect(undoDel?.second) { val u = undoDel ?: return@LaunchedEffect; kotlinx.coroutines.delay(5000); u.first.forEach { store.deleteChat(it) }; if (undoDel?.second == u.second) undoDel = null }
     DisposableEffect(Unit) { onDispose { latestUndo?.first?.forEach { store.deleteChat(it) } } }
     val deleteWithUndo: (List<Long>) -> Unit = { ids -> undoDel?.first?.forEach { store.deleteChat(it) }; undoDel = ids to System.nanoTime() }
-    LaunchedEffect(selected.isEmpty()) { onSelectionChange(selected.isNotEmpty()) }
+    // The selection bar and the archive settings sheet both cover the dock (and stop the tab pager).
+    LaunchedEffect(selected.isEmpty(), archiveSettings) { onSelectionChange(selected.isNotEmpty() || archiveSettings) }
+    DisposableEffect(Unit) { onDispose { onSelectionChange(false) } }
+    LaunchedEffect(onArchivePage) { selected.clear() }
     androidx.activity.compose.BackHandler(enabled = selected.isNotEmpty()) { selected.clear() }
+    androidx.activity.compose.BackHandler(enabled = archiveSettings) { archiveSettings = false }
+    // Back from the Archive page returns to Messages.
+    androidx.activity.compose.BackHandler(enabled = active && onArchivePage && selected.isEmpty() && !archiveSettings) { scope.launch { sections.animateScrollToPage(1) } }
     fun toggle(id: Long) { if (id in selected) selected.remove(id) else selected.add(id) }
+    val pageChats = if (onArchivePage) archived else chats
     KxGlow()
     Column(Modifier.fillMaxSize()) {
         if (selected.isEmpty()) ChatsHeader(store, onOpenStories, onSearch, onNewMessage)
@@ -86,35 +102,106 @@ fun ChatsScreen(
             .statusBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             KxIconButton(Icons.Rounded.Close, "Отменить выбор", tint = Kx.text) { selected.clear() }
             Text(selected.size.toString(), style = KxType.style(20.sp, FontWeight.ExtraBold).copy(fontFeatureSettings = "tnum"), modifier = Modifier.weight(1f))
-            val all = selected.size == chats.size
-            Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(Kx.fill).kxClick { if (all) selected.clear() else { selected.clear(); selected.addAll(chats.map { it.id }) } }.padding(horizontal = 12.dp),
+            val all = selected.size == pageChats.size
+            Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(Kx.fill).kxClick { if (all) selected.clear() else { selected.clear(); selected.addAll(pageChats.map { it.id }) } }.padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center) { Text(if (all) "Снять выбор" else "Выбрать все", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent)) }
         }
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 6.dp).kxRise(140),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            store.folders.forEach { f ->
-                KxChip(if (f.unread > 0) "${f.title} · ${f.unread}" else f.title, selected = folder == f.id) { folder = f.id }
-            }
-            KxChip("+ Папка", selected = false, dashed = true) { onOpen("FolderEdit") }
-        }
+        ChatSections(sections, archived.count { it.unread > 0 || it.markedUnread }) { scope.launch { sections.animateScrollToPage(it) } }
         store.connection?.let { Text(it, style = KxType.caption.copy(color = Kx.accent), modifier = Modifier.padding(start = 20.dp, top = 8.dp)) }
-        LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp).kxRise(200), state = androidx.compose.foundation.lazy.rememberLazyListState(), contentPadding = PaddingValues(bottom = bottomPadding)) {
-            if (folder == 0 && store.archivedChats.isNotEmpty()) item("archive") { ArchiveRow(store.archivedChats, onOpenArchive) }
-            itemsIndexed(chats.filter { undoDel?.first?.contains(it.id) != true }, key = { _, c -> c.id }) { i, chat ->
-                if (i >= chats.size - 10) LaunchedEffect(chats.size, folder) { store.loadMoreChats(folder) }
-                ChatSwipe(store, chat, toast = { toast(it) }, ask = { confirm = it }, onDelete = { deleteWithUndo(listOf(it.id)) }, folder = folder) { // wave3-account: Swipe board actions
-                    ChatRow(chat, onClick = { if (selected.isNotEmpty()) toggle(chat.id) else if (chat.forum && store !is com.kirox.app.ui.v3.demo.KxDemoStore) onOpen("Topics:${chat.id}")
-                        // wave5: Избранное opens the «Избранное» board (tags, «По чатам», notes) as on the mockup.
-                        else if (chat.kind == KxChatKind.Saved && store !is com.kirox.app.ui.v3.demo.KxDemoStore) onOpen("Saved") else onOpenChat(chat.id) }, onLongClick = { toggle(chat.id) }, selected = chat.id in selected)
+        val openRow: (KxChat) -> Unit = { chat ->
+            if (selected.isNotEmpty()) toggle(chat.id) else if (chat.forum && store !is com.kirox.app.ui.v3.demo.KxDemoStore) onOpen("Topics:${chat.id}")
+            // qa-real: Избранное opens the full ChatScreen (menus, media, paging); the «Избранное» board (tags, «По чатам») is in its ⋮.
+            else onOpenChat(chat.id)
+        }
+        // Nested order: this pager takes the horizontal drag before the dock pager (KxApp); chat rows (ChatSwipe) before both.
+        androidx.compose.foundation.pager.HorizontalPager(sections, Modifier.weight(1f).fillMaxWidth(), beyondViewportPageCount = 1,
+            userScrollEnabled = selected.isEmpty(), key = { it }, verticalAlignment = Alignment.Top) { page ->
+            if (page == 0) ArchivePage(store, archived.filter { undoDel?.first?.contains(it.id) != true }, selected, bottomPadding,
+                onSettings = { archiveSettings = true }, onRow = openRow, onLong = { toggle(it.id) },
+                toast = { toast(it) }, ask = { confirm = it }, onDelete = { deleteWithUndo(listOf(it.id)) })
+            else Column(Modifier.fillMaxSize()) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp).kxRise(140),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    store.folders.forEach { f ->
+                        KxChip(if (f.unread > 0) "${f.title} · ${f.unread}" else f.title, selected = folder == f.id) { folder = f.id }
+                    }
+                    KxChip("+ Папка", selected = false, dashed = true) { onOpen("FolderEdit") }
+                }
+                LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp).kxRise(200), state = androidx.compose.foundation.lazy.rememberLazyListState(), contentPadding = PaddingValues(bottom = bottomPadding)) {
+                    itemsIndexed(chats.filter { undoDel?.first?.contains(it.id) != true }, key = { _, c -> c.id }) { i, chat ->
+                        if (i >= chats.size - 10) LaunchedEffect(chats.size, folder) { store.loadMoreChats(folder) }
+                        ChatSwipe(store, chat, toast = { toast(it) }, ask = { confirm = it }, onDelete = { deleteWithUndo(listOf(it.id)) }, folder = folder) { // wave3-account: Swipe board actions
+                            ChatRow(chat, onClick = { openRow(chat) }, onLongClick = { toggle(chat.id) }, selected = chat.id in selected)
+                        }
+                    }
                 }
             }
         }
     }
-    if (selected.isNotEmpty()) SelectionBar(store, chats.filter { it.id in selected }, onDone = { selected.clear() }, toast = toast, ask = { confirm = it }, onDelete = deleteWithUndo, folder = folder)
+    if (selected.isNotEmpty()) SelectionBar(store, pageChats.filter { it.id in selected }, onDone = { selected.clear() }, toast = toast, ask = { confirm = it }, onDelete = deleteWithUndo,
+        folder = if (onArchivePage) 0 else folder, archive = onArchivePage)
     undoDel?.let { u -> ChatUndoBar(u.first.size, u.second, bottomPadding) { undoDel = null } }
+    if (archiveSettings) ArchiveSettingsSheet(store) { archiveSettings = false }
     confirm?.let { KxConfirmDialog(it) { confirm = null } }
+}
+
+/**
+ * port-nav: «Архив · N | Сообщения» — a segmented pill in the v3 chip look (selected = accent fill like KxChip);
+ * the accent lens follows the pager offset, so it slides with the finger.
+ */
+@Composable
+private fun ChatSections(pager: androidx.compose.foundation.pager.PagerState, archiveUnread: Int, onPick: (Int) -> Unit) {
+    val shape = RoundedCornerShape(20.dp)
+    val labels = listOf(if (archiveUnread > 0) "Архив · $archiveUnread" else "Архив", "Сообщения")
+    val current by remember { derivedStateOf { (pager.currentPage + pager.currentPageOffsetFraction).let { if (it < .5f) 0 else 1 } } }
+    BoxWithConstraints(Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp).fillMaxWidth().height(40.dp).clip(shape)
+        .background(Kx.w(.05f)).border(1.dp, Kx.line, shape).padding(3.dp).kxRise(100)) {
+        val half = maxWidth / 2
+        Box(Modifier.offset { androidx.compose.ui.unit.IntOffset(((pager.currentPage + pager.currentPageOffsetFraction).coerceIn(0f, 1f) * half.toPx()).toInt(), 0) }
+            .width(half).fillMaxHeight().clip(RoundedCornerShape(17.dp)).background(Kx.accent))
+        Row(Modifier.fillMaxSize()) {
+            labels.forEachIndexed { i, label ->
+                val on = current == i
+                Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(17.dp)).kxClick(label, androidx.compose.ui.semantics.Role.Tab) { onPick(i) }
+                    .semantics { this.selected = on }, contentAlignment = Alignment.Center) {
+                    Text(label, style = KxType.chip.copy(color = if (on) Kx.onAccent else Kx.text2, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium),
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    }
+}
+
+/** port-nav: the Archive page of the Chats tab — tip, «Настройки архива», the real archive with swipe actions, selection and paging. */
+@Composable
+private fun ArchivePage(store: KxStore, chats: List<KxChat>, selected: List<Long>, bottomPadding: androidx.compose.ui.unit.Dp,
+                        onSettings: () -> Unit, onRow: (KxChat) -> Unit, onLong: (KxChat) -> Unit,
+                        toast: (String) -> Unit, ask: (KxConfirm) -> Unit, onDelete: (KxChat) -> Unit) {
+    val tip = store.pref(KxPrefsAccount.ARCHIVE_TIP) != 0
+    val keepMuted = store.pref(KxPrefsAccount.ARCHIVE_KEEP) != 0
+    val hideBadge = store.pref(KxPrefsAccount.ARCHIVE_HIDE_BADGE) != 0
+    LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp), state = androidx.compose.foundation.lazy.rememberLazyListState(), contentPadding = PaddingValues(bottom = bottomPadding)) {
+        if (tip && selected.isEmpty()) item("tip") { ArchiveTip(store, keepMuted, Modifier.padding(horizontal = 12.dp)) }
+        item("settings") {
+            Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).kxClick("Настройки архива", onClick = onSettings).padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+                Box(Modifier.padding(horizontal = 9.dp).size(36.dp).clip(CircleShape).background(Kx.surface2), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Tune, null, Modifier.size(20.dp), tint = Kx.text3)
+                }
+                Text("Настройки архива", style = KxType.style(15.sp, FontWeight.SemiBold, Kx.text2), modifier = Modifier.weight(1f))
+                Icon(Icons.Rounded.ChevronRight, null, tint = Kx.text4)
+            }
+        }
+        itemsIndexed(chats, key = { _, c -> c.id }) { i, chat ->
+            if (i >= chats.size - 10) LaunchedEffect(chats.size) { store.loadMoreChats(-1) }
+            ChatSwipe(store, chat, toast = toast, ask = ask, onDelete = onDelete) {
+                ChatRow(chat, onClick = { onRow(chat) }, onLongClick = { onLong(chat) }, selected = chat.id in selected, showBadge = !hideBadge)
+            }
+        }
+        if (chats.isEmpty()) item("empty") { KxEmpty("Архив пуст") }
+    }
 }
 
 /** wave5: «Чат удалён · Отменить» bar above the dock (same look as the chat's message undo bar). */
@@ -137,7 +224,7 @@ private fun ChatUndoBar(n: Int, id: Long, bottom: androidx.compose.ui.unit.Dp, o
 
 /** Glass action bar of the selection (left/right 10, bottom 14, 5 actions). */
 @Composable
-private fun SelectionBar(store: KxStore, sel: List<KxChat>, onDone: () -> Unit, toast: (String) -> Unit, ask: (KxConfirm) -> Unit, onDelete: (List<Long>) -> Unit, folder: Int = 0) {
+private fun SelectionBar(store: KxStore, sel: List<KxChat>, onDone: () -> Unit, toast: (String) -> Unit, ask: (KxConfirm) -> Unit, onDelete: (List<Long>) -> Unit, folder: Int = 0, archive: Boolean = false) {
     val n = sel.size
     val word = plural(n, "чат", "чата", "чатов")
     val allMuted = sel.all { it.muted }; val allPinned = sel.all { it.pinned }
@@ -150,7 +237,8 @@ private fun SelectionBar(store: KxStore, sel: List<KxChat>, onDone: () -> Unit, 
                 A(Icons.Rounded.MarkChatRead, "Прочитать", Kx.text) { sel.forEach { store.markRead(it.id) }; toast("Прочитано: $n $word"); onDone() },
                 A(if (allMuted) Icons.Rounded.Notifications else Icons.Rounded.NotificationsOff, if (allMuted) "Звук" else "Без звука", Kx.text) { sel.forEach { store.setMuted(it.id, !allMuted) }; toast(if (allMuted) "Звук включён" else "Без звука: $n $word"); onDone() },
                 A(Icons.Rounded.PushPin, if (allPinned) "Открепить" else "Закрепить", Kx.text) { sel.forEach { store.setPinnedIn(it.id, !allPinned, folder) }; onDone() },
-                A(Icons.Rounded.Archive, "В архив", Kx.text) { sel.forEach { store.setArchived(it.id, true) }; toast("В архиве: $n $word"); onDone() },
+                if (archive) A(Icons.Rounded.Unarchive, "Вернуть", Kx.accent) { sel.forEach { store.setArchived(it.id, false) }; toast(if (n == 1) "Чат возвращён в список" else "Чаты возвращены в список"); onDone() }
+                else A(Icons.Rounded.Archive, "В архив", Kx.text) { sel.forEach { store.setArchived(it.id, true) }; toast("В архиве: $n $word"); onDone() },
                 A(Icons.Rounded.Delete, "Удалить", Kx.danger) { ask(KxConfirm("Удалить выбранные чаты?", "Личные чаты удалятся у вас, из групп и каналов вы выйдете.", "Удалить") { onDelete(sel.map { it.id }); onDone() }) },
             ).forEach { a ->
                 Column(Modifier.weight(1f).height(58.dp).clip(RoundedCornerShape(18.dp)).kxClick(a.label, onClick = a.run),
@@ -191,27 +279,10 @@ private fun ChatsHeader(store: KxStore, onOpenStories: () -> Unit, onSearch: () 
     }
 }
 
-@Composable
-private fun ArchiveRow(chats: List<KxChat>, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).kxClick("Архив", onClick = onClick).padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-        Box(Modifier.padding(horizontal = 4.dp).size(46.dp).clip(CircleShape).background(Kx.surface2), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.Inventory2, null, tint = Kx.text3)
-        }
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Архив", style = KxType.style(15.sp, FontWeight.SemiBold, Kx.text2), modifier = Modifier.weight(1f))
-                val n = chats.count { it.unread > 0 }
-                if (n > 0) KxBadge(n.toString(), muted = true)
-            }
-            KxLine(chats.joinToString { it.title }, KxType.style(13.sp, color = Kx.text4))
-        }
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected: Boolean = false) {
+fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected: Boolean = false,
+            /** Archive setting «Скрыть счётчики» hides the unread badge. */ showBadge: Boolean = true) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 72.dp).background(if (selected) Kx.accent.copy(alpha = .08f) else Color.Transparent)
             .combinedClickable(interactionSource = null, indication = ripple(color = Kx.accent), onClick = onClick, onLongClick = onLongClick,
@@ -280,7 +351,8 @@ fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected
                 if (chat.unreadMention) Box(Modifier.size(22.dp).clip(CircleShape).background(Kx.warning), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.AlternateEmail, null, Modifier.size(15.dp), tint = Kx.warningInk)
                 }
-                if (chat.unread > 0) KxBadge(if (chat.unread > 999) "999+" else chat.unread.toString(), muted = chat.muted)
+                if (!showBadge) {}
+                else if (chat.unread > 0) KxBadge(if (chat.unread > 999) "999+" else chat.unread.toString(), muted = chat.muted)
                 else if (chat.markedUnread) KxBadge("", muted = chat.muted, size = 14.dp)
             }
         }

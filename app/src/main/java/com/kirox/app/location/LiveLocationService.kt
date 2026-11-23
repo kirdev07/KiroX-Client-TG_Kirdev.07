@@ -47,7 +47,7 @@ class LiveLocationService : Service(), LocationListener {
         if (intent?.action == ACTION_STOP) { intent.getLongExtra(EXTRA_CHAT, 0).let { if (it != 0L) stop(this, it) else stopAll(this) }; return START_NOT_STICKY }
         ensureChannel(this)
         val notification = NotificationCompat.Builder(this, CHANNEL)
-            .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
+            .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox_v3)
             .setContentTitle(I18n.t("Вы транслируете геопозицию"))
             .setContentText(I18n.t("kiroX обновляет её, пока трансляция не закончится"))
             .setOngoing(true)

@@ -65,12 +65,24 @@ fun CallsScreen(store: KxStore, onCall: (KxCall, Boolean) -> Unit, onOpen: (Stri
                 Icon(Icons.Rounded.ChevronRight, null, tint = Kx.accent)
             }
             LazyColumn(Modifier.fillMaxSize().padding(top = 10.dp), contentPadding = PaddingValues(bottom = bottomPadding)) {
-                item { Text("Сегодня", style = KxType.style(13.sp, FontWeight.Bold, Kx.text4), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)) }
-                itemsIndexed(calls, key = { _, c -> c.id }) { i, c -> CallRow(c, Modifier.kxRise(i * 50, 450)) { onCall(c, c.video) } }
+                // qa-real: a day caption per group («Сегодня», «Вчера», «пн», «25 окт»), not «Сегодня» over everything.
+                itemsIndexed(calls, key = { _, c -> c.id }) { i, c ->
+                    val day = callDay(c.time)
+                    if (i == 0 || callDay(calls[i - 1].time) != day)
+                        Text(day, style = KxType.style(13.sp, FontWeight.Bold, Kx.text4), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp))
+                    CallRow(c, Modifier.kxRise(i * 50, 450)) { onCall(c, c.video) }
+                }
                 if (calls.isEmpty()) item { KxEmpty(if (missed) "Пропущенных звонков нет" else "Звонков пока не было") }
             }
         }
     }
+}
+
+/** Day caption from the row time (KxFormat.chatTime: «14:20» today, «вчера», weekday, «25 окт», «01.02.25»). */
+private fun callDay(time: String): String = when {
+    time.isBlank() || Regex("""^\d{1,2}:\d{2}$""").matches(time) -> "Сегодня"
+    time == "вчера" -> "Вчера"
+    else -> time.replaceFirstChar { it.uppercase() }
 }
 
 @Composable

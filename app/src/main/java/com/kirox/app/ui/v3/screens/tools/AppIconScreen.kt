@@ -38,41 +38,47 @@ import com.kirox.app.ui.v3.components.cssAngleEnd
 import com.kirox.app.ui.v3.components.cssAngleStart
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
+import com.kirox.app.R
+import com.kirox.app.settings.AppIcon
+import com.kirox.app.settings.AppIcons
 
-private data class AiStyle(val name: String, val colors: List<Color>, val deg: Float, val border: Pair<Dp, Color>?, val ink: Color, val shadow: Color?, val flow: Boolean, val glow: Boolean, val home: List<Color>, val homeRadial: Boolean = false)
+/** One launcher icon of the board: the real alias ([icon] = its adaptive layers) and the wallpaper of the home-screen preview. */
+private data class AiStyle(val icon: AppIcon, val home: List<Color>, val homeRadial: Boolean = false) { val name get() = icon.title }
 private val AI = listOf(
-    AiStyle("Классика", listOf(Kx.accentMid, Kx.accentDeep), 135f, null, Kx.onAccent, Kx.accentDeep.copy(alpha = .35f), false, false, listOf(Color(0xFF1C3A2C), Color(0xFF0E1A14), Kx.bg)),
-    AiStyle("Ночь", listOf(Kx.bg, Kx.bg), 135f, 2.dp to Kx.accent, Kx.accent, null, false, false, listOf(Color(0xFF15201B), Color(0xFF050706))),
-    AiStyle("Мята", listOf(Color(0xFFE6F5EC), Color(0xFFBFE6CF)), 135f, null, Color(0xFF1F6B47), Color(0xFFBFE6CF).copy(alpha = .25f), false, false, listOf(Color(0xFF4A6B5C), Color(0xFF23332B))),
-    AiStyle("Неон", listOf(Kx.onAccent, Kx.onAccent), 135f, 1.5.dp to Kx.accent.copy(alpha = .8f), Color(0xFFB8F5D2), Kx.accent.copy(alpha = .55f), false, true, listOf(Color(0xFF10301F), Color(0xFF050706)), true),
-    AiStyle("Аврора", listOf(Kx.accentDeep, Color(0xFF2F6E9E), Color(0xFF6A4C9C), Kx.accentDeep), 120f, null, Color.White, Color(0xFF2F6E9E).copy(alpha = .35f), true, false, listOf(Color(0xFF1A2B45), Color(0xFF1C1430), Kx.bg)),
-    AiStyle("Графит", listOf(Color(0xFF3A403D), Color(0xFF1B201E)), 135f, null, Kx.text, Color.Black.copy(alpha = .4f), false, false, listOf(Color(0xFF2A2E2C), Color(0xFF0F1110))))
+    AiStyle(AppIcon.Violet, listOf(Color(0xFF1C3A2C), Color(0xFF0E1A14), Kx.bg)),
+    AiStyle(AppIcon.Dark, listOf(Color(0xFF2A2E2C), Color(0xFF0F1110))),
+    AiStyle(AppIcon.Light, listOf(Color(0xFF4A6B5C), Color(0xFF23332B))),
+    AiStyle(AppIcon.Cosmos, listOf(Color(0xFF1A2B45), Color(0xFF1C1430), Kx.bg)),
+    AiStyle(AppIcon.Green, listOf(Color(0xFF10301F), Color(0xFF050706)), true),
+    AiStyle(AppIcon.White, listOf(Color(0xFF15201B), Color(0xFF050706))))
 private val AI_OTHER = listOf(Triple("Камера", Icons.Rounded.PhotoCamera, Color(0xFF5C6661)), Triple("Галерея", Icons.Rounded.Image, Color(0xFF2F6E9E)), Triple("Карты", Icons.Rounded.Map, Color(0xFF3F9A6C)),
     Triple("Музыка", Icons.Rounded.MusicNote, Color(0xFFC0443C)), Triple("Почта", Icons.Rounded.Mail, Color(0xFFB07A2E)), Triple("Часы", Icons.Rounded.Schedule, Color(0xFF6A4C9C)), Triple("Звонки", Icons.Rounded.Call, Color(0xFF3F9A6C)))
 private val YOU_BG = Color(0xFFCFE3D7); private val YOU_INK = Color(0xFF264034)
 
-/** One app-icon tile of a style: gradient (300% flowing for Аврора), border, glow shadow, «X». */
+/** One app-icon tile: the icon's adaptive layers (108dp drawn at 1.5x the tile, so the middle 72dp fill it), as the launcher shows it;
+ *  null = the themed icon (Android 13+): the monochrome layer in the wallpaper colors. */
 @Composable
-private fun AiTile(st: AiStyle?, size: Dp, radius: Dp, font: Int, flowPos: Float, glowK: Float = 0f, modifier: Modifier = Modifier) {
+private fun AiTile(st: AiStyle?, size: Dp, radius: Dp, modifier: Modifier = Modifier) {
     val sh = RoundedCornerShape(radius)
-    Box(modifier.size(size).then(if (st?.shadow != null) Modifier.shadow(if (st.glow) (11 + 4 * glowK).dp else 8.dp, sh, ambientColor = st.shadow, spotColor = st.shadow) else Modifier)
-        .clip(sh).drawBehind {
-            if (st == null) { drawRect(YOU_BG); return@drawBehind }
-            if (st.flow) {
-                val big = Size(this.size.width * 3, this.size.height * 3); val o = Offset(-(big.width - this.size.width) * flowPos, -(big.height - this.size.height) * .5f)
-                drawRect(Brush.linearGradient(st.colors, cssAngleStart(st.deg, big) + o, cssAngleEnd(st.deg, big) + o))
-            } else drawRect(Brush.linearGradient(st.colors, cssAngleStart(st.deg, this.size), cssAngleEnd(st.deg, this.size)))
-        }.then(if (st?.border != null) Modifier.border(st.border.first, st.border.second, sh) else Modifier), contentAlignment = Alignment.Center) {
-        Text("X", style = KxType.style(font.sp, FontWeight.Black, st?.ink ?: YOU_INK).copy(letterSpacing = (-1).sp))
+    Box(modifier.size(size).shadow(8.dp, sh, ambientColor = Color.Black.copy(alpha = .4f), spotColor = Color.Black.copy(alpha = .4f)).clip(sh)
+        .then(if (st == null) Modifier.background(YOU_BG) else Modifier), contentAlignment = Alignment.Center) {
+        if (st == null) Image(painterResource(R.drawable.ic_launcher_v3_monochrome), null, Modifier.requiredSize(size * 1.5f), colorFilter = ColorFilter.tint(YOU_INK))
+        else {
+            Image(painterResource(st.icon.background), null, Modifier.requiredSize(size * 1.5f))
+            Image(painterResource(st.icon.foreground), null, Modifier.requiredSize(size * 1.5f))
+        }
     }
 }
-
 /** Board «Значок приложения»: home screen preview with the morphing kiroX icon, 6 styles, themed-icon switch, apply. */
 @Composable
 fun AppIconScreen(ctx: KxScreenCtx) {
-    // demo: needs activity-alias icons in the manifest + PackageManager.setComponentEnabledSetting, current icon in store
-    var sel by remember { mutableIntStateOf(0) }
-    var cur by remember { mutableIntStateOf(0) }
+    // wave6: the real account picks among the manifest's activity-aliases (W6AppIcon.kt); the demo keeps the board's styles.
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { AppIconReal(ctx); return }
+    var sel by remember { mutableIntStateOf(AppIcons.current.value.ordinal) }
+    var cur by remember { mutableIntStateOf(AppIcons.current.value.ordinal) }
     var k by remember { mutableIntStateOf(0) }
     var you by remember { mutableStateOf(false) }
     val toastP = remember { Animatable(1f) }
@@ -81,8 +87,6 @@ fun AppIconScreen(ctx: KxScreenCtx) {
     LaunchedEffect(tk) { if (tk > 0) { toastP.snapTo(0f); toastP.animateTo(1f, tween(2200, easing = LinearEasing)) } }
     val st = AI[sel]
     val changed = sel != cur
-    val flow = tCycles(6000, 2, easing = TEaseInOut, key = sel)
-    val flowPos = (1f - kotlin.math.cos(flow * 2 * Math.PI).toFloat()) / 2f
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize()) {
@@ -112,7 +116,7 @@ fun AppIconScreen(ctx: KxScreenCtx) {
                                         LaunchedEffect(k) { if (k > 0) m.animateTo(1f, tween(600, easing = CubicBezierEasing(.2f, .8f, .2f, 1f))) }
                                         val s = kf(m.value, fa(0f, .35f, .7f, 1f), fa(1f, .6f, 1.15f, 1f)); val r = kf(m.value, fa(0f, .35f, .7f, 1f), fa(0f, -12f, 4f, 0f))
                                         val a = kf(m.value, fa(0f, .35f, .7f, 1f), fa(1f, .4f, 1f, 1f))
-                                        AiTile(if (you) null else st, 54.dp, 18.dp, 28, flowPos, modifier = Modifier.graphicsLayer { scaleX = s; scaleY = s; rotationZ = r; alpha = a })
+                                        AiTile(if (you) null else st, 54.dp, 18.dp, modifier = Modifier.graphicsLayer { scaleX = s; scaleY = s; rotationZ = r; alpha = a })
                                         Text("kiroX", style = KxType.style(11.sp, FontWeight.ExtraBold, Kx.w(.9f)))
                                     } else {
                                         val t3 = it2 as Triple<*, *, *>; val name = t3.first as String; val ic = t3.second as ImageVector; val c = t3.third as Color
@@ -138,8 +142,7 @@ fun AppIconScreen(ctx: KxScreenCtx) {
                             val sh = RoundedCornerShape(22.dp)
                             Column(Modifier.weight(1f).clip(sh).background(card).border(1.5.dp, bd, sh).kxClick(x.name, Role.RadioButton) { sel = i; k++ }.padding(start = 6.dp, end = 6.dp, top = 12.dp, bottom = 10.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                val gl = if (x.glow) tCycles(2400, 2, easing = TEaseInOut) else 0f
-                                AiTile(x, 58.dp, 19.dp, 30, if (x.flow) flowPos else 0f, (1f - kotlin.math.cos(gl * 2 * Math.PI).toFloat()) / 2f)
+                                AiTile(x, 58.dp, 19.dp)
                                 Text(x.name + if (cur == i) " ✓" else "", style = KxType.style(12.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text2))
                             }
                         }

@@ -848,6 +848,9 @@ class TelegramMessageRepository(
                 is TdApi.MessageContact -> "👤 " + listOf(content.contact.firstName, content.contact.lastName).filter { it.isNotBlank() }.joinToString(" ") +
                     (content.contact.phoneNumber.takeIf { it.isNotBlank() }?.let { "\n+" + it.trimStart('+') } ?: "")
                 // Media without a caption shows nothing under it; other contents a text preview.
+                // qa-real: a checklist as readable text (kiroX v3 draws «☑ …» and opens the Checklist board on a tap).
+                is TdApi.MessageChecklist -> "☑ " + content.list.title.text.ifBlank { "Список задач" } +
+                    content.list.tasks.joinToString("") { t -> "\n" + (if (t.completedBy != null) "✓ " else "○ ") + t.text.text }
                 is TdApi.MessageVideo, is TdApi.MessageAnimation, is TdApi.MessageAudio, is TdApi.MessageVideoNote, is TdApi.MessageSticker -> formatted?.text.orEmpty()
                 else -> formatted?.text ?: messagePreview(this)
             },

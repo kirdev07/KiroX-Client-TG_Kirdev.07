@@ -32,7 +32,7 @@ import com.kirox.app.ui.v3.KxLegacy
  * Hybrid 1.0 (ui/v3/KxLegacy): an old working settings screen shown full-screen over the v3 UI, in its own
  * Fusion look. Back (system or the screen's arrow) closes it and the v3 screen underneath is where it was;
  * the v3 status/nav-bar style comes back because v3 stays composed underneath and this restores the bars.
- * One nested old page is supported (Privacy → Devices, App icon → own icon, Notifications → exceptions).
+ * One nested old page is supported (App icon → own icon). wave6: passcode, cloud password, privacy and QR login are v3 now.
  */
 @Composable
 fun LegacyScreenHost(page: String, onBack: () -> Unit, onLogOut: () -> Unit) {
@@ -63,26 +63,8 @@ fun LegacyScreenHost(page: String, onBack: () -> Unit, onLogOut: () -> Unit) {
         com.kirox.app.ui.components.FusionBackdrop()
         Box(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
             when (val current = sub ?: page) {
-                KxLegacy.PASSCODE -> PasscodeSettingsScreen(onBack = close, onNotice = showNotice)
-                KxLegacy.CLOUD_PASSWORD -> CloudPasswordScreen(onBack = close, onNotice = showNotice)
-                KxLegacy.PRIVACY -> PrivacyScreen(onBack = close, onNotice = showNotice, onOpenDevices = { sub = "devices" })
-                "devices" -> DevicesScreen(app.telegram.sessions, onBack = close, onNotice = showNotice)
-                KxLegacy.NOTIFICATIONS -> NotificationSettingsScreen(onBack = close, onNotice = showNotice)
-                KxLegacy.NOTIFY_EXCEPTIONS -> NotificationExceptionsScreen(onBack = close)
-                KxLegacy.STORAGE -> StorageScreen(onBack = close, onNotice = showNotice)
-                KxLegacy.APP_ICON -> AppIconPage(onBack = close, onCustom = { sub = KxLegacy.CUSTOM_ICON })
-                KxLegacy.CUSTOM_ICON -> CustomIconScreen(onBack = close, onNotice = showNotice)
-                KxLegacy.UPDATES -> UpdatesScreen(app.updates, onBack = close)
-                KxLegacy.ADVANCED -> AdvancedScreen(onBack = close, onLogOut = onLogOut, onNotice = showNotice)
-                KxLegacy.BROWSER -> BrowserSettingsScreen(onBack = close, onNotice = showNotice)
-                KxLegacy.STICKER_SETS -> StickerSetsScreen(onBack = close, onNotice = showNotice)
-                KxLegacy.POWER -> PowerSavingScreen(onBack = close)
-                KxLegacy.QR_LOGIN -> QrLoginScreen(onBack = close, onNotice = showNotice)
-                // Own themes: editor, import from file / text, export; the selected own theme is v3's «Своя».
-                KxLegacy.THEMES -> {
-                    val palette by app.settings.palette.collectAsState()
-                    ThemesScreen(palette, app.settings::setPalette, onBack = close)
-                }
+                // wave6 (port-settings): notifications, storage, app icon, updates, advanced, browser, sticker sets, power and
+                // themes moved to v3 pages; their old screens stay in ui/home unused until the cleanup.
                 // Unknown page (older saved state): nothing to show, go back to v3.
                 else -> LaunchedEffect(current) { onBack() }
             }

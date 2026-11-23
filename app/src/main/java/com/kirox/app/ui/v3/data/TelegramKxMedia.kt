@@ -15,6 +15,7 @@ import com.kirox.app.telegram.TelegramViewModel
 import com.kirox.app.telegram.decodeWaveform
 import com.kirox.app.telegram.mediaOf
 import com.kirox.app.telegram.toStory
+import com.kirox.app.telegram.toRef
 import com.kirox.app.ui.chat.RepeatMode
 import com.kirox.app.ui.chat.Track
 import com.kirox.app.ui.chat.VoicePlayer
@@ -107,6 +108,7 @@ internal object KxMediaMapping {
             reconnecting = (c.phase as? CallPhase.Active)?.reconnecting == true,
             endReason = (c.phase as? CallPhase.Ended)?.reason?.let(::endReason).orEmpty(),
             failure = (c.phase as? CallPhase.Failed)?.message.orEmpty(),
+            frontCamera = c.frontCamera,
         )
     }
 
@@ -138,7 +140,15 @@ internal class KxMediaBinder(
         val video = when (m.content) { is TdApi.MessagePhoto -> false; is TdApi.MessageVideo -> true; else -> return null }
         // wave5: view-once / self-destructing media never joins the Viewer / Album paging.
         if (m.selfDestructType != null || (m.content as? TdApi.MessagePhoto)?.isSecret == true || (m.content as? TdApi.MessageVideo)?.isSecret == true) return null
-        val (media, thumb) = mediaOf(m.content)
+        // qa-real: mediaOf() has no MessagePhoto branch (the old chat draws photos from bestPhoto), so every photo
+        // mapped to null and the Viewer showed «Нет фото и видео». Photos: the best size + the smallest as the preview.
+        val photo = (m.content as? TdApi.MessagePhoto)?.photo
+        val (media, thumb) = if (photo != null) {
+            val best = com.kirox.app.telegram.bestPhoto(photo) ?: return null
+            val small = photo.sizes.minByOrNull { it.width }?.takeIf { it !== best }
+            com.kirox.app.telegram.TelegramMedia(best.photo.toRef(), if (best.photo.size > 0) best.photo.size else best.photo.expectedSize,
+                0, best.width, best.height, "image/jpeg") to small?.photo?.toRef()
+        } else mediaOf(m.content)
         media ?: return null
         val full = if (video) fileState(media.file.id).path ?: media.file.localPath else autoPath(media.file)
         return KxMediaItem(
@@ -155,8 +165,10 @@ internal class KxMediaBinder(
         val found = orNull {
             client.query(TdApi.SearchChatMessages(chatId, null, "", null, around, if (around == 0L) 0 else -40, 80, TdApi.SearchMessagesFilterPhotoAndVideo()))
         }?.messages?.toMutableList() ?: mutableListOf()
+        // qa-real: the tapped message is always part of the list, even when the search answers nothing (Saved, a fresh channel).
         if (around != 0L && found.none { it.id == around }) orNull { client.query(TdApi.GetMessage(chatId, around)) }?.let { found += it }
-        return withRights(chatId, found.distinctBy { it.id }.sortedBy { it.id }.mapNotNull { item(it) })
+        val items = found.distinctBy { it.id }.sortedBy { it.id }.mapNotNull { item(it) }
+        return withRights(chatId, items)
     }
 
     /** Delete / forward / save rights of each item (GetMessageProperties), asked in parallel. */
@@ -467,14 +479,34 @@ internal class KxMediaBinder(
     }
 
     suspend fun sendDeviceMedia(chatId: Long, media: KxDeviceMedia, caption: String, spoiler: Boolean = false, asFile: Boolean = false): String? {
+        val content = inputContent(media, caption, spoiler, asFile) ?: return "Не удалось открыть файл"
+        return attempt { client.query(TdApi.SendMessage(chatId, null, null, null, null, content)) }
+    }
+
+    /** qa-real (fixer-real-media): 2–10 picked items go out as one album (SendMessageAlbum), the caption on the first. */
+    suspend fun sendDeviceAlbum(chatId: Long, items: List<KxDeviceMedia>, caption: String, spoiler: Boolean, asFile: Boolean): String? {
+        if (items.size < 2) return items.firstOrNull()?.let { sendDeviceMedia(chatId, it, caption, spoiler, asFile) }
+        var error: String? = null
+        items.chunked(10).forEachIndexed { part, chunk ->
+            val contents = chunk.mapIndexedNotNull { i, m -> inputContent(m, if (part == 0 && i == 0) caption else "", spoiler, asFile) }
+            if (contents.size != chunk.size) error = "Не удалось открыть файл"
+            when {
+                contents.size >= 2 -> attempt { client.query(TdApi.SendMessageAlbum(chatId, null, null, null, contents.toTypedArray())) }?.let { error = it }
+                contents.size == 1 -> attempt { client.query(TdApi.SendMessage(chatId, null, null, null, null, contents[0])) }?.let { error = it }
+            }
+        }
+        return error
+    }
+
+    /** What a picked item is sent as: photo / video (with size, length, preview frame), or a document under its own name. */
+    private suspend fun inputContent(media: KxDeviceMedia, caption: String, spoiler: Boolean, asFile: Boolean): TdApi.InputMessageContent? {
         val text = caption.takeIf { it.isNotBlank() }?.let { TdApi.FormattedText(it, emptyArray()) }
         // Attach «Как файл»: the original bytes under the real file name, no recompression.
         if (asFile) {
-            val file = namedCopy(media.uri) ?: return "Не удалось открыть файл"
-            return attempt { client.query(TdApi.SendMessage(chatId, null, null, null, null, TdApi.InputMessageDocument().apply {
-                document = TdApi.InputDocument().apply { document = TdApi.InputFileLocal(file) }; this.caption = text })) }
+            val file = namedCopy(media.uri) ?: return null
+            return TdApi.InputMessageDocument().apply { document = TdApi.InputDocument().apply { document = TdApi.InputFileLocal(file) }; this.caption = text }
         }
-        val path = localCopy(media) ?: return "Не удалось открыть файл"
+        val path = localCopy(media) ?: return null
         val seconds = ((media.durationMs + 999) / 1000).toInt()
         // wave5: width/height/duration + a preview frame for videos (other clients showed 0×0 and no preview).
         val meta = if (media.video) videoMeta(path) else null
@@ -488,7 +520,7 @@ internal class KxMediaBinder(
             this.caption = text
             hasSpoiler = spoiler
         }
-        return attempt { client.query(TdApi.SendMessage(chatId, null, null, null, null, content)) }
+        return content
     }
 
     /** A picked content uri copied into the app cache under its own display name (documents, music show that name). */
@@ -585,15 +617,23 @@ internal class KxMediaBinder(
             }
         }
         scope.launch { vm.groupCalls.call.collect { g -> groupCall = g?.let(::group) } }
+        scope.launch { vm.groupCalls.error.collect { groupCallError = it } }
     }
+
+    /** wave6: screen-sharing problems of the video chat, shown once by the v3 call host. */
+    var groupCallError by mutableStateOf<String?>(null)
+        private set
 
     private fun group(g: TelegramGroupCall) = KxGroupCallState(
         chatId = g.chatId, title = g.title, count = g.count, muted = g.muted, canUnmute = g.canUnmute, cameraOn = g.cameraOn,
         connected = g.phase == GroupCallPhase.Connected, reconnecting = g.phase == GroupCallPhase.Reconnecting,
         failure = (g.phase as? GroupCallPhase.Failed)?.message.orEmpty(),
         members = g.members.map { m ->
-            KxCallMember(m.key, if (m.isSelf) "Вы" else m.name, autoPath(m.photo), m.isSelf, m.speaking, m.muted, m.handRaised, m.videoEndpoint != null)
+            KxCallMember(m.key, if (m.isSelf) "Вы" else m.name, autoPath(m.photo), m.isSelf, m.speaking, m.muted, m.handRaised,
+                m.videoEndpoint != null || (m.isSelf && g.cameraOn), videoEndpoint = m.videoEndpoint, screenEndpoint = m.screenEndpoint)
         },
+        frontCamera = g.frontCamera, canEnableVideo = g.canEnableVideo, screenSharing = g.screenSharing,
+        handRaised = g.members.firstOrNull { it.isSelf }?.handRaised == true,
     )
 
     fun answerCall() = vm.voip.accept()
@@ -603,10 +643,27 @@ internal class KxMediaBinder(
     fun flipCallCamera() = vm.voip.switchCamera()
     fun attachCallVideo(remote: Any?, local: Any?) = vm.voip.setVideoSinks(remote as? org.webrtc.VideoSink, local as? org.webrtc.VideoSink)
     /** A failed call is kept until dismissed — clear it first, or every later join does nothing. */
-    fun joinGroupCall(chatId: Long) { vm.groupCalls.dismiss(); vm.groupCalls.join(chatId) }
+    fun joinGroupCall(chatId: Long) {
+        vm.groupCalls.dismiss(); vm.groupCalls.join(chatId)
+        // wave6: as the old chat screen did — started now, while kiroX is on screen (Android refuses it from the
+        // background); keeps the microphone in the background and carries the camera / screen-share types.
+        com.kirox.app.voip.GroupCallService.start(app)
+    }
     fun leaveGroupCall() = vm.groupCalls.leave()
     fun muteGroupMic(muted: Boolean) = vm.groupCalls.setMuted(muted)
     fun turnGroupCamera(on: Boolean) = vm.groupCalls.setCamera(on)
+    // wave6 port-calls
+    fun dismissCall() = vm.voip.dismiss()
+    fun dismissGroupCall() = vm.groupCalls.dismiss()
+    fun flipGroupCamera() = vm.groupCalls.switchCamera()
+    fun attachGroupVideo(endpoint: String?, sink: Any?) {
+        val s = sink as? org.webrtc.VideoSink
+        if (endpoint == null) vm.groupCalls.setLocalSink(s) else vm.groupCalls.setRemoteSink(endpoint, s)
+    }
+    fun startGroupScreenShare(consent: Any) { (consent as? android.content.Intent)?.let(vm.groupCalls::startScreenShare) }
+    fun stopGroupScreenShare() = vm.groupCalls.stopScreenShare()
+    fun raiseGroupHand(raised: Boolean) = vm.groupCalls.setHandRaised(raised)
+    fun clearGroupCallError() { vm.groupCalls.clearError(); groupCallError = null }
 
     suspend fun rateCall(callId: Int, rating: Int, comment: String, problems: List<String>): String? =
         attempt { client.query(TdApi.SendCallRating(TdApi.InputCallDiscarded(callId), rating.coerceIn(1, 5), comment.trim(), KxMediaMapping.problems(problems))) }

@@ -268,9 +268,9 @@ internal fun CustomIconScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
                 if (photo != null) androidx.compose.material3.OutlinedButton(onClick = { photo = null }, modifier = Modifier.weight(1f)) { Text("Убрать фото") }
             }
         }
-        item { ToggleRow("Самолётик kiroX", "Поверх фона или фото", showPlane) { showPlane = it } }
+        item { ToggleRow("Значок kiroX", "Поверх фона или фото", showPlane) { showPlane = it } }
         if (showPlane) {
-            item { SmallCaption("Цвет самолётика") }
+            item { SmallCaption("Цвет значка") }
             item { Swatches(plane) { plane = it } }
         }
         item { SmallCaption("Подпись под иконкой") }

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.screens.tools.W6NotifyOverlayHost
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
@@ -72,9 +73,9 @@ fun NotifyScreen(ctx: KxScreenCtx) {
     var sound by rememberSaveable { mutableStateOf("Нота") }
     var demoApp by remember { mutableStateOf(mapOf("sound" to true, "vibrate" to true, "banner" to true, "badge" to true)) }
     // wave5: on the real account the «В приложении» switches are the app's notification prefs (were local, lost on leave);
-    // reactions / calls / sounds / exceptions / reset live in the old working screen (hybrid 1.0, KxLegacy).
-    val legacy = com.kirox.app.ui.v3.KxLegacy.Local.current
+    // wave6: reactions / calls / sounds / exceptions / reset are v3 too (tools/W6Notify.kt), no old screen any more.
     val real = store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val overlay = remember { com.kirox.app.ui.v3.screens.tools.W6NotifyOverlay() }
     val localPrefs = if (real) (androidx.compose.ui.platform.LocalContext.current.applicationContext as com.kirox.app.KiroXApplication).telegram.notificationPrefs else null
     val local = localPrefs?.settings?.collectAsState()?.value
     val app = if (local != null) mapOf("sound" to local.inAppSound, "vibrate" to local.inAppVibrate, "banner" to local.inAppPreview, "badge" to local.badge) else demoApp
@@ -132,7 +133,8 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                             Row { Text("Текст сообщения", style = KxType.style(13.sp, color = Kx.text2), modifier = Modifier.weight(1f)); val sc = scopeOf(c.key); val pv = sc?.preview ?: true
                                 Text(if (pv) "Показывать" else "Скрывать", style = KxType.style(13.sp, color = if (pv) Kx.accent else Kx.text3),
                                     modifier = Modifier.kxClick { if (sc != null) store.setNotifyScope(sc.key, sc.enabled, !pv) }) }
-                            Row(if (legacy != null) Modifier.kxClick { ctx.open("Old:notifyExceptions") } else Modifier) { Text("Исключения", style = KxType.style(13.sp, color = Kx.text2), modifier = Modifier.weight(1f)); Text(excText(c.key, c.exc), style = KxType.style(13.sp, color = if (legacy != null) Kx.accent else Kx.text3)) }
+                            if (real) com.kirox.app.ui.v3.screens.tools.W6ScopeExtras(ctx, c.key)
+                            Row(if (real) Modifier.kxClick { ctx.open("NotifyExceptions") } else Modifier) { Text("Исключения", style = KxType.style(13.sp, color = Kx.text2), modifier = Modifier.weight(1f)); Text(excText(c.key, c.exc), style = KxType.style(13.sp, color = if (real) Kx.accent else Kx.text3)) }
                         }
                     }
                 }
@@ -152,14 +154,16 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                 }
                 // wave5: boards that had no entry.
                 Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    val n = if (legacy != null) 3 else 2
+                    val n = if (real) 3 else 2
                     SNavRow(Icons.Rounded.Bedtime, "Не беспокоить", "Тишина по расписанию и исключения", groupShape(0, n, 20.dp)) { ctx.open("Dnd") }
                     SNavRow(Icons.Rounded.MusicNote, "Звуки уведомлений", "Свои звуки из чатов", groupShape(1, n, 20.dp)) { ctx.open("Sounds") }
-                    if (legacy != null) SNavRow(Icons.Rounded.Tune, "Все настройки уведомлений", "Реакции, звонки, мелодии, исключения, сброс", groupShape(2, n, 20.dp)) { ctx.open("Old:notifications") }
+                    if (real) SNavRow(Icons.Rounded.Tune, "Исключения", "Чаты со своими настройками уведомлений", groupShape(2, n, 20.dp)) { ctx.open("NotifyExceptions") }
                 }
+                com.kirox.app.ui.v3.screens.tools.W6NotifyExtras(ctx, overlay)
             }
         }
         if (banner != 0L && app["banner"] == true) key(banner) { TestBanner { banner = 0L } }
+        W6NotifyOverlayHost(overlay)
     }
 }
 

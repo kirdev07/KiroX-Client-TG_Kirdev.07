@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 7.x launchers (no adaptive icons): the same background and logo as mipmap-anydpi-v26/ic_launcher_green.xml. -->
+<!-- Launchers without adaptive icons: the same layers as mipmap-anydpi-v26/ic_launcher_green.xml. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item>
-        <shape android:shape="rectangle">
-            <solid android:color="@color/ic_launcher_background_green" />
-            <corners android:radius="24dp" />
-        </shape>
-    </item>
-    <item android:drawable="@drawable/ic_launcher_foreground" />
+    <item android:drawable="@drawable/ic_launcher_v3_green_background" />
+    <item android:drawable="@drawable/ic_launcher_v3_green_foreground" />
 </layer-list>

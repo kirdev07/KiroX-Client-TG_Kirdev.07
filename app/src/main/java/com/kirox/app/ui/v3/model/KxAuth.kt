@@ -32,7 +32,7 @@ interface KxAuth {
     // Optional extras (defaults keep older implementations compiling)
     val codeVia: KxCodeVia get() = if (codeInApp) KxCodeVia.App else KxCodeVia.Sms
     val emailPattern: String get() = ""
-    /** Code sent as words / a phrase (not digits): the v3 code board can't show it, old screen does. */
+    /** Code sent as words / a phrase (not digits): the v3 code board shows a text field instead of cells. */
     val codeIsWords: Boolean get() = false
     val hasRecoveryEmail: Boolean get() = false
     val recoveryEmailPattern: String get() = ""

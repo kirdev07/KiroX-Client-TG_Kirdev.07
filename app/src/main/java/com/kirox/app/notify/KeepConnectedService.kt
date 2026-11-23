@@ -51,7 +51,7 @@ class KeepConnectedService : Service() {
         // Compat builder: Android 7 has no channels; MIN priority there matches the channel's IMPORTANCE_MIN.
         val notification = androidx.core.app.NotificationCompat.Builder(this, CHANNEL)
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MIN)
-            .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
+            .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox_v3)
             .setContentTitle(com.kirox.app.i18n.I18n.t("kiroX на связи"))
             .setContentText(com.kirox.app.i18n.I18n.t("Сообщения приходят сразу"))
             .setOngoing(true)

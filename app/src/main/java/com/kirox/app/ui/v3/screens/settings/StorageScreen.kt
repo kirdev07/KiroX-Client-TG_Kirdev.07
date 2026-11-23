@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.screens.tools.W6StorageOverlayHost
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
@@ -99,6 +100,7 @@ fun StorageScreen(ctx: KxScreenCtx) {
         mapOf("photo" to true, "video" to false, "file" to false, "music" to false),
         mapOf("photo" to false, "video" to false, "file" to false, "music" to false))) }
     val done = state == "done"
+    val storageOverlay = remember { com.kirox.app.ui.v3.screens.tools.W6StorageOverlay() }
     // wave5 (fixer-media): «Освобождено» = size before − size Telegram reports after the clean (it keeps some files), not the whole cache.
     LaunchedEffect(state) { if (state == "busy") { val before = total; val was = store.storage; store.clearCache(); delay(1400)
         if (store !is com.kirox.app.ui.v3.demo.KxDemoStore) for (k in 0 until 16) { val now = store.storage; if (now !== was && now?.loadingDetails != true) break; delay(500) } // wait for the re-read
@@ -143,11 +145,10 @@ fun StorageScreen(ctx: KxScreenCtx) {
                 }
                 ClearButton(state, sBytes(freed)) { when (state) { "busy" -> Unit; "done" -> state = "idle"; else -> state = "busy" } }
 
-                // wave5 (hybrid 1.0): the real account has no v3 auto-download model (the switches below were local, lost on leave);
-                // its row opens the old working «Данные и память» (per-network auto-download, cache limit, GIF autoplay, gallery, calls).
-                if (com.kirox.app.ui.v3.KxLegacy.Local.current != null) Column(Modifier.sRise(80), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    GroupLabel("Автозагрузка медиа")
-                    SNavRow(Icons.Rounded.Download, "Автозагрузка и кэш", "По сетям, размер кэша, GIF, сохранение в галерею", groupShape(0, 1, 20.dp)) { ctx.open("Old:storage") }
+                // wave6: the real account's auto-download per network, cache limit, GIF, gallery and per-chat clean are v3 (tools/W6Storage.kt);
+                // the demo keeps the board's local switches.
+                if (store !is com.kirox.app.ui.v3.demo.KxDemoStore) Box(Modifier.sRise(80)) {
+                    com.kirox.app.ui.v3.screens.tools.W6StorageReal(ctx, storageOverlay)
                 } else Column(Modifier.sRise(80)) {
                     GroupLabel("Автозагрузка медиа")
                     SSegment(listOf("Wi-Fi", "Мобильная", "Роуминг"), net, listOf(Icons.Outlined.Wifi, Icons.Outlined.SignalCellularAlt, Icons.Outlined.Luggage)) { net = it }
@@ -194,6 +195,7 @@ fun StorageScreen(ctx: KxScreenCtx) {
                 }
             }
         }
+        W6StorageOverlayHost(ctx, storageOverlay)
     }
 }
 

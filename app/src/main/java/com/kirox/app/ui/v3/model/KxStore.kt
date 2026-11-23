@@ -338,6 +338,40 @@ interface KxStore {
     /** Seconds left of the pause after too many wrong codes (0 = codes accepted). */
     fun passcodeWait(): Int = 0
 
+    // ---- wave6 port-security (additive) ----
+    /** «Автоблокировка» delay in seconds: 0, 60, 300, 3600 or 18000. */
+    val passcodeAutoLock: Int get() = 60
+    /** Blank in recents and no screenshots while the code is on. */
+    val passcodeHideContent: Boolean get() = true
+    /** Checks the code without unlocking or counting tries (to change / turn it off). */
+    suspend fun passcodeMatches(code: String): Boolean = false
+    /** Turns the code on or changes it ([pattern] = graphic key). */
+    suspend fun setPasscode(code: String, pattern: Boolean) {}
+    fun disablePasscode() {}
+    fun setPasscodeAutoLock(seconds: Int) {}
+    fun setPasscodeBiometric(on: Boolean) {}
+    fun setPasscodeHideContent(on: Boolean) {}
+    fun lockNow() {}
+    /** Cloud password: new / changed recovery e-mail (waits for its code, see [confirmRecoveryEmail]). */
+    suspend fun setRecoveryEmail(password: String, email: String): String? = null
+    suspend fun resendRecoveryEmailCode(): String? = null
+    /** «Забыли пароль?»: sends a code to the recovery e-mail; the address pattern lands in [passwordRecoveryPattern]. */
+    suspend fun requestPasswordRecovery(): String? = null
+    val passwordRecoveryPattern: String get() = ""
+    /** Code from the e-mail + new password ([newPassword] empty removes it). */
+    suspend fun recoverPassword(code: String, newPassword: String, hint: String): String? = null
+    /** Reset without e-mail: null = asked (see [KxCloudPassword.pendingResetDate]) or done; else the reason. */
+    suspend fun resetPassword(): String? = null
+    suspend fun cancelPasswordReset(): String? = null
+    /** «Всегда разрешать» / «Никогда не разрешать» people of a privacy rule (KxPrivacyRule.key); null while it can't be read. */
+    suspend fun privacyExceptions(key: String): Pair<List<KxContact>, List<KxContact>>? = null
+    suspend fun setPrivacyExceptions(key: String, allow: List<Long>, never: List<Long>): String? = null
+    /** «Новые чаты от всех» (off = only contacts, Telegram Premium) and «Частые собеседники». */
+    val newChatsFromAll: Boolean get() = true
+    fun setNewChatsFromAll(on: Boolean) {}
+    val suggestFrequent: Boolean get() = true
+    fun setSuggestFrequent(on: Boolean) {}
+
     // Own profile photos (ids from [profilePhotos])
     /** Makes an older photo the main one again. */
     suspend fun setMainPhoto(photoId: Long): String? = null
@@ -439,6 +473,12 @@ interface KxStore {
     /** Attach sheet: a picked photo/video under a spoiler, or [asFile] as a document (original quality, real name). */
     suspend fun sendDeviceMediaAs(chatId: Long, media: KxDeviceMedia, caption: String = "", spoiler: Boolean = false, asFile: Boolean = false): String? =
         sendDeviceMedia(chatId, media, caption)
+    /** qa-real: several picked items as one album (caption on the first); default = one by one. Null = sent, else the error. */
+    suspend fun sendDeviceAlbum(chatId: Long, items: List<KxDeviceMedia>, caption: String = "", spoiler: Boolean = false, asFile: Boolean = false): String? {
+        var error: String? = null
+        items.forEachIndexed { i, m -> sendDeviceMediaAs(chatId, m, if (i == 0) caption else "", spoiler, asFile)?.let { error = it } }
+        return error
+    }
     /** Attach «Музыка»: an audio file picked through the system ([uri] content uri) sent as music with its title/performer. */
     suspend fun sendDeviceAudio(chatId: Long, uri: String, caption: String = ""): String? = null
     /** «записывает видеосообщение» in [chatId] while the round-video recorder is open ([on] false clears it). */
@@ -464,6 +504,23 @@ interface KxStore {
     fun leaveGroupCall() {}
     fun muteGroupMic(muted: Boolean) {}
     fun turnGroupCamera(on: Boolean) {}
+    // wave6 port-calls: the v3 call UI owns calls (KxCallHost) — what the old CallScreen/GroupCallScreen did.
+    /** Whether the call engine is loaded (after a cold start from a push it may still be loading; answer then). */
+    val callEngineReady: Boolean get() = true
+    /** Hides a finished/failed one-to-one call at once (it also goes by itself after a moment). */
+    fun dismissCall() {}
+    /** Closes a failed video chat (kept until dismissed, or every later join does nothing). */
+    fun dismissGroupCall() {}
+    fun flipGroupCamera() {}
+    /** Video chat renderer (org.webrtc.VideoSink as Any): [endpoint] null = own camera; [sink] null detaches. */
+    fun attachGroupVideo(endpoint: String?, sink: Any?) {}
+    /** [consent]: the android.content.Intent returned by the system screen-capture dialog. */
+    fun startGroupScreenShare(consent: Any) {}
+    fun stopGroupScreenShare() {}
+    fun raiseGroupHand(raised: Boolean) {}
+    /** Video chat problem to show once (screen sharing refused…); cleared by [clearGroupCallError]. */
+    val groupCallError: String? get() = null
+    fun clearGroupCallError() {}
     /** [problems]: echo, noise, interruptions, distorted, silentLocal, silentRemote, dropped, video. */
     suspend fun rateCall(callId: Int, rating: Int, comment: String, problems: List<String>): String? = null
     /** Schedules a video chat in a group/channel at [startAt] (unix); 0 starts now. */
@@ -658,6 +715,8 @@ interface KxStore {
     /** Links, mentions, hashtags, e-mails, phone numbers… found in [text] by Telegram. */
     suspend fun textEntities(text: String): List<KxEntity> = emptyList()
     suspend fun chatFacts(chatId: Long): KxChatFacts? = null
+    /** qa-real: may I post in this chat (channels: creator / admin with canPostMessages)? Used for forward targets. */
+    suspend fun canPost(chatId: Long): Boolean = true
     /** Sends a photo that can be opened once (private chats only: elsewhere the answer is «Только в личных чатах»). */
     suspend fun sendViewOnce(chatId: Long, path: String): String? = null
 }

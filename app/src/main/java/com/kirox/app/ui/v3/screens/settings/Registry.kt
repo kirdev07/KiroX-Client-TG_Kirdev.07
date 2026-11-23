@@ -17,6 +17,9 @@ val SettingsScreens: Map<String, KxScreenFn> = mapOf(
     "ChatStyle" to { ctx -> ChatStyleScreen(ctx) },
     "Password" to { ctx -> PasswordScreen(ctx) },
     "TwoStep" to { ctx -> TwoStepScreen(ctx) },
+    // wave6 port-security: all privacy rules, one rule with exceptions (arg = rule key).
+    "PrivacyAll" to { ctx -> PrivacyAllScreen(ctx) },
+    "PrivacyRule" to { ctx -> PrivacyRuleScreen(ctx) },
     "Accounts" to { ctx -> AccountsScreen(ctx) },
     "Blocked" to { ctx -> BlockedScreen(ctx) },
     "Power" to { ctx -> PowerScreen(ctx) },

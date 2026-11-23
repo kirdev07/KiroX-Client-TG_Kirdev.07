@@ -7,7 +7,7 @@ HSPLcom/kirox/app/KiroXApplication;->**(**)**
 HSPLcom/kirox/app/MainActivity**;->**(**)**
 HSPLcom/kirox/app/AppScope**;->**(**)**
 HSPLcom/kirox/app/ui/KiroXApp**;->**(**)**
-HSPLcom/kirox/app/ui/splash/**;->**(**)**
+HSPLcom/kirox/app/ui/v3/screens/extra/SplashScreenKt**;->**(**)**
 HSPLcom/kirox/app/ui/theme/**;->**(**)**
 HSPLcom/kirox/app/ui/navigation/**;->**(**)**
 HSPLcom/kirox/app/ui/components/**;->**(**)**

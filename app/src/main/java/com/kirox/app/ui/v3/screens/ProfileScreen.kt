@@ -99,11 +99,14 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
             if (p.gifts > 0 || p.commonGroups > 0) Row(Modifier.padding(start = 14.dp, end = 14.dp, top = 10.dp).kxRise(240, 500), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (p.gifts > 0) Row(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.045f)).kxClick { onOpen("Gifts:${p.id}") }.padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("🎁🧸💎", style = KxType.style(18.sp)); Text("Подарки · ${p.gifts}", style = KxType.style(13.sp, FontWeight.SemiBold))
+                    Text("🎁🧸💎", style = KxType.style(18.sp), maxLines = 1, softWrap = false)
+                    Text("Подарки · ${p.gifts}", style = KxType.style(13.sp, FontWeight.SemiBold), maxLines = 1,
+                        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 13.sp))
                 }
                 if (p.commonGroups > 0) Row(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.045f)).kxClick { onOpen("CommonGroups:${p.id}") }.padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Rounded.Groups, null, Modifier.size(20.dp), tint = Kx.link); Text("Общие группы: ${p.commonGroups}", style = KxType.style(13.sp, FontWeight.SemiBold))
+                    Icon(Icons.Rounded.Groups, null, Modifier.size(20.dp), tint = Kx.link); Text("Общие группы: ${p.commonGroups}", style = KxType.style(13.sp, FontWeight.SemiBold), maxLines = 1,
+                        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 13.sp))
                 }
             }
             Row(Modifier.padding(top = 14.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp).kxRise(280, 500), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -154,7 +157,9 @@ private fun GlassButton(icon: ImageVector, label: String, onClick: () -> Unit) {
 private fun Action(icon: ImageVector, label: String, modifier: Modifier, tint: Color = Kx.accent, bg: Color = Kx.fill, onClick: () -> Unit) {
     Column(modifier.height(62.dp).clip(RoundedCornerShape(20.dp)).background(bg).border(1.dp, Kx.fillHi, RoundedCornerShape(20.dp)).kxClick(label, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
-        Icon(icon, null, tint = tint); Text(label, style = KxType.style(12.sp, FontWeight.SemiBold, Kx.text2), maxLines = 1)
+        // Narrow screens / big font: the label shrinks instead of being cut («Без звука» → «Без»).
+        Icon(icon, null, tint = tint); Text(label, Modifier.padding(horizontal = 2.dp), style = KxType.style(12.sp, FontWeight.SemiBold, Kx.text2), maxLines = 1,
+            autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = 12.sp))
     }
 }
 

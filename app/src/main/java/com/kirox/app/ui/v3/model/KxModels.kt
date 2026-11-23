@@ -229,7 +229,9 @@ data class KxStorage(val totalBytes: Long, val databaseBytes: Long = 0, val byTy
                      val chats: List<Pair<String, Long>> = emptyList(), val loadingDetails: Boolean = false)
 
 @Immutable
-data class KxCloudPassword(val has: Boolean, val hint: String = "", val hasRecoveryEmail: Boolean = false, val pendingEmailPattern: String? = null)
+data class KxCloudPassword(val has: Boolean, val hint: String = "", val hasRecoveryEmail: Boolean = false, val pendingEmailPattern: String? = null,
+                           /** wave6: unix seconds when a requested reset (forgot, no e-mail) removes the password; 0 = none. */
+                           val pendingResetDate: Int = 0)
 
 /** A Telegram gift for stars. Sending one spends stars: the UI must show [stars] and ask before sending. */
 @Immutable
@@ -366,17 +368,23 @@ data class KxCallState(val id: Int, val peerId: Long, val name: String, val avat
                        val outgoing: Boolean = true, val phase: KxCallPhase = KxCallPhase.Calling, val sinceMs: Long = 0,
                        val endedSeconds: Int = 0, val emojis: List<String> = emptyList(), val micMuted: Boolean = false,
                        val cameraOn: Boolean = false, val remoteVideo: Boolean = false, val remoteMuted: Boolean = false,
-                       val signalBars: Int = 4, val reconnecting: Boolean = false, val endReason: String = "", val failure: String = "")
+                       val signalBars: Int = 4, val reconnecting: Boolean = false, val endReason: String = "", val failure: String = "",
+                       /** wave6 port-calls: own camera is the front one (mirror the preview). */
+                       val frontCamera: Boolean = true)
 
+/** [videoEndpoint]/[screenEndpoint] (wave6): engine endpoints of their camera / shared screen while received (for attachGroupVideo). */
 @Immutable
 data class KxCallMember(val key: String, val name: String, val avatar: String? = null, val self: Boolean = false, val speaking: Boolean = false,
-                        val muted: Boolean = true, val hand: Boolean = false, val video: Boolean = false)
+                        val muted: Boolean = true, val hand: Boolean = false, val video: Boolean = false,
+                        val videoEndpoint: String? = null, val screenEndpoint: String? = null)
 
-/** The video chat this account is in. */
+/** The video chat this account is in. wave6: camera side, video allowed, own screen sharing, own raised hand. */
 @Immutable
 data class KxGroupCallState(val chatId: Long, val title: String, val members: List<KxCallMember> = emptyList(), val count: Int = 0,
                             val muted: Boolean = true, val canUnmute: Boolean = true, val cameraOn: Boolean = false,
-                            val connected: Boolean = false, val reconnecting: Boolean = false, val failure: String = "")
+                            val connected: Boolean = false, val reconnecting: Boolean = false, val failure: String = "",
+                            val frontCamera: Boolean = true, val canEnableVideo: Boolean = true, val screenSharing: Boolean = false,
+                            val handRaised: Boolean = false)
 
 /** Traffic since [since]; [network] 0 mobile, 1 Wi-Fi, 2 roaming; [category] photo/video/voice/music/files/messages/calls/other. */
 @Immutable

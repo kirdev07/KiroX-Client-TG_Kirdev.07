@@ -44,6 +44,10 @@ private fun needsBattery(context: Context) =
 internal fun shouldShowBackgroundIntro(context: Context) =
     !context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_SEEN, false) && (needsNotifications(context) || needsBattery(context))
 
+/** wave6: the v3 Welcome board (KxPostSignInWelcome) shows instead of the sheet below; it marks the intro seen here. */
+internal fun markBackgroundIntroSeen(context: Context) =
+    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY_SEEN, true) }
+
 /**
  * Says why KiroX asks for notifications and for work in the background before the system dialogs
  * appear: Telegram sends no pushes to KiroX unless a push app (ntfy) is installed, so KiroX keeps its

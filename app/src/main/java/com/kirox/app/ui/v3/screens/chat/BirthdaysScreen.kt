@@ -81,7 +81,8 @@ fun BirthdaysScreen(ctx: KxScreenCtx) {
                             Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Row(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(22.dp)).cssGradient(135f, Kx.accentMid, Kx.accentDeep).kxClick { if (!sent) sheet = true },
                                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Rounded.Celebration, null, Modifier.size(18.dp), tint = Kx.onAccent); Text(if (sent) "Поздравлено ✓" else "Поздравить", style = ts(13, W800, Kx.onAccent))
+                                    Icon(Icons.Rounded.Celebration, null, Modifier.size(18.dp), tint = Kx.onAccent); Text(if (sent) "Поздравлено ✓" else "Поздравить", style = ts(13, W800, Kx.onAccent), maxLines = 1,
+                                        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 13.sp))
                                 }
                                 HeroBtn(Icons.Rounded.Call, "Позвонить") { say("Звонок · Бабушка…", Icons.Rounded.Call) }
                                 HeroBtn(Icons.Rounded.Videocam, "Видео") { say("Видеозвонок · Бабушка…", Icons.Rounded.Videocam) }
@@ -93,7 +94,7 @@ fun BirthdaysScreen(ctx: KxScreenCtx) {
                         val left = leftS.toInt(); val on = i in remind
                         Row(Modifier.chIn(i * 50, 8.dp, 250).fillMaxWidth().padding(horizontal = 4.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             LetterAv(l, hex(c), 46.dp, 16)
-                            Column(Modifier.weight(1f)) { Text(name, style = ts(15, W700)); Text(date, style = ts(12, color = Kx.text4)) }
+                            Column(Modifier.weight(1f)) { Text(name, style = ts(15, W700), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis); Text(date, style = ts(12, color = Kx.text4)) }
                             Box(Modifier.clip(RoundedCornerShape(12.dp)).background(if (left <= 3) BdPink.copy(alpha = .16f) else Kx.w(.06f)).padding(horizontal = 10.dp, vertical = 4.dp)) {
                                 Text("через $left ${bdDays(left)}", style = ts(12, W800, if (left <= 3) BdPink else Kx.text3))
                             }
@@ -146,7 +147,8 @@ fun BirthdaysScreen(ctx: KxScreenCtx) {
 private fun RowScope.HeroBtn(icon: ImageVector, text: String, onClick: () -> Unit) {
     Row(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.08f)).kxClick(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, Modifier.size(18.dp), tint = Kx.text); Text(text, style = ts(13, W700))
+        Icon(icon, null, Modifier.size(18.dp), tint = Kx.text); Text(text, style = ts(13, W700), maxLines = 1,
+            autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 13.sp))
     }
 }
 

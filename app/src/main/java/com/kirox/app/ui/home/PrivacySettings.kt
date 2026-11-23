@@ -349,23 +349,12 @@ internal fun AppIconDialog(current: com.kirox.app.settings.AppIcon, onDismiss: (
                         row.forEach { icon ->
                             val selected = icon == current
                             Column(Modifier.clip(RoundedCornerShape(14.dp)).clickable { onPick(icon) }.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                val background = when (icon) {
-                                    com.kirox.app.settings.AppIcon.Violet -> androidx.compose.ui.graphics.SolidColor(Color(0xFF6C4CE0))
-                                    com.kirox.app.settings.AppIcon.Dark -> androidx.compose.ui.graphics.SolidColor(Color(0xFF121214))
-                                    com.kirox.app.settings.AppIcon.Light, com.kirox.app.settings.AppIcon.White -> androidx.compose.ui.graphics.SolidColor(Color.White)
-                                    com.kirox.app.settings.AppIcon.Cosmos -> androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFF7B4CE0), Color(0xFF1B2A6B)))
-                                    com.kirox.app.settings.AppIcon.Green -> androidx.compose.ui.graphics.SolidColor(Color(0xFF1FA463))
+                                // The icon's own adaptive layers: 108dp drawn at 84dp, so the middle 72dp fill the 56dp tile.
+                                Box(Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+                                    androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(icon.background), null, Modifier.requiredSize(84.dp))
+                                    androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(icon.foreground), null, Modifier.requiredSize(84.dp))
+                                    if (selected) Box(Modifier.matchParentSize().border(2.5.dp, Fusion.colors.accent, RoundedCornerShape(16.dp)))
                                 }
-                                val plane = when (icon) {
-                                    com.kirox.app.settings.AppIcon.Light -> com.kirox.app.R.drawable.ic_launcher_foreground_violet
-                                    com.kirox.app.settings.AppIcon.White -> com.kirox.app.R.drawable.ic_launcher_foreground_green
-                                    else -> com.kirox.app.R.drawable.ic_launcher_foreground
-                                }
-                                Box(
-                                    Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(background)
-                                        .then(if (selected) Modifier.border(2.5.dp, Fusion.colors.accent, RoundedCornerShape(16.dp)) else Modifier),
-                                    contentAlignment = Alignment.Center
-                                ) { androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(plane), null, Modifier.size(84.dp)) }
                                 Spacer(Modifier.height(6.dp))
                                 Text(icon.title, color = if (selected) Fusion.colors.accent else Fusion.colors.textPrimary, fontSize = 12.sp)
                             }

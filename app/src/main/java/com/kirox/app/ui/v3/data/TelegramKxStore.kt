@@ -963,7 +963,7 @@ class TelegramKxStore(
     private var passwordState by mutableStateOf<KxCloudPassword?>(null)
     private suspend fun reloadPassword() {
         val st = services.settings.passwordState()
-        passwordState = KxCloudPassword(st.hasPassword, st.hint, st.hasRecoveryEmail, st.pendingEmailPattern)
+        passwordState = KxCloudPassword(st.hasPassword, st.hint, st.hasRecoveryEmail, st.pendingEmailPattern, st.pendingResetDate)
     }
     override val cloudPassword: KxCloudPassword? get() { loadOnce("password") { reloadPassword() }; return passwordState }
     override suspend fun checkPassword(password: String): String? =
@@ -991,7 +991,15 @@ class TelegramKxStore(
 
     // Storage: the fast totals first, then the slow breakdown by type and chat.
     private var storageState by mutableStateOf<KxStorage?>(null)
-    override val storage: KxStorage? get() { loadOnce("storage") { reloadStorage() }; return storageState }
+    // qa-real (fixer-real-media): read once per run (often at start, before anything was downloaded) it stayed «0 МБ»;
+    // now re-read when a screen asks again more than 20 s after the last read.
+    @Volatile private var storageReadAt = 0L
+    override val storage: KxStorage? get() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (storageReadAt != 0L && now - storageReadAt > 20_000 && storageState?.loadingDetails != true) { storageReadAt = now; reloadNext("storage") }
+        loadOnce("storage") { if (storageReadAt == 0L) storageReadAt = android.os.SystemClock.elapsedRealtime(); reloadStorage() }
+        return storageState
+    }
     private suspend fun reloadStorage() {
         val fast = services.settings.storage()
         storageState = KxStorage(fast.filesBytes, fast.databaseBytes, loadingDetails = true)
@@ -1240,6 +1248,16 @@ class TelegramKxStore(
                     fileId = (item.file ?: item.full)?.id ?: 0,
                 )
             }
+            // qa-real (fixer-real-media): the list is mapped once, before the previews are on the phone — every tile stayed a
+            // gradient. Each missing preview is filled in when its download finishes.
+            found.forEach { item ->
+                val ref = item.thumb ?: return@forEach
+                if (ref.localPath != null || known[ref.id] != null) return@forEach
+                scope.launch {
+                    val p = kotlinx.coroutines.withTimeoutOrNull(120_000) { vm.files.observe(ref).first { it != null } } ?: return@launch
+                    sharedItems[key] = sharedItems[key].orEmpty().map { if (it.messageId == item.messageId) it.copy(media = p) else it }
+                }
+            }
         }
         return sharedItems[key].orEmpty()
     }
@@ -1441,10 +1459,73 @@ class TelegramKxStore(
     override fun renameTab(index: Int, name: String) = local.renameTab(index, name)
     override val passcodeSet: Boolean get() = local.passcodeSet
     override val passcodeBiometric: Boolean get() = local.passcodeBiometric
-    override val passcodePattern: Boolean get() = com.kirox.app.security.PasscodeLock.settings.value.pattern
+    override val passcodePattern: Boolean get() = local.passcodePattern
     override suspend fun checkPasscode(code: String): Boolean = local.checkPasscode(code)
     override fun passcodeBiometricOk() = local.biometricOk()
     override fun passcodeWait(): Int = local.passcodeWait()
+    // wave6 port-security: passcode settings (security/PasscodeLock), cloud password extras, privacy exceptions.
+    override val passcodeAutoLock: Int get() = local.passcodeAutoLock
+    override val passcodeHideContent: Boolean get() = local.passcodeHideContent
+    override suspend fun passcodeMatches(code: String): Boolean = local.passcodeMatches(code)
+    override suspend fun setPasscode(code: String, pattern: Boolean) = local.setPasscode(code, pattern)
+    override fun disablePasscode() = com.kirox.app.security.PasscodeLock.disable()
+    override fun setPasscodeAutoLock(seconds: Int) =
+        com.kirox.app.security.PasscodeLock.setAutoLock(com.kirox.app.security.AutoLock.entries.minBy { kotlin.math.abs(it.seconds - seconds) })
+    override fun setPasscodeBiometric(on: Boolean) = com.kirox.app.security.PasscodeLock.setBiometric(on)
+    override fun setPasscodeHideContent(on: Boolean) = com.kirox.app.security.PasscodeLock.setHideContent(on)
+    override fun lockNow() = com.kirox.app.security.PasscodeLock.lockNow()
+    private suspend fun pwAttempt(block: suspend () -> Unit): String? = try { block(); null }
+        catch (e: kotlinx.coroutines.CancellationException) { throw e }
+        catch (e: Exception) { com.kirox.app.telegram.passwordError(e) }
+    override suspend fun setRecoveryEmail(password: String, email: String): String? = pwAttempt { services.settings.setRecoveryEmail(password, email.trim()); reloadPassword() }
+    override suspend fun resendRecoveryEmailCode(): String? = attempt { services.settings.resendRecoveryEmailCode(); reloadPassword() }
+    private var recoveryPattern by mutableStateOf("")
+    override val passwordRecoveryPattern: String get() = recoveryPattern
+    override suspend fun requestPasswordRecovery(): String? = attempt { recoveryPattern = services.settings.requestPasswordRecovery() }
+    override suspend fun recoverPassword(code: String, newPassword: String, hint: String): String? =
+        pwAttempt { services.settings.recoverPassword(code.trim(), newPassword, hint.trim()); reloadPassword() }
+    override suspend fun resetPassword(): String? {
+        var declined: Int? = null
+        val e = attempt {
+            when (val r = services.settings.resetPassword()) {
+                is com.kirox.app.telegram.PasswordResetResult.Declined -> declined = r.retryDate
+                else -> Unit
+            }
+            reloadPassword()
+        }
+        return e ?: declined?.let { "Telegram пока не разрешает сброс. Повторить можно " + java.text.SimpleDateFormat("d MMMM, HH:mm", java.util.Locale.forLanguageTag("ru")).format(java.util.Date(it * 1000L)) }
+    }
+    override suspend fun cancelPasswordReset(): String? = attempt { services.settings.cancelPasswordReset(); reloadPassword() }
+    override suspend fun privacyExceptions(key: String): Pair<List<KxContact>, List<KxContact>>? {
+        val item = com.kirox.app.telegram.PrivacyItem.entries.firstOrNull { it.name == key } ?: return null
+        val ex = orNull { services.settings.privacyExceptions(item) } ?: return null
+        val known = paths.value
+        fun map(list: List<com.kirox.app.telegram.PrivacyPerson>) = list.map { KxContact(it.id, it.name, "", avatar = avatarOf(it.photo, known)) }
+        return map(ex.allow) to map(ex.never)
+    }
+    override suspend fun setPrivacyExceptions(key: String, allow: List<Long>, never: List<Long>): String? {
+        val item = com.kirox.app.telegram.PrivacyItem.entries.firstOrNull { it.name == key } ?: return "Неизвестное правило"
+        return attempt { services.settings.setPrivacyExceptions(item, allow, never); reloadPrivacy() }
+    }
+    private var newChatsAll by mutableStateOf(true)
+    private var frequent by mutableStateOf(true)
+    private suspend fun reloadMoreMessagePrivacy() {
+        val p = services.settings.messagePrivacy()
+        p.newChatsFromStrangers?.let { newChatsAll = it }
+        p.suggestFrequent?.let { frequent = it }
+    }
+    override val newChatsFromAll: Boolean get() { loadOnce("msgPrivacy2") { reloadMoreMessagePrivacy() }; return newChatsAll }
+    override fun setNewChatsFromAll(on: Boolean) {
+        val old = newChatsAll; newChatsAll = on
+        scope.launch {
+            attempt { services.settings.setNewChatsFromStrangers(on) }?.let { e ->
+                newChatsAll = old
+                error = if (e.contains("PREMIUM", true)) "Доступно с Telegram Premium" else e
+            }
+        }
+    }
+    override val suggestFrequent: Boolean get() { loadOnce("msgPrivacy2") { reloadMoreMessagePrivacy() }; return frequent }
+    override fun setSuggestFrequent(on: Boolean) { frequent = on; act { services.settings.setSuggestFrequent(on) } }
 
     init {
         initRound5() // last: see the note in the first init block
@@ -1500,6 +1581,8 @@ class TelegramKxStore(
     override suspend fun sendDeviceMedia(chatId: Long, media: KxDeviceMedia, caption: String) = mediaBinder.sendDeviceMedia(chatId, media, caption)
     override suspend fun sendDeviceMediaAs(chatId: Long, media: KxDeviceMedia, caption: String, spoiler: Boolean, asFile: Boolean) =
         mediaBinder.sendDeviceMedia(chatId, media, caption, spoiler, asFile)
+    override suspend fun sendDeviceAlbum(chatId: Long, items: List<KxDeviceMedia>, caption: String, spoiler: Boolean, asFile: Boolean) =
+        mediaBinder.sendDeviceAlbum(chatId, items, caption, spoiler, asFile)
     override suspend fun sendDeviceAudio(chatId: Long, uri: String, caption: String) = mediaBinder.sendDeviceAudio(chatId, uri, caption)
     override fun roundActivity(chatId: Long, on: Boolean) { vm.activity.send(chatId, if (on) ChatActivity.RecordingVideoNote else null) }
     override suspend fun closeFriends() = mediaBinder.closeFriends()
@@ -1520,6 +1603,17 @@ class TelegramKxStore(
     override fun leaveGroupCall() = mediaBinder.leaveGroupCall()
     override fun muteGroupMic(muted: Boolean) = mediaBinder.muteGroupMic(muted)
     override fun turnGroupCamera(on: Boolean) { if (!on) mediaBinder.turnGroupCamera(false) else startCall(0, true) { if (granted(android.Manifest.permission.CAMERA)) mediaBinder.turnGroupCamera(true) else error = "Нужен доступ к камере" } }
+    // wave6 port-calls: the rest of the old CallScreen / GroupCallScreen actions for the v3 call host.
+    override val callEngineReady: Boolean get() = com.kirox.app.voip.NativeCall.ready.value || com.kirox.app.telegram.TelegramVoipRepository.mediaAvailable || com.kirox.app.BuildConfig.DEBUG
+    override fun dismissCall() = mediaBinder.dismissCall()
+    override fun dismissGroupCall() = mediaBinder.dismissGroupCall()
+    override fun flipGroupCamera() = mediaBinder.flipGroupCamera()
+    override fun attachGroupVideo(endpoint: String?, sink: Any?) = mediaBinder.attachGroupVideo(endpoint, sink)
+    override fun startGroupScreenShare(consent: Any) = mediaBinder.startGroupScreenShare(consent)
+    override fun stopGroupScreenShare() = mediaBinder.stopGroupScreenShare()
+    override fun raiseGroupHand(raised: Boolean) = mediaBinder.raiseGroupHand(raised)
+    override val groupCallError: String? get() = mediaBinder.groupCallError
+    override fun clearGroupCallError() = mediaBinder.clearGroupCallError()
     override suspend fun rateCall(callId: Int, rating: Int, comment: String, problems: List<String>) = mediaBinder.rateCall(callId, rating, comment, problems)
     override suspend fun planVideoChat(chatId: Long, title: String, startAt: Int, rtmp: Boolean) = mediaBinder.planVideoChat(chatId, title, startAt, rtmp)
     override suspend fun networkStats() = mediaBinder.networkStats()
@@ -1653,6 +1747,7 @@ class TelegramKxStore(
     override suspend fun translateText(text: String, toLang: String): String? = chat3.translateText(text, toLang)
     override suspend fun textEntities(text: String): List<KxEntity> = chat3.textEntities(text)
     override suspend fun chatFacts(chatId: Long): KxChatFacts? = chat3.chatFacts(chatId)
+    override suspend fun canPost(chatId: Long): Boolean = vm.chats.writeAccess(chatId) == com.kirox.app.telegram.TelegramWriteAccess.Write
     override suspend fun sendViewOnce(chatId: Long, path: String): String? = chat3.sendViewOnce(chatId, path)
 
     private companion object {

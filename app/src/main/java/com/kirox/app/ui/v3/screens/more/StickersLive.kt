@@ -125,7 +125,34 @@ internal fun StickerManageLive(ctx: KxScreenCtx) {
                 MoPill("Мои наборы", bg = if (tab == 0) Kx.accent.copy(alpha = .16f) else Kx.w(.06f), ink = if (tab == 0) Kx.accent else Kx.text2) { tab = 0 }
                 MoPill("Архив", bg = if (tab == 1) Kx.accent.copy(alpha = .16f) else Kx.w(.06f), ink = if (tab == 1) Kx.accent else Kx.text2) { tab = 1 }
             }
+            // wave6 (port-settings): find and add new sets — the old «Наборы стикеров» search, now in v3.
+            val stickerRepo = com.kirox.app.ui.v3.screens.tools.w6Services(ctx)?.stickers
+            var query by remember { mutableStateOf("") }
+            var found by remember { mutableStateOf<List<Pair<com.kirox.app.telegram.TelegramStickerSetInfo, Boolean>>?>(null) }
+            if (stickerRepo != null) {
+                com.kirox.app.ui.v3.screens.tools.W6Field(query, "Найти новый набор", Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) { query = it.take(64) }
+                LaunchedEffect(query, reload) {
+                    if (query.trim().length < 2) { found = null; return@LaunchedEffect }
+                    kotlinx.coroutines.delay(400); found = stickerRepo.searchSets(query.trim())
+                }
+            }
+            val results = found
             when {
+                stickerRepo != null && query.trim().length >= 2 -> when {
+                    results == null -> C3Empty("Ищем…", Modifier.weight(1f))
+                    results.isEmpty() -> C3Empty("Ничего не найдено", Modifier.weight(1f))
+                    else -> LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        itemsIndexed(results, key = { _, r -> "f" + r.first.id }) { _, (set, installed) ->
+                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.04f)).padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(set.title, style = mts(14, W7), maxLines = 1, modifier = Modifier.weight(1f))
+                                MoPill(if (installed) "Убрать" else "Добавить", height = 32.dp, size = 12, ink = if (installed) MoRedInk else Kx.accent) {
+                                    act({ runCatching { stickerRepo.setInstalled(set.id, !installed) }.exceptionOrNull()?.let { "Не удалось изменить набор" } }, if (installed) "Набор убран" else "Набор добавлен")
+                                }
+                            }
+                        }
+                    }
+                }
                 loaded == null -> C3Empty("Загрузка…", Modifier.weight(1f))
                 order.isEmpty() -> C3Empty(if (tab == 0) "У вас нет наборов стикеров" else "Архив пуст", Modifier.weight(1f))
                 else -> LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

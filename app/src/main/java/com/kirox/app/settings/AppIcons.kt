@@ -3,6 +3,7 @@ package com.kirox.app.settings
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import com.kirox.app.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,15 +11,21 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * App icons offered in kiroX settings; each is an activity-alias of MainActivity in the manifest.
  * [pill] — the icon's own color for the selected tab of the bottom bar, so the app matches its
- * icon; null keeps the theme's color.
+ * icon; null keeps the theme's color. [background] / [foreground] — the icon's adaptive layers (108dp, the
+ * middle 72dp visible), for previews drawn in the app; the launcher gets the same pair from mipmap-anydpi-v26.
+ * All six are the v3 X bubble; the alias names stay as they were so the enabled alias survives updates.
  */
-enum class AppIcon(val alias: String, val title: String, val pill: Long? = null, val onPill: Long = 0xFFFFFFFF) {
-    Violet("IconViolet", "Фиолетовая"),
-    Dark("IconDark", "Тёмная"),
-    Light("IconLight", "Светлая"),
-    Cosmos("IconCosmos", "Космос"),
-    Green("IconGreen", "Зелёная", pill = 0xFF1FA463),
-    White("IconWhite", "Белая", pill = 0xFFFFFFFF, onPill = 0xFF0B1220)
+enum class AppIcon(
+    val alias: String, val title: String,
+    @androidx.annotation.DrawableRes val background: Int, @androidx.annotation.DrawableRes val foreground: Int,
+    val pill: Long? = null, val onPill: Long = 0xFFFFFFFF
+) {
+    Violet("IconViolet", "kiroX", R.drawable.ic_launcher_v3_background, R.drawable.ic_launcher_v3_foreground),
+    Dark("IconDark", "Тёмная", R.drawable.ic_launcher_v3_dark_background, R.drawable.ic_launcher_v3_dark_foreground),
+    Light("IconLight", "Светлая", R.drawable.ic_launcher_v3_light_background, R.drawable.ic_launcher_v3_light_foreground),
+    Cosmos("IconCosmos", "Космос", R.drawable.ic_launcher_v3_cosmos_background, R.drawable.ic_launcher_v3_cosmos_foreground),
+    Green("IconGreen", "Зелёная", R.drawable.ic_launcher_v3_green_background, R.drawable.ic_launcher_v3_green_foreground, pill = 0xFF3F9A6C),
+    White("IconWhite", "Белая", R.drawable.ic_launcher_v3_white_background, R.drawable.ic_launcher_v3_white_foreground, pill = 0xFFFFFFFF, onPill = 0xFF1F6B47)
 }
 
 object AppIcons {

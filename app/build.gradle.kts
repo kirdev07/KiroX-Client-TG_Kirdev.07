@@ -142,7 +142,11 @@ android {
     }
 
     // Robolectric renders resources (themes, fonts) for the screenshot test.
-    testOptions { unitTests.isIncludeAndroidResources = true }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        // Robolectric renders ~1 100 v3 screenshots (sizes × boards): give the test JVM room.
+        unitTests.all { it.maxHeapSize = "3g" }
+    }
 
     buildFeatures {
         compose = true

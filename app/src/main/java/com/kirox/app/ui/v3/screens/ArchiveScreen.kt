@@ -53,7 +53,6 @@ fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit
     var settings by remember { mutableStateOf(false) }
     val keepMuted = store.pref(KxPrefsAccount.ARCHIVE_KEEP) != 0
     val hideBadge = store.pref(KxPrefsAccount.ARCHIVE_HIDE_BADGE) != 0
-    val folders = store.pref(KxPrefsAccount.ARCHIVE_FOLDERS) != 0
     val sel = remember { mutableStateListOf<Long>() }
     var confirm by remember { mutableStateOf<KxConfirm?>(null) }
     val toast = LocalKxToast.current
@@ -79,20 +78,7 @@ fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit
                 }
             }
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 120.dp)) {
-                if (tip && sel.isEmpty()) item("tip") {
-                    Row(Modifier.padding(top = 4.dp, bottom = 10.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp))
-                        .drawBehind { drawRect(Brush.linearGradient(listOf(Color(0x2E3F9A6C), Kx.w(.03f)), cssAngleStart(150f, size), cssAngleEnd(150f, size))) }
-                        .border(1.dp, Kx.accent.copy(alpha = .2f), RoundedCornerShape(22.dp)).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(Kx.accent.copy(alpha = .14f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Inventory2, null, tint = Kx.accent) }
-                        Column(Modifier.weight(1f)) {
-                            Text("Здесь тихо", style = KxType.style(14.sp, FontWeight.ExtraBold))
-                            Text(if (keepMuted) "Чаты без звука остаются тут, даже когда приходят новые сообщения. Удерживайте чат, чтобы выбрать."
-                                else "Чат вернётся в список, как только придёт новое сообщение. Удерживайте чат, чтобы выбрать.",
-                                style = KxType.style(13.sp, color = Kx.text2, lineHeight = 18.sp), modifier = Modifier.padding(top = 3.dp))
-                        }
-                        Box(Modifier.kxHitClick("Скрыть") { store.putPref(KxPrefsAccount.ARCHIVE_TIP, 0) }.size(28.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text4) }
-                    }
-                }
+                if (tip && sel.isEmpty()) item("tip") { ArchiveTip(store, keepMuted) }
                 itemsIndexed(chats, key = { _, c -> c.id }) { i, c ->
                     if (i >= chats.size - 10) LaunchedEffect(chats.size) { store.loadMoreChats(-1) }
                     ArchiveRow(c, c.id in sel, hideBadge, Modifier.animateItem(), onClick = { if (sel.isNotEmpty()) toggle(c.id) else onOpenChat(c.id) }, onLong = { toggle(c.id) })
@@ -114,10 +100,34 @@ fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit
                 }
             }
         }
-        if (settings) ArchiveSettings(keepMuted, hideBadge, folders, { store.putPref(KxPrefsAccount.ARCHIVE_KEEP, if (it) 1 else 0) },
-            { store.putPref(KxPrefsAccount.ARCHIVE_HIDE_BADGE, if (it) 1 else 0) }, { store.putPref(KxPrefsAccount.ARCHIVE_FOLDERS, if (it) 1 else 0) }) { settings = false }
+        if (settings) ArchiveSettingsSheet(store) { settings = false }
         confirm?.let { KxConfirmDialog(it) { confirm = null } }
     }
+}
+
+/** «Здесь тихо» tip card of the archive (closable; KxPrefsAccount.ARCHIVE_TIP). Also the top of the Chats tab's Archive page. */
+@Composable
+internal fun ArchiveTip(store: KxStore, keepMuted: Boolean, modifier: Modifier = Modifier) {
+    Row(modifier.padding(top = 4.dp, bottom = 10.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp))
+        .drawBehind { drawRect(Brush.linearGradient(listOf(Color(0x2E3F9A6C), Kx.w(.03f)), cssAngleStart(150f, size), cssAngleEnd(150f, size))) }
+        .border(1.dp, Kx.accent.copy(alpha = .2f), RoundedCornerShape(22.dp)).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(Kx.accent.copy(alpha = .14f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Inventory2, null, tint = Kx.accent) }
+        Column(Modifier.weight(1f)) {
+            Text("Здесь тихо", style = KxType.style(14.sp, FontWeight.ExtraBold))
+            Text(if (keepMuted) "Чаты без звука остаются тут, даже когда приходят новые сообщения. Удерживайте чат, чтобы выбрать."
+                else "Чат вернётся в список, как только придёт новое сообщение. Удерживайте чат, чтобы выбрать.",
+                style = KxType.style(13.sp, color = Kx.text2, lineHeight = 18.sp), modifier = Modifier.padding(top = 3.dp))
+        }
+        Box(Modifier.kxHitClick("Скрыть") { store.putPref(KxPrefsAccount.ARCHIVE_TIP, 0) }.size(28.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text4) }
+    }
+}
+
+/** «Настройки архива» sheet wired to the store prefs (shared by ArchiveScreen and the Chats tab's Archive page). */
+@Composable
+internal fun ArchiveSettingsSheet(store: KxStore, onClose: () -> Unit) {
+    ArchiveSettings(store.pref(KxPrefsAccount.ARCHIVE_KEEP) != 0, store.pref(KxPrefsAccount.ARCHIVE_HIDE_BADGE) != 0, store.pref(KxPrefsAccount.ARCHIVE_FOLDERS) != 0,
+        { store.putPref(KxPrefsAccount.ARCHIVE_KEEP, if (it) 1 else 0) }, { store.putPref(KxPrefsAccount.ARCHIVE_HIDE_BADGE, if (it) 1 else 0) },
+        { store.putPref(KxPrefsAccount.ARCHIVE_FOLDERS, if (it) 1 else 0) }, onClose)
 }
 
 @OptIn(ExperimentalFoundationApi::class)

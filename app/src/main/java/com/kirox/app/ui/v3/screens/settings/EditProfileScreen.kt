@@ -138,7 +138,11 @@ fun EditProfileScreen(ctx: KxScreenCtx) {
                         val a1 by animateColorAsState(s.a1, tween(400), label = "a1"); val a2 by animateColorAsState(s.a2, tween(400), label = "a2")
                         Box(Modifier.size(116.dp).kxClick("Изменить фото") { photo = true }) {
                             Box(Modifier.matchParentSize().shadow(24.dp, CircleShape, ambientColor = Color.Black, spotColor = Color.Black).clip(CircleShape).cssGradient(140f, 0f to a1, 1f to a2),
-                                contentAlignment = Alignment.Center) { Text(initials, style = KxType.style(44.sp, FontWeight.Bold, s.ink)) }
+                                contentAlignment = Alignment.Center) {
+                                Text(initials, style = KxType.style(44.sp, FontWeight.Bold, s.ink))
+                                // qa-real: my real photo over the letters.
+                                if (me.avatar != null) com.kirox.app.ui.v3.components.KxImage(me.avatar, Modifier.matchParentSize().clip(CircleShape), maxPx = 400)
+                            }
                             Box(Modifier.align(Alignment.BottomEnd).size(38.dp).clip(CircleShape).background(Kx.bg).padding(3.dp).clip(CircleShape).background(Kx.accent),
                                 contentAlignment = Alignment.Center) { Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(20.dp), tint = Kx.onAccent) }
                         }
@@ -180,7 +184,8 @@ fun EditProfileScreen(ctx: KxScreenCtx) {
                     }
                 }
                 val (note, noteInk) = when (userState) {
-                    "ok" -> "Свободно. Вас найдут по ссылке t.me/$user" to Kx.accent
+                    // qa-real: my current username is mine, not «Свободно».
+                    "ok" -> (if (user.equals(me.username, ignoreCase = true)) "Это ваше имя. Вас найдут по ссылке t.me/$user" else "Свободно. Вас найдут по ссылке t.me/$user") to Kx.accent
                     "checking" -> "Проверяем…" to Kx.text3
                     "taken" -> "Это имя уже занято" to Kx.danger
                     "short" -> "Минимум 5 символов" to Kx.warning

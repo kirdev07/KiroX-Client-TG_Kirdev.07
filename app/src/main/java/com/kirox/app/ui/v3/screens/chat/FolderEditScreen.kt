@@ -127,15 +127,19 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
                     PlainTab("Личные")
                 }
                 Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    LetterAv("K", Kx.accentDeep, 42.dp, 16)
+                    // qa-real: the preview row is one of my real chats (a chat of this folder when it has some), not demo «Kotlin-клуб».
+                    val sample = if (demo) null else (loaded?.chatIds.orEmpty().firstNotNullOfOrNull { id -> ctx.store.chats.firstOrNull { it.id == id } }
+                        ?: ctx.store.chats.firstOrNull { it.kind != com.kirox.app.ui.v3.model.KxChatKind.Saved })
+                    if (sample != null) ChatAvatar(sample, 42.dp) else LetterAv("K", Kx.accentDeep, 42.dp, 16)
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Kotlin-клуб", style = ts(14, W700))
+                            Text(sample?.title ?: if (demo) "Kotlin-клуб" else "Чат", style = ts(14, W700), maxLines = 1, modifier = Modifier.weight(1f, false))
                             if (color != 0) Box(Modifier.height(18.dp).clip(RoundedCornerShape(9.dp)).background(tagBg).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
                                 Text(title, style = ts(11, W800, tagInk))
                             }
                         }
-                        Text("Дмитрий: PR готов", style = ts(12, color = Kx.text3))
+                        Text(if (sample != null) listOfNotNull(sample.previewSender, sample.preview).joinToString(": ") else if (demo) "Дмитрий: PR готов" else "",
+                            style = ts(12, color = Kx.text3), maxLines = 1)
                     }
                 }
             }

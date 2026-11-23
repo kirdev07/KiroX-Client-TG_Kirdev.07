@@ -43,6 +43,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private data class DSession(val id: Long, val icon: ImageVector, val name: String, val where: String, val bg: Color, val ink: Color)
 
@@ -69,10 +70,8 @@ fun DevicesScreen(ctx: KxScreenCtx) {
     var leaving by remember { mutableStateOf<Long?>(null) }
     val ttlDays = listOf(7, 30, 180, 365)
     val ttl = ttlDays.indices.minByOrNull { kotlin.math.abs(ttlDays[it] - store.sessionTtlDays) } ?: 2
-    // demo: needs store (the QR scanner has no camera yet; store.confirmQrLogin(link) takes the scanned link)
+    // wave6: the v3 scanner reads the QR with the camera and signs the device in (store.confirmQrLogin).
     var qr by rememberSaveable { mutableStateOf(false) }
-    // wave5 (hybrid 1.0): the real account scans with the old working QR login (camera + confirm); the v3 scanner is the demo's.
-    val legacyQr = com.kirox.app.ui.v3.KxLegacy.Local.current != null
     LaunchedEffect(Unit) { store.refreshSessions() }
     StoreErrorToasts(ctx)
     LaunchedEffect(leaving) { val id = leaving ?: return@LaunchedEffect; delay(350); store.terminateSession(id); leaving = null }
@@ -89,7 +88,7 @@ fun DevicesScreen(ctx: KxScreenCtx) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 val qShape = RoundedCornerShape(20.dp)
                 Row(Modifier.fillMaxWidth().height(60.dp).clip(qShape).cssGradient(150f, 0f to Kx.accentDeep.copy(alpha = .28f), 1f to Kx.w(.03f))
-                    .border(1.dp, Kx.accent.copy(alpha = .25f), qShape).kxClick { if (legacyQr) ctx.open("Old:qrLogin") else qr = true }.padding(horizontal = 14.dp),
+                    .border(1.dp, Kx.accent.copy(alpha = .25f), qShape).kxClick { qr = true }.padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(Kx.accent.copy(alpha = .2f)), contentAlignment = Alignment.Center) {
                         Icon(Icons.Outlined.QrCodeScanner, null, tint = Kx.accent)
@@ -159,7 +158,7 @@ fun DevicesScreen(ctx: KxScreenCtx) {
                 }
             }
         }
-        if (qr) QrScanner { qr = false }
+        if (qr) QrScanner(ctx) { qr = false }
     }
 }
 
@@ -198,19 +197,29 @@ private fun SessionRow(d: DSession, leaving: Boolean, onAsk: () -> Unit) {
 }
 
 @Composable
-private fun BoxScope.QrScanner(onClose: () -> Unit) {
+private fun BoxScope.QrScanner(ctx: KxScreenCtx, onClose: () -> Unit) {
     BackHandler(onBack = onClose)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    var allowed by remember { mutableStateOf(androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) }
+    val ask = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { allowed = it }
+    LaunchedEffect(Unit) { if (!allowed) ask.launch(android.Manifest.permission.CAMERA) }
+    var found by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
     val fade = remember { Animatable(0f) }
     LaunchedEffect(Unit) { fade.animateTo(1f, tween(250)) }
     val t = rememberInfiniteTransition(label = "scan")
     val reduced = LocalKxReducedMotion.current
     val scan by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = LinearEasing)), label = "y")
     Box(Modifier.matchParentSize().graphicsLayer { alpha = fade.value }.background(Color.Black).kxClick(null) {}) {
+        // The camera (zxing reader of the old QR login) under a dark veil; the frame stays clear.
+        if (allowed && found == null && !busy) com.kirox.app.ui.home.QrCamera { code -> if (code.startsWith("tg://login?token=")) found = code }
+        if (allowed) Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = .35f)))
         Box(Modifier.statusBarsPadding().padding(12.dp).size(44.dp).clip(CircleShape).background(Kx.w(.12f)).kxClick("Закрыть", onClick = onClose), contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.Close, null, tint = Kx.text)
         }
         Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.size(240.dp).clip(RoundedCornerShape(32.dp)).background(Brush.radialGradient(listOf(Color(0xFF1A2620), Kx.bg)))) {
+            Box(Modifier.size(240.dp).clip(RoundedCornerShape(32.dp)).then(if (allowed) Modifier else Modifier.background(Brush.radialGradient(listOf(Color(0xFF1A2620), Kx.bg))))) {
                 Canvas(Modifier.matchParentSize()) {
                     val sw = 4.dp.toPx(); val len = 46.dp.toPx(); val r = 26.dp.toPx()
                     val corners = listOf(Offset(0f, 0f) to 180f, Offset(size.width - 2 * r, 0f) to 270f, Offset(0f, size.height - 2 * r) to 90f, Offset(size.width - 2 * r, size.height - 2 * r) to 0f)
@@ -233,9 +242,22 @@ private fun BoxScope.QrScanner(onClose: () -> Unit) {
                     drawRect(Kx.accent, Offset(14.dp.toPx(), y), Size(size.width - 28.dp.toPx(), 2.dp.toPx()))
                 }
             }
-            Text("Наведите на QR-код", style = KxType.style(16.sp, FontWeight.Bold), modifier = Modifier.padding(top = 22.dp))
-            Text("Откройте web.telegram.org или Telegram Desktop на компьютере", style = KxType.style(13.sp, color = Kx.text3), textAlign = TextAlign.Center,
+            Text(if (allowed) "Наведите на QR-код" else "Нужен доступ к камере", style = KxType.style(16.sp, FontWeight.Bold), modifier = Modifier.padding(top = 22.dp))
+            Text(if (allowed) "Откройте web.telegram.org или Telegram Desktop на компьютере" else "Камера нужна, чтобы прочитать QR-код входа", style = KxType.style(13.sp, color = Kx.text3), textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 6.dp).widthIn(max = 260.dp))
+            if (!allowed) KxButton("Разрешить камеру", Modifier.padding(top = 16.dp), height = 46.dp) { ask.launch(android.Manifest.permission.CAMERA) }
+            if (busy) Box(Modifier.padding(top = 16.dp)) { Spinner(24.dp, Kx.accent) }
         }
+    }
+    found?.let { link ->
+        KxConfirmDialog(KxConfirm("Войти на этом устройстве?", "Устройство, на экране которого этот QR-код, получит доступ к вашему аккаунту. Подтверждайте, только если это ваш компьютер.",
+            "Войти", danger = false) {
+            busy = true
+            scope.launch {
+                val e = ctx.store.confirmQrLogin(link)
+                busy = false; found = null
+                if (e == null) { ctx.toast("Устройство подключено"); onClose() } else ctx.toast("QR-код устарел или не подошёл — обновите его на компьютере")
+            }
+        }) { if (!busy) found = null }
     }
 }

@@ -263,7 +263,7 @@ internal fun SensitiveLive(ctx: KxScreenCtx) {
     LiveFrame(ctx, "Чувствительное", "Медиа 18+ в каналах") {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (allowed == null) Text("Telegram не даёт менять эту настройку в этом аккаунте или приложении (например, из-за правил магазина). Её можно изменить в веб-версии Telegram.",
-                style = mts(14, color = MoSub, lh = 20f))
+                style = mts(14, color = MoSub, lh = 1.4f))
             else Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).kxClick {
                 if (allowed) ctx.store.allowSensitive(false)
                 else confirm = KxConfirm("Показывать медиа 18+?", "Подтвердите, что вам есть 18 лет. Такие фото и видео будут открываться без размытия.", "Мне есть 18", danger = false) { ctx.store.allowSensitive(true) }

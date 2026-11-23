@@ -118,7 +118,7 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
     Column(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding()) {
         Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MRoundBtn(Icons.AutoMirrored.Rounded.ArrowBack, "Назад") { ctx.back() }
-            T("Загрузки", 22.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+            T("Загрузки", 22.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f), maxLines = 1)
             Row(Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).background(Kx.w(.06f))
                 .kxClick { list.indices.forEach { i -> if (!list[i].done && list[i].paused == allPaused) toggle(i) } }.padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

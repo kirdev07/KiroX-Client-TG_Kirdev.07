@@ -84,9 +84,12 @@ fun ChannelScreen(ctx: KxScreenCtx) {
     var adminDemo by rememberSaveable { mutableStateOf(false) }
     // wave3-chat: own role and Telegram marks from store.chatFacts (creator / administrator, verified / scam / fake, discussion group).
     val facts = if (live) com.kirox.app.ui.v3.screens.more.c3Load(chatId) { store.chatFacts(chatId!!) } else null
-    val admin = if (live) facts?.admin ?: (header?.composer == KxComposer.Write) else adminDemo
+    // qa-real: a channel where I can post (composer Write) is mine to manage even before / without the facts.
+    val admin = if (live) facts?.admin == true || header?.composer == KxComposer.Write else adminDemo
+    val creator = live && facts?.creator == true
     var more by remember { mutableStateOf(false) }
     var leave by remember { mutableStateOf(false) }
+    var delAsk by remember { mutableStateOf(false) }
     var ad by rememberSaveable { mutableStateOf(true) }
     var why by remember { mutableStateOf(false) }
     val tip = rememberGxTip()
@@ -201,11 +204,20 @@ fun ChannelScreen(ctx: KxScreenCtx) {
             Column(Modifier.width(250.dp).shadow(24.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp)).background(Color(0xFF1E2421))
                 .border(1.dp, Kx.w(.12f), RoundedCornerShape(20.dp)).padding(6.dp)) {
                 if (!live) CMenuItem(Icons.Outlined.AdminPanelSettings, if (admin) "Смотреть как подписчик" else "Макет: смотреть как админ") { adminDemo = !adminDemo; more = false }
-                CMenuItem(Icons.Outlined.Search, "Поиск по каналу") { more = false; ctx.open("ChatSearch") }
-                if (sub) CMenuItem(Icons.AutoMirrored.Outlined.Logout, "Покинуть канал", danger = true) { more = false; leave = true }
+                CMenuItem(Icons.Outlined.Search, "Поиск по каналу") { more = false; ctx.open(if (live) "ChatSearch:$chatId" else "ChatSearch") }
+                // qa-real: own channel — manage / stats (with the chat id), the creator deletes instead of leaving.
+                if (live && admin) CMenuItem(Icons.Outlined.Settings, "Управление каналом") { more = false; ctx.open("ChannelSettings:$chatId") }
+                if (live && admin) CMenuItem(Icons.Outlined.BarChart, "Статистика") { more = false; ctx.open("ChannelStats:$chatId") }
+                if (creator) CMenuItem(Icons.Outlined.Delete, "Удалить канал", danger = true) { more = false; delAsk = true }
+                else if (sub) CMenuItem(Icons.AutoMirrored.Outlined.Logout, "Покинуть канал", danger = true) { more = false; leave = true }
             }
         }
         GxTip(tip)
+        GxConfirm(delAsk, "Удалить канал «${header?.title.orEmpty()}»?", "Канал и все публикации удалятся у всех подписчиков. Вернуть их будет нельзя.",
+            confirm = "Удалить", cancel = "Отмена", onCancel = { delAsk = false }) {
+            delAsk = false
+            if (live) { store.deleteChat(chatId!!, forEveryone = true); ctx.back() }
+        }
         GxConfirm(leave, "Покинуть «${header?.title ?: "Кино по пятницам"}»?", "Канал пропадёт из списка чатов. Вернуться можно в любой момент через поиск.",
             confirm = "Покинуть", cancel = "Остаться", onCancel = { leave = false }) {
             leave = false

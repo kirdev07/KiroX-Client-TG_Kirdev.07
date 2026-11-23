@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -99,6 +100,8 @@ private fun Modifier.bubble(out: Boolean) = if (out) outBubble() else background
 private var LocalStoreDownload: ((Int) -> Unit)? = null
 /** wave3-media: a tap on a photo/video bubble opens the Viewer / VideoPlayer board (set by ChatScreen). */
 private var LocalOpenMedia: ((KxMessage) -> Unit)? = null
+/** qa-real: opens a board by name from a bubble (checklist). */
+private var LocalOpenBoard: ((String) -> Unit)? = null
 /** wave5: a tap on a document bubble downloads it, then opens it through «Проверка файлов» (KxFileOpener). */
 private var LocalOpenFile: ((KxMessage) -> Unit)? = null
 /** wave5: a tap on a reply quote jumps to the original message (set by ChatScreen). */
@@ -117,6 +120,7 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
     LaunchedEffect(chatId) { if (store !is com.kirox.app.ui.v3.demo.KxDemoStore && store.historyChatId != chatId) store.openChat(chatId) }
     LocalStoreDownload = store::download
     LocalBubbleMedia = BubbleMedia(store, chatId)
+    LocalOpenBoard = onOpen
     LocalOpenMedia = { m -> onOpen((if (m.kind == KxMsgKind.Video) "VideoPlayer:" else "Viewer:") + "$chatId:${m.id}") }
     val look = chatLook(store)
     androidx.compose.runtime.CompositionLocalProvider(LocalChatLook provides look) { ChatScreenBody(store, chatId, header, onBack, onCall, onMenu, onProfile, onOpen, onOpenChat) }
@@ -148,15 +152,24 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
         }
     }
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    // qa-real: own role in groups/channels (creator / admin) for the header, ⋮ menu and message menu.
+    val facts = if (!demo && (header.kind == KxChatKind.Group || header.kind == KxChatKind.Channel))
+        com.kirox.app.ui.v3.screens.more.c3Load(chatId) { store.chatFacts(chatId) } else null
+    val ownChat = facts?.admin == true || (!demo && header.kind == KxChatKind.Channel && header.composer == KxComposer.Write)
     var text by rememberSaveable(chatId) { mutableStateOf("") }
+    // qa-real: reactions in «Избранное» are Telegram's Premium tags — explain instead of silently doing nothing.
+    val savedTagsLocked = !demo && header.kind == KxChatKind.Saved && !store.me.premium
+    val react: (Long, String) -> Unit = { id, e -> if (savedTagsLocked) toast("Теги в Избранном доступны с Telegram Premium") else store.react(chatId, id, e) }
     var replyTo by remember(chatId) { mutableStateOf<KxMessage?>(null) }
     var menuFor by remember(chatId) { mutableStateOf<KxMessage?>(null) }
+    var infoFor by remember(chatId) { mutableStateOf<KxMessage?>(null) }
     var editing by remember(chatId) { mutableStateOf<KxMessage?>(null) }
     // Text in the composer before an edit started: put back when the edit ends (the edited text is not a draft).
     var beforeEdit by remember(chatId) { mutableStateOf("") }
     var pending by remember(chatId) { mutableStateOf<PendingDelete?>(null) }
     androidx.activity.compose.BackHandler(enabled = editing != null || replyTo != null) { if (editing != null) text = beforeEdit; editing = null; replyTo = null }
     var attach by remember { mutableStateOf(false) }
+    var sendOpts by remember { mutableStateOf<Boolean?>(null) } // null = closed, true = straight to the date/time picker
     var circleMode by rememberSaveable { mutableStateOf(false) }
     var recording by remember { mutableStateOf<Boolean?>(null) } // null = no, false = voice, true = circle
     var recSecs by remember { mutableIntStateOf(0) }
@@ -270,7 +283,8 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
         val top = (if (header.pinned != null) 184.dp else 130.dp) + (if (stranger) 54.dp else 0.dp)
         LazyColumn(
             Modifier.fillMaxSize().imePadding().then(if (menuFor != null) Modifier.blur(10.dp) else Modifier), state = listState, reverseLayout = true,
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = top, bottom = 104.dp),
+            // qa-real: room for the reply / edit bar above the composer.
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = top, bottom = if (replyTo != null || editing != null) 158.dp else 104.dp),
             verticalArrangement = Arrangement.spacedBy(look.gap, Alignment.Bottom)
         ) {
             val reversed = messages.asReversed()
@@ -292,10 +306,10 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                         KxFilteredMessage(store, header.kind, m) {
                             MessageBubble(m, isGroup = header.kind == KxChatKind.Group,
                                 onLongPress = { when (KxGestureActions.hold(store)) { 1 -> if (demo) toast("Выбрано: 1") else onOpen("MultiSelect:$chatId:${m.id}"); 2 -> store.translate(chatId, m.id, m.translation == null); else -> menuFor = m } },
-                                onReact = { store.react(chatId, m.id, it) },
+                                onReact = { react(m.id, it) },
                                 onReply = { replyTo = m; editing = null }, onMenu = { menuFor = m },
                                 onDoubleTap = when (KxGestureActions.double(store)) {
-                                    1 -> { { store.react(chatId, m.id, "❤") } }
+                                    1 -> { { react(m.id, "❤") } }
                                     2 -> { { replyTo = m; editing = null } }
                                     3 -> { { clipboard.setText(androidx.compose.ui.text.AnnotatedString(m.text)); toast("Текст скопирован") } }
                                     else -> null
@@ -333,8 +347,10 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 }
             }
         }
+        // qa-real: own channel → the header opens channel management (ChannelSettings) instead of the reader view.
         ChatHeader(header.copy(typing = if (recording != null) (if (recording == true) "записывает видео" else "записывает голосовое") else header.typing),
-            onBack, onCall, { chatMenu = true }, Modifier.align(Alignment.TopCenter), onProfile, stranger = stranger,
+            onBack, onCall, { chatMenu = true }, Modifier.align(Alignment.TopCenter),
+            if (ownChat && header.kind == KxChatKind.Channel) ({ onOpen("ChannelSettings:$chatId") }) else onProfile, stranger = stranger,
             onStranger = { block -> if (block) linkAsk = KxConfirm("Заблокировать ${header.title}?", "Пользователь не сможет писать и звонить вам.", "Заблокировать") { store.block(chatId, true) } else onOpen("ContactBar:$chatId") }) { header.pinned?.let { store.pin(chatId, it.messageId, false) } }
 
         if (recording == true) CircleRecording(recSecs)
@@ -368,6 +384,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 modifier = Modifier.align(Alignment.BottomCenter),
                 // wave5 (fixer-media): the Stickers board (stickers / GIFs / emoji of this chat; sends through the store).
                 onStickers = { attach = false; onOpen(if (demo) "Stickers" else "Stickers:$chatId") },
+                onSendLong = if (editing == null && !demo) ({ sendOpts = false }) else null,
             )
             else -> ChannelBar(header.composer, Modifier.align(Alignment.BottomCenter)) {
                 if (header.composer == KxComposer.Mute || header.composer == KxComposer.Unmute) store.setMuted(chatId, header.composer == KxComposer.Mute)
@@ -382,7 +399,16 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 .border(1.dp, Kx.w(.12f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 7.dp))
         }
         if (attach) { if (demo) AttachSheet(onClose = { attach = false }, onSend = { n -> attach = false; toast(if (n == 1) "Фото отправлено" else "Отправлено фото: $n") }, onOpen = onOpen)
-            else RealAttachSheet(store, chatId, onClose = { attach = false }, onOpen = onOpen, toast = { toast(it) }, onRound = { roundReq++ }) }
+            else RealAttachSheet(store, chatId, onClose = { attach = false }, toast = { toast(it) }, onRound = { roundReq++ },
+                // qa-real: «Позже» keeps the typed text — schedule it here; with an empty composer it opens the scheduled list.
+                onOpen = { b -> if (b.startsWith("SendOptions:")) { attach = false; if (text.isBlank()) onOpen("Schedule:$chatId") else sendOpts = true } else onOpen(b) }) }
+        sendOpts?.let { withPicker ->
+            val clear = { text = ""; store.setDraft(chatId, ""); replyTo = null; sendOpts = null }
+            ChatSendOptionsSheet(header, text, onDismiss = { sendOpts = null }, startWithPicker = withPicker,
+                onSilent = { store.sendSilent(chatId, text.trim()); clear(); toast("Отправлено без звука") },
+                onSchedule = { at, label -> store.sendScheduled(chatId, text.trim(), at); clear(); toast("Отправится $label") },
+                onWhenOnline = { store.sendScheduled(chatId, text.trim(), -1); clear(); toast("Отправится, когда ${header.title} будет в сети") })
+        }
         if (!demo) RealRoundVideo(store, chatId, roundReq, toast = { toast(it) })
         held?.let { h ->
             Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding().padding(start = 14.dp, end = 14.dp, bottom = 84.dp).fillMaxWidth()
@@ -401,13 +427,14 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                     else list.take(15).joinToString("\n\n") { "${it.first}\n${it.second}" } + (if (list.size > 15) "\n\n…и ещё ${list.size - 15}" else ""), "Готово", danger = false) {}
             }
         }) else emptyList()
-        if (chatMenu) ChatMenuSheet(header, onDismiss = { chatMenu = false }, onOpen = onOpen, extra = keptExtra, forum = !demo && store.chats.firstOrNull { it.id == chatId }?.forum == true)
+        if (chatMenu) ChatMenuSheet(header, onDismiss = { chatMenu = false }, onOpen = onOpen, extra = keptExtra, forum = !demo && store.chats.firstOrNull { it.id == chatId }?.forum == true,
+            admin = ownChat, creator = facts?.creator == true)
         menuFor?.let { m ->
             MessageMenuSheet(
                 m, peerName = header.title, onDismiss = { menuFor = null },
                 onReply = { replyTo = m; editing = null; menuFor = null },
                 onEdit = { if (editing == null) beforeEdit = text; editing = m; replyTo = null; text = store.editableText(chatId, m.id) ?: m.text; menuFor = null },
-                onReact = { store.react(chatId, m.id, it); menuFor = null },
+                onReact = { react(m.id, it); menuFor = null },
                 onDelete = { forAll -> pending = PendingDelete(m, forAll); menuFor = null },
                 onForward = { menuFor = null; if (demo) toast("Выберите чат для пересылки") else onOpen("Forward:$chatId:${m.id}") },
                 onPin = { store.pin(chatId, m.id, !m.pinned); menuFor = null },
@@ -416,7 +443,16 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 onAllReactions = { menuFor = null; onOpen(if (demo) "ReactPicker" else "ReactPicker:$chatId:${m.id}") },
                 more = if (demo) emptyList() else buildList {
                     val group = header.kind == KxChatKind.Group
-                    add(Triple(Icons.Outlined.Info, "Сведения") { menuFor = null; onOpen("MsgInfo:$chatId:${m.id}") })
+                    // qa-real: «Сведения» opens as a sheet over this chat.
+                    add(Triple(Icons.Outlined.Info, "Сведения") { menuFor = null; infoFor = m })
+                    // qa-real: speech-to-text for voice / round video right from the menu (Telegram recognition).
+                    if (m.kind == KxMsgKind.Voice || m.kind == KxMsgKind.VideoNote) add(Triple(Icons.Outlined.GraphicEq, "Расшифровать") {
+                        menuFor = null; toast("Расшифровываем…")
+                        scope.launch {
+                            val r = runCatching { store.transcribe(chatId, m.id) }.getOrNull()
+                            linkAsk = KxConfirm("Расшифровка", r?.text?.ifBlank { null } ?: r?.error ?: "Не удалось расшифровать", "Готово", danger = false) {}
+                        }
+                    })
                     // wave5: quote a part of the message (Quote board, store.sendQuote).
                     if (m.text.isNotBlank() && header.composer == KxComposer.Write) add(Triple(Icons.Outlined.FormatQuote, "Цитировать") { menuFor = null; onOpen("Quote:$chatId:${m.id}") })
                     if (m.out && group) add(Triple(Icons.Outlined.DoneAll, "Кто прочитал") { menuFor = null; onOpen("Seen:$chatId:${m.id}") })
@@ -433,14 +469,30 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                     if (m.out && header.composer == KxComposer.Write && m.kind != KxMsgKind.Service) add(Triple(Icons.Outlined.Replay, "Отправить ещё раз") {
                         menuFor = null; store.forward(chatId, listOf(m.id), chatId, hideSender = true, dropCaption = false); toast("Отправлено ещё раз") })
                     if (m.out && m.canEdit && (m.kind == KxMsgKind.Photo || m.kind == KxMsgKind.Video)) add(Triple(Icons.Outlined.ChangeCircle, "Заменить медиа") { menuFor = null; onOpen("ReplaceMedia:$chatId:${m.id}") })
-                    if (!m.out && header.kind != KxChatKind.Saved) add(Triple(Icons.Outlined.Flag, "Пожаловаться") { menuFor = null; onOpen("Report:$chatId:${m.id}") })
+                    // qa-real (fixer-real-media): photo / video / GIF / file — «Сохранить в галерею» and «Поделиться» (downloads first; protected chats: no items).
+                    if (m.fileId != 0 && m.canCopy && !m.viewOnce && m.kind in setOf(KxMsgKind.Photo, KxMsgKind.Video, KxMsgKind.Gif, KxMsgKind.File, KxMsgKind.Music)) {
+                        val video = m.kind == KxMsgKind.Video || m.kind == KxMsgKind.Gif
+                        suspend fun ready(): Boolean {
+                            if (store.fileState(m.fileId).path != null) return true
+                            store.download(m.fileId); toast("Скачиваю…")
+                            repeat(480) { kotlinx.coroutines.delay(250); if (store.fileState(m.fileId).path != null) return true }
+                            return false
+                        }
+                        if (m.kind == KxMsgKind.Photo || video) add(Triple(Icons.Rounded.Download, "Сохранить в галерею") {
+                            menuFor = null; scope.launch { toast(if (!ready()) "Файл не скачался" else store.saveToGallery(m.fileId, video) ?: "Сохранено в галерею") } })
+                        add(Triple(Icons.Rounded.Share, "Поделиться") {
+                            menuFor = null; scope.launch { if (!ready()) toast("Файл не скачался") else store.shareFile(m.fileId)?.let { toast(it) } } })
+                    }
+                    if (!m.out && !ownChat && header.kind != KxChatKind.Saved) add(Triple(Icons.Outlined.Flag, "Пожаловаться") { menuFor = null; onOpen("Report:$chatId:${m.id}") })
                 },
                 onTranslate = { store.translate(chatId, m.id, m.translation == null); menuFor = null },
                 onCopied = { menuFor = null; toast("Текст скопирован") },
                 canDeleteForAll = m.canDeleteForAll && header.kind != KxChatKind.Saved,
                 isGroup = header.kind == KxChatKind.Group || header.kind == KxChatKind.Channel,
+                inSaved = header.kind == KxChatKind.Saved,
             )
         }
+        infoFor?.let { m -> ChatMsgInfoSheet(store, chatId, m, header.kind) { infoFor = null } }
         linkAsk?.let { c -> KxConfirmDialog(c) { linkAsk = null } }
         fileOpener.Dialog()
     }
@@ -459,8 +511,10 @@ private fun ChatHeader(h: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) ->
             KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", size = 48.dp, filled = false, tint = Kx.text, onClick = onBack)
             Row(Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).kxClick("Профиль: ${h.title}", onClick = onProfile).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box {
-                    KxAvatar(h.title, h.chatId, size = 42.dp, icon = if (h.kind == KxChatKind.Saved) Icons.Rounded.Bookmark else null, colorIndex = h.colorIndex, photo = h.avatar)
-                    if (h.online) Box(Modifier.align(Alignment.BottomEnd).offset(1.dp, 1.dp).size(16.dp).clip(CircleShape).background(Color(0xFF1B221E)).padding(2.dp).clip(CircleShape).background(Kx.accent))
+                    // qa-real: Saved shows the bookmark (not my photo + online dot).
+                    val saved = h.kind == KxChatKind.Saved
+                    KxAvatar(h.title, h.chatId, size = 42.dp, icon = if (saved) Icons.Rounded.Bookmark else null, colorIndex = h.colorIndex, photo = if (saved) null else h.avatar)
+                    if (h.online && !saved) Box(Modifier.align(Alignment.BottomEnd).offset(1.dp, 1.dp).size(16.dp).clip(CircleShape).background(Color(0xFF1B221E)).padding(2.dp).clip(CircleShape).background(Kx.accent))
                 }
                 Column(Modifier.weight(1f)) {
                     KxLine(h.title, KxType.style(16.sp, FontWeight.Bold))
@@ -519,6 +573,7 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
         // wave5 (fixer-media): round video = tap plays it in the circle (downloads first); GIF = tap plays/pauses the loop.
         var roundPlay by remember(m.id) { mutableStateOf(false) }
         var gifTapped by remember(m.id) { mutableStateOf(false) }
+        val bubbleContext = androidx.compose.ui.platform.LocalContext.current
         val onTap: () -> Unit = {
             when (m.kind) {
                 KxMsgKind.File -> LocalOpenFile?.invoke(m)
@@ -536,6 +591,14 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
                     if (m.media == null && bm.store.fileState(m.fileId).path == null) bm.store.download(m.fileId)
                     gifTapped = !gifTapped
                 }
+                KxMsgKind.Location -> kxLocationOf(m.text)?.let { (lat, lon) ->
+                    val geo = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("geo:$lat,$lon?q=$lat,$lon")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    runCatching { bubbleContext.startActivity(geo) }.onFailure {
+                        runCatching { bubbleContext.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://maps.google.com/?q=$lat,$lon")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    }
+                }
+                // qa-real: a checklist (drawn as «☑ title / ✓ task» text) opens its own board to mark tasks.
+                KxMsgKind.Text -> if (bm != null && m.text.startsWith("☑ ")) LocalOpenBoard?.invoke("Checklist:${bm.chatId}:${m.id}")
                 else -> {}
             }
         }
@@ -547,6 +610,8 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
         }
         val press = Modifier.semantics { customActions = a11yActs }
             .combinedClickable(interactionSource = null, indication = null, onClick = onTap, onLongClick = onLongPress, onDoubleClick = onDoubleTap)
+        // qa-real: text with links handles its own taps (link → open) but a long press there still opens the message menu.
+        androidx.compose.runtime.CompositionLocalProvider(LocalBubbleGestures provides BubbleGestures(onTap, onLongPress, onDoubleTap)) {
         when (m.kind) {
             KxMsgKind.Service -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(m.text, style = KxType.style(12.sp, FontWeight.SemiBold, Kx.text3), modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Kx.fill).padding(horizontal = 12.dp, vertical = 4.dp))
@@ -602,6 +667,16 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
                 val time = vp?.let { bm?.store?.player?.positionMs?.let { ms -> "${ms / 60000}:${((ms / 1000) % 60).toString().padStart(2, '0')}" } } ?: m.meta
                 Row { Text(time, style = KxType.style(11.sp, color = OutMeta), modifier = Modifier.weight(1f)); MetaText(m, OutMeta) }
             }
+            // qa-real (fixer-real-media): the sticker itself (was an empty bubble) and a map preview for a shared location.
+            KxMsgKind.Sticker -> Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = press.padding(vertical = 2.dp)) {
+                if (m.out) MetaText(m, Kx.text4)
+                KxStickerBubble(m, bm?.store)
+                if (!m.out) Text(m.time, style = KxType.style(11.sp, color = Kx.text4), modifier = Modifier.padding(bottom = 6.dp))
+            }
+            KxMsgKind.Location -> if (kxLocationOf(m.text) != null) Column(press.clip(if (m.out) OutShape else InShape).bubble(m.out)) {
+                KxLocationPreview(m, m.out)
+                Box(Modifier.align(Alignment.End).padding(start = 9.dp, end = 10.dp, bottom = 6.dp)) { MetaText(m, if (m.out) OutMeta else Kx.text4) }
+            } else Column(press.widthIn(max = 312.dp).clip(if (m.out) OutShape else InShape).bubble(m.out)) { TextWithMeta(m, Modifier.padding(start = 13.dp, end = 13.dp, top = 9.dp, bottom = 7.dp)) }
             KxMsgKind.Photo, KxMsgKind.Video, KxMsgKind.Gif -> {
               // wave5 (fixer-media): spoiler = blurred until a tap; view-once = a cover, opened once in a protected view (OpenMessageContent, FLAG_SECURE).
               var unveiled by remember(m.id) { mutableStateOf(false) }
@@ -668,6 +743,7 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
                 if (m.kind == KxMsgKind.Poll && poll != null) PollBlock(m, poll) else TextWithMeta(m, Modifier.padding(pad))
             }
         }
+        }
         if (m.buttons.isNotEmpty()) InlineButtons(m)
         if (m.reactions.isNotEmpty()) Row(Modifier.padding(top = 1.dp, bottom = 2.dp, start = 6.dp, end = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             m.reactions.forEach { r ->
@@ -686,9 +762,33 @@ private fun TextWithMeta(m: KxMessage, modifier: Modifier) {
         Column(Modifier.weight(1f, fill = false)) {
             val lk = LocalChatLook.current
             val onLink = LocalLinkTap.current
+            // qa-real (fixer-real-media): ||spoiler|| text stays covered until a tap on the text reveals it.
+            var spoilersShown by remember(m.id) { mutableStateOf(false) }
             val body = if (m.translation != null || m.entities.isEmpty()) androidx.compose.ui.text.AnnotatedString(m.translation ?: m.text)
-                else remember(m.text, m.entities, m.out, onLink) { bubbleText(m, onLink) }
-            Text(body, style = KxType.style(lk.textSp.sp, color = if (m.out) OutText else Kx.text, lineHeight = (lk.textSp + 6f).sp))
+                else remember(m.text, m.entities, m.out, onLink, spoilersShown) { bubbleText(m, onLink, hideSpoilers = !spoilersShown) }
+            val g = LocalBubbleGestures.current
+            val hidden = !spoilersShown && body.getStringAnnotations(KxSpoilerTag, 0, body.length).isNotEmpty()
+            val hasLinks = hidden || onLink != null && body.getStringAnnotations(KxLinkTag, 0, body.length).isNotEmpty()
+            if (!hasLinks || g == null) Text(body, style = KxType.style(lk.textSp.sp, color = if (m.out) OutText else Kx.text, lineHeight = (lk.textSp + 6f).sp),
+                modifier = if (hidden) Modifier.kxClick("Показать спойлер") { spoilersShown = true } else Modifier)
+            else {
+                var layout by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+                val links = remember(m.text, m.entities) { m.entities }
+                Text(body, style = KxType.style(lk.textSp.sp, color = if (m.out) OutText else Kx.text, lineHeight = (lk.textSp + 6f).sp),
+                    onTextLayout = { layout = it },
+                    modifier = Modifier.pointerInput(body, g) {
+                        detectTapGestures(
+                            onLongPress = { g.long() },
+                            onDoubleTap = g.double?.let { d -> { _: Offset -> d() } },
+                            onTap = { o ->
+                                if (hidden) { spoilersShown = true; return@detectTapGestures }
+                                val at = layout?.getOffsetForPosition(o) ?: -1
+                                val idx = body.getStringAnnotations(KxLinkTag, at, at).firstOrNull()?.item?.toIntOrNull()
+                                val e = idx?.let { links.getOrNull(it) }
+                                if (e != null && onLink != null) onLink(m, e) else g.tap()
+                            })
+                    })
+            }
             if (m.translation != null) Text("Перевод · оригинал в меню", style = KxType.style(11.sp, color = if (m.out) OutMeta else Kx.text4))
         }
         MetaText(m, if (m.out) OutMeta else Kx.text4)
@@ -775,16 +875,29 @@ private fun InlineButtons(m: KxMessage) {
     }
 }
 
+private const val KxLinkTag = "kx-link"
+private const val KxSpoilerTag = "kx-spoiler"
+/** Bubble gestures for the text part (links take taps; long press / double tap still act on the message). */
+private class BubbleGestures(val tap: () -> Unit, val long: () -> Unit, val double: (() -> Unit)?)
+private val LocalBubbleGestures = androidx.compose.runtime.staticCompositionLocalOf<BubbleGestures?> { null }
+
 /** A tap on a link/@mention/#hashtag/phone in a bubble (set by ChatScreenBody; null = links not tappable). */
 private val LocalLinkTap = androidx.compose.runtime.staticCompositionLocalOf<((KxMessage, KxEntity) -> Unit)?> { null }
 
 /** Message text with its entities: bold/italic/underline/strike/code, and links in the LinkWarn colour (#8FD3AC, underlined) that react to a tap. */
-private fun bubbleText(m: KxMessage, onLink: ((KxMessage, KxEntity) -> Unit)?) = androidx.compose.ui.text.buildAnnotatedString {
+private fun bubbleText(m: KxMessage, onLink: ((KxMessage, KxEntity) -> Unit)?, hideSpoilers: Boolean = false) = androidx.compose.ui.text.buildAnnotatedString {
     val text = m.text
     append(text)
     val linkInk = if (m.out) OutMeta else Color(0xFF8FD3AC)
-    m.entities.forEach { e ->
-        if (KxChatLinks.part(text, e) == null) return@forEach
+    m.entities.forEachIndexed { i, e ->
+        if (KxChatLinks.part(text, e) == null) return@forEachIndexed
+        // qa-real: a closed spoiler — ink and background the same muted colour, so the words cannot be read.
+        if (e.type == KxEntityType.Spoiler && hideSpoilers) {
+            val cover = if (m.out) Color(0xFF7FA892) else Color(0xFF4A5550)
+            addStyle(androidx.compose.ui.text.SpanStyle(color = cover, background = cover), e.offset, e.offset + e.length)
+            addStringAnnotation(KxSpoilerTag, i.toString(), e.offset, e.offset + e.length)
+            return@forEachIndexed
+        }
         val start = e.offset; val end = e.offset + e.length
         val style = when (e.type) {
             KxEntityType.Bold -> androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)
@@ -799,9 +912,9 @@ private fun bubbleText(m: KxMessage, onLink: ((KxMessage, KxEntity) -> Unit)?) =
             val web = e.type == KxEntityType.Link || e.type == KxEntityType.TextLink
             val ink = androidx.compose.ui.text.SpanStyle(color = linkInk,
                 textDecoration = if (web) androidx.compose.ui.text.style.TextDecoration.Underline else null)
-            if (onLink == null) addStyle(ink, start, end)
-            else addLink(androidx.compose.ui.text.LinkAnnotation.Clickable(
-                tag = "kx-link-$start", styles = androidx.compose.ui.text.TextLinkStyles(ink)) { onLink(m, e) }, start, end)
+            addStyle(ink, start, end)
+            // Taps are resolved in TextWithMeta (long press on a link must open the message menu, not the link).
+            if (onLink != null) addStringAnnotation(KxLinkTag, i.toString(), start, end)
         }
     }
 }
@@ -946,6 +1059,8 @@ private fun Composer(
     attachOpen: Boolean, onAttach: () -> Unit, circleMode: Boolean, onToggleMode: () -> Unit,
     recording: Boolean?, recSecs: Int, onRecStart: () -> Unit, onRecEnd: (Boolean) -> Unit, modifier: Modifier,
     onStickers: () -> Unit = {},
+    /** qa-real: long-press on «Отправить» → send options (silent / schedule / when online). */
+    onSendLong: (() -> Unit)? = null,
 ) {
     val hasText = text.isNotBlank()
     val rec = recording != null
@@ -953,7 +1068,8 @@ private fun Composer(
     val plusTurn by animateFloatAsState(if (attachOpen) 45f else 0f, spring(dampingRatio = .5f, stiffness = 500f), label = "plus")
     Column(modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(start = 10.dp, end = 10.dp, bottom = 22.dp)) {
         if (replyTo != null) Row(
-            Modifier.padding(bottom = 8.dp).fillMaxWidth().height(46.dp).clip(RoundedCornerShape(18.dp)).background(Kx.accent.copy(alpha = .10f))
+            // qa-real: opaque (the last message no longer shows through), accent tint on top.
+            Modifier.padding(bottom = 8.dp).fillMaxWidth().height(46.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xFF121714)).background(Kx.accent.copy(alpha = .10f))
                 .border(1.dp, Kx.accent.copy(alpha = .25f), RoundedCornerShape(18.dp)).padding(start = 12.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -984,7 +1100,7 @@ private fun Composer(
                         KxIconButton(Icons.Outlined.Mood, "Стикеры и эмодзи", size = 46.dp, filled = false, tint = Kx.text2, onClick = onStickers)
                     }
                 }
-                ActionButton(hasText, circleMode, rec, scale, onSend, onToggleMode, onRecStart, onRecEnd)
+                ActionButton(hasText, circleMode, rec, scale, onSend, onToggleMode, onRecStart, onRecEnd, onSendLong)
             }
             if (recording == false) Column(Modifier.align(Alignment.TopEnd).offset(y = (-84).dp).padding(end = 8.dp).size(42.dp, 72.dp).clip(RoundedCornerShape(21.dp))
                 .background(Color(0xF21E2823)).border(1.dp, Kx.w(.12f), RoundedCornerShape(21.dp)), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -997,13 +1113,14 @@ private fun Composer(
 
 @Composable
 private fun ActionButton(hasText: Boolean, circleMode: Boolean, rec: Boolean, scale: Float, onSend: () -> Unit, onToggleMode: () -> Unit,
-                         onRecStart: () -> Unit, onRecEnd: (Boolean) -> Unit) {
+                         onRecStart: () -> Unit, onRecEnd: (Boolean) -> Unit, onSendLong: (() -> Unit)? = null) {
     val t = rememberInfiniteTransition(label = "rec")
     val r1 by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1200, easing = FastOutSlowInEasing)), label = "r1")
     val r2 by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1200, delayMillis = 600, easing = FastOutSlowInEasing)), label = "r2")
     val latestHasText by rememberUpdatedState(hasText)
     val send by rememberUpdatedState(onSend); val toggle by rememberUpdatedState(onToggleMode)
     val start by rememberUpdatedState(onRecStart); val end by rememberUpdatedState(onRecEnd)
+    val sendLong by rememberUpdatedState(onSendLong)
     Box(Modifier.size(58.dp), contentAlignment = Alignment.Center) {
         if (rec) listOf(r1 to .45f, r2 to .35f).forEach { (p, a) ->
             Box(Modifier.size(58.dp).graphicsLayer { val s = 1f + p * .9f; scaleX = s; scaleY = s; alpha = (1f - p) * a }.clip(CircleShape).background(Kx.accent))
@@ -1013,7 +1130,14 @@ private fun ActionButton(hasText: Boolean, circleMode: Boolean, rec: Boolean, sc
             .pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown()
-                    if (latestHasText) { if (waitForUpOrCancellation() != null) send(); return@awaitEachGesture }
+                    if (latestHasText) {
+                        val long = sendLong
+                        if (long == null) { if (waitForUpOrCancellation() != null) send(); return@awaitEachGesture }
+                        var timedOut = true
+                        val up = withTimeoutOrNull(420) { waitForUpOrCancellation().also { timedOut = false } }
+                        if (!timedOut) { if (up != null) send() } else { long(); waitForUpOrCancellation() }
+                        return@awaitEachGesture
+                    }
                     // A 260ms hold starts recording (release sends); a short tap switches mic <-> circle.
                     var timedOut = false
                     val quick = withTimeoutOrNull(260) { waitForUpOrCancellation() }

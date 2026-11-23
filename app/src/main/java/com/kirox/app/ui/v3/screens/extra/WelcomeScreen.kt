@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -34,32 +35,63 @@ private val WSlideEase = CubicBezierEasing(.2f, .9f, .3f, 1f)
 
 /** Board «Знакомство с kiroX»: 4 slides (welcome, themes, features, permissions), dots, CTA, «Всё готово». */
 @Composable
-fun WelcomeScreen(ctx: KxScreenCtx) {
+fun WelcomeScreen(ctx: KxScreenCtx) = WelcomeBoard(demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore, toast = ctx.toast, onFinish = null)
+
+/**
+ * wave6: the board right after sign-in (replaces the old «Чтобы сообщения приходили сразу» sheet). Real permission
+ * requests only on tap; «Готово» (or Back) closes it after «Всё готово» and [onDone] marks it seen.
+ */
+@Composable
+fun KxPostSignInWelcome(onDone: () -> Unit) {
+    val toast = LocalKxToast.current
+    // Drawn over the chat list: taps must not reach it.
+    Box(Modifier.fillMaxSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } }) {
+        WelcomeBoard(demo = false, toast = toast, onFinish = onDone)
+    }
+}
+
+private fun ignoresBatteryLimits(context: android.content.Context) =
+    context.getSystemService(android.os.PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) != false
+
+@Composable
+private fun WelcomeBoard(demo: Boolean, toast: (String) -> Unit, onFinish: (() -> Unit)?) {
     val last = 3
     var i by rememberSaveable { mutableIntStateOf(0) }
     var perms by remember { mutableStateOf(listOf(false, false, false)) }
-    // wave3: on the real app the buttons ask Android for the permission (only when tapped). Contacts: kiroX has no READ_CONTACTS — honest toast.
-    val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    // wave3: on the real app the buttons ask Android for the permission (only when tapped).
+    // wave6: kiroX has no READ_CONTACTS, so on the real app the middle row is «Работа в фоне» (battery limits off,
+    // as the old post-sign-in sheet asked): Telegram pushes only its own app, kiroX keeps its own connection.
     val context = androidx.compose.ui.platform.LocalContext.current
     fun granted(p: String) = androidx.core.content.ContextCompat.checkSelfPermission(context, p) == android.content.pm.PackageManager.PERMISSION_GRANTED
     val notifPerm = if (android.os.Build.VERSION.SDK_INT >= 33) android.Manifest.permission.POST_NOTIFICATIONS else null
-    LaunchedEffect(Unit) { if (!demo) perms = listOf(notifPerm?.let { granted(it) } ?: true, false, granted(android.Manifest.permission.RECORD_AUDIO)) }
+    fun refresh() { if (!demo) perms = listOf(notifPerm?.let { granted(it) } ?: true, ignoresBatteryLimits(context), granted(android.Manifest.permission.RECORD_AUDIO)) }
+    // Also after the system battery dialog / app settings: the rows show what Android has now.
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) { refresh(); onPauseOrDispose { } }
     var asking by remember { mutableIntStateOf(-1) }
     val launcher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { ok ->
         val k = asking
         if (k >= 0) perms = perms.toMutableList().also { it[k] = ok }
-        if (!ok) ctx.toast("Можно включить позже в настройках Android")
+        if (!ok) toast("Можно включить позже в настройках Android")
     }
     fun ask(k: Int) {
         if (demo) { perms = perms.toMutableList().also { it[k] = !it[k] }; return }
         if (perms[k]) return
         when (k) {
             0 -> if (notifPerm == null) perms = perms.toMutableList().also { it[0] = true } else { asking = 0; launcher.launch(notifPerm) }
-            1 -> ctx.toast("kiroX не загружает контакты телефона — друзей покажет официальный Telegram")
+            1 -> runCatching {
+                @android.annotation.SuppressLint("BatteryLife")
+                val request = android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:${context.packageName}"))
+                context.startActivity(request)
+            }.onFailure { toast("Откройте настройки батареи Android и снимите ограничения для kiroX") }
             else -> { asking = 2; launcher.launch(android.Manifest.permission.RECORD_AUDIO) }
         }
     }
     var done by rememberSaveable { mutableStateOf(false) }
+    if (onFinish != null) {
+        // After sign-in: «Всё готово» stays a moment, then the chats.
+        LaunchedEffect(done) { if (done) { kotlinx.coroutines.delay(1200); onFinish() } }
+        androidx.activity.compose.BackHandler { if (i > 0 && !done) i-- else onFinish() }
+    }
     val reduced = LocalKxReducedMotion.current
     Box(Modifier.fillMaxSize().background(ExBg)) {
         BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -70,7 +102,7 @@ fun WelcomeScreen(ctx: KxScreenCtx) {
                     WSlide(w) { WelcomeArt() ; WText("Добро пожаловать в kiroX", "Все ваши чаты из Telegram уже здесь. Тот же аккаунт, новый вид.") }
                     WSlide(w) { ThemesArt(); WText("Сделайте под себя", "Темы, обои для каждого чата, свой цвет и стеклянная нижняя панель.") }
                     WSlide(w) { FeatsArt(); WText("Больше возможностей", "Код-пароль, музыка, переводчик и функции, которых нет в обычном клиенте.") }
-                    WSlide(w) { Perms(perms) { k -> ask(k) } }
+                    WSlide(w) { Perms(perms, background = !demo) { k -> ask(k) } }
                 }
             }
             if (i < last) ExPill("Пропустить", Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp), height = 36.dp, bg = Kx.w(.06f), ink = Kx.text2,
@@ -90,7 +122,7 @@ fun WelcomeScreen(ctx: KxScreenCtx) {
             }
         }
         if (done) ExSuccess("Всё готово", "Открываем ваши чаты…") {
-            ExPill("Посмотреть ещё раз", height = 42.dp) { i = 0; done = false; perms = listOf(false, false, false) }
+            if (onFinish == null) ExPill("Посмотреть ещё раз", height = 42.dp) { i = 0; done = false; if (demo) perms = listOf(false, false, false) else refresh() }
         }
     }
 }
@@ -170,9 +202,11 @@ private fun BoxScope.FeatsArt() {
 }
 
 @Composable
-private fun BoxScope.Perms(on: List<Boolean>, toggle: (Int) -> Unit) {
+private fun BoxScope.Perms(on: List<Boolean>, background: Boolean, toggle: (Int) -> Unit) {
     val list = listOf(Triple(Icons.Rounded.Notifications, "Уведомления", "Чтобы не пропустить сообщения и звонки"),
-        Triple(Icons.Rounded.Contacts, "Контакты", "Найти друзей, которые уже в Telegram"), Triple(Icons.Rounded.Mic, "Микрофон", "Для голосовых и звонков"))
+        if (background) Triple(Icons.Rounded.Sync, "Работа в фоне", "Чтобы сообщения приходили, пока kiroX закрыт")
+        else Triple(Icons.Rounded.Contacts, "Контакты", "Найти друзей, которые уже в Telegram"),
+        Triple(Icons.Rounded.Mic, "Микрофон", "Для голосовых и звонков"))
     Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).offset(y = 110.dp)) {
         Text("Пара разрешений", style = ts(28.sp, FontWeight.ExtraBold), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Text("Можно включить сейчас или позже в настройках", style = ts(14.sp, color = Kx.text3, lh = 20.sp), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))

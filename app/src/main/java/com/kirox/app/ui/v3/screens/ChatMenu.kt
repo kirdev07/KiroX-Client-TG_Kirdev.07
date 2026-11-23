@@ -43,19 +43,28 @@ private val ChatMenuGlass = Brush.verticalGradient(listOf(Color(0xF22E3A34), Col
 internal class ChatMenuExtra(val icon: ImageVector, val label: String, val danger: Boolean = false, val onClick: () -> Unit)
 
 @Composable
-internal fun ChatMenuSheet(h: KxChatHeader, onDismiss: () -> Unit, onOpen: (String) -> Unit, extra: List<ChatMenuExtra> = emptyList(), forum: Boolean = false) {
+internal fun ChatMenuSheet(h: KxChatHeader, onDismiss: () -> Unit, onOpen: (String) -> Unit, extra: List<ChatMenuExtra> = emptyList(), forum: Boolean = false,
+                           /** qa-real: own group/channel (admin / creator from chatFacts): manage + stats, no «Пожаловаться». */
+                           admin: Boolean = false, creator: Boolean = false) {
     val id = h.chatId
     androidx.activity.compose.BackHandler(onBack = onDismiss)
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) { appear.animateTo(1f, tween(220, easing = KxMotion.rise)) }
     val group = h.kind == KxChatKind.Group || h.kind == KxChatKind.Channel
     val items = buildList<Triple<ImageVector, String, String>> {
+        if (admin && h.kind == KxChatKind.Channel) {
+            add(Triple(Icons.Outlined.Info, "Информация о канале", "Channel:$id"))
+            add(Triple(Icons.Outlined.Settings, "Управление каналом", "ChannelSettings:$id"))
+            add(Triple(Icons.Outlined.BarChart, "Статистика", "ChannelStats:$id"))
+        }
         add(Triple(Icons.Outlined.Search, "Поиск по чату", "ChatSearch:$id"))
         add(Triple(Icons.Outlined.PhotoLibrary, "Медиа и файлы", "SharedMedia:$id"))
         add(Triple(Icons.Outlined.CalendarMonth, "Перейти к дате", "JumpDate:$id"))
         // wave5: scheduled messages list and forum topics had no entry on the real account.
         if (h.composer == KxComposer.Write) add(Triple(Icons.Outlined.Schedule, "Отложенные", "Schedule:$id"))
         if (forum) add(Triple(Icons.Outlined.Forum, "Темы", "Topics:$id"))
+        // qa-real: the «Избранное» board (tags, «По чатам») stays reachable now that the list opens the full chat.
+        if (h.kind == KxChatKind.Saved) add(Triple(Icons.Outlined.Sell, "Теги и «По чатам»", "Saved"))
         if (h.kind == KxChatKind.Private || h.kind == KxChatKind.Group || h.kind == KxChatKind.Channel) add(Triple(Icons.Outlined.Translate, "Перевести чат", "Translate:$id"))
         add(Triple(Icons.Outlined.Download, "Экспорт переписки", "Export:$id"))
         if (h.kind != KxChatKind.Saved) add(Triple(Icons.Outlined.NotificationsNone, "Уведомления", "ChatNotify:$id"))
@@ -66,8 +75,9 @@ internal fun ChatMenuSheet(h: KxChatHeader, onDismiss: () -> Unit, onOpen: (Stri
         if (h.kind == KxChatKind.Private) add(Triple(Icons.Outlined.Palette, "Тема чата", "ChatTheme:$id"))
         add(Triple(Icons.Outlined.Wallpaper, "Обои", "Wallpaper:$id"))
         if (group) add(Triple(Icons.Outlined.VideoCall, "Видеочат", "PlanCall:$id"))
-        if (h.kind != KxChatKind.Saved) add(Triple(Icons.Outlined.Flag, "Пожаловаться", "Report:$id"))
-        if (h.kind != KxChatKind.Saved) add(Triple(Icons.Outlined.Delete, if (group) "Покинуть или удалить" else "Удалить чат", "DeleteChat:$id"))
+        if (h.kind != KxChatKind.Saved && !admin && !creator) add(Triple(Icons.Outlined.Flag, "Пожаловаться", "Report:$id"))
+        if (h.kind != KxChatKind.Saved) add(Triple(Icons.Outlined.Delete, when {
+            creator && h.kind == KxChatKind.Channel -> "Удалить канал"; creator -> "Удалить группу"; group -> "Покинуть или удалить"; else -> "Удалить чат" }, "DeleteChat:$id"))
     }
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().graphicsLayer { alpha = appear.value }.background(Color(0x66050706)).kxClick("Закрыть меню", onClick = onDismiss))

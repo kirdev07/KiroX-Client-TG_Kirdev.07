@@ -229,8 +229,6 @@ class KxDemoStore : KxStore {
     override fun setArchiveNewChats(on: Boolean) { archiveNew = on }
     override val blockedCount get() = blocked.size
     override val blocked get() = listOf(KxContact(40, "Спам-бот", "был(а) давно", colorIndex = 4), KxContact(41, "Неизвестный", "был(а) недавно", colorIndex = 2))
-    override val cloudPassword get() = KxCloudPassword(has = true, hint = "любимый фильм", hasRecoveryEmail = true)
-    override suspend fun checkPassword(password: String): String? = if (password == "kirox") null else "Неверный пароль"
 
     private val scopes = mutableStateListOf(
         KxNotifyScope("private", "Личные чаты", true, exceptions = 2),
@@ -297,7 +295,6 @@ class KxDemoStore : KxStore {
         KxLogEntry(1, "21:40", "Максим", "закрепил(а) сообщение"), KxLogEntry(2, "20:02", "Алекс Миронов", "изменил(а) описание группы"))
     override suspend fun boostStatus(chatId: Long): KxBoostStatus? = KxBoostStatus(2, 14, 10, 20, "https://t.me/boost/kirox_team", 9)
     override val proxies: List<KxProxy> get() = listOf(KxProxy(1, "proxy.example.org", 443, "MTProto", enabled = false))
-    override val accountTtlDays: Int get() = 365
 
     // Round 6: kiroX-local settings (board defaults), tab names, passcode «1234» as on the Lock board.
     private val prefMap = mutableStateMapOf<String, Int>().apply { putAll(KxPrefs.defaults) }
@@ -307,8 +304,64 @@ class KxDemoStore : KxStore {
     private val tabNameMap = mutableStateMapOf<Int, String>()
     override val tabNames: Map<Int, String> get() = tabNameMap
     override fun renameTab(index: Int, name: String) { if (name.isBlank()) tabNameMap.remove(index) else tabNameMap[index] = name }
-    override val passcodeSet: Boolean get() = true
-    override suspend fun checkPasscode(code: String): Boolean = code == "1234"
+    // wave6 port-security: demo passcode «1234» that can be changed / turned off, demo cloud password «kirox», demo exceptions.
+    private var demoCode by mutableStateOf<String?>("1234")
+    private var demoPattern by mutableStateOf(false)
+    private var demoAuto by mutableStateOf(60)
+    private var demoBio by mutableStateOf(true)
+    private var demoHide by mutableStateOf(true)
+    override val passcodeSet: Boolean get() = demoCode != null
+    override val passcodePattern: Boolean get() = demoPattern
+    override val passcodeBiometric: Boolean get() = demoBio
+    override val passcodeAutoLock: Int get() = demoAuto
+    override val passcodeHideContent: Boolean get() = demoHide
+    override suspend fun checkPasscode(code: String): Boolean = code == demoCode
+    override suspend fun passcodeMatches(code: String): Boolean = code == demoCode
+    override suspend fun setPasscode(code: String, pattern: Boolean) { demoCode = code; demoPattern = pattern }
+    override fun disablePasscode() { demoCode = null; demoPattern = false }
+    override fun setPasscodeAutoLock(seconds: Int) { demoAuto = seconds }
+    override fun setPasscodeBiometric(on: Boolean) { demoBio = on }
+    override fun setPasscodeHideContent(on: Boolean) { demoHide = on }
+    private var demoCloud by mutableStateOf(KxCloudPassword(has = true, hint = "любимый фильм", hasRecoveryEmail = true))
+    private var demoPw = "kirox"
+    override val cloudPassword get() = demoCloud
+    override suspend fun checkPassword(password: String): String? = if (password == demoPw) null else "Неверный пароль"
+    override suspend fun setCloudPassword(old: String, new: String, hint: String, email: String?): String? {
+        if (demoCloud.has && old != demoPw) return "Неверный текущий пароль"
+        demoPw = new
+        demoCloud = if (new.isEmpty()) KxCloudPassword(false) else demoCloud.copy(has = true, hint = hint,
+            pendingEmailPattern = email?.let { Regex("^(.).*(@.*)$").replace(it, "$1•••$2") } ?: demoCloud.pendingEmailPattern)
+        return null
+    }
+    override suspend fun confirmRecoveryEmail(code: String): String? =
+        if (code.trim() == "12345") { demoCloud = demoCloud.copy(hasRecoveryEmail = true, pendingEmailPattern = null); null } else "Неверный код (макет: 12345)"
+    override suspend fun setRecoveryEmail(password: String, email: String): String? =
+        if (password != demoPw) "Неверный текущий пароль" else { demoCloud = demoCloud.copy(pendingEmailPattern = Regex("^(.).*(@.*)$").replace(email.trim(), "$1•••$2")); null }
+    override suspend fun requestPasswordRecovery(): String? = if (demoCloud.hasRecoveryEmail) null else "Почта для восстановления не указана"
+    override val passwordRecoveryPattern: String get() = "a•••@mail.com"
+    override suspend fun recoverPassword(code: String, newPassword: String, hint: String): String? {
+        if (code.trim() != "12345") return "Неверный код (макет: 12345)"
+        demoPw = newPassword; demoCloud = if (newPassword.isEmpty()) KxCloudPassword(false) else demoCloud.copy(hint = hint); return null
+    }
+    override suspend fun resetPassword(): String? { demoCloud = demoCloud.copy(pendingResetDate = (System.currentTimeMillis() / 1000).toInt() + 7 * 86400); return null }
+    override suspend fun cancelPasswordReset(): String? { demoCloud = demoCloud.copy(pendingResetDate = 0); return null }
+    private val demoExceptions = mutableStateMapOf("Calls" to (listOf(contacts[0]) to emptyList<KxContact>()))
+    override suspend fun privacyExceptions(key: String): Pair<List<KxContact>, List<KxContact>>? = demoExceptions[key] ?: (emptyList<KxContact>() to emptyList())
+    override suspend fun setPrivacyExceptions(key: String, allow: List<Long>, never: List<Long>): String? {
+        demoExceptions[key] = contacts.filter { it.id in allow } to contacts.filter { it.id in never }
+        val i = privacyRules.indexOfFirst { it.key == key }
+        if (i >= 0) privacyRules[i] = privacyRules[i].copy(exceptions = allow.size + never.size)
+        return null
+    }
+    private var demoNewAll by mutableStateOf(true)
+    override val newChatsFromAll: Boolean get() = demoNewAll
+    override fun setNewChatsFromAll(on: Boolean) { demoNewAll = on }
+    private var demoFrequent by mutableStateOf(true)
+    override val suggestFrequent: Boolean get() = demoFrequent
+    override fun setSuggestFrequent(on: Boolean) { demoFrequent = on }
+    private var demoTtl by mutableStateOf(365)
+    override val accountTtlDays: Int get() = demoTtl
+    override fun setAccountTtl(days: Int) { demoTtl = days }
 
     // wave3-account: demo values for the account/tools boards.
     private val prefTextMap = mutableStateMapOf<String, String>().apply { putAll(KxPrefsAccount.textDefaults) }

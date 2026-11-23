@@ -128,7 +128,13 @@ fun MyQrScreen(ctx: KxScreenCtx) {
             // card
             val pop = remember { Animatable(if (reduced) 1f else 0f) }
             LaunchedEffect(Unit) { pop.animateTo(1f, tween(450, easing = CubicBezierEasing(.2f, .9f, .3f, 1f))) }
-            Box(Modifier.padding(top = 54.dp).align(Alignment.CenterHorizontally).graphicsLayer { alpha = pop.value; val s = .85f + .15f * pop.value; scaleX = s; scaleY = s }) {
+            // Short screens: the card (~461dp) shrinks from its top so it stays above the theme strip and buttons (~208dp).
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            val nav = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val k = ((maxHeight - nav - 208.dp) / 461.dp).coerceIn(.55f, 1f)
+            Box(Modifier.padding(top = 54.dp * k).align(Alignment.TopCenter).graphicsLayer {
+                if (k < 1f) transformOrigin = androidx.compose.ui.graphics.TransformOrigin(.5f, 0f)
+                alpha = pop.value; val s = (.85f + .15f * pop.value) * k; scaleX = s; scaleY = s }) {
                 val shape = RoundedCornerShape(34.dp)
                 Column(Modifier.padding(top = 46.dp).width(290.dp).shadow(40.dp, shape, ambientColor = Color.Black, spotColor = Color.Black).clip(shape).background(Color(0xFFF4F7F5))
                     .padding(start = 22.dp, end = 22.dp, top = 62.dp, bottom = 22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -150,6 +156,7 @@ fun MyQrScreen(ctx: KxScreenCtx) {
                     .cssGradient(140f, 0f to Kx.accentDeep, 1f to Color(0xFF1F4D36)), contentAlignment = Alignment.Center) {
                     Text(initials, style = KxType.style(34.sp, FontWeight.ExtraBold, Color(0xFFDFF5E8)))
                 }
+            }
             }
         }
         // theme strip

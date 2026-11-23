@@ -24,6 +24,7 @@ import com.kirox.app.ui.v3.theme.KxAccessScale
 import com.kirox.app.ui.v3.theme.kxAccessNoMotion
 import com.kirox.app.ui.v3.theme.kxPowerNoMotion
 import com.kirox.app.ui.v3.model.pref
+import kotlinx.coroutines.flow.drop
 
 /** Where the v3 app is. Tabs live under [KxRoute.Home]; everything else is pushed on top. */
 sealed interface KxRoute {
@@ -153,17 +154,34 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
         ) { route ->
             saveables.SaveableStateProvider(route.toString()) { when (route) {
                 KxRoute.Home -> Box(Modifier.fillMaxSize()) {
-                    AnimatedContent(tab, transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) }, label = "kx-tab") { t ->
+                    // port-nav: the dock tabs are a pager — swipe between them; the dock lens follows the offset, a tap animates.
+                    // Inner horizontal scrollers go first (chat-row swipes, then Chats' Archive|Messages pager), leftovers move this one.
+                    val pages = remember(hiddenTabs) { KxTab.entries.filter { it !in hiddenTabs } }
+                    val tabPager = androidx.compose.foundation.pager.rememberPagerState(initialPage = pages.indexOf(tab).coerceAtLeast(0)) { pages.size }
+                    // A finished swipe picks the tab (first emission skipped: after a hidden-tab change the old index is stale).
+                    LaunchedEffect(tabPager, pages) {
+                        snapshotFlow { tabPager.settledPage }.drop(1).collect { p -> pages.getOrNull(p)?.let { if (it != tab) tab = it } }
+                    }
+                    // A tap / Back / hidden-tab change moves the pager to the tab.
+                    LaunchedEffect(tab, pages) {
+                        val i = pages.indexOf(tab)
+                        if (i >= 0 && i != tabPager.currentPage) tabPager.animateScrollToPage(i)
+                    }
+                    val shownTab by remember(pages) { derivedStateOf { pages.getOrNull(tabPager.currentPage) ?: KxTab.Chats } }
+                    androidx.compose.foundation.pager.HorizontalPager(tabPager, Modifier.fillMaxSize(), beyondViewportPageCount = 1,
+                        userScrollEnabled = !selecting, key = { pages.getOrNull(it) ?: it }) { pageIndex ->
+                        val t = pages.getOrNull(pageIndex) ?: KxTab.Chats
                         saveables.SaveableStateProvider("tab-$t") { when (t) {
                             KxTab.Chats -> ChatsScreen(
                                 store,
                                 onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) },
-                                onOpenArchive = { nav.push(KxRoute.Archive) },
+                                onOpenArchive = {},
                                 onOpenStories = { nav.push(KxRoute.Story(0)) },
                                 onSearch = { nav.push(KxRoute.Screen("Search")) },
                                 onNewMessage = { nav.push(KxRoute.Screen("NewMsg")) },
                                 onSelectionChange = { selecting = it },
                                 onOpen = { nav.push(KxRoute.Screen(it)) },
+                                active = shownTab == KxTab.Chats && !tabPager.isScrollInProgress,
                             )
                             KxTab.Calls -> CallsScreen(store, onCall = { c, v -> if (c.group && !demoStore) store.joinGroupCall(c.peerId) else startCall(c.peerId, c.name, v, c.colorIndex) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                             KxTab.Stories -> StoriesScreen(store, onOpenViewer = { nav.push(KxRoute.Story(it)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
@@ -171,9 +189,10 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                             else -> KxTabPlaceholder(t)
                         } }
                     }
-                    if (!(selecting && tab == KxTab.Chats)) KxBottomFade(Modifier.align(Alignment.BottomCenter))
-                    if (!(selecting && tab == KxTab.Chats)) KxDock(tab, { tab = it }, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 22.dp),
-                        chatsBadge = store.unreadTotal, callsBadge = store.missedCalls, names = store.tabNames, hidden = hiddenTabs)
+                    if (!selecting) KxBottomFade(Modifier.align(Alignment.BottomCenter))
+                    if (!selecting) KxDock(shownTab, { tab = it }, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 22.dp),
+                        chatsBadge = store.unreadTotal, callsBadge = store.missedCalls, names = store.tabNames, hidden = hiddenTabs,
+                        lensPosition = { tabPager.currentPage + tabPager.currentPageOffsetFraction })
                 }
                 is KxRoute.Chat -> ChatScreen(store, route.chatId, onBack = { store.closeChat(route.chatId); nav.pop() },
                     onCall = { v -> val h = store.header(route.chatId); startCall(route.chatId, h.title, v, h.colorIndex) },

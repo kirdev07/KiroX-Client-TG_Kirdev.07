@@ -1,9 +1,13 @@
 package com.kirox.app.ui.v3.screens
 
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.ScrollScope
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -44,9 +48,11 @@ private val SWIPE_ACTS = listOf(
 fun ChatSwipe(store: KxStore, chat: KxChat, toast: (String) -> Unit, ask: (KxConfirm) -> Unit, onDelete: ((KxChat) -> Unit)? = null, folder: Int = 0, content: @Composable () -> Unit) {
     val left = store.pref(KxPrefsAccount.SWIPE_LEFT).coerceIn(0, SWIPE_ACTS.lastIndex)
     val right = store.pref(KxPrefsAccount.SWIPE_RIGHT).coerceIn(0, SWIPE_ACTS.lastIndex)
-    val x = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
+    // port-nav: the row drag is a nested-scroll `scrollable` (not a raw drag detector) so the pagers around it
+    // (Archive|Messages, then the dock tabs) take over the rest of the drag once the row reaches its end.
+    var off by remember { mutableFloatStateOf(0f) }
     val limit = with(LocalDensity.current) { 104.dp.toPx() }
+    val maxOff = limit * 1.2f
     val latest by rememberUpdatedState(chat)
     fun run(action: Int) {
         val c = latest
@@ -59,7 +65,24 @@ fun ChatSwipe(store: KxStore, chat: KxChat, toast: (String) -> Unit, ask: (KxCon
             else -> toast("Добавить чат в папку можно в настройках папок")
         }
     }
-    val act = (if (x.value > 0f) SWIPE_ACTS[right] else SWIPE_ACTS[left]).let { a ->
+    val release by rememberUpdatedState<(Float) -> Unit> { v ->
+        if (v > limit * .8f) run(store.pref(KxPrefsAccount.SWIPE_RIGHT)) else if (v < -limit * .8f) run(store.pref(KxPrefsAccount.SWIPE_LEFT))
+    }
+    val dragState = rememberScrollableState { d ->
+        val n = (off + d).coerceIn(-maxOff, maxOff); val used = n - off; off = n; used
+    }
+    val fling = remember {
+        object : FlingBehavior {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+                val v = off
+                if (v == 0f) return initialVelocity // the row did not move: the pager flings
+                release(v)
+                animate(v, 0f, animationSpec = tween(250, easing = KxMotion.rise)) { value, _ -> off = value }
+                return 0f // a row swipe never flings the pager on to the next page
+            }
+        }
+    }
+    val act = (if (off > 0f) SWIPE_ACTS[right] else SWIPE_ACTS[left]).let { a ->
         // wave5: the strip says what the swipe will do now (the action toggles).
         when (a.label) {
             "Прочитано" -> if (chat.unread > 0 || chat.markedUnread) a else a.copy(label = "Непрочитано", icon = Icons.Rounded.MarkChatUnread)
@@ -78,22 +101,14 @@ fun ChatSwipe(store: KxStore, chat: KxChat, toast: (String) -> Unit, ask: (KxCon
         "Удалить чат" to 4,
     ).map { (label, i) -> CustomAccessibilityAction(label) { run(i); true } }
     Box(Modifier.height(72.dp)) {
-        if (x.value != 0f) Row(Modifier.matchParentSize().background(act.color).padding(horizontal = 22.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp, if (x.value > 0f) Alignment.Start else Alignment.End)) {
+        val moved = off != 0f
+        if (moved) Row(Modifier.matchParentSize().background(act.color).padding(horizontal = 22.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp, if (off > 0f) Alignment.Start else Alignment.End)) {
             Icon(act.icon, null, tint = Color.White)
             Text(act.label, style = KxType.style(13.sp, FontWeight.SemiBold, Color.White))
         }
-        Box(Modifier.graphicsLayer { translationX = x.value }.background(if (x.value != 0f) Kx.bg else Color.Transparent).pointerInput(Unit) {
-            detectHorizontalDragGestures(
-                onDragEnd = {
-                    scope.launch {
-                        val v = x.value
-                        if (v > limit * .8f) run(store.pref(KxPrefsAccount.SWIPE_RIGHT)) else if (v < -limit * .8f) run(store.pref(KxPrefsAccount.SWIPE_LEFT))
-                        x.animateTo(0f, tween(250, easing = KxMotion.rise))
-                    }
-                },
-                onDragCancel = { scope.launch { x.animateTo(0f) } }
-            ) { _, d -> scope.launch { x.snapTo((x.value + d).coerceIn(-limit * 1.2f, limit * 1.2f)) } }
-        }) { CompositionLocalProvider(LocalKxRowActions provides a11yActions) { content() } }
+        Box(Modifier.graphicsLayer { translationX = off }.background(if (moved) Kx.bg else Color.Transparent)
+            .scrollable(dragState, Orientation.Horizontal, flingBehavior = fling)
+        ) { CompositionLocalProvider(LocalKxRowActions provides a11yActions) { content() } }
     }
 }

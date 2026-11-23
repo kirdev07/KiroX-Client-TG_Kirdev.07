@@ -72,7 +72,7 @@ fun LocationScreen(ctx: KxScreenCtx) {
     val total = Durs[dur].second
     val realSend = store !is com.kirox.app.ui.v3.demo.KxDemoStore && ctx.arg?.toLongOrNull() != null
     LaunchedEffect(live, sent) { while (live && sent) { delay(1000); left = maxOf(0, left - (if (store !is com.kirox.app.ui.v3.demo.KxDemoStore && ctx.arg?.toLongOrNull() != null) 1 else 60)) } }
-    BackHandler(sent || sheet) { if (sheet) sheet = false else sent = false }
+    BackHandler(sent || sheet) { if (sheet) sheet = false else if (realSend) ctx.back() else sent = false }
     val context = androidx.compose.ui.platform.LocalContext.current
     // wave5 (fixer-media): «Начать трансляцию» on the real account = the app's LiveLocationService (sends the live location, moves it, stops it).
     var wantLive by remember { mutableStateOf(false) }
@@ -89,7 +89,8 @@ fun LocationScreen(ctx: KxScreenCtx) {
             wantLive = false; live = true; left = if (total > 0) total else 3600; place = -1; sent = true; return
         }
         store.sendLocation(chatId, last.latitude, last.longitude)
-        live = false; place = -1; sent = true
+        // qa-real: no fake confirmation board — the real message appears in the chat.
+        ctx.toast("Геопозиция отправлена"); ctx.back()
     }
     val permission = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         if (granted.values.any { it }) sendMine() else ctx.toast("Без доступа к геопозиции отправить её нельзя")
@@ -101,6 +102,14 @@ fun LocationScreen(ctx: KxScreenCtx) {
         }
         if (ok) sendMine() else permission.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
     }
+    // qa-real: the real accuracy of the phone's last fix (no fake «Точность 12 м»).
+    val accuracy = remember(realSend) {
+        if (!realSend) "Точность 12 м" else runCatching {
+            val m = context.getSystemService(android.location.LocationManager::class.java)
+            listOf(android.location.LocationManager.GPS_PROVIDER, android.location.LocationManager.NETWORK_PROVIDER, android.location.LocationManager.PASSIVE_PROVIDER)
+                .mapNotNull { m.getLastKnownLocation(it) }.maxByOrNull { it.time }?.takeIf { it.hasAccuracy() }?.let { "Точность ${Math.round(it.accuracy)} м" }
+        }.getOrNull() ?: "Текущее местоположение телефона"
+    }
     fun fmt(sec: Int) = if (sec >= 3600) "${Math.round(sec / 3600f)} ч" else "${maxOf(1, Math.round(sec / 60f))} мин"
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -109,7 +118,13 @@ fun LocationScreen(ctx: KxScreenCtx) {
                 val mx by animateDpAsState(if (sel != null) ((195 - sel.x - 13 + 40) * .6f).dp else 0.dp, tween(600, easing = CubicBezierEasing(.2f, .9f, .3f, 1f)), label = "mx")
                 val my by animateDpAsState(if (sel != null) ((215 - sel.y - 13 + 40) * .6f).dp else 0.dp, tween(600, easing = CubicBezierEasing(.2f, .9f, .3f, 1f)), label = "my")
                 val mz by animateFloatAsState(if (zoom) 1.25f else 1f, tween(600, easing = CubicBezierEasing(.2f, .9f, .3f, 1f)), label = "mz")
-                Box(Modifier.requiredSize(470.dp, 510.dp).align(Alignment.Center).graphicsLayer { translationX = mx.toPx(); translationY = my.toPx(); scaleX = mz; scaleY = mz }) {
+                if (realSend) Column(Modifier.align(Alignment.Center).padding(top = 70.dp, start = 32.dp, end = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Spacer(Modifier.height(90.dp))
+                    Text("Карты в kiroX пока нет", style = ts(15, W700), modifier = Modifier.padding(top = 10.dp))
+                    Text("Отправится ваше текущее местоположение — собеседник откроет его на карте.", style = ts(13, color = Kx.text3),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+                }
+                if (!realSend) Box(Modifier.requiredSize(470.dp, 510.dp).align(Alignment.Center).graphicsLayer { translationX = mx.toPx(); translationY = my.toPx(); scaleX = mz; scaleY = mz }) {
                     MapBlock(40, 60, 160, 120, 30, Color(0xFF15251C))
                     Box(Modifier.align(Alignment.TopEnd).offset((-30).dp, 300.dp).size(200.dp, 150.dp).clip(RoundedCornerShape(60.dp)).background(Color(0xFF15251C)))
                     Box(Modifier.offset((-20).dp, 380.dp).size(520.dp, 46.dp).rotate(-8f).background(Color(0xFF10202A)))
@@ -136,26 +151,28 @@ fun LocationScreen(ctx: KxScreenCtx) {
                 Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Kx.bg.copy(alpha = .85f), Color.Transparent))).statusBarsPadding().padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChRound(Icons.Outlined.Close, "Закрыть", bg = Kx.w(.1f), border = Kx.w(.14f), onClick = ctx.back)
-                    Row(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.1f)).border(1.dp, Kx.w(.14f), RoundedCornerShape(22.dp))
+                    if (realSend) Text("Геопозиция", style = ts(17, W800), modifier = Modifier.weight(1f))
+                    else Row(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.1f)).border(1.dp, Kx.w(.14f), RoundedCornerShape(22.dp))
                         .kxClick("Поиск места") { ctx.toast("Поиск мест появится вместе с картами") }.padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text3); Text("Поиск места", style = ts(14, color = Kx.text3))
                     }
                 }
                 Column(Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 36.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ChRound(Icons.Outlined.Layers, "Слой карты", bg = Kx.w(.1f), border = Kx.w(.14f)) { zoom = !zoom }
-                    ChRound(Icons.Rounded.MyLocation, "Моё местоположение", bg = Kx.w(.1f), border = Kx.w(.14f), tint = Kx.accent) { place = -1 }
+                    if (!realSend) ChRound(Icons.Outlined.Layers, "Слой карты", bg = Kx.w(.1f), border = Kx.w(.14f)) { zoom = !zoom }
+                    if (!realSend) ChRound(Icons.Rounded.MyLocation, "Моё местоположение", bg = Kx.w(.1f), border = Kx.w(.14f), tint = Kx.accent) { place = -1 }
                 }
             }
             Column(Modifier.weight(1f).offset(y = (-24).dp).clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(Color(0xFF111513))
                 .drawBehind { drawLine(Kx.w(.08f), Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
                 .verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 44.dp)) {
                 Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp).size(36.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.dashed))
-                LocRow(Icons.Rounded.NearMe, "Отправить мою геопозицию", "Точность 12 м", true) { askAndSend() }
+                LocRow(Icons.Rounded.NearMe, "Отправить мою геопозицию", accuracy, true) { askAndSend() }
                 Spacer(Modifier.height(8.dp))
                 LocRow(Icons.Outlined.ShareLocation, "Транслировать геопозицию", "Обновляется, пока вы двигаетесь", false) { sheet = true }
-                Text("Места рядом", style = ts(13, W800, Kx.accent), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 14.dp, bottom = 6.dp))
-                Places.forEachIndexed { i, p ->
+                // qa-real: nearby places are board demo data — not on the real account (nothing to send there).
+                if (!realSend) Text("Места рядом", style = ts(13, W800, Kx.accent), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 14.dp, bottom = 6.dp))
+                if (!realSend) Places.forEachIndexed { i, p ->
                     val on = place == i
                     val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .08f) else Color.Transparent, tween(200), label = "pl")
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(bg).kxClick(p.name) { if (on) { live = false; sent = true } else place = i }
@@ -171,7 +188,7 @@ fun LocationScreen(ctx: KxScreenCtx) {
         }
         if (sent) Column(Modifier.fillMaxSize().ellipseGlow(1f, 0f, .72f, .36f, Kx.accentDeep.copy(alpha = .18f)).statusBarsPadding()) {
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp) { sent = false }
+                ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp) { if (realSend) ctx.back() else sent = false }
                 KxAvatar(h.title, chatId, size = 38.dp, colorIndex = h.colorIndex)
                 Column { Text(h.title, style = ts(16, W800), maxLines = 1); Text(h.status, style = ts(12, color = if (h.online) Kx.accent else Kx.text4), maxLines = 1) }
             }

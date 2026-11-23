@@ -78,13 +78,21 @@ fun MultiSelectScreen(ctx: KxScreenCtx) {
     val n = ids.size
     val allMine = ids.all { msgs[it].second }
     val realIds = if (live) ids.mapNotNull { real.getOrNull(it)?.id } else emptyList()
+    // qa-real: the long-pressed message ("MultiSelect:<chat>:<msg>") starts selected.
+    val startMsg = ctx.c3Msg
+    var preselected by remember { mutableStateOf(false) }
+    LaunchedEffect(real.size) {
+        if (!live || preselected || startMsg == null) return@LaunchedEffect
+        val i = real.indexOfFirst { it.id == startMsg }
+        if (i >= 0) { on[i] = true; preselected = true }
+    }
 
     LaunchedEffect(delTick) {
         if (delTick == 0) return@LaunchedEffect
         val del = leaving.keys.toList(); val cnt = del.size; val both = forAll && allMine
         if (live) ctx.store.delete(chatId!!, del.mapNotNull { real.getOrNull(it)?.id }, both)
         delay(460)
-        del.forEach { gone[it] = true }; leaving.clear(); on.clear(); sel = false
+        del.forEach { gone[it] = true }; leaving.clear(); on.clear(); if (live) { ctx.back(); return@LaunchedEffect }; sel = false
         toast.show("Удалено $cnt ${msWord(cnt)}" + if (both) " у обоих" else "", Icons.Rounded.Delete)
     }
 
@@ -98,7 +106,8 @@ fun MultiSelectScreen(ctx: KxScreenCtx) {
                 Row(Modifier.fillMaxWidth().moFade(200).background(Kx.accent.copy(alpha = .06f)).moBottomLine(Kx.accent.copy(alpha = .2f))
                     .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MoRound(Icons.Outlined.Close, "Закончить выбор", bg = Kx.w(.08f), border = null) { sel = false; on.clear() }
+                    // qa-real: from a real chat one ✕ returns to that chat (no intermediate board).
+                    MoRound(Icons.Outlined.Close, "Закончить выбор", bg = Kx.w(.08f), border = null) { if (live) ctx.back() else { sel = false; on.clear() } }
                     Text(if (n > 0) "Выбрано: $n" else "Выберите сообщения", style = mts(18, W8), modifier = Modifier.weight(1f), maxLines = 1)
                     MoPill(if (n < vis.size) "Все" else "Снять", bg = Kx.w(.08f)) {
                         val all = n < vis.size; on.clear(); if (all) vis.forEach { on[it] = true }
