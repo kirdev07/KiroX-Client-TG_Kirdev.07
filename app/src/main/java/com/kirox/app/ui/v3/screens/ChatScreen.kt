@@ -24,6 +24,10 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.DoneAll
+import androidx.compose.material.icons.outlined.ChangeCircle
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -95,11 +99,19 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
     LocalStoreDownload = store::download
     LocalOpenMedia = { m -> onOpen((if (m.kind == KxMsgKind.Video) "VideoPlayer:" else "Viewer:") + "$chatId:${m.id}") }
     val look = chatLook(store)
-    androidx.compose.runtime.CompositionLocalProvider(LocalChatLook provides look) { ChatScreenBody(store, chatId, header, onBack, onCall, onMenu, onProfile) }
+    androidx.compose.runtime.CompositionLocalProvider(LocalChatLook provides look) { ChatScreenBody(store, chatId, header, onBack, onCall, onMenu, onProfile, onOpen) }
 }
 
 @Composable
-private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) -> Unit, onMenu: () -> Unit, onProfile: () -> Unit) {
+private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) -> Unit, onMenu: () -> Unit, onProfile: () -> Unit, onOpen: (String) -> Unit) {
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    var chatMenu by remember { mutableStateOf(false) }
+    // Undo send (Чат → «Отмена отправки»): the text waits this many seconds before store.send; «Отменить» returns it.
+    val undoSecs = store.pref(KxChatPrefs.UNDO_SEND)
+    var held by remember(chatId) { mutableStateOf<Pair<String, Long?>?>(null) }
+    var heldLeft by remember { mutableIntStateOf(0) }
+    LaunchedEffect(held) { val h = held ?: return@LaunchedEffect; heldLeft = undoSecs; while (heldLeft > 0) { delay(1000); heldLeft-- }; store.send(chatId, h.first, h.second); if (held === h) held = null }
+    DisposableEffect(chatId) { onDispose { held?.let { store.send(chatId, it.first, it.second) } } }
     val look = LocalChatLook.current
     val toast = LocalKxToast.current
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
@@ -185,7 +197,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
             }
         }
         ChatHeader(header.copy(typing = if (recording != null) (if (recording == true) "записывает видео" else "записывает голосовое") else header.typing),
-            onBack, onCall, onMenu, Modifier.align(Alignment.TopCenter), onProfile) { header.pinned?.let { store.pin(chatId, it.messageId, false) } }
+            onBack, onCall, { chatMenu = true }, Modifier.align(Alignment.TopCenter), onProfile) { header.pinned?.let { store.pin(chatId, it.messageId, false) } }
 
         if (recording == true) CircleRecording(recSecs)
         when (header.composer) {
@@ -197,7 +209,9 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                     val t = text.trim()
                     if (t.isNotEmpty()) {
                         val e = editing
-                        if (e != null) { store.edit(chatId, e.id, t); toast("Сообщение изменено") } else store.send(chatId, t, replyTo?.id)
+                        if (e != null) { store.edit(chatId, e.id, t); toast("Сообщение изменено") }
+                        else if (undoSecs > 0 && !demo) { held?.let { store.send(chatId, it.first, it.second) }; held = t to replyTo?.id }
+                        else store.send(chatId, t, replyTo?.id)
                         text = ""; replyTo = null; editing = null
                     }
                 },
@@ -223,7 +237,18 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
             Text(hint ?: "", style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(Color(0xF21E2823))
                 .border(1.dp, Kx.w(.12f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 7.dp))
         }
-        if (attach) AttachSheet(onClose = { attach = false }, onSend = { n -> attach = false; toast(if (n == 1) "Фото отправлено" else "Отправлено фото: $n") })
+        if (attach) { if (demo) AttachSheet(onClose = { attach = false }, onSend = { n -> attach = false; toast(if (n == 1) "Фото отправлено" else "Отправлено фото: $n") })
+            else RealAttachSheet(store, chatId, onClose = { attach = false }, onOpen = onOpen, toast = { toast(it) }) }
+        held?.let { h ->
+            Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding().padding(start = 14.dp, end = 14.dp, bottom = 84.dp).fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp)).background(Color(0xF21E2823)).border(1.dp, Kx.w(.12f), RoundedCornerShape(18.dp)).padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("Отправка через $heldLeft с", style = KxType.style(14.sp, color = Kx.text2), modifier = Modifier.weight(1f))
+                Text("Отменить", style = KxType.style(14.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.clip(RoundedCornerShape(12.dp))
+                    .kxClick("Отменить отправку") { text = h.first; held = null }.padding(horizontal = 12.dp, vertical = 8.dp))
+            }
+        }
+        if (chatMenu) ChatMenuSheet(header, onDismiss = { chatMenu = false }, onOpen = onOpen)
         menuFor?.let { m ->
             MessageMenuSheet(
                 m, peerName = header.title, onDismiss = { menuFor = null },
@@ -231,10 +256,18 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 onEdit = { editing = m; replyTo = null; text = m.text; menuFor = null },
                 onReact = { store.react(chatId, m.id, it); menuFor = null },
                 onDelete = { forAll -> pending = PendingDelete(m, forAll); menuFor = null },
-                onForward = { menuFor = null; toast("Выберите чат для пересылки") },
+                onForward = { menuFor = null; if (demo) toast("Выберите чат для пересылки") else onOpen("Forward:$chatId:${m.id}") },
                 onPin = { store.pin(chatId, m.id, !m.pinned); menuFor = null },
                 onSave = { store.saveToFavorites(chatId, listOf(m.id)); menuFor = null; toast("Сохранено в Избранное") },
-                onSelect = { menuFor = null; toast("Выбрано: 1") },
+                onSelect = { menuFor = null; if (demo) toast("Выбрано: 1") else onOpen("MultiSelect:$chatId:${m.id}") },
+                onAllReactions = { menuFor = null; if (!demo) onOpen("ReactPicker:$chatId:${m.id}") },
+                more = if (demo) emptyList() else buildList {
+                    val group = header.kind == KxChatKind.Group
+                    add(Triple(Icons.Outlined.Info, "Сведения") { menuFor = null; onOpen("MsgInfo:$chatId:${m.id}") })
+                    if (m.out && group) add(Triple(Icons.Outlined.DoneAll, "Кто прочитал") { menuFor = null; onOpen("Seen:$chatId:${m.id}") })
+                    if (m.out && m.canEdit && (m.kind == KxMsgKind.Photo || m.kind == KxMsgKind.Video)) add(Triple(Icons.Outlined.ChangeCircle, "Заменить медиа") { menuFor = null; onOpen("ReplaceMedia:$chatId:${m.id}") })
+                    if (!m.out && header.kind != KxChatKind.Saved) add(Triple(Icons.Outlined.Flag, "Пожаловаться") { menuFor = null; onOpen("Report:$chatId:${m.id}") })
+                },
                 onTranslate = { store.translate(chatId, m.id, m.translation == null); menuFor = null },
                 onCopied = { menuFor = null; toast("Текст скопирован") },
                 canDeleteForAll = m.canDeleteForAll && header.kind != KxChatKind.Saved,

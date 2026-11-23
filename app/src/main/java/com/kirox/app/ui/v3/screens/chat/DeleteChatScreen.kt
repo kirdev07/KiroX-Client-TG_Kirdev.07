@@ -41,7 +41,8 @@ import kotlinx.coroutines.launch
 fun DeleteChatScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val chats = store.chats.filter { it.kind != KxChatKind.Saved }
-    var sel by remember { mutableStateOf<KxChat?>(null) }
+    // Opened from a chat's menu ("DeleteChat:<chatId>"): that chat is chosen already.
+    var sel by remember { mutableStateOf<KxChat?>(ctx.arg?.substringBefore(':')?.toLongOrNull()?.let { id -> chats.firstOrNull { it.id == id } }) }
     var opt by remember { mutableIntStateOf(0) }
     val gone = remember { mutableStateMapOf<Long, Boolean>() }
     var pend by remember { mutableStateOf<Pair<KxChat, Int>?>(null) }

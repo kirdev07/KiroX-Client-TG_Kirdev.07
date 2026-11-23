@@ -96,7 +96,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                 }
                 is KxRoute.Chat -> ChatScreen(store, route.chatId, onBack = { store.closeChat(route.chatId); nav.pop() },
                     onCall = { v -> val h = store.header(route.chatId); store.call(route.chatId, v); nav.push(KxRoute.Call(route.chatId, h.title, v, h.colorIndex)) },
-                    onProfile = { if (store.header(route.chatId).kind == com.kirox.app.ui.v3.model.KxChatKind.Private) nav.push(KxRoute.Profile(route.chatId)) else nav.push(KxRoute.Screen("Group")) },
+                    onProfile = { if (store.header(route.chatId).kind == com.kirox.app.ui.v3.model.KxChatKind.Private) nav.push(KxRoute.Profile(route.chatId)) else nav.push(KxRoute.Screen("Group:${route.chatId}")) },
                     onOpen = { nav.push(KxRoute.Screen(it)) })
                 is KxRoute.Profile -> ProfileScreen(store, route.chatId, onBack = { nav.pop() },
                     onCall = { v -> store.call(route.chatId, v); nav.push(KxRoute.Call(route.chatId, store.peer(route.chatId).name, v, store.peer(route.chatId).colorIndex)) },

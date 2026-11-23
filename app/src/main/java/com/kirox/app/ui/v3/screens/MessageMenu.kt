@@ -47,6 +47,9 @@ fun MessageMenuSheet(
     onReact: (String) -> Unit, onDelete: (forEveryone: Boolean) -> Unit,
     onForward: () -> Unit = onDismiss, onPin: () -> Unit = onDismiss, onSave: () -> Unit = onDismiss, onSelect: () -> Unit = onDismiss,
     onTranslate: () -> Unit = onDismiss, onCopied: () -> Unit = onDismiss, canDeleteForAll: Boolean = m.out,
+    onAllReactions: () -> Unit = {},
+    /** Extra actions opening the message's own boards (info, who read, replace media, remind…). */
+    more: List<Triple<ImageVector, String, () -> Unit>> = emptyList(),
 ) {
     var deleting by remember { mutableStateOf(false) }
     val clipboard = LocalClipboardManager.current
@@ -76,7 +79,7 @@ fun MessageMenuSheet(
                     Box(Modifier.graphicsLayer { alpha = pop.value.coerceIn(0f, 1f); translationY = (1 - pop.value) * 12.dp.toPx(); scaleX = .4f + .6f * pop.value; scaleY = scaleX }.size(40.dp).clip(CircleShape).background(if (mine) Kx.accent.copy(alpha = .25f) else Color.Transparent).kxClick("Реакция $e") { onReact(e) },
                         contentAlignment = Alignment.Center) { Text(e, style = KxType.style(24.sp)) }
                 }
-                Box(Modifier.size(34.dp).clip(CircleShape).background(Kx.fillHi).kxClick("Все реакции") {}, contentAlignment = Alignment.Center) {
+                Box(Modifier.size(34.dp).clip(CircleShape).background(Kx.fillHi).kxClick("Все реакции", onClick = onAllReactions), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.ExpandMore, null, Modifier.size(20.dp), tint = Kx.text)
                 }
             }
@@ -103,6 +106,7 @@ fun MessageMenuSheet(
                 if (m.canPin) MenuItem(Icons.Outlined.PushPin, if (m.pinned) "Открепить" else "Закрепить", onClick = onPin)
                 if (m.canEdit && m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Text) MenuItem(Icons.Outlined.Edit, "Изменить", onClick = onEdit)
                 MenuItem(Icons.Outlined.CheckCircle, "Выбрать", onClick = onSelect)
+                more.forEach { (ic, label, action) -> MenuItem(ic, label, onClick = action) }
                 if (m.canDeleteForMe || m.canDeleteForAll) MenuItem(Icons.Outlined.Delete, "Удалить…", danger = true) { deleting = true }
             }
         }
