@@ -155,6 +155,8 @@ class TelegramKxStore(
     )
 
     init {
+        // fixer-chat4 (compat): the v3 chat reads only the messages it reports as on screen (messagesOnScreen).
+        vm.messages.visibleOnly = true
         // wave5 (fixer-media): TDLib deleted a file from the phone (cache clean / storage optimizer) → drop the stale path,
         // so avatars/photos download again and save/open/play do not get a missing file.
         scope.launch {
@@ -285,8 +287,8 @@ class TelegramKxStore(
             com.kirox.app.telegram.TelegramWriteAccess.ReadOnly -> if (muted) KxComposer.Unmute else KxComposer.Mute
             com.kirox.app.telegram.TelegramWriteAccess.Restricted -> KxComposer.Restricted
             com.kirox.app.telegram.TelegramWriteAccess.Blocked -> KxComposer.Blocked
-            // KxComposer has no «ЗАПУСТИТЬ» yet (proposal in tg-tasks.md): writing /start works meanwhile.
-            com.kirox.app.telegram.TelegramWriteAccess.StartBot -> KxComposer.Write
+            // fixer-chat4: a bot without history shows «ЗАПУСТИТЬ» (sends /start on tap only).
+            com.kirox.app.telegram.TelegramWriteAccess.StartBot -> KxComposer.Start
         }
         val pinned = open?.pinned?.let { KxReply(it.senderName, it.serviceText ?: KxFormat.preview(com.kirox.app.telegram.hideSpoilerRanges(it.text, it.entities.filter { e -> e.type == TelegramEntityType.Spoiler }.map { e -> e.offset to e.length }), it.kind, it.media?.duration ?: 0), it.id) }
         return KxChatHeader(
@@ -737,6 +739,8 @@ class TelegramKxStore(
             // (the bubble's time reads «удалено · 12:30» until the chat screen draws its own mark from [KxMessage.deleted]).
             time = if (deleted) "удалено · " + KxFormat.messageTime(date) else KxFormat.messageTime(date),
             deleted = deleted,
+            effectId = effectId,
+            premiumAnimationFileId = premiumAnimation?.id ?: 0,
             kind = msgKind,
             status = when (delivery) {
                 TelegramDelivery.Sending -> KxOutState.Sending
@@ -1130,6 +1134,7 @@ class TelegramKxStore(
     override fun jumpTo(chatId: Long, messageId: Long) {
         if (history.chatId == chatId && history.loaded) { pendingJump = null; vm.messages.jumpTo(messageId) } else pendingJump = chatId to messageId
     }
+    override fun messagesOnScreen(chatId: Long, ids: Set<Long>) = vm.messages.reportVisible(chatId, ids)
     override fun jumpTarget(chatId: Long): Long = if (history.chatId == chatId) history.jumpTo else 0L
     override fun jumpDone() { vm.messages.jumpDone() }
     override fun editableText(chatId: Long, messageId: Long): String? = if (history.chatId == chatId) runCatching { vm.messages.editableText(messageId) }.getOrNull() else null
@@ -1708,6 +1713,7 @@ class TelegramKxStore(
     override suspend fun peekHistory(chatId: Long, limit: Int): List<KxMessage> = chat3.peekHistory(chatId, limit)
     override suspend fun linkPreview(text: String): KxLinkPreview? = chat3.linkPreview(text)
     override suspend fun messageAtDate(chatId: Long, unix: Int): Long? = chat3.messageAtDate(chatId, unix)
+    override suspend fun messageEffectFile(effectId: Long): Int? = chat3.messageEffectFile(effectId)
     override suspend fun messageDays(chatId: Long, year: Int, month: Int): Set<Int> = runCatching { chat3.messageDays(chatId, year, month) }.getOrDefault(emptySet())
     override suspend fun stickerSetByName(name: String): KxStickerSetInfo? = chat3.stickerSetByName(name)
     override suspend fun stickerSetInfo(setId: Long): KxStickerSetInfo? = chat3.stickerSetInfo(setId)

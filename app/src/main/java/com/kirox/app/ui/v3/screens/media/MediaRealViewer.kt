@@ -166,7 +166,7 @@ private fun RealViewerPages(ctx: KxScreenCtx, list: List<KxMediaItem>, start: In
                     // wave5: only a reaction the chat allows (❤ when it can); failures come back as the store error, not a fake «поставлена».
                     val allowed = ctx.store.availableReactions(m.chatId, m.messageId)
                     val emoji = if ("❤" in allowed || allowed.isEmpty() && ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) "❤" else allowed.firstOrNull()
-                    if (emoji == null) toast.show("Реакции в этом чате выключены") else { ctx.store.react(m.chatId, m.messageId, emoji); toast.show("Реакция $emoji") }
+                    if (emoji == null) toast.show("Реакции в этом чате выключены") else { ctx.store.react(m.chatId, m.messageId, emoji); toast.show(if (emoji.startsWith("ce:")) "Реакция поставлена" else "Реакция $emoji") }
                 }
                 RAct(Icons.AutoMirrored.Outlined.Chat, "Показать в чате") { ctx.store.jumpTo(m.chatId, m.messageId); ctx.back() }
                 RAct(Icons.AutoMirrored.Outlined.Forward, "Переслать", m.canForward) { ctx.open("Forward:${m.chatId}:${m.messageId}") }

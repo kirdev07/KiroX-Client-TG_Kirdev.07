@@ -77,6 +77,15 @@
 6. Правка сообщения теряет custom emoji и MentionName (markdown-путь).
 7. Кнопка «ЗАПУСТИТЬ» для ботов вместо ручного /start.
 
+**fixer-chat4 — сделано (по 60b2709, на телефоне не проверено):**
+1. Реакции `ce:<id>` — `ReactionPill` в ChatScreen (пузырь и альбом) рисует `CustomEmojiImage` + счётчик; тост во вьюере без сырого ключа.
+2. Custom emoji в тексте пузыря — inline-картинка (`customEmojiInline` + аннотация inlineContent в `bubbleText`), базовый эмодзи до загрузки.
+3. Удалённые (`m.deleted`): пузырь приглушён, иконка корзины у «удалено · время», нет свайпов/двойного тапа/реакций; в меню только Копировать / Перевести / Выбрать / «Убрать с экрана» (локально, без запроса в Telegram — `deleteIn` убирает сохранённые).
+4. Прочтение только видимых: `TelegramMessageRepository.visibleOnly` (включает TelegramKxStore) + `reportVisible` из LazyColumn (`store.messagesOnScreen`); до первого отчёта ничего не читается.
+5. Эффекты полученных сообщений (`effectId` → `GetMessageEffect` → анимация) и полноэкранная анимация Premium-стикера (`premiumAnimation`) — один раз при приходе, пока чат открыт (`ChatEffectsLayer`, TGS). Повтор по тапу на стикер не сделан.
+6. Правка сохраняет CustomEmoji и MentionName: `editedText` переносит их из исходного текста по совпадению подстроки (без дублей).
+7. Бот без истории: `KxComposer.Start` → кнопка «ЗАПУСТИТЬ», /start только по нажатию.
+
 **music / shield** — замечаний по совместимости нет.
 
 ## 4. Фишки kiroX (есть в коде и работают сегодня)

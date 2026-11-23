@@ -507,3 +507,55 @@ internal fun kxDropLastGrapheme(s: String): String {
     val prev = it.preceding(s.length)
     return if (prev == java.text.BreakIterator.DONE) "" else s.substring(0, prev)
 }
+
+// ---- Message effects / Premium sticker animations -----------------------------------------------------------------
+
+/**
+ * fixer-chat4 (compat): a message that arrives while the chat is open plays its message effect (Message.effectId) or,
+ * for a Premium sticker, its full-screen animation — once, over the chat, without touch handling. The history that was
+ * already there when the chat opened (and older pages) never plays.
+ */
+@Composable
+internal fun ChatEffectsLayer(store: KxStore, chatId: Long, messages: List<KxMessage>) {
+    var maxSeen by remember(chatId) { mutableLongStateOf(-1L) }
+    val queue = remember(chatId) { mutableStateListOf<Int>() }
+    val scope = rememberCoroutineScope()
+    val newest = messages.lastOrNull()?.id ?: 0L
+    LaunchedEffect(chatId, newest) {
+        if (messages.isEmpty()) return@LaunchedEffect
+        if (maxSeen < 0) { maxSeen = newest; return@LaunchedEffect }
+        val fresh = messages.filter { it.id > maxSeen && !it.out && !it.deleted }
+        maxSeen = maxOf(maxSeen, newest)
+        fresh.forEach { m ->
+            if (m.premiumAnimationFileId != 0) queue += m.premiumAnimationFileId
+            else if (m.effectId != 0L) scope.launch { runCatching { store.messageEffectFile(m.effectId) }.getOrNull()?.let { queue += it } }
+        }
+    }
+    val fileId = queue.firstOrNull() ?: return
+    key(fileId, queue.size) {
+        val path = store.fileState(fileId).path
+        LaunchedEffect(fileId) {
+            if (store.fileState(fileId).path == null) store.download(fileId)
+            // Not on the phone in 10 s (slow network): skip it rather than play it late.
+            kotlinx.coroutines.delay(10_000)
+            if (store.fileState(fileId).path == null) queue.remove(fileId)
+        }
+        if (path != null) EffectOnce(path) { queue.remove(fileId) }
+    }
+}
+
+/** A TGS (gzip Lottie) animation over the whole screen, played once; anything else is skipped. */
+@Composable
+private fun EffectOnce(path: String, onDone: () -> Unit) {
+    val json by produceState<String?>(null, path) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { java.util.zip.GZIPInputStream(java.io.File(path).inputStream()).bufferedReader().use { it.readText() } }.getOrNull()
+        }
+        if (value == null) onDone()
+    }
+    val source = json ?: return
+    val composition by com.airbnb.lottie.compose.rememberLottieComposition(com.airbnb.lottie.compose.LottieCompositionSpec.JsonString(source), cacheKey = "fx:$path")
+    val progress by com.airbnb.lottie.compose.animateLottieCompositionAsState(composition, iterations = 1)
+    LaunchedEffect(composition, progress) { if (composition != null && progress >= 1f) onDone() }
+    com.airbnb.lottie.compose.LottieAnimation(composition, { progress }, Modifier.fillMaxSize())
+}

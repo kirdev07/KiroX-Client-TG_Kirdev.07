@@ -77,8 +77,8 @@ fun MessageMenuSheet(
             Modifier.fillMaxWidth().pointerInput(onDismiss) { detectTapGestures { onDismiss() } }.verticalScroll(rememberScrollState()).padding(start = 14.dp, end = 14.dp, top = menuTop, bottom = 16.dp),
             horizontalAlignment = if (m.out) Alignment.End else Alignment.Start, verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Reactions strip
-            Row(
+            // Reactions strip (fixer-chat4: not for a message deleted on Telegram — it cannot get reactions any more)
+            if (!m.deleted) Row(
                 Modifier.graphicsLayer { alpha = strip.value.coerceIn(0f, 1f); translationY = (1 - strip.value) * 10.dp.toPx(); scaleX = .8f + .2f * strip.value; scaleY = scaleX }
                     .height(52.dp).shadow(30.dp, RoundedCornerShape(26.dp), spotColor = Color.Black.copy(alpha = .5f)).clip(RoundedCornerShape(26.dp))
                     .background(MenuGlass).border(1.dp, Kx.stroke, RoundedCornerShape(26.dp)).padding(horizontal = 8.dp),
@@ -124,16 +124,18 @@ fun MessageMenuSheet(
                     .shadow(40.dp, RoundedCornerShape(22.dp), spotColor = Color.Black.copy(alpha = .6f)).clip(RoundedCornerShape(22.dp))
                     .background(MenuGlass).border(1.dp, Kx.stroke, RoundedCornerShape(22.dp)).padding(6.dp)
             ) {
-                MenuItem(Icons.AutoMirrored.Outlined.Reply, "Ответить", onClick = onReply)
+                // fixer-chat4 (compat): a message deleted on Telegram (kept here) offers only copy / select / remove from screen.
+                if (!m.deleted) MenuItem(Icons.AutoMirrored.Outlined.Reply, "Ответить", onClick = onReply)
                 if (m.canCopy && m.text.isNotEmpty()) MenuItem(Icons.Outlined.ContentCopy, "Копировать") { clipboard.setText(AnnotatedString(m.text)); onCopied() }
                 if (m.text.isNotEmpty()) MenuItem(Icons.Outlined.Translate, if (m.translation != null) "Показать оригинал" else "Перевести", onClick = onTranslate)
-                if (m.canForward) MenuItem(Icons.AutoMirrored.Outlined.Forward, "Переслать", onClick = onForward)
-                if (m.canForward && !inSaved) MenuItem(Icons.Outlined.BookmarkBorder, "В Избранное", onClick = onSave)
-                if (m.canPin) MenuItem(Icons.Outlined.PushPin, if (m.pinned) "Открепить" else "Закрепить", onClick = onPin)
-                if (m.canEdit && m.kind in EditableKinds) MenuItem(Icons.Outlined.Edit, if (m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Text) "Изменить" else "Изменить подпись", onClick = onEdit)
+                if (m.canForward && !m.deleted) MenuItem(Icons.AutoMirrored.Outlined.Forward, "Переслать", onClick = onForward)
+                if (m.canForward && !inSaved && !m.deleted) MenuItem(Icons.Outlined.BookmarkBorder, "В Избранное", onClick = onSave)
+                if (m.canPin && !m.deleted) MenuItem(Icons.Outlined.PushPin, if (m.pinned) "Открепить" else "Закрепить", onClick = onPin)
+                if (m.canEdit && !m.deleted && m.kind in EditableKinds) MenuItem(Icons.Outlined.Edit, if (m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Text) "Изменить" else "Изменить подпись", onClick = onEdit)
                 MenuItem(Icons.Outlined.CheckCircle, "Выбрать", onClick = onSelect)
                 more.forEach { (ic, label, action) -> MenuItem(ic, label, onClick = action) }
-                if (m.canDeleteForMe || m.canDeleteForAll) MenuItem(Icons.Outlined.Delete, "Удалить…", danger = true) { deleting = true }
+                if (m.deleted) MenuItem(Icons.Outlined.Delete, "Убрать с экрана", danger = true) { onDelete(false) }
+                else if (m.canDeleteForMe || m.canDeleteForAll) MenuItem(Icons.Outlined.Delete, "Удалить…", danger = true) { deleting = true }
             }
         }
         if (deleting) DeleteSheet(m, peerName, canDeleteForAll, onCancel = onDismiss, onDelete = onDelete, modifier = Modifier.align(Alignment.BottomCenter), canDeleteForMe = m.canDeleteForMe, isGroup = isGroup, inSaved = inSaved)

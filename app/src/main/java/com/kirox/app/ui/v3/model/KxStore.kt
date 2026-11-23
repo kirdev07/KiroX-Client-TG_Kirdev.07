@@ -198,6 +198,8 @@ interface KxStore {
     fun jumpTo(chatId: Long, messageId: Long) {}
     /** wave5: message the open chat [chatId] should scroll to now (loaded), 0 = none; the screen calls [jumpDone] after scrolling. */
     fun jumpTarget(chatId: Long): Long = 0
+    /** fixer-chat4 (compat): ids of [chatId]'s messages on screen now — only these are marked read (as Telegram's apps do). */
+    fun messagesOnScreen(chatId: Long, ids: Set<Long>) {}
     fun jumpDone() {}
     /** wave5: the chat's synced Telegram draft once its history is loaded (null = not known yet); the composer restores it once. */
     fun chatDraft(chatId: Long): String? = null
@@ -659,6 +661,8 @@ interface KxStore {
     suspend fun linkPreview(text: String): KxLinkPreview? = null
     /** The last message of the local day starting at [unix]; null when nothing was sent that day. */
     suspend fun messageAtDate(chatId: Long, unix: Int): Long? = null
+    /** fixer-chat4: file id of the full-screen animation of message effect [effectId] (null = none / unknown). */
+    suspend fun messageEffectFile(effectId: Long): Int? = null
     /** fixer-chat4: days (1..31) of [year]-[month] on which the chat has messages (JumpDate highlights them). */
     suspend fun messageDays(chatId: Long, year: Int, month: Int): Set<Int> = emptySet()
     /** Sticker set by its short name (t.me/addstickers/<name>) or id. */

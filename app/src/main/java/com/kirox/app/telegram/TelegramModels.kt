@@ -199,7 +199,11 @@ data class TelegramMessage(
     /** Photo/video/GIF sent «под спойлером»: hidden until tapped. Read by the v3 UI. */
     val hasSpoiler: Boolean = false,
     /** View-once / self-destructing media (selfDestructType, secret photo/video): opened once, kept out of galleries. Read by the v3 UI. */
-    val selfDestruct: Boolean = false
+    val selfDestruct: Boolean = false,
+    /** fixer-chat4: message effect (Message.effectId) to play once when it arrives; 0 = none. Read by the v3 UI. */
+    val effectId: Long = 0,
+    /** fixer-chat4: a Premium sticker's full-screen animation (StickerFullTypeRegular.premiumAnimation). Read by the v3 UI. */
+    val premiumAnimation: TelegramFileRef? = null,
 )
 
 /** A poll or quiz in a message. */

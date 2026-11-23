@@ -196,7 +196,13 @@ internal class TelegramKxMusic(
     private fun KxTrack.item() = PlaylistItem(chatId, messageId, title, performer, duration)
     private fun remember(t: KxTrack) { if (t.fileId != 0) resolved[t.chatId to t.messageId] = t }
 
-    override fun toggleMine(track: KxTrack) { remember(track); Playlists.toggleLiked(track.item()) }
+    override fun toggleMine(track: KxTrack) {
+        remember(track)
+        val adding = !isMine(track.chatId, track.messageId)
+        Playlists.toggleLiked(track.item())
+        // «Скачивать «Моя музыка»»: a liked track goes offline by itself (Wi-Fi only unless allowed).
+        if (adding && offline.autoLiked && (!offline.wifiOnly || offline.unmetered()) && offlineState(track.chatId, track.messageId) == 0) downloadOffline(listOf(track))
+    }
     override fun createPlaylist(name: String): Long = Playlists.create(name)
     override fun renamePlaylist(id: Long, name: String) = Playlists.rename(id, name)
     override fun deletePlaylist(id: Long) = Playlists.delete(id)
@@ -204,23 +210,88 @@ internal class TelegramKxMusic(
     override fun removeFromPlaylist(id: Long, chatId: Long, messageId: Long) = Playlists.remove(id, chatId, messageId)
     override fun movePlaylistItem(id: Long, from: Int, to: Int) = Playlists.moveTo(id, from, to)
 
+    /** Tracks with their file ids: offline copies first (no network), else looked up by message; gone ones dropped. */
+    private suspend fun resolveAll(tracks: List<KxTrack>): List<KxTrack> {
+        val need = tracks.filter { it.fileId == 0 && offline.entry(it.chatId, it.messageId) == null && (it.chatId to it.messageId) !in missing && (it.chatId to it.messageId) !in resolved }
+        if (need.isNotEmpty()) {
+            val gate = Semaphore(4)
+            need.map { t -> scope.async { gate.withPermit { t to orNull { services.music.get(t.chatId, t.messageId) } } } }.awaitAll().forEach { (t, a) ->
+                if (a == null) missing += t.chatId to t.messageId else resolved[t.chatId to t.messageId] = a.kx()
+            }
+        }
+        return tracks.mapNotNull { t -> if (t.fileId != 0) t else resolved[t.chatId to t.messageId] ?: offline.entry(t.chatId, t.messageId)?.kx() }
+    }
+
     override fun play(tracks: List<KxTrack>, index: Int, source: String, shuffle: Boolean) {
         if (tracks.isEmpty()) return
         val tapped = tracks.getOrNull(index)
         scope.launch {
-            val need = tracks.filter { it.fileId == 0 && (it.chatId to it.messageId) !in missing }
-            if (need.isNotEmpty()) {
-                val gate = Semaphore(4)
-                need.map { t -> async { gate.withPermit { t to orNull { services.music.get(t.chatId, t.messageId) } } } }.awaitAll().forEach { (t, a) ->
-                    if (a == null) missing += t.chatId to t.messageId else resolved[t.chatId to t.messageId] = a.kx()
-                }
-            }
-            val list = tracks.mapNotNull { t -> if (t.fileId != 0) t else resolved[t.chatId to t.messageId] }
+            val list = resolveAll(tracks)
             if (list.isEmpty()) return@launch
             val at = tapped?.let { tp -> list.indexOfFirst { it.chatId == tp.chatId && it.messageId == tp.messageId } }?.takeIf { it >= 0 }
                 ?: if (shuffle) list.indices.random() else 0
             if (shuffle && !VoicePlayer.shuffle.value) VoicePlayer.toggleShuffle()
             media.playTracks(list, at, source)
+        }
+    }
+
+    // ---- Offline ----
+    private val offline by lazy { com.kirox.app.media.music.OfflineMusic.get(app) }
+    private var offlineEntries by mutableStateOf<List<com.kirox.app.media.music.OfflineEntry>>(emptyList())
+    private var offlineQueue by mutableStateOf(com.kirox.app.media.music.DownloadQueue())
+    private var offlineSettings by mutableStateOf(false to true)
+
+    private fun com.kirox.app.media.music.OfflineEntry.kx() = resolved[chatId to messageId]?.copy(fileId = fileId)
+        ?: KxTrack(chatId, messageId, title, performer, chatTitle, duration, fileId, size)
+    private fun KxTrack.request() = com.kirox.app.media.music.OfflineRequest(chatId, messageId, fileId, title, performer, duration, size, chatTitle)
+
+    override fun offlineState(chatId: Long, messageId: Long): Int {
+        if (offlineEntries.any { it.chatId == chatId && it.messageId == messageId }) return 4
+        return when (offlineQueue.state(chatId to messageId)?.state) {
+            com.kirox.app.media.music.DlState.Queued -> 1
+            com.kirox.app.media.music.DlState.Running -> 2
+            com.kirox.app.media.music.DlState.Paused -> 3
+            com.kirox.app.media.music.DlState.Failed -> 5
+            com.kirox.app.media.music.DlState.Done -> 4
+            null -> 0
+        }
+    }
+    override fun offlineFraction(chatId: Long, messageId: Long): Float =
+        offlineQueue.state(chatId to messageId)?.let { if (it.size > 0) (it.downloaded.toFloat() / it.size).coerceIn(0f, 1f) else 0f } ?: 0f
+    override val offlineTracks: List<KxTrack> get() = offlineEntries.sortedByDescending { it.addedAt }.map { it.kx() }
+    override val offlineBytes: Long get() = offlineEntries.sumOf { it.size }
+    override val offlineProgress: com.kirox.app.ui.v3.model.KxOfflineProgress get() = offlineQueue.let { q ->
+        com.kirox.app.ui.v3.model.KxOfflineProgress(q.items.size, q.done, q.failed, q.totalBytes, q.downloadedBytes, q.fraction, q.paused, q.busy)
+    }
+    override fun downloadOffline(tracks: List<KxTrack>) {
+        scope.launch { offline.download(resolveAll(tracks).filter { it.fileId != 0 }.map { it.request() }) }
+    }
+    override fun pauseOffline(paused: Boolean) = if (paused) offline.pauseAll() else offline.resumeAll()
+    override fun cancelOffline(chatId: Long, messageId: Long) = offline.cancel(chatId to messageId)
+    override fun cancelAllOffline() = offline.cancelAll()
+    override fun removeOffline(chatId: Long, messageId: Long) = offline.remove(chatId, messageId)
+    override fun removeAllOffline() = offline.removeAll()
+    override val autoDownloadLiked: Boolean get() = offlineSettings.first
+    override fun setAutoDownloadLiked(on: Boolean) { offline.autoLiked = on; if (on) autoSync() }
+    override val offlineWifiOnly: Boolean get() = offlineSettings.second
+    override fun setOfflineWifiOnly(on: Boolean) { offline.wifiOnly = on; if (!on) autoSync() }
+
+    /** «Моя музыка» → offline, when the setting is on and the network allows it. */
+    private fun autoSync() {
+        if (!offline.autoLiked || (offline.wifiOnly && !offline.unmetered())) return
+        val liked = Playlists.get(Playlists.LIKED)?.items.orEmpty().map { it.kx() }.filter { offlineState(it.chatId, it.messageId) == 0 }
+        if (liked.isNotEmpty()) downloadOffline(liked)
+    }
+
+    override suspend fun exportToPhone(tracks: List<KxTrack>, folder: String?, progress: (Int, Int) -> Unit): String {
+        val list = resolveAll(tracks)
+        if (list.isEmpty()) return "Нечего сохранять"
+        val r = offline.exportToPhone(list.map { it.request() }, folder, folder ?: "kiroX", progress)
+        val where = com.kirox.app.media.music.MusicNaming.folder(folder).trimEnd('/').replace("Music/", "Музыка/")
+        return when {
+            r.saved == 0 && r.skipped > 0 && r.failed == 0 -> "Уже есть в $where"
+            r.saved == 0 -> "Не получилось сохранить"
+            else -> "Сохранено в $where" + (if (r.skipped > 0) " · уже были: ${r.skipped}" else "") + (if (r.failed > 0) " · ошибок: ${r.failed}" else "")
         }
     }
 
@@ -277,6 +348,10 @@ internal class TelegramKxMusic(
         coverFileId.takeIf { it != 0 }?.let { TelegramFileRef(it, null) })
 
     fun start() {
+        scope.launch { offline.entries.collect { offlineEntries = it } }
+        scope.launch { offline.queue.collect { offlineQueue = it } }
+        scope.launch { offline.settings.collect { offlineSettings = it } }
+        scope.launch { kotlinx.coroutines.delay(8_000); autoSync() }
         scope.launch { Playlists.all.collect { all -> playlistState = all; all.forEach { resolveItems(it.items) } } }
         scope.launch { VoicePlayer.speed.collect { speedNow = it } }
         scope.launch { VoicePlayer.sleepAt.collect { sleepAtNow = it } }
@@ -293,7 +368,7 @@ internal class TelegramKxMusic(
             val gate = Semaphore(6)
             val found = session.tracks.map { t -> async { gate.withPermit { t to orNull { services.music.get(t.chatId, t.messageId) } } } }.awaitAll()
             val current = session.tracks[session.index]
-            val list = found.mapNotNull { (_, a) -> a?.kx() }
+            val list = found.mapNotNull { (t, a) -> a?.kx() ?: offline.entry(t.chatId, t.messageId)?.kx() }
             val at = list.indexOfFirst { it.chatId == current.chatId && it.messageId == current.messageId }
             if (at < 0) return@launch
             media.rememberTracks(list)

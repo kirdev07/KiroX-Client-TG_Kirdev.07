@@ -208,6 +208,9 @@ object VoicePlayer {
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
+    /** Local copy kept for offline listening by (chat id, message id); set by media/music/OfflineMusic. */
+    @Volatile var offlinePath: ((Long, Long) -> String?)? = null
+
     /** A queue restored from the last run, not loaded into the player yet: (file id, position). */
     private var pending: Pair<Int, Long>? = null
 
@@ -445,8 +448,10 @@ object VoicePlayer {
                     setArtwork(key, bytes)
                 }
             }
+            // An offline copy (Музыка → «Скачанные») plays without network and without TDLib.
+            val offline = offlinePath?.invoke(track.chatId, track.messageId)
             val state = files.state(track.file)
-            val path = state.value.path
+            val path = offline ?: state.value.path
             if (path != null) {
                 val cover = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { embeddedCover(path) }
                 if (cover != null) _cover.value = android.graphics.BitmapFactory.decodeByteArray(cover, 0, cover.size)
@@ -471,7 +476,7 @@ object VoicePlayer {
     /** Downloads the track that plays next, at a low priority (never ahead of what plays now). */
     private fun preloadNext(files: com.kirox.app.telegram.TelegramFileRepository) {
         val q = mq()
-        q.upcoming(_repeat.value, 1).forEach { i -> q.items.getOrNull(i)?.let { files.download(it.file, PRELOAD_PRIORITY) } }
+        q.upcoming(_repeat.value, 1).forEach { i -> q.items.getOrNull(i)?.let { if (offlinePath?.invoke(it.chatId, it.messageId) == null) files.download(it.file, PRELOAD_PRIORITY) } }
     }
     private const val PRELOAD_PRIORITY = 2
 

@@ -21,6 +21,12 @@ class TelegramMessageRepository(
     private var lastReadOutbox = 0L
     private var publishScheduled = false
     private val viewed = HashSet<Long>()
+    /**
+     * fixer-chat4 (compat): when true (v3 UI), only messages the chat screen reports as on screen ([reportVisible]) are read;
+     * until the first report nothing is read. The old UI leaves it false (the whole loaded page is read, as before).
+     */
+    @Volatile var visibleOnly = false
+    private var visibleIds: Set<Long> = emptySet()
     /** Messages of the open chat deleted by their author but kept on screen («Сохранять удалённые»). */
     private val deletedIds = HashSet<Long>()
     /** Deletions made from kiroX: they disappear at once and are never kept. */
@@ -193,7 +199,7 @@ class TelegramMessageRepository(
     private fun openLoaded(id: Long) {
         if (chatId != 0L) client.send(TdApi.CloseChat(chatId))
         chatId = id
-        messages.clear(); viewed.clear(); deletedIds.clear()
+        messages.clear(); viewed.clear(); visibleIds = emptySet(); deletedIds.clear()
         loadingOlder = false; reachedStart = false
         pinnedIds.clear(); pinnedCache.clear(); jumpTarget = 0; jumpPagesLeft = 0
         lastReadOutbox = chats.chat(id)?.lastReadOutboxMessageId ?: 0
@@ -272,7 +278,7 @@ class TelegramMessageRepository(
         // the chat screen going away during the transition must not close it.
         if (chatId != id || topic != null) return@post
         client.send(TdApi.CloseChat(id))
-        chatId = 0; messages.clear(); viewed.clear(); deletedIds.clear()
+        chatId = 0; messages.clear(); viewed.clear(); visibleIds = emptySet(); deletedIds.clear()
         _history.value = TelegramChatHistory()
     }
 
@@ -283,7 +289,7 @@ class TelegramMessageRepository(
         // After a background pause chatId is 0 and the thread waits in resumeChatId: drop that too.
         if (chatId != 0L) client.send(TdApi.CloseChat(chatId))
         chatId = 0; resumeChatId = 0; topic = null; threadTitle = null; threadRoot = 0; threadDraft = ""
-        messages.clear(); viewed.clear(); deletedIds.clear(); pinnedIds.clear(); pinnedCache.clear()
+        messages.clear(); viewed.clear(); visibleIds = emptySet(); deletedIds.clear(); pinnedIds.clear(); pinnedCache.clear()
         _history.value = TelegramChatHistory()
     }
 
@@ -416,8 +422,43 @@ class TelegramMessageRepository(
 
     /** Edits a text message, or the caption of a media message. */
     fun edit(messageId: Long, text: String) = act { id ->
-        if (messages[messageId]?.content is TdApi.MessageText) TdApi.EditMessageText(id, messageId, null, inputText(text))
-        else TdApi.EditMessageCaption(id, messageId, null, formatted(text), false)
+        val ft = editedText(messages[messageId]?.content, text)
+        if (messages[messageId]?.content is TdApi.MessageText) TdApi.EditMessageText(id, messageId, null, TdApi.InputMessageText(ft, null, true))
+        else TdApi.EditMessageCaption(id, messageId, null, ft, false)
+    }
+
+    /**
+     * fixer-chat4 (compat): the edited markdown [text] as formatted text, with the original's custom emoji and name
+     * mentions (markdown cannot carry them) put back where the same characters are found again, in order.
+     */
+    private fun editedText(content: TdApi.MessageContent?, text: String): TdApi.FormattedText {
+        val parsed = formatted(text)
+        val old = captionOf(content) ?: return parsed
+        val keep = old.entities.filter { it.type is TdApi.TextEntityTypeCustomEmoji || it.type is TdApi.TextEntityTypeMentionName }
+        if (keep.isEmpty()) return parsed
+        val added = ArrayList<TdApi.TextEntity>()
+        var from = 0
+        keep.sortedBy { it.offset }.forEach { e ->
+            if (e.offset < 0 || e.offset + e.length > old.text.length) return@forEach
+            val part = old.text.substring(e.offset, e.offset + e.length)
+            val at = parsed.text.indexOf(part, from)
+            if (at < 0) return@forEach
+            // Markdown may already have brought it back (a tg://user link → name mention): never add a duplicate.
+            val dup = parsed.entities.any { it.type.javaClass == e.type.javaClass && it.offset < at + e.length && at < it.offset + it.length }
+            if (!dup) added += TdApi.TextEntity(at, e.length, e.type)
+            from = at + e.length
+        }
+        return TdApi.FormattedText(parsed.text, (parsed.entities.toList() + added).sortedBy { it.offset }.toTypedArray())
+    }
+
+    private fun captionOf(content: TdApi.MessageContent?): TdApi.FormattedText? = when (content) {
+        is TdApi.MessageText -> content.text
+        is TdApi.MessagePhoto -> content.caption
+        is TdApi.MessageVideo -> content.caption
+        is TdApi.MessageDocument -> content.caption
+        is TdApi.MessageAnimation -> content.caption
+        is TdApi.MessageAudio -> content.caption
+        else -> null
     }
 
     /** Sends 2–10 photos and videos as one album; [items] are local paths with video metadata or null for photos. */
@@ -457,14 +498,20 @@ class TelegramMessageRepository(
 
     fun editIn(chatId: Long, messageId: Long, text: String) = client.post {
         val loaded = if (chatId == this.chatId) messages[messageId] else null
-        val request = if (loaded != null && loaded.content !is TdApi.MessageText) TdApi.EditMessageCaption(chatId, messageId, null, formatted(text), false)
-            else TdApi.EditMessageText(chatId, messageId, null, inputText(text))
+        val ft = editedText(loaded?.content, text)
+        val request = if (loaded != null && loaded.content !is TdApi.MessageText) TdApi.EditMessageCaption(chatId, messageId, null, ft, false)
+            else TdApi.EditMessageText(chatId, messageId, null, TdApi.InputMessageText(ft, null, true))
         client.send(request) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
     }
 
     fun deleteIn(chatId: Long, messageIds: List<Long>, forEveryone: Boolean) = client.post {
-        if (chatId == this.chatId) ownDeletes += messageIds
-        client.send(TdApi.DeleteMessages(chatId, messageIds.toLongArray(), forEveryone)) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
+        // fixer-chat4: messages already deleted on Telegram (kept here with a mark) are only dropped from the screen.
+        val kept = if (chatId == this.chatId) messageIds.filter { it in deletedIds } else emptyList()
+        if (kept.isNotEmpty()) { kept.forEach { messages.remove(it); deletedIds.remove(it) }; schedulePublish() }
+        val rest = messageIds - kept.toSet()
+        if (rest.isEmpty()) return@post
+        if (chatId == this.chatId) ownDeletes += rest
+        client.send(TdApi.DeleteMessages(chatId, rest.toLongArray(), forEveryone)) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
     }
 
     /** Voice note to [chatId] (any chat; the open one keeps its thread/topic). [waveform]: Telegram's packed 5-bit bars. */
@@ -752,7 +799,7 @@ class TelegramMessageRepository(
                 // A thread or topic stays as it was (topic, title, root, draft) and reopens as itself.
                 is TdApi.AuthorizationStateClosed -> {
                     resumeChatId = if (client.paused) chatId else 0
-                    chatId = 0; messages.clear(); viewed.clear(); deletedIds.clear()
+                    chatId = 0; messages.clear(); viewed.clear(); visibleIds = emptySet(); deletedIds.clear()
                     if (resumeChatId == 0L) {
                         topic = null; threadTitle = null; threadRoot = 0; threadDraft = ""
                         _history.value = TelegramChatHistory()
@@ -820,13 +867,21 @@ class TelegramMessageRepository(
         markViewed(id)
     }
 
+    /** fixer-chat4: the v3 chat screen reports which messages of [chatId] are on screen now; those are read (see [visibleOnly]). */
+    fun reportVisible(chatId: Long, ids: Set<Long>) = client.post {
+        if (chatId != this.chatId || chatId == 0L) return@post
+        visibleIds = ids
+        markViewed(chatId)
+    }
+
     /** Opening a chat reads it: report newly shown incoming messages once. Not in ghost mode. */
     private fun markViewed(id: Long) {
         // Nothing is remembered as viewed either, so leaving ghost mode reads them on the next look.
         if (com.kirox.app.settings.KiroxTweaks.current.ghostRead) return
         // compat: as Telegram's apps do, nothing is read while kiroX is not on screen (a chat left open in the background).
         if (!com.kirox.app.notify.AppVisibility.visible) return
-        val fresh = messages.values.filter { !it.isOutgoing && viewed.add(it.id) }.map { it.id }
+        val seen = visibleIds
+        val fresh = messages.values.filter { !it.isOutgoing && (!visibleOnly || it.id in seen) && viewed.add(it.id) }.map { it.id }
         if (fresh.isNotEmpty()) client.send(TdApi.ViewMessages(id, fresh.toLongArray(), when (topic) {
             is TdApi.MessageTopicThread -> TdApi.MessageSourceMessageThreadHistory()
             is TdApi.MessageTopicForum -> TdApi.MessageSourceForumTopicHistory()
@@ -894,7 +949,9 @@ class TelegramMessageRepository(
             fileName = (content as? TdApi.MessageDocument)?.document?.fileName ?: (content as? TdApi.MessageAudio)?.audio?.fileName,
             // Rough client-side hint; TDLib enforces the real rules and reports errors.
             canEdit = isOutgoing && sendingState == null && (content is TdApi.MessageText || content is TdApi.MessagePhoto || content is TdApi.MessageDocument || content is TdApi.MessageVideo || content is TdApi.MessageAnimation || content is TdApi.MessageAudio),
-            serviceText = serviceTextOf(this)
+            serviceText = serviceTextOf(this),
+            effectId = effectId,
+            premiumAnimation = ((content as? TdApi.MessageSticker)?.sticker?.fullType as? TdApi.StickerFullTypeRegular)?.premiumAnimation?.toRef(),
         )
     }
 

@@ -146,10 +146,14 @@ data class KxMessage(
     val viewOnce: Boolean = false,
     /** compat: deleted by its author, kept only on this phone («Сохранять удалённые»); not on Telegram any more. */
     val deleted: Boolean = false,
+    /** fixer-chat4: message effect id (plays once when the message arrives), 0 = none. */
+    val effectId: Long = 0,
+    /** fixer-chat4: file id of a Premium sticker's full-screen animation, 0 = none. */
+    val premiumAnimationFileId: Int = 0,
 )
 
 /** What the bottom of a chat shows instead of / as the composer. */
-enum class KxComposer { Write, Join, Mute, Unmute, Blocked, Restricted }
+enum class KxComposer { Write, Join, Mute, Unmute, Blocked, Restricted, /** fixer-chat4: a bot never started — «ЗАПУСТИТЬ» sends /start. */ Start }
 
 @Immutable
 data class KxChatHeader(

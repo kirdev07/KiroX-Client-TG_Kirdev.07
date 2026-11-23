@@ -262,6 +262,16 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
     // Follow the newest message only when it is ours or the list already sits at the bottom (older pages and
     // incoming messages while reading further up must not yank the list).
     val newest = messages.lastOrNull()
+    // fixer-chat4 (compat): only the messages on screen are read (Telegram's apps do the same), reported as the list moves.
+    val albumsNow by rememberUpdatedState(albums)
+    if (!demo) LaunchedEffect(chatId, listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.mapNotNull { it.key as? Long } }
+            .collect { keys ->
+                val ids = HashSet<Long>()
+                keys.forEach { k -> albumsNow[k]?.forEach { ids += it.id } ?: ids.add(k) }
+                store.messagesOnScreen(chatId, ids)
+            }
+    }
     LaunchedEffect(newest?.id) { if (newest != null && (newest.out || listState.firstVisibleItemIndex <= 1)) listState.animateScrollToItem(0) }
     var hint by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(hint) { if (hint != null) { delay(1800); hint = null } }
@@ -376,14 +386,15 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                             if (isSel) Icon(Icons.Rounded.Check, null, Modifier.size(16.dp), tint = Kx.onAccent)
                         }
                     }
-                    Box(Modifier.weight(1f)) {
+                    // fixer-chat4 (compat): a message deleted on Telegram but kept here is muted and has no reply / forward gestures.
+                    Box(Modifier.weight(1f).then(if (m.deleted) Modifier.graphicsLayer { alpha = .6f } else Modifier)) {
                     KxMessageSwipe(
-                        onLeft = if (service) null else when (KxGestureActions.left(store)) {
+                        onLeft = if (service || m.deleted) null else when (KxGestureActions.left(store)) {
                             1 -> { { if (demo) toast("Выберите чат для пересылки") else forwardIds = listOf(m.id) } }
                             2 -> { { store.saveToFavorites(chatId, listOf(m.id)); toast("Сохранено в Избранное") } }
                             else -> { { replyTo = m; editing = null } }
                         },
-                        onRight = if (service) null else when (KxGestureActions.right(store)) { 0 -> onBack; 1 -> { { replyTo = m; editing = null } }; else -> null },
+                        onRight = if (service || m.deleted) null else when (KxGestureActions.right(store)) { 0 -> onBack; 1 -> { { replyTo = m; editing = null } }; else -> null },
                     ) {
                         KxFilteredMessage(store, header.kind, m) {
                             if (album != null) AlbumBubble(album, onLongPress = { a -> when (KxGestureActions.hold(store)) { 1 -> rowIds.forEach { id -> if (id !in selected) selected.add(id) }; else -> menuFor = a } },
@@ -392,7 +403,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                                 onLongPress = { when (KxGestureActions.hold(store)) { 1 -> startSelect(m); 2 -> store.translate(chatId, m.id, m.translation == null); else -> menuFor = m } },
                                 onReact = { react(m.id, it) },
                                 onReply = { replyTo = m; editing = null }, onMenu = { menuFor = m },
-                                onDoubleTap = when (KxGestureActions.double(store)) {
+                                onDoubleTap = if (m.deleted) null else when (KxGestureActions.double(store)) {
                                     1 -> { { react(m.id, "❤") } }
                                     2 -> { { replyTo = m; editing = null } }
                                     3 -> { { clipboard.setText(androidx.compose.ui.text.AnnotatedString(m.text)); toast("Текст скопирован") } }
@@ -512,6 +523,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
             else -> ChannelBar(header.composer, Modifier.align(Alignment.BottomCenter)) {
                 if (header.composer == KxComposer.Mute || header.composer == KxComposer.Unmute) store.setMuted(chatId, header.composer == KxComposer.Mute)
                 else if (header.composer == KxComposer.Join) store.joinChat(chatId)
+                else if (header.composer == KxComposer.Start) store.send(chatId, "/start")
             }
         }
         if (emojiPanel && !selecting && header.composer == KxComposer.Write) Box(Modifier.align(Alignment.BottomCenter)) {
@@ -582,7 +594,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 onSave = { store.saveToFavorites(chatId, listOf(m.id)); menuFor = null; toast("Сохранено в Избранное") },
                 onSelect = { startSelect(m) },
                 onAllReactions = { menuFor = null; if (demo) onOpen("ReactPicker") else reactFor = m },
-                more = if (demo) emptyList() else buildList {
+                more = if (demo || m.deleted) emptyList() else buildList {
                     val group = header.kind == KxChatKind.Group
                     // qa-real: «Сведения» opens as a sheet over this chat.
                     add(Triple(Icons.Outlined.Info, "Сведения") { menuFor = null; infoFor = m })
@@ -661,6 +673,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
         }
         // features: «/» templates, remind / note / templates sheets, on-device questions, jump from a bookmark (features/KxFeatureChat).
         if (!selecting) com.kirox.app.ui.v3.features.KxFeatureChatLayer(store, chatId, header, text, { text = it; if (editing == null) store.setDraft(chatId, it) }, replyTo?.takeIf { !it.out }?.sender, onOpen) { toast(it) }
+        if (!demo) ChatEffectsLayer(store, chatId, messages)
         linkAsk?.let { c -> KxConfirmDialog(c) { linkAsk = null } }
         fileOpener.Dialog()
         shieldGate.Overlay() // shield
@@ -937,10 +950,7 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
         if (m.buttons.isNotEmpty()) InlineButtons(m)
         if (m.reactions.isNotEmpty()) Row(Modifier.padding(top = 1.dp, bottom = 2.dp, start = 6.dp, end = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             m.reactions.forEach { r ->
-                Text("${r.emoji} ${r.count}", style = KxType.style(13.sp),
-                    modifier = Modifier.clip(RoundedCornerShape(11.dp))
-                        .then(if (r.mine) Modifier.background(Kx.accent.copy(alpha = .16f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(11.dp)) else Modifier.background(Kx.fill))
-                        .kxClick("${r.emoji} ${r.count}") { onReact(r.emoji) }.padding(horizontal = 8.dp, vertical = 2.dp))
+                ReactionPill(r, onReact)
             }
         }
     }
@@ -971,6 +981,22 @@ private fun ChecklistBlock(m: KxMessage, modifier: Modifier) {
             Text("${tasks.count { it.first }} из ${tasks.size}", style = KxType.style(12.sp, color = sub), modifier = Modifier.weight(1f))
             MetaText(m, sub)
         }
+    }
+}
+
+/**
+ * fixer-chat4 (compat): a reaction under a bubble. Custom-emoji reactions («ce:<id>») are drawn as their picture
+ * (free accounts see them in groups too), never as the raw key.
+ */
+@Composable
+private fun ReactionPill(r: KxReaction, onReact: (String) -> Unit) {
+    val ce = if (r.emoji.startsWith("ce:")) r.emoji.removePrefix("ce:").toLongOrNull() else null
+    Row(Modifier.clip(RoundedCornerShape(11.dp))
+        .then(if (r.mine) Modifier.background(Kx.accent.copy(alpha = .16f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(11.dp)) else Modifier.background(Kx.fill))
+        .kxClick(if (ce != null) "Реакция ${r.count}" else "${r.emoji} ${r.count}") { onReact(r.emoji) }.padding(horizontal = 8.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (ce != null) com.kirox.app.ui.components.CustomEmojiImage(ce, 17.dp) else Text(r.emoji, style = KxType.style(13.sp))
+        Text("${r.count}", style = KxType.style(13.sp))
     }
 }
 
@@ -1030,10 +1056,7 @@ internal fun AlbumBubble(items: List<KxMessage>, onLongPress: (KxMessage) -> Uni
         val reactions = items.flatMap { it.reactions }
         if (reactions.isNotEmpty()) Row(Modifier.padding(top = 1.dp, bottom = 2.dp, start = 6.dp, end = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             reactions.forEach { r ->
-                Text("${r.emoji} ${r.count}", style = KxType.style(13.sp),
-                    modifier = Modifier.clip(RoundedCornerShape(11.dp))
-                        .then(if (r.mine) Modifier.background(Kx.accent.copy(alpha = .16f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(11.dp)) else Modifier.background(Kx.fill))
-                        .kxClick("${r.emoji} ${r.count}") { onReact(r.emoji) }.padding(horizontal = 8.dp, vertical = 2.dp))
+                ReactionPill(r, onReact)
             }
         }
     }
@@ -1050,14 +1073,16 @@ private fun TextWithMeta(m: KxMessage, modifier: Modifier) {
             val body = if (m.translation != null || m.entities.isEmpty()) androidx.compose.ui.text.AnnotatedString(m.translation ?: m.text)
                 else remember(m.text, m.entities, m.out, onLink, spoilersShown) { bubbleText(m, onLink, hideSpoilers = !spoilersShown) }
             val g = LocalBubbleGestures.current
+            val emojiSize = (lk.textSp * 1.25f)
+            val inline = remember(m.text, m.entities, emojiSize) { customEmojiInline(m, emojiSize) }
             val hidden = !spoilersShown && body.getStringAnnotations(KxSpoilerTag, 0, body.length).isNotEmpty()
             val hasLinks = hidden || onLink != null && body.getStringAnnotations(KxLinkTag, 0, body.length).isNotEmpty()
-            if (!hasLinks || g == null) Text(body, style = KxType.style(lk.textSp.sp, color = if (m.out) OutText else Kx.text, lineHeight = (lk.textSp + 6f).sp),
+            if (!hasLinks || g == null) Text(body, style = KxType.style(lk.textSp.sp, color = if (m.out) OutText else Kx.text, lineHeight = (lk.textSp + 6f).sp), inlineContent = inline,
                 modifier = if (hidden) Modifier.kxClick("Показать спойлер") { spoilersShown = true } else Modifier)
             else {
                 var layout by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
                 val links = remember(m.text, m.entities) { m.entities }
-                Text(body, style = KxType.style(lk.textSp.sp, color = if (m.out) OutText else Kx.text, lineHeight = (lk.textSp + 6f).sp),
+                Text(body, style = KxType.style(lk.textSp.sp, color = if (m.out) OutText else Kx.text, lineHeight = (lk.textSp + 6f).sp), inlineContent = inline,
                     onTextLayout = { layout = it },
                     modifier = Modifier.pointerInput(body, g) {
                         detectTapGestures(
@@ -1158,6 +1183,16 @@ private fun InlineButtons(m: KxMessage) {
     }
 }
 
+/** fixer-chat4 (compat): inline pictures for the message's custom emoji (recipe of ui/chat/MessageText.kt); the plain emoji until loaded. */
+private fun customEmojiInline(m: KxMessage, sizeSp: Float): Map<String, androidx.compose.foundation.text.InlineTextContent> =
+    m.entities.filter { it.type == KxEntityType.CustomEmoji && it.offset >= 0 && it.offset + it.length <= m.text.length }
+        .mapNotNull { e -> e.url?.toLongOrNull()?.let { id -> id to m.text.substring(e.offset, e.offset + e.length) } }
+        .associate { (id, plain) ->
+            "ce:$id" to androidx.compose.foundation.text.InlineTextContent(
+                androidx.compose.ui.text.Placeholder(sizeSp.sp, sizeSp.sp, androidx.compose.ui.text.PlaceholderVerticalAlign.TextCenter)
+            ) { com.kirox.app.ui.components.CustomEmojiImage(id, sizeSp.dp, fallback = plain) }
+        }
+
 private const val KxLinkTag = "kx-link"
 private const val KxSpoilerTag = "kx-spoiler"
 /** Bubble gestures for the text part (links take taps; long press / double tap still act on the message). */
@@ -1191,6 +1226,8 @@ private fun bubbleText(m: KxMessage, onLink: ((KxMessage, KxEntity) -> Unit)?, h
             else -> null
         }
         if (style != null) addStyle(style, start, end)
+        // fixer-chat4 (compat): a custom emoji is drawn as its picture (inline content «ce:<id>», see TextWithMeta).
+        if (e.type == KxEntityType.CustomEmoji) e.url?.toLongOrNull()?.let { id -> addStringAnnotation("androidx.compose.foundation.text.inlineContent", "ce:$id", start, end) }
         if (KxChatLinks.isTappable(e) && KxChatLinks.target(text, e) != null) {
             val web = e.type == KxEntityType.Link || e.type == KxEntityType.TextLink
             val ink = androidx.compose.ui.text.SpanStyle(color = linkInk,
@@ -1205,7 +1242,8 @@ private fun bubbleText(m: KxMessage, onLink: ((KxMessage, KxEntity) -> Unit)?, h
 @Composable
 private fun MetaText(m: KxMessage, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(bottom = 1.dp)) {
-        Text((if (m.edited) "изм. " else "") + m.time, style = KxType.style(11.sp, color = color))
+        if (m.deleted) Icon(Icons.Rounded.DeleteOutline, "Удалено автором", Modifier.size(13.dp), tint = color)
+        Text((if (m.edited && !m.deleted) "изм. " else "") + m.time, style = KxType.style(11.sp, color = color))
         if (m.out) when (m.status) {
             KxOutState.Read -> Icon(Icons.Rounded.DoneAll, "Прочитано", Modifier.size(14.dp), tint = color)
             KxOutState.Sent -> Icon(Icons.Rounded.Done, "Отправлено", Modifier.size(14.dp), tint = color)
@@ -1513,7 +1551,7 @@ private fun UndoBar(p: PendingDelete, modifier: Modifier, onUndo: () -> Unit) {
 /** Channel subscribers see a mute/unmute bar instead of the composer. */
 @Composable
 private fun ChannelBar(mode: KxComposer, modifier: Modifier, onClick: () -> Unit) {
-    val label = when (mode) { KxComposer.Mute -> "Выключить звук"; KxComposer.Unmute -> "Включить звук"; KxComposer.Join -> "Вступить"; KxComposer.Blocked -> "Разблокировать"; else -> "Вам запрещено писать в этот чат" }
+    val label = when (mode) { KxComposer.Mute -> "Выключить звук"; KxComposer.Unmute -> "Включить звук"; KxComposer.Join -> "Вступить"; KxComposer.Blocked -> "Разблокировать"; KxComposer.Start -> "ЗАПУСТИТЬ"; else -> "Вам запрещено писать в этот чат" }
     Box(modifier.navigationBarsPadding().padding(start = 10.dp, end = 10.dp, bottom = 22.dp).fillMaxWidth().height(58.dp).clip(RoundedCornerShape(29.dp))
         .background(Color(0xFF101311)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f)))).border(1.dp, Kx.w(.16f), RoundedCornerShape(29.dp))
         .then(if (mode == KxComposer.Restricted) Modifier else Modifier.kxClick(onClick = onClick)), contentAlignment = Alignment.Center) {

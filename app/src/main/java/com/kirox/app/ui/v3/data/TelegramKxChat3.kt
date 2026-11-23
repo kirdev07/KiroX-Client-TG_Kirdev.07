@@ -414,6 +414,16 @@ internal class KxChat3(private val services: TelegramServices, private val app: 
         return out
     }
 
+    /** fixer-chat4: the full-screen animation of a message effect: the reaction effect, or the Premium sticker's animation. */
+    suspend fun messageEffectFile(effectId: Long): Int? {
+        val e = orNull { client.query(TdApi.GetMessageEffect(effectId)) } ?: return null
+        return when (val t = e.type) {
+            is TdApi.MessageEffectTypeEmojiReaction -> t.effectAnimation?.sticker?.id
+            is TdApi.MessageEffectTypePremiumSticker -> (t.sticker?.fullType as? TdApi.StickerFullTypeRegular)?.premiumAnimation?.id ?: t.sticker?.sticker?.id
+            else -> null
+        }
+    }
+
     suspend fun messageAtDate(chatId: Long, dayStart: Int): Long? {
         val m = orNull { client.query(TdApi.GetChatMessageByDate(chatId, dayStart + 86_399)) } ?: return null
         return m.id.takeIf { m.date >= dayStart }

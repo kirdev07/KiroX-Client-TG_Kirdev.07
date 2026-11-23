@@ -16,6 +16,11 @@ data class KxPlaylist(val id: Long, val name: String, val tracks: List<KxTrack>)
     companion object { const val MY_MUSIC = 0L }
 }
 
+/** «Скачать всё» progress: [done] of [total] tracks, bytes so far / all. */
+@Immutable
+data class KxOfflineProgress(val total: Int = 0, val done: Int = 0, val failed: Int = 0, val bytes: Long = 0, val downloadedBytes: Long = 0,
+                             val fraction: Float = 0f, val paused: Boolean = false, val busy: Boolean = false)
+
 /** An audio output; [kind] 0 phone, 1 wired, 2 Bluetooth, 3 USB; [battery] 0–100 or -1. */
 @Immutable
 data class KxAudioRoute(val id: Int, val name: String, val kind: Int, val battery: Int = -1)
@@ -89,6 +94,37 @@ interface KxMusic {
     fun setVolume(volume: Int) {}
     /** Android's own output switcher; false when there is none (the player's list is shown). */
     fun openSystemOutputSwitcher(context: android.content.Context): Boolean = false
+
+    // ---- Offline ----
+    /** 0 not offline, 1 waiting, 2 downloading, 3 paused, 4 offline, 5 failed. */
+    fun offlineState(chatId: Long, messageId: Long): Int = 0
+    /** Download progress of one track, 0–1. */
+    fun offlineFraction(chatId: Long, messageId: Long): Float = 0f
+    /** Tracks kept on the phone («Скачанные»), newest first. */
+    val offlineTracks: List<KxTrack> get() = emptyList()
+    /** Space they take, bytes. */
+    val offlineBytes: Long get() = 0L
+    val offlineProgress: KxOfflineProgress get() = KxOfflineProgress()
+    /** «Скачать для офлайна» / «Скачать всё»: tracks already offline are skipped. */
+    fun downloadOffline(tracks: List<KxTrack>) {}
+    fun pauseOffline(paused: Boolean) {}
+    fun cancelOffline(chatId: Long, messageId: Long) {}
+    fun cancelAllOffline() {}
+    fun removeOffline(chatId: Long, messageId: Long) {}
+    fun removeAllOffline() {}
+    /** Tracks added to «Моя музыка» download by themselves. */
+    val autoDownloadLiked: Boolean get() = false
+    fun setAutoDownloadLiked(on: Boolean) {}
+    /** …only on Wi-Fi (default on). */
+    val offlineWifiOnly: Boolean get() = true
+    fun setOfflineWifiOnly(on: Boolean) {}
+
+    // ---- Phone's music ----
+    /**
+     * «Сохранить в Музыку телефона»: copies into Music/kiroX/[folder] (null = Music/kiroX) with title,
+     * artist and album; duplicates skipped. [progress] gets (done, total). Returns the toast text.
+     */
+    suspend fun exportToPhone(tracks: List<KxTrack>, folder: String?, progress: (Int, Int) -> Unit): String = "Недоступно"
 
     companion object { val None: KxMusic = object : KxMusic {} }
 }

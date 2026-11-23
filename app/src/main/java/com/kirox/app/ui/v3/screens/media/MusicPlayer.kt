@@ -42,6 +42,7 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /*
  * music: the full player (board «Музыка», the expanded player) as its own screen, so in the Music tab
@@ -65,7 +66,8 @@ fun MusicPlayerScreen(ctx: KxScreenCtx) {
     if (t == null) { Box(Modifier.fillMaxSize().background(Kx.bg)); return }
     DisposableEffect(Unit) { music.watchOutput(true); onDispose { music.watchOutput(false) } }
 
-    var sheet by remember { mutableStateOf("") }   // "", queue, sleep, speed, output, more, playlist
+    var sheet by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()   // "", queue, sleep, speed, output, more, playlist
     val mine = music.isMine(t.chatId, t.messageId)
     val (c1, c2) = coverColors(t.messageId + t.chatId)
     val coverScale by animateFloatAsState(if (p.playing) 1f else .92f, tween(500, easing = EaseOutBack), label = "cover")
@@ -149,6 +151,15 @@ fun MusicPlayerScreen(ctx: KxScreenCtx) {
 
         MSheet(sheet == "more", onClose = { sheet = "" }) {
             MoreRow(Icons.AutoMirrored.Outlined.PlaylistAdd, "Добавить в плейлист") { sheet = "playlist" }
+            when (music.offlineState(t.chatId, t.messageId)) {
+                0, 5 -> MoreRow(Icons.Outlined.DownloadForOffline, "Скачать для офлайна") { music.downloadOffline(listOf(t)); sheet = ""; ctx.toast("Скачиваем для офлайна") }
+                4 -> MoreRow(Icons.Rounded.DownloadDone, "Скачан — играет без интернета", Kx.accent) { sheet = "" }
+                else -> MoreRow(Icons.Outlined.Downloading, "Скачивается… (отменить)") { music.cancelOffline(t.chatId, t.messageId); sheet = "" }
+            }
+            MoreRow(Icons.Outlined.LibraryMusic, "Сохранить в Музыку телефона") {
+                sheet = ""; ctx.toast("Сохраняем в Музыку телефона…")
+                scope.launch { ctx.toast(music.exportToPhone(listOf(t), null) { _, _ -> }) }
+            }
             MoreRow(Icons.Outlined.Speed, "Скорость: ${speedText(music.speed)}") { sheet = "speed" }
             MoreRow(Icons.Outlined.Bedtime, if (music.sleepAt > 0) "Таймер сна: ${sleepLeft(music.sleepAt)}" else "Таймер сна") { sheet = "sleep" }
             MoreRow(Icons.AutoMirrored.Outlined.QueueMusic, "Очередь") { sheet = "queue" }
