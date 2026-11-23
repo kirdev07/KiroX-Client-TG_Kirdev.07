@@ -79,7 +79,8 @@ fun DriveScreen(ctx: KxScreenCtx) {
     val left = q.size - i
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         val road = kfRun(1200)
-        Box(Modifier.align(Alignment.TopCenter).width(4.dp).fillMaxHeight().drawBehind {
+        // critique-B: the decorative road runs along the left edge, outside the cards (it crossed the cards and the switch text).
+        Box(Modifier.align(Alignment.TopStart).padding(start = 6.dp).width(3.dp).fillMaxHeight().drawBehind {
             val p = 80.dp.toPx(); val off = if (road < 0f) 0f else p * road
             var y = -p + off; while (y < size.height) { drawRect(Kx.accent.copy(alpha = .12f), Offset(0f, y), Size(size.width, 40.dp.toPx())); y += p }
         })
@@ -139,7 +140,7 @@ fun DriveScreen(ctx: KxScreenCtx) {
             val op = if (idle) .35f else 1f
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    DrBtn(Modifier.weight(1f), 110.dp, 28.dp, Icons.Rounded.VolumeUp, 40.dp, "Прочитать", 18.sp, true, op, false) {
+                    DrBtn(Modifier.weight(1f), 110.dp, 28.dp, Icons.Rounded.VolumeUp, 40.dp, "Прочитать вслух", 16.sp, true, op, false) {
                         if (idle || m == null) return@DrBtn
                         phase = "read"; step++
                         if (!demo) tts.value?.speak("${m.name}. ${m.text}", android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "drive")

@@ -92,8 +92,11 @@ fun PersonalChannelScreen(ctx: KxScreenCtx) {
                         .background(Color.Black.copy(alpha = .28f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(18.dp)).padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             ChTile(c, 40.dp, 12.dp)
-                            Column(Modifier.weight(1f)) { Text("КАНАЛ", style = ts(11, W700, Kx.text4)); Text(c.n, style = ts(15, W800), maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                            if (c.subs.isNotEmpty()) Text("${c.subs} подписчиков", style = ts(12, color = Kx.text3))
+                            // critique-A: the subscriber count gets its own line, so the channel name isn't cut.
+                            Column(Modifier.weight(1f)) {
+                                Text("КАНАЛ", style = ts(11, W700, Kx.text4)); Text(c.n, style = ts(15, W800), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                if (c.subs.isNotEmpty()) Text("${c.subs} подписчиков", style = ts(12, color = Kx.text3))
+                            }
                         }
                         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Box(Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)).then(c.img?.let { Modifier.cssGradient(160f, it.first, it.second) } ?: Modifier), contentAlignment = Alignment.Center) {

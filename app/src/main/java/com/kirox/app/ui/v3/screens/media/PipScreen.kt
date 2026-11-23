@@ -103,8 +103,13 @@ private fun DemoPipScreen(ctx: KxScreenCtx) {
         AnimatedVisibility(mode == "full", enter = fadeIn(tween(300)) + scaleIn(tween(300), initialScale = .8f), exit = fadeOut(tween(200))) {
             Column(Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().navigationBarsPadding()) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MRoundBtn(Icons.Outlined.PictureInPictureAlt, "Свернуть в окошко", bg = Kx.w(.1f), border = null) { mode = "pip"; ctrl = false }
-                    Column(Modifier.weight(1f)) { T("Android Weekly", 14.sp, FontWeight.Bold); T("Обзор Compose 1.9 · видео", 12.sp, color = Kx.text3) }
+                    // critique-C P2: a labelled «Свернуть» plus ✕ (no explanation card needed).
+                    Row(Modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.1f)).kxClick("Свернуть в окошко") { mode = "pip"; ctrl = false }.padding(start = 10.dp, end = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Rounded.KeyboardArrowDown, null, Modifier.size(22.dp), tint = Color.White); T("Свернуть", 13.sp, FontWeight.Bold, Color.White)
+                    }
+                    Column(Modifier.weight(1f)) { T("Android Weekly", 14.sp, FontWeight.Bold, maxLines = 1); T("Обзор Compose 1.9 · видео", 12.sp, color = Kx.text3, maxLines = 1) }
+                    MRoundBtn(Icons.Outlined.Close, "Закрыть видео", bg = Kx.w(.1f), border = null) { ctx.back() }
                 }
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
@@ -116,13 +121,12 @@ private fun DemoPipScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 30.dp)) {
-                    Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.2f))) { Box(Modifier.fillMaxHeight().fillMaxWidth(p).clip(RoundedCornerShape(2.dp)).background(Kx.accent)) }
-                    Row(Modifier.padding(top = 6.dp)) { T("${sec / 60}:${(sec % 60).toString().padStart(2, '0')}", 12.sp, color = Kx.text3, modifier = Modifier.weight(1f)); T("4:12", 12.sp, color = Kx.text3) }
-                    Row(Modifier.padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kx.accent.copy(alpha = .08f)).border(1.dp, Kx.accent.copy(alpha = .2f), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 14.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Outlined.Info, null, Modifier.size(18.dp), tint = Kx.accent)
-                        T("Нажмите кнопку слева вверху — видео уменьшится и продолжит играть поверх чатов", 13.sp, color = Kx.text2)
+                    BoxWithConstraints(Modifier.fillMaxWidth().height(20.dp), contentAlignment = Alignment.CenterStart) {
+                        Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.2f))) { Box(Modifier.fillMaxHeight().fillMaxWidth(p).clip(RoundedCornerShape(2.dp)).background(Kx.accent)) }
+                        Box(Modifier.offset(maxWidth * p - 7.dp).size(14.dp).clip(CircleShape).background(Color.White)) // seek knob
                     }
+                    Row(Modifier.padding(top = 6.dp)) { T("${sec / 60}:${(sec % 60).toString().padStart(2, '0')}", 12.sp, color = Kx.text3, modifier = Modifier.weight(1f)); T("4:12", 12.sp, color = Kx.text3) }
+
                 }
             }
         }

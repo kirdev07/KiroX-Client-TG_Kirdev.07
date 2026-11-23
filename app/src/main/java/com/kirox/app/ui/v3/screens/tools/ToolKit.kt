@@ -77,7 +77,7 @@ internal fun THeader(title: String, onBack: () -> Unit, bottom: Dp = 6.dp, sub: 
         KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = onBack)
         Column(Modifier.weight(1f)) {
             Text(title, style = KxType.style(titleSize.sp, FontWeight.ExtraBold), maxLines = 1, modifier = Modifier.kxHeading())
-            if (sub != null) Text(sub, style = KxType.style(12.sp, color = Kx.text3), maxLines = 1)
+            if (sub != null) Text(sub, style = KxType.style(12.sp, color = Kx.text3), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
         actions()
     }
@@ -103,8 +103,8 @@ internal fun TGroup(modifier: Modifier = Modifier, radius: Dp = 22.dp, content: 
     Column(modifier.fillMaxWidth().clip(RoundedCornerShape(radius)).background(TTile), content = content)
 
 /** 1px w.06 line on top of rows 2..n. */
-internal fun Modifier.topLine(show: Boolean, a: Float = .06f): Modifier =
-    if (!show) this else this.drawBehind { drawLine(Kx.w(a), Offset(0f, .5f), Offset(size.width, .5f), 1f) }
+internal fun Modifier.topLine(show: Boolean, a: Float = .06f, inset: Dp = 0.dp): Modifier =
+    if (!show) this else this.drawBehind { drawLine(Kx.w(a), Offset(inset.toPx(), .5f), Offset(size.width, .5f), 1f) }
 
 /** 22dp radio: 2dp ring (#8FD3AC on / #3A4540 off), 10dp dot. */
 @Composable
@@ -115,24 +115,16 @@ internal fun TRadio(on: Boolean, size: Dp = 22.dp, dot: Dp = 10.dp, off: Color =
     }
 }
 
-/** White-knob switch: [w]x[h], knob [knob], spring travel .35s, track colour .3s. */
+/** A2: the tools boards' switch is the one [KxSwitch] (old size/colour params ignored). */
 @Composable
+@Suppress("UNUSED_PARAMETER")
 internal fun TSwitch(on: Boolean, trackOn: Color = Kx.accent, trackOff: Color = Kx.badgeMuted, w: Dp = 50.dp, h: Dp = 30.dp, knob: Dp = 24.dp,
-                     knobOn: Color = Color.White, knobOff: Color = Color.White, shadow: Boolean = true) {
-    val pad = (h - knob) / 2
-    val reduced = LocalKxReducedMotion.current
-    val x by animateDpAsState(if (on) w - knob - pad * 2 else 0.dp, if (reduced) tween(0) else tween(350, easing = TSpring), label = "knob")
-    val track by animateColorAsState(if (on) trackOn else trackOff, tween(if (reduced) 0 else 300), label = "track")
-    Box(Modifier.kxToggleState(on).size(w, h).clip(RoundedCornerShape(h / 2)).background(track)) {
-        Box(Modifier.offset(pad + x, pad).size(knob).then(if (shadow) Modifier.shadow(3.dp, CircleShape) else Modifier)
-            .clip(CircleShape).background(if (on) knobOn else knobOff))
-    }
-}
+                     knobOn: Color = Color.White, knobOff: Color = Color.White, shadow: Boolean = true) = KxSwitch(on)
 
-/** Dark-knob switch of the newer boards: 50x30, knob 24 #06150D on / #8A958F off, track accent / w.12. */
+/** Same switch (the «dark knob» variant is gone, A2). */
 @Composable
-internal fun TDarkSwitch(on: Boolean, trackOn: Color = Kx.accent) =
-    TSwitch(on, trackOn, Kx.w(.12f), knobOn = Kx.onAccent, knobOff = Kx.text4, shadow = false)
+@Suppress("UNUSED_PARAMETER")
+internal fun TDarkSwitch(on: Boolean, trackOn: Color = Kx.accent) = KxSwitch(on)
 
 /** Icon + title/sub + trailing row (padding 13 16, gap 12). */
 @Composable
@@ -277,12 +269,8 @@ internal fun tPlural(n: Int, one: String, few: String, many: String): String {
     return if (m in 11..19) many else if (d == 1) one else if (d in 2..4) few else many
 }
 
-internal fun groupShape(i: Int, n: Int, big: Dp = 22.dp, small: Dp = 6.dp): Shape = when {
-    n == 1 -> RoundedCornerShape(big)
-    i == 0 -> RoundedCornerShape(big, big, small, small)
-    i == n - 1 -> RoundedCornerShape(small, small, big, big)
-    else -> RoundedCornerShape(small)
-}
+@Suppress("UNUSED_PARAMETER")
+internal fun groupShape(i: Int, n: Int, big: Dp = 22.dp, small: Dp = 6.dp): Shape = kxSlotShape(i, n) // A1: one card with hairlines (see kxGroupItem)
 
 /** Board-local toast (kxToast 2.4s: rise in 12%, hold, fade from 85%): #232A26, r18, line .16, icon 20 accent. */
 class TToast {

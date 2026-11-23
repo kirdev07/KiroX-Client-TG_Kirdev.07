@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.media
 
+import kotlinx.coroutines.launch
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -60,8 +61,8 @@ private val DlSeed = listOf(
     Dl("kiroX-beta.apk", 31.0, Icons.Rounded.Android, Color(0xFF3F9A6C), "Избранное", 31.0, done = true),
 )
 
-private fun fmtMb(mb: Double): String = if (mb >= 1000) String.format(java.util.Locale.US, "%.2f", mb / 1000).replace('.', '.') + " ГБ"
-    else (if (mb < 10) String.format(java.util.Locale.US, "%.1f", mb) else Math.round(mb).toString()) + " МБ"
+// critique-C P2: the shared Russian size format (comma decimal).
+private fun fmtMb(mb: Double): String = com.kirox.app.ui.v3.model.kxBytes((mb * 1024 * 1024).toLong())
 
 /** Board «Загрузки»: summary bar, active/done tabs, striped progress, pause/resume/cancel. */
 @Composable
@@ -73,6 +74,7 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
     var speedReal by remember { mutableDoubleStateOf(0.0) }
     var loaded by remember { mutableStateOf(!real) }
     var bump by remember { mutableIntStateOf(0) }
+    val pendingCancel = remember { mutableStateListOf<Int>() } // fileIds waiting for «Отменить»
     if (real) LaunchedEffect(bump) {
         var lastGot = -1.0
         while (true) {
@@ -80,7 +82,7 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
             val got = fresh.filter { !it.done }.sumOf { it.got }
             speedReal = if (lastGot >= 0 && got >= lastGot) (got - lastGot) / 1.5 else 0.0
             lastGot = got
-            list.clear(); list.addAll(fresh); loaded = true
+            list.clear(); list.addAll(fresh.map { if (it.fileId in pendingCancel) it.copy(gone = true) else it }); loaded = true
             if (fresh.none { !it.done && !it.paused }) break
             delay(1500)
         }
@@ -107,10 +109,17 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
         if (real) { ctx.store.pauseDownload(f.fileId, !f.paused); bump++ }
         list[i] = f.copy(paused = !f.paused)
     }
+    // critique-C P3: cancelling a download can be undone for 4 s before it reaches Telegram.
+    val toastEx = com.kirox.app.ui.v3.components.LocalKxToastEx.current
+    val undoScope = rememberCoroutineScope()
     fun cancel(i: Int) {
         val f = list[i]
-        if (real) ctx.store.removeDownloads(listOf(f.fileId))
         list[i] = f.copy(gone = true)
+        if (real) pendingCancel.add(f.fileId)
+        val job = undoScope.launch { kotlinx.coroutines.delay(4000); if (real) { ctx.store.removeDownloads(listOf(f.fileId)); pendingCancel.remove(f.fileId) } }
+        toastEx("Загрузка отменена", com.kirox.app.ui.v3.components.KxToastKind.Info, "Отменить") {
+            job.cancel(); pendingCancel.remove(f.fileId); val k = list.indexOfFirst { it.fileId == f.fileId && it.name == f.name }; if (k >= 0) list[k] = list[k].copy(gone = false)
+        }
     }
     val shown = live.map { it to list.indexOf(it) }.filter { (f, _) -> if (tab == 0) !f.done else f.done }
     val allPaused = running.isEmpty() && active.isNotEmpty()
@@ -129,8 +138,8 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).cssGrad(150f, Kx.accentDeep.copy(alpha = .18f), Kx.w(.03f))
             .border(1.dp, Kx.accent.copy(alpha = .2f), RoundedCornerShape(22.dp)).padding(horizontal = 16.dp, vertical = 14.dp)) {
             Row(verticalAlignment = Alignment.Bottom) {
-                T(if (active.isNotEmpty()) "Скачивается ${active.size} из ${live.size}" else "Всё скачано", 15.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f).alignByBaseline())
-                T(if (running.isNotEmpty() && (!real || speedMb > 0)) String.format(java.util.Locale.US, "%.1f", speedMb) + " МБ/с" else if (active.isNotEmpty()) "на паузе" else "", 13.sp, FontWeight.Bold, Kx.accent, modifier = Modifier.alignByBaseline())
+                T(if (active.isNotEmpty()) "Скачивается ${active.size} · готово ${live.size - active.size}" else "Всё скачано", 15.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f).alignByBaseline())
+                T(if (running.isNotEmpty() && (!real || speedMb > 0)) String.format(java.util.Locale.US, "%.1f", speedMb).replace('.', ',') + " МБ/с" else if (active.isNotEmpty()) "на паузе" else "", 13.sp, FontWeight.Bold, Kx.accent, modifier = Modifier.alignByBaseline())
             }
             val pct by animateFloatAsState(if (tot > 0) (got / tot).toFloat() else 1f, tween(500, easing = LinearEasing), label = "tot")
             Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Kx.w(.08f))) {
@@ -152,10 +161,8 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
             itemsIndexed(shown, key = { _, (f, i) -> "$tab/$i/${f.done}" }) { k, (f, i) -> DlRow(f, Modifier.kxRise(k * 40, 250),
                 onToggle = { toggle(i) }, onCancel = { cancel(i) }) }
             if (shown.isEmpty()) item {
-                Column(Modifier.fillMaxWidth().padding(start = 30.dp, end = 30.dp, top = 60.dp).kxRise(0, 300), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.DownloadDone, null, Modifier.size(54.dp), tint = Kx.dashed)
-                    T(if (!loaded) "Загрузка…" else if (tab == 0) "Нет активных загрузок" else "Пока ничего не скачано", 16.sp, FontWeight.Bold, modifier = Modifier.padding(top = 10.dp))
-                }
+                KxEmpty(Icons.Outlined.DownloadDone, if (!loaded) "Загрузка…" else if (tab == 0) "Нет активных загрузок" else "Пока ничего не скачано",
+                    if (!loaded) null else "Файлы, которые вы скачиваете из чатов, видны здесь", Modifier.padding(top = 36.dp).kxRise(0, 300))
             }
         }
     }

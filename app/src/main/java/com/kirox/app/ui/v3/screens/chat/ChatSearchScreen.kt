@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -107,7 +108,7 @@ fun ChatSearchScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.fillMaxWidth().drawBehind { drawLine(Kx.w(.06f), Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx()) }
                 .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Закрыть поиск", 42.dp, bg = Color.Transparent, border = Color.Transparent, onClick = ctx.back)
+                com.kirox.app.ui.v3.components.KxBackButton(ctx.back)
                 Row(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.07f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(22.dp))
                     .padding(start = 12.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text4)
@@ -224,7 +225,14 @@ internal fun MonthGrid(firstOffset: Int, days: Int, withMsgs: Set<Int>, today: I
 
 private fun splitAll(text: String, q: String): AnnotatedString {
     val k = text.lowercase().indexOf(q); if (k < 0 || q.isEmpty()) return AnnotatedString(text)
-    return marked(text.substring(0, k), text.substring(k, k + q.length), text.substring(k + q.length))
+    // critique-A: a warm amber tint + underline reads on both the dark incoming and the green outgoing bubbles.
+    return androidx.compose.ui.text.buildAnnotatedString {
+        append(text.substring(0, k))
+        withStyle(androidx.compose.ui.text.SpanStyle(background = Color(0x73F2C66B), color = Color.White, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)) {
+            append(text.substring(k, k + q.length))
+        }
+        append(text.substring(k + q.length))
+    }
 }
 
 @Composable
@@ -284,7 +292,7 @@ private fun RealChatSearch(ctx: KxScreenCtx, chatId: Long) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
             Row(Modifier.fillMaxWidth().drawBehind { drawLine(Kx.w(.06f), Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx()) }
                 .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Закрыть поиск", 42.dp, bg = Color.Transparent, border = Color.Transparent, onClick = ctx.back)
+                com.kirox.app.ui.v3.components.KxBackButton(ctx.back)
                 Row(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.07f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(22.dp))
                     .padding(start = 12.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text4)

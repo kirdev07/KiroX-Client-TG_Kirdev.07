@@ -65,8 +65,11 @@ fun MsgInfoScreen(ctx: KxScreenCtx) {
     val bubL = remember { MoLift() }
 
     Box(Modifier.fillMaxSize().background(Kx.bg).moTrack(rootL)) {
+        // critique-C P3: the demo toggle lives on the board (top right), not inside the sheet body.
+        if (!live) MoPill(if (theirs) "Макет: скрывает время" else "Макет: показывает время", Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 66.dp, end = 12.dp),
+            height = 32.dp, ink = MoSub, size = 12) { theirs = !theirs }
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            MoChatHeader(ctx.back, (header?.title ?: "А").take(1).uppercase(), Color(0xFFC0443C), null, header?.title ?: "Анна", header?.status ?: "в сети недавно")
+            MoChatHeader(ctx.back, (header?.title ?: "А").take(1).uppercase(), Color(0xFFC0443C), null, header?.title ?: "Анна", header?.status ?: "была недавно")
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(14.dp)) {
                 val w = maxWidth
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
@@ -150,8 +153,6 @@ fun MsgInfoScreen(ctx: KxScreenCtx) {
                     }
                     KxSwitch(mine, width = 46.dp, height = 28.dp, knob = 22.dp, trackOn = Kx.accentDeep, trackOff = Kx.w(.14f), knobOn = Kx.text, knobOff = MoSub)
                 }
-                if (!live) MoPill(if (theirs) "Макет: Анна скрывает время" else "Макет: Анна показывает время", Modifier.padding(top = 2.dp), height = 34.dp,
-                    ink = MoSub, size = 12) { theirs = !theirs }
             }
         }
     }

@@ -77,7 +77,7 @@ fun AllowedReactsScreen(ctx: KxScreenCtx) {
             }
             Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f))
                 .cssRadial(.6f * 1.2f, .6f * 2f, .2f, 0f, Color(0x1A8FD3AC)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp)).padding(14.dp)) {
-                Text("ТАК УВИДЯТ ПОДПИСЧИКИ", style = KxType.style(11.sp, FontWeight.Bold, Kx.text4), modifier = Modifier.padding(bottom = 8.dp))
+                Text("Так увидят подписчики", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(bottom = 8.dp))
                 Column(Modifier.fillMaxWidth(.86f).clip(RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)).background(Kx.w(.08f)).padding(horizontal = 12.dp, vertical = 8.dp)) {
                     Text("Kotlin по-русски", style = KxType.style(12.sp, FontWeight.ExtraBold, Kx.accent))
                     Text("Релиз Kotlin вышел, обновляемся! 🚀", style = KxType.style(14.sp))

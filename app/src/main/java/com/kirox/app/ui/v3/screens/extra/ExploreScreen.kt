@@ -130,18 +130,18 @@ fun ExploreScreen(ctx: KxScreenCtx) {
                                         Text(c.name, style = ts(15.sp, FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                                         if (c.v) Icon(Icons.Rounded.Verified, null, Modifier.size(15.dp), tint = Kx.accent)
                                     }
-                                    Text(c.desc, style = ts(12.sp, color = Kx.text4), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                                    Text(c.desc, style = ts(12.sp, color = Kx.text4, lh = 16.sp), maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
                                     Text(exFmtCount(c.subs + if (on) 1 else 0) + if (c.g) " участников" else " подписчиков", style = ts(11.sp, color = Kx.text4), modifier = Modifier.padding(top = 2.dp))
                                 }
                                 val btn = if (on) (if (c.g) "В группе" else "Подписан") else (if (c.g) "Вступить" else "Подписаться")
                                 key(if (popI == i) popN else 0) {
                                     val p = if (popI == i && popN > 0) enter(350) else 1f
                                     Row(Modifier.graphicsLayer { val s = if (p < .7f) .7f + .4f * (p / .7f) else 1.1f - .1f * ((p - .7f) / .3f); scaleX = s; scaleY = s }
-                                        .height(34.dp).clip(RoundedCornerShape(17.dp)).then(if (on) Modifier.background(Kx.accent.copy(alpha = .12f)) else Modifier.lin2(140f, Kx.accentMid, Kx.accentDeep))
+                                        .height(34.dp).clip(RoundedCornerShape(17.dp)).then(if (on) Modifier.background(Kx.accent.copy(alpha = .12f)) else Modifier.border(1.dp, Kx.accent.copy(alpha = .55f), RoundedCornerShape(17.dp))) // critique-B P3: outline, not a filled CTA per row
                                         .kxClick(btn) { if (on) joined.remove(i) else joined.add(i); popI = i; popN++ }.padding(horizontal = 12.dp),
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                         if (on) Icon(Icons.Outlined.Check, null, Modifier.size(15.dp), tint = Kx.accent)
-                                        Text(btn, style = ts(12.sp, FontWeight.ExtraBold, if (on) Kx.accent else Kx.onAccent))
+                                        Text(btn, style = ts(12.sp, FontWeight.ExtraBold, Kx.accent))
                                     }
                                 }
                             }

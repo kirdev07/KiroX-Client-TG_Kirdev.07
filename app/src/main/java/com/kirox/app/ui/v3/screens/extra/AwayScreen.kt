@@ -32,7 +32,7 @@ import kotlinx.coroutines.delay
 private val AwTpl = listOf(
     Triple("Отпуск", Icons.Outlined.BeachAccess, "Я в отпуске до 1 декабря 🌴 Отвечу, как вернусь. Если срочно — пишите @maria_help."),
     Triple("Не в сети", Icons.Outlined.Bedtime, "Сейчас не в сети. Отвечу утром, после 9:00."),
-    Triple("Занят", Icons.Outlined.Work, "Сейчас на встрече, отвечу в течение пары часов."),
+    Triple("Не на связи", Icons.Outlined.Work, "Сейчас на встрече, отвечу в течение пары часов."),
 )
 private val AwWhens = listOf(Triple("Всегда", "Пока автоответ включён", Icons.Outlined.AllInclusive),
     Triple("Вне рабочих часов", "Пн–пт после 19:00 и в выходные", Icons.Outlined.Schedule), Triple("Когда я не в сети", "Если не заходили больше 10 минут", Icons.Outlined.CloudOff))
@@ -46,9 +46,10 @@ fun AwayScreen(ctx: KxScreenCtx) {
     var tpl by remember { mutableIntStateOf(0) }
     var whn by remember { mutableIntStateOf(0) }
     var who by remember { mutableIntStateOf(0) }
-    var phase by remember { mutableIntStateOf(0) }
+    var phase by remember { mutableIntStateOf(2) }
     var loop by remember { mutableIntStateOf(0) }
-    LaunchedEffect(loop) { phase = 0; delay(700); phase = 1; delay(1100); phase = 2; delay(3400); loop++ }
+    // critique-B: the preview rests on the real reply text (it looped forever and was usually caught on the typing dots); a template change replays it once.
+    LaunchedEffect(loop) { if (loop == 0) return@LaunchedEffect; phase = 0; delay(700); phase = 1; delay(1100); phase = 2 }
     val toast = rememberExToast()
     val reply = AwTpl[tpl].third
     Box(Modifier.fillMaxSize().background(Kx.bg)) {

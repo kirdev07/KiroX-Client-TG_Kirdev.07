@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -129,7 +130,7 @@ fun JumpDateScreen(ctx: KxScreenCtx) {
                                                 }
                                             },
                                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
-                                            Text("$d", style = ts(14, if (on || isToday) W800 else W500, if (on || lvl >= 3) Kx.onAccent else Kx.text))
+                                            Text("$d", style = ts(14, if (on || isToday) W800 else W500, if (on || lvl >= 3) Kx.onAccent else if (lvl == 0) Kx.text4 else Kx.text)) // critique-A: empty days grey
                                             Box(Modifier.size(4.dp).clip(CircleShape).background(if (isToday && !on) Kx.accent else Color.Transparent))
                                         }
                                     }
@@ -168,7 +169,8 @@ fun JumpDateScreen(ctx: KxScreenCtx) {
                 Text(if (selDate == null) (if (live) "Выберите день — подсвечены дни с сообщениями" else "Выберите день — подсвечены дни, когда вы переписывались") else if (live && foundId == null) "Ищем…" else if (selDate == today) "Сегодня сообщений ещё не было" else "В этот день вы не переписывались", style = ts(13, color = Kx.text4), textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 14.dp).fillMaxWidth().chIn(durationMs = 250).clip(RoundedCornerShape(22.dp)).background(Kx.w(.03f)).dashedBorder(Kx.w(.12f), 22.dp).padding(18.dp))
             }
-            FlowRow(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            // critique-A: quick jumps are one horizontal row (no orphan «Самое начало» on a second line).
+            Row(Modifier.padding(top = 14.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (live) {
                     Quick(Icons.Outlined.Today, "Сегодня") { go(today, today.dayOfMonth, 0) }
                     today.minusWeeks(1).let { d -> Quick(Icons.Outlined.History, "Неделю назад") { go(d, d.dayOfMonth, -1) } }

@@ -128,8 +128,9 @@ fun FolderShareScreen(ctx: KxScreenCtx) {
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Outlined.Link, null, tint = Kx.accent)
                         Text(if (linked) (if (demo) "t.me/addlist/kX7pQ2…" else link.orEmpty().removePrefix("https://")) else "Ссылка появится после создания", style = ts(14, W700, if (linked) Kx.text else Kx.text4), modifier = Modifier.weight(1f))
-                        Box(Modifier.size(38.dp).clip(CircleShape).background(Kx.accent.copy(alpha = .14f)).kxClick("Скопировать ссылку") { if (linked && !demo) link?.let { clipboard.setText(androidx.compose.ui.text.AnnotatedString(it)) }; say(if (linked) "Ссылка скопирована" else "Сначала создайте ссылку") },
-                            contentAlignment = Alignment.Center) { Icon(Icons.Outlined.ContentCopy, null, Modifier.size(20.dp), tint = Kx.accent) }
+                        // critique-A: the copy button looks (and is) disabled until the link exists.
+                        Box(Modifier.size(38.dp).clip(CircleShape).background(if (linked) Kx.accent.copy(alpha = .14f) else Kx.w(.05f)).kxClick("Скопировать ссылку", enabled = linked) { if (linked && !demo) link?.let { clipboard.setText(androidx.compose.ui.text.AnnotatedString(it)) }; say(if (linked) "Ссылка скопирована" else "Сначала создайте ссылку") },
+                            contentAlignment = Alignment.Center) { Icon(Icons.Outlined.ContentCopy, null, Modifier.size(20.dp), tint = if (linked) Kx.accent else Kx.text4) }
                     }
                     Row(Modifier.padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (share) "Что войдёт в ссылку · $mineN" else "Вступить · $thN из ${FsTheirs.count { !it.joined }}", style = ts(13, W700, Kx.accent), modifier = Modifier.weight(1f))

@@ -155,9 +155,10 @@ private fun CpPickList(countries: List<KxCountry>, sel: String, simHead: String,
             }
         }
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("" to "Все", "ка" to "ка", "у" to "у", "+9" to "+9", "+7" to "+7").forEach { (v, t) ->
-                val on = q == v
-                ExPill(t, height = 30.dp, bg = if (on) Kx.accent.copy(alpha = .16f) else Kx.w(.05f), ink = if (on) Kx.accent else Kx.text2, size = 12.sp, padH = 12.dp) { q = v }
+            // critique-B: the quick chips are the countries people here pick most (were «ка», «у», «+9» — search fragments).
+            listOf("KZ", "RU", "UZ", "KG", "BY", "TR").mapNotNull { code -> countries.firstOrNull { it.code.equals(code, true) } }.forEach { c ->
+                val on = c.name == sel
+                ExPill(c.name, height = 30.dp, bg = if (on) Kx.accent.copy(alpha = .16f) else Kx.w(.05f), ink = if (on) Kx.accent else Kx.text2, size = 12.sp, padH = 12.dp) { onPick(c) }
             }
         }
         Box(Modifier.weight(1f)) {
@@ -179,11 +180,12 @@ private fun CpPickList(countries: List<KxCountry>, sel: String, simHead: String,
                     if (filtered.isEmpty()) item { Text("Такой страны не нашли", style = ts(14.sp, color = Kx.text3), textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 50.dp)) }
                 }
-                if (lq.isEmpty()) Column(Modifier.width(26.dp).fillMaxHeight().padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                // critique-B: a 44 dp wide index rail (was 26 dp).
+                if (lq.isEmpty()) Column(Modifier.width(44.dp).fillMaxHeight().padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
                     letters.forEach { l ->
                         val on = jump == l
-                        Box(Modifier.size(24.dp, 22.dp).clip(RoundedCornerShape(11.dp)).background(if (on) Kx.accent.copy(alpha = .2f) else Color.Transparent)
+                        Box(Modifier.size(40.dp, 22.dp).clip(RoundedCornerShape(11.dp)).background(if (on) Kx.accent.copy(alpha = .2f) else Color.Transparent)
                             .kxClick("Перейти к $l") { jump = l; jk++; bubble = l; firstIdx[l]?.let { scope.launch { state.animateScrollToItem(it) } } },
                             contentAlignment = Alignment.Center) { Text(l, style = ts(11.sp, FontWeight.ExtraBold, if (on) Kx.accent else Kx.text3)) }
                     }
@@ -192,7 +194,7 @@ private fun CpPickList(countries: List<KxCountry>, sel: String, simHead: String,
             if (bubble.isNotEmpty()) key(jk) {
                 LaunchedEffect(Unit) { delay(700); bubble = "" }
                 val p = enter(200)
-                Box(Modifier.align(Alignment.CenterEnd).padding(end = 44.dp).size(64.dp).graphicsLayer { alpha = p; val s = .6f + .4f * p; scaleX = s; scaleY = s }
+                Box(Modifier.align(Alignment.CenterEnd).padding(end = 58.dp).size(64.dp).graphicsLayer { alpha = p; val s = .6f + .4f * p; scaleX = s; scaleY = s }
                     .clip(RoundedCornerShape(32.dp, 32.dp, 6.dp, 32.dp)).lin2(135f, Kx.accentMid, Kx.accentDeep), contentAlignment = Alignment.Center) {
                     Text(bubble, style = ts(30.sp, FontWeight.Black, Kx.onAccent))
                 }

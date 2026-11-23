@@ -78,9 +78,9 @@ fun AgendaScreen(ctx: KxScreenCtx) {
                     val on = day == i; val has = vis.any { it.day == i }
                     val ink = if (on) Kx.onAccent else Kx.text
                     Column(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).then(if (on) Modifier.cssGradient(160f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.04f)))
-                        .border(1.dp, if (on) Color.Transparent else Kx.w(.08f), RoundedCornerShape(16.dp)).kxClick("$wd $n") { day = i }.padding(vertical = 8.dp),
+                        .border(1.dp, if (on) Color.Transparent else if (i == 0) Kx.accent.copy(alpha = .55f) else Kx.w(.08f), RoundedCornerShape(16.dp)).kxClick(if (i == 0) "$wd $n, сегодня" else "$wd $n") { day = i }.padding(vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(if (i == 0) "Сег" else wd, style = ts(11, color = ink), modifier = Modifier.graphicsLayer { alpha = .8f })
+                        Text(wd, style = ts(11, color = if (i == 0 && !on) Kx.accent else ink), modifier = Modifier.graphicsLayer { alpha = .8f })
                         Text("$n", style = ts(17, W800, ink))
                         Box(Modifier.padding(top = 3.dp).height(6.dp), contentAlignment = Alignment.Center) {
                             if (has) Box(Modifier.size(5.dp).clip(CircleShape).background(if (on) Kx.onAccent else Kx.accent))
@@ -99,7 +99,7 @@ fun AgendaScreen(ctx: KxScreenCtx) {
                             }
                             Box(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(if (e.now) Kx.accent.copy(alpha = .08f) else Kx.w(.04f))
                                 .border(1.dp, if (e.now) Kx.accent.copy(alpha = .3f) else Kx.w(.08f), RoundedCornerShape(20.dp))
-                                .drawBehind { drawRect(e.c, Offset.Zero, Size(4.dp.toPx(), size.height)) }
+                                .drawBehind { drawRect(Kx.accent.copy(alpha = if (e.now) 1f else .55f), Offset.Zero, Size(4.dp.toPx(), size.height)) } // one stripe colour, no legend needed
                                 .padding(start = 18.dp, end = 14.dp, top = 12.dp, bottom = 12.dp)) {
                                 Column {
                                     Text(e.title, style = ts(15, W800), modifier = Modifier.padding(end = 50.dp))
@@ -132,11 +132,8 @@ fun AgendaScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                if (list.isEmpty()) Column(Modifier.fillMaxWidth().padding(start = 30.dp, end = 30.dp, top = 50.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.EventBusy, null, Modifier.size(50.dp), tint = Kx.dashed)
-                    Text("В этот день ничего", style = ts(15, W700, Kx.text2), modifier = Modifier.padding(top = 8.dp))
-                    Text("Свободный день — тоже план 🙂", style = ts(12, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
-                }
+                if (list.isEmpty()) com.kirox.app.ui.v3.components.KxEmpty(Icons.Outlined.EventBusy, "В этот день ничего",
+                    if (demo) "Договорённости из чатов появятся здесь" else "Когда в чатах договоритесь о встрече, она появится здесь", Modifier.padding(top = 26.dp))
             }
         }
         val t = toast

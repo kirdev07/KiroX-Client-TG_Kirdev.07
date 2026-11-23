@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.groups
 
+import com.kirox.app.ui.v3.model.kxCount
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -53,8 +54,9 @@ private fun sDate(days: Int, i: Int): String {
     val c = java.util.Calendar.getInstance().apply { set(2026, 10, 22); add(java.util.Calendar.DAY_OF_MONTH, -(days - i)) }
     return "${c.get(java.util.Calendar.DAY_OF_MONTH)} ${SMon[c.get(java.util.Calendar.MONTH)]}"
 }
-internal fun gxK(n: Int): String = if (n >= 1000) String.format(java.util.Locale.US, "%.1f", n / 1000.0).replace('.', ',') + "K" else n.toString()
-internal fun gxRu(n: Int): String = if (kotlin.math.abs(n) >= 10000) gxNum(n).replace(' ', ' ') else n.toString()
+// critique-C P2: one Russian number format — «12,3 тыс.» compact, «3 100» grouped exact.
+internal fun gxK(n: Int): String = kxCount(n)
+internal fun gxRu(n: Int): String = (if (n < 0) "−" else "") + gxNum(kotlin.math.abs(n)).replace(' ', ' ')
 
 /** Board «Статистика канала»: period filter, 4 tiles, tappable subscribers line chart, sources bars, top posts. */
 @Composable
@@ -78,9 +80,7 @@ fun ChannelStatsScreen(ctx: KxScreenCtx) {
                 Text(if (chatId == null) "Android Weekly" else store.header(chatId).title + (stats?.period?.let { " · $it" } ?: ""), style = KxType.style(12.sp, color = Kx.text3))
             }
         }
-        Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            SPer.forEachIndexed { i, (label, _) -> GxSegChip(label, per == i, Modifier.weight(1f)) { per = i; hover = -1 } }
-        }
+        GxSegmented(SPer.map { it.first }, per, Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp).fillMaxWidth()) { per = it; hover = -1 }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 30.dp)) {
             val tiles = if (chatId != null) stats?.rows.orEmpty().take(4).map { (t, cur, prev) -> Triple(t, gxStatValue(cur), gxDelta(cur, prev)) } else listOf(
                 Triple("Подписчики", gxRu(data.last()), "+" + gxRu(gained)), Triple("Просмотры", gxK(views), "+12%"),
@@ -144,6 +144,21 @@ fun Modifier.gxCard(radius: Int = 22): Modifier = fillMaxWidth().clip(RoundedCor
     .border(1.dp, Color.White.copy(alpha = .08f), RoundedCornerShape(radius.dp))
 
 /** Period chip of the stats boards (34dp pill, accent tint when on). */
+/** critique-C P2: THE range picker of the stats boards — one segmented track, the picked segment tinted. */
+@Composable
+fun GxSegmented(options: List<String>, selected: Int, modifier: Modifier = Modifier, onPick: (Int) -> Unit) {
+    Row(modifier.clip(RoundedCornerShape(16.dp)).background(Kx.w(.05f)).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        options.forEachIndexed { i, t ->
+            val on = i == selected
+            val bg by animateColorAsState(if (on) Color(0x2E8FD3AC) else Color.Transparent, tween(200), label = "seg")
+            Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(13.dp)).background(bg).kxSelectedState(on).kxClick(t, androidx.compose.ui.semantics.Role.Tab) { onPick(i) }.padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center) {
+                Text(t, style = KxType.style(13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text3), maxLines = 1)
+            }
+        }
+    }
+}
+
 @Composable
 fun GxSegChip(label: String, on: Boolean, modifier: Modifier = Modifier, height: Int = 34, onClick: () -> Unit) {
     val bg by animateColorAsState(if (on) Color(0x248FD3AC) else Kx.w(.05f), tween(200), label = "pb")
@@ -187,11 +202,13 @@ private fun LineChart(data: List<Int>, days: Int, hover: Int, onHit: (Int) -> Un
         val wDp = maxWidth
         Canvas(Modifier.fillMaxSize()) {
             val sy = size.height / 170f
-            fun X(i: Int) = i.toFloat() / days * size.width
+            // critique-C P2: y labels live in a left gutter, outside the plot (they sat on the line).
+            val gutter = 44.dp.toPx()
+            fun X(i: Int) = gutter + i.toFloat() / days * (size.width - gutter)
             fun Y(v: Int) = ((140 - ((v - lo) / (hi - lo)) * 120) * sy).toFloat()
-            listOf(20f to .06f, 80f to .06f, 140f to .12f).forEach { (y, a) -> drawLine(Color.White.copy(alpha = a), Offset(0f, y * sy), Offset(size.width, y * sy), 1.dp.toPx()) }
+            listOf(20f to .06f, 80f to .06f, 140f to .12f).forEach { (y, a) -> drawLine(Color.White.copy(alpha = a), Offset(gutter, y * sy), Offset(size.width, y * sy), 1.dp.toPx()) }
             val line = Path().apply { data.forEachIndexed { i, v -> if (i == 0) moveTo(X(i), Y(v)) else lineTo(X(i), Y(v)) } }
-            val area = Path().apply { addPath(line); lineTo(size.width, 140 * sy); lineTo(0f, 140 * sy); close() }
+            val area = Path().apply { addPath(line); lineTo(size.width, 140 * sy); lineTo(gutter, 140 * sy); close() }
             drawPath(area, Brush.verticalGradient(listOf(Kx.accent.copy(alpha = .28f), Kx.accent.copy(alpha = 0f)), 0f, 140 * sy))
             val pm = PathMeasure().apply { setPath(line, false) }
             val seg = Path(); pm.getSegment(0f, pm.length * draw.value, seg, true)
@@ -205,10 +222,10 @@ private fun LineChart(data: List<Int>, days: Int, hover: Int, onHit: (Int) -> Un
                 val r = tm.measure(s, label)
                 drawText(r, topLeft = Offset(if (end) x - r.size.width else x, baseline * sy - r.firstBaseline))
             }
-            txt(gxK(Math.round(hi).toInt()), 0f, 16f); txt(gxK(Math.round(lo).toInt()), 0f, 136f)
-            txt(sDate(days, 0), 0f, 160f); txt(sDate(days, days), size.width, 160f, end = true)
+            txt(gxK(Math.round(hi).toInt()), gutter - 6.dp.toPx(), 24f, end = true); txt(gxK(Math.round(lo).toInt()), gutter - 6.dp.toPx(), 144f, end = true)
+            txt(sDate(days, 0), gutter, 162f); txt(sDate(days, days), size.width, 162f, end = true)
         }
-        Row(Modifier.fillMaxWidth().padding(bottom = 24.dp).fillMaxHeight()) {
+        Row(Modifier.fillMaxWidth().padding(start = 44.dp, bottom = 24.dp).fillMaxHeight()) {
             repeat(n) { k ->
                 val i = idxOf(k)
                 Box(Modifier.weight(1f).fillMaxHeight().semantics { contentDescription = "${sDate(days, i)}: ${gxRu(data[i])}" }.gxPlainClick { onHit(k) })

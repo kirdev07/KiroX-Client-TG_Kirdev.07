@@ -76,12 +76,8 @@ fun InlineBotScreen(ctx: KxScreenCtx) {
                 val shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
                 Column(Modifier.padding(horizontal = 8.dp).fillMaxWidth().graphicsLayer { alpha = p; translationY = (1f - p) * 20.dp.toPx() }
                     .clip(shape).background(Color(0xFF181D1B)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.06f))))
-                    .drawBehind {
-                        val c = Kx.w(.14f); val s = 1.dp.toPx()
-                        drawLine(c, Offset(22.dp.toPx(), s / 2), Offset(size.width - 22.dp.toPx(), s / 2), s)
-                        drawLine(c, Offset(s / 2, 22.dp.toPx()), Offset(s / 2, size.height), s)
-                        drawLine(c, Offset(size.width - s / 2, 22.dp.toPx()), Offset(size.width - s / 2, size.height), s)
-                    }.padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 8.dp)) {
+                    .border(1.dp, Kx.w(.14f), shape) // critique-A: one shape for clip + border, so the top corners are whole
+                    .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 8.dp)) {
                     Row(Modifier.padding(start = 6.dp, end = 6.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.size(24.dp).clip(RoundedCornerShape(8.dp)).background(b.bg), contentAlignment = Alignment.Center) {
                             Icon(b.icon, null, Modifier.size(15.dp), tint = Color.White)
@@ -131,7 +127,9 @@ fun InlineBotScreen(ctx: KxScreenCtx) {
                     Box(Modifier.padding(start = 1.dp).size(2.dp, 18.dp).graphicsLayer { alpha = if (c < .5f) 1f else 0f }.background(Kx.accent))
                 }
             }
-            Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
+            // critique-A S: demo state switchers live in the dashed «демо» tray, only on the demo store.
+            com.kirox.app.ui.v3.components.KxDemoControls(ctx.store, Modifier.padding(bottom = 6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
                 IB_BOTS.forEach { (k, x) ->
                     val on = bot == k
                     Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(if (on) Kx.accent.copy(alpha = .16f) else Kx.w(.05f))
@@ -140,6 +138,7 @@ fun InlineBotScreen(ctx: KxScreenCtx) {
                         Text(x.name, style = mts(12, W8, if (on) Kx.accent else Kx.text2))
                     }
                 }
+            }
             }
         }
     }

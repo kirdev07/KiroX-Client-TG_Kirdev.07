@@ -47,9 +47,11 @@ private fun Modifier.camBg(p: ConfP) = cssGrad(160f, p.c1, p.c2).then(if (p.ligh
 @Composable
 fun VideoConfScreen(ctx: KxScreenCtx) {
     // wave3-media: real account → the video chat this account is in (store.groupCall)
-    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoVideoConfScreen(ctx) else RealGroupCall(ctx)
+    // critique-C P1: one video-chat layout — the GroupCall board (⌄, «Говорит:», labelled controls, grid / speaker toggle).
+    GroupCallScreen(ctx)
 }
 
+@Suppress("unused")
 @Composable
 private fun DemoVideoConfScreen(ctx: KxScreenCtx) {
     var sec by remember { mutableIntStateOf(1284) }

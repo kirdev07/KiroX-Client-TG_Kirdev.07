@@ -70,6 +70,7 @@ private fun rememberChatFacts(store: KxStore, chatId: Long, kind: KxChatKind): S
  * Почему?» and the two marks the model learns from. Never on own messages, Saved, channels or Telegram's service chat;
  * private chats with contacts need a stronger case, groups only very strong ones. Hook: ChatScreen (one line).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun KxShieldStrip(store: KxStore, chatId: Long, kind: KxChatKind, m: KxMessage) {
     if (m.out || m.kind == KxMsgKind.Service || m.text.length < 8) return
@@ -79,35 +80,45 @@ fun KxShieldStrip(store: KxStore, chatId: Long, kind: KxChatKind, m: KxMessage) 
     if (!facts.enabled) return
     val acc = store.shieldAccount()
     val v = KxShield.version
-    if (!KxShield.on(acc, ShieldLayer.Text) || KxShield.trusted(acc, chatId)) return
+    var marked by remember(m.id) { mutableStateOf<Boolean?>(null) }
+    var hidden by remember(m.id) { mutableStateOf(false) }
+    // «Это нормально» trusts the chat; the strip stays (as a confirmation with «Отменить») only for the message just marked.
+    if (hidden || !KxShield.on(acc, ShieldLayer.Text) || (marked == null && KxShield.trusted(acc, chatId))) return
     val verdict = remember(m.id, m.text, v, KxShield.ready) { KxShield.score(acc, m.text, facts.ctx) }
     val strict = KxShield.strictness(acc)
     val threshold = if (facts.ctx.group) maxOf(strict.threshold, 0.85) else if (!facts.ctx.stranger) maxOf(strict.threshold, 0.75) else strict.threshold
-    var marked by remember(m.id) { mutableStateOf<Boolean?>(null) }
     if (verdict.risk < threshold && marked == null) return
     LaunchedEffect(m.id) { KxShield.count(acc, ShieldEvent.Text, "$chatId:${m.id}") }
     val danger = verdict.risk >= 0.85
-    val tint = if (danger) Kx.danger else Kx.warning
+    val done = marked
+    val tint = when (done) { false -> Kx.accent; true -> Kx.danger; null -> if (danger) Kx.danger else Kx.warning }
     Column(Modifier.padding(start = 4.dp, end = 48.dp, bottom = 4.dp).clip(RoundedCornerShape(14.dp)).background(tint.copy(alpha = .10f))
         .border(1.dp, tint.copy(alpha = .22f), RoundedCornerShape(14.dp)).padding(horizontal = 10.dp, vertical = 7.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Rounded.GppMaybe, null, Modifier.size(16.dp), tint = tint)
-            Text(if (marked == true) "Вы отметили: мошенник. kiroX запомнил" else verdict.headline, style = KxType.style(12.sp, FontWeight.SemiBold, tint, lineHeight = 16.sp), modifier = Modifier.weight(1f, fill = false))
-            Text("Почему?", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.kxClick("Почему это подозрительно") {
-                KxShield.why = ShieldWhy("Почему kiroX предупреждает", verdict, chatId, m.id, m.text)
-            })
+            Icon(if (done == false) Icons.Rounded.VerifiedUser else Icons.Rounded.GppMaybe, null, Modifier.size(16.dp), tint = tint)
+            Text(when (done) { true -> "Вы отметили: мошенник · kiroX запомнил"; false -> "Вы отметили: нормально · kiroX запомнил"; null -> verdict.headline },
+                style = KxType.style(12.sp, FontWeight.SemiBold, tint, lineHeight = 16.sp), modifier = Modifier.weight(1f, fill = false))
         }
-        if (marked == null) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            MarkChip("Это мошенник", Kx.danger) { KxShield.mark(acc, chatId, m.text, true); marked = true }
-            MarkChip("Это нормально", Kx.accent) { KxShield.mark(acc, chatId, m.text, false); marked = false }
+        FlowRow(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (done == null) {
+                MarkChip("Это мошенник", Kx.danger) { KxShield.mark(acc, chatId, m.text, true); marked = true }
+                MarkChip("Это нормально", Kx.accent) { KxShield.mark(acc, chatId, m.text, false); marked = false }
+                MarkChip("Почему?", Kx.text2) { KxShield.why = ShieldWhy("Почему kiroX предупреждает", verdict, chatId, m.id, m.text) }
+                MarkChip("Скрыть", Kx.text3) { hidden = true }
+            } else {
+                MarkChip("Отменить", Kx.text2) { KxShield.unmark(acc, chatId, done); marked = null }
+            }
         }
     }
 }
 
+/** Mark / «Почему?» chip: 40 dp tall, 48 dp touch area. */
 @Composable
 private fun MarkChip(text: String, tint: Color, onClick: () -> Unit) {
-    Box(Modifier.height(28.dp).clip(RoundedCornerShape(14.dp)).background(tint.copy(alpha = .12f)).kxClick(text, onClick = onClick).padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-        Text(text, style = KxType.style(12.sp, FontWeight.Bold, tint))
+    Box(Modifier.heightIn(min = 48.dp).kxClick(text, onClick = onClick), contentAlignment = Alignment.Center) {
+        Box(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(tint.copy(alpha = .12f)).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+            Text(text, style = KxType.style(13.sp, FontWeight.Bold, tint), maxLines = 1)
+        }
     }
 }
 
@@ -193,12 +204,12 @@ private fun CodeShieldScreen(risk: ShieldSendRisk, onCancel: () -> Unit, onSendA
 /** «Рентген ссылки» sheet: the real address large, odd letters highlighted, what it imitates and why. */
 @Composable
 internal fun BoxScope.LinkXraySheet(x: ShieldLinkVerdict, onClose: () -> Unit, onOpen: () -> Unit) {
-    TSheet(onClose, "Рентген ссылки") {
+    TSheet(onClose, "Проверка ссылки") {
         val tint = if (x.level >= 2) Kx.danger else Kx.warning
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Box(Modifier.size(40.dp).clip(RoundedCornerShape(13.dp)).background(tint.copy(alpha = .14f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.TravelExplore, null, Modifier.size(22.dp), tint = tint) }
             Column(Modifier.weight(1f)) {
-                Text("Рентген ссылки", style = KxType.style(19.sp, FontWeight.ExtraBold), modifier = Modifier.kxHeading())
+                Text("Проверка ссылки", style = KxType.style(19.sp, FontWeight.ExtraBold), modifier = Modifier.kxHeading())
                 Text(if (x.level >= 2) "Опасно — похоже на ловушку" else "Осторожно", style = KxType.style(13.sp, FontWeight.Bold, tint))
             }
         }
@@ -231,7 +242,7 @@ private fun BoxScope.WhySheet(store: KxStore, w: ShieldWhy, onClose: () -> Unit)
         Text(w.title, style = KxType.style(19.sp, FontWeight.ExtraBold), modifier = Modifier.kxHeading())
         RiskBar(w.verdict, Modifier.padding(top = 10.dp))
         Column(Modifier.padding(top = 12.dp).heightIn(max = 340.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (w.verdict.explain.isEmpty()) Text("Явных признаков нет — модель сомневается.", style = KxType.style(14.sp, color = Kx.text2))
+            if (w.verdict.explain.isEmpty()) Text("Явных признаков нет — kiroX не уверен.", style = KxType.style(14.sp, color = Kx.text2))
             w.verdict.explain.forEach { (t, e) ->
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kx.w(.045f)).padding(12.dp)) {
                     Text(t, style = KxType.style(14.sp, FontWeight.Bold))
@@ -255,7 +266,7 @@ internal fun RiskBar(v: ShieldVerdict, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text("Риск", style = KxType.style(13.sp, color = Kx.text3), modifier = Modifier.weight(1f))
-            Text("$pct%", style = KxType.style(18.sp, FontWeight.ExtraBold, tint))
+            Text("${when { v.risk >= .85 -> "высокий"; v.risk >= .5 -> "средний"; else -> "низкий" }} ($pct %)", style = KxType.style(18.sp, FontWeight.ExtraBold, tint))
         }
         Box(Modifier.padding(top = 6.dp).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Kx.w(.08f))) {
             Box(Modifier.fillMaxWidth(pct / 100f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(tint))
@@ -267,21 +278,21 @@ internal fun RiskBar(v: ShieldVerdict, modifier: Modifier = Modifier) {
 @Composable
 fun ShieldApkSheet(info: ShieldApkInfo, onInstall: () -> Unit, onClose: () -> Unit) {
     Box(Modifier.fillMaxSize()) {
-        TSheet(onClose, "Рентген APK") {
+        TSheet(onClose, "Проверка установщика") {
             val tint = if (info.level >= 2) Kx.danger else Kx.warning
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.size(40.dp).clip(RoundedCornerShape(13.dp)).background(tint.copy(alpha = .14f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Android, null, Modifier.size(22.dp), tint = tint) }
                 Column(Modifier.weight(1f)) {
-                    Text("Рентген APK", style = KxType.style(19.sp, FontWeight.ExtraBold), modifier = Modifier.kxHeading())
+                    Text("Проверка установщика", style = KxType.style(19.sp, FontWeight.ExtraBold), modifier = Modifier.kxHeading())
                     Text(if (info.level >= 2) "Опасно — не устанавливайте" else "Проверьте, прежде чем ставить", style = KxType.style(13.sp, FontWeight.Bold, tint))
                 }
             }
             Column(Modifier.padding(top = 12.dp).heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     ApkLine("Название", info.label)
-                    ApkLine("Пакет", info.packageName, mono = true)
+                    ApkLine("Имя в системе", info.packageName, mono = true)
                     if (info.version.isNotEmpty()) ApkLine("Версия", info.version)
-                    ApkLine("Подпись", if (info.signer.isEmpty()) "нет" else info.signerName.substringAfter("CN=").substringBefore(',').ifBlank { "без имени" })
+                    ApkLine("Кто подписал", if (info.signer.isEmpty()) "нет подписи — опасно" else info.signerName.substringAfter("CN=").substringBefore(',').ifBlank { "без имени" })
                     if (info.signer.isNotEmpty()) Text(info.signer.take(47) + "…", style = KxType.style(11.sp, color = Kx.text4).copy(fontFamily = FontFamily.Monospace))
                 }
                 info.notes.forEach { n -> Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { Text("•", style = KxType.style(14.sp, FontWeight.Bold, tint)); Text(n, style = KxType.style(14.sp, color = Kx.text2, lineHeight = 20.sp)) } }
@@ -305,6 +316,6 @@ fun ShieldApkSheet(info: ShieldApkInfo, onInstall: () -> Unit, onClose: () -> Un
 
 @Composable
 private fun ApkLine(k: String, v: String, mono: Boolean = false) = Row {
-    Text(k, style = KxType.style(13.sp, color = Kx.text4), modifier = Modifier.width(84.dp))
+    Text(k, style = KxType.style(13.sp, color = Kx.text4), modifier = Modifier.width(110.dp))
     Text(v, style = KxType.style(13.sp, FontWeight.SemiBold).let { if (mono) it.copy(fontFamily = FontFamily.Monospace) else it })
 }

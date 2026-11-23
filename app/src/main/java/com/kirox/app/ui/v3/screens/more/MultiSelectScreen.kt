@@ -132,7 +132,7 @@ fun MultiSelectScreen(ctx: KxScreenCtx) {
                     if (n > 0 && live) { ctx.open("Forward:$chatId:${realIds.joinToString(",")}") }
                     else if (n > 0) toast.show("Выберите, кому переслать", Icons.Rounded.Forward)
                 }
-                MsAct(Icons.Outlined.Bookmark, "В Избранное", n > 0) { if (n > 0) { if (live) ctx.store.saveToFavorites(chatId!!, realIds); toast.show("Сохранено в Избранное", Icons.Rounded.Bookmark) } }
+                MsAct(Icons.Outlined.Bookmark, "Сохранить", n > 0) { if (n > 0) { if (live) ctx.store.saveToFavorites(chatId!!, realIds); toast.show("Сохранено в Избранное", Icons.Rounded.Bookmark) } }
                 MsAct(Icons.Outlined.Delete, "Удалить", n > 0, danger = true) { if (n > 0) { confirm = true; forAll = allMine } }
             } else Box(Modifier.fillMaxWidth().moTopLine().padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp)) {
                 Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(24.dp)).background(Kx.w(.07f)).padding(horizontal = 16.dp),

@@ -56,7 +56,8 @@ fun FormatScreen(ctx: KxScreenCtx) {
     var liveText by remember { mutableStateOf("") }
     val words = if (live) liveText.trim().split(Regex("""\s+""")).filter { it.isNotEmpty() } else FM_W
     val f = remember { mutableStateMapOf<Int, Set<Char>>().apply { if (!live) putAll(mapOf(2 to setOf('b'), 4 to setOf('b'), 8 to setOf('p'), 11 to setOf('l'))) } }
-    val sel = remember { mutableStateMapOf<Int, Boolean>() }
+    // critique-A: the demo opens with a word selected, so the style toolbar (Ж/К/Ч/S/код/спойлер/ссылка) is visible.
+    val sel = remember { mutableStateMapOf<Int, Boolean>().apply { if (!live) put(4, true) } }
     var quote by remember { mutableStateOf(false) }
     val selIds = sel.filterValues { it }.keys.toList()
     fun fmt(i: Int) = f[i] ?: emptySet()
@@ -144,7 +145,7 @@ fun FormatScreen(ctx: KxScreenCtx) {
 @Composable
 private fun FmPreviewWord(t: String, st: Set<Char>) {
     val spoil = 'p' in st
-    val ink = if (spoil) Color.Transparent else if ('l' in st) Color(0xFF0B3A72) else MoInk
+    val ink = if (spoil) Color.Transparent else MoInk // links: underlined in the ink colour (dark blue on green had no contrast)
     val d = if (spoil) moLoop(1200, label = "spoil") else 0f
     Text(t, style = fmStyle(st, true, mts(15, color = ink, lh = 1.5f)), modifier = Modifier
         .then(if (spoil || 'c' in st) Modifier.clip(RoundedCornerShape(4.dp)) else Modifier)

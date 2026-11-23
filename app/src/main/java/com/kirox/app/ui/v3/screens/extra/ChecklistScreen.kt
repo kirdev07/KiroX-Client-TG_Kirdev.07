@@ -20,6 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -123,7 +125,11 @@ fun ChecklistScreen(ctx: KxScreenCtx) {
             }
             Row(Modifier.fillMaxWidth().drawBehind { drawLine(Kx.w(.06f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.accent.copy(alpha = .14f)), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Checklist, null, Modifier.size(24.dp), tint = Kx.accent) }
+                // critique-B P3: the composer's checklist button is labelled (a11y name + visible caption).
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.accent.copy(alpha = .14f)).semantics { contentDescription = "Новый список задач" }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Checklist, null, Modifier.size(24.dp), tint = Kx.accent) }
+                    Text("Список", style = ts(10.sp, color = Kx.text3))
+                }
                 Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(24.dp)).background(Kx.w(.07f)).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
                     Text("Сообщение", style = ts(15.sp, color = Kx.text4))
                 }

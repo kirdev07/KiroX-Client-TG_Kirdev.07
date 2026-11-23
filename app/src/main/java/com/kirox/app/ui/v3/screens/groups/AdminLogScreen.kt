@@ -97,8 +97,9 @@ fun AdminLogScreen(ctx: KxScreenCtx) {
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 16.dp)) {
                 var lastDay = ""
-                list.forEach { r ->
+                list.forEachIndexed { li, r ->
                     val showDay = r.day != lastDay; lastDay = r.day
+                    val joinsNext = list.getOrNull(li + 1)?.day == r.day
                     val (ic, ibg) = LColors.getValue(r.k)
                     val d = r.id in done
                     if (showDay) Box(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 6.dp), contentAlignment = Alignment.Center) {
@@ -108,7 +109,8 @@ fun AdminLogScreen(ctx: KxScreenCtx) {
                         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).gxSlideIn().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Column(Modifier.width(36.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(ibg), contentAlignment = Alignment.Center) { Icon(r.icon, null, Modifier.size(19.dp), tint = ic) }
-                                Box(Modifier.padding(top = 4.dp).weight(1f).width(2.dp).clip(RoundedCornerShape(1.dp)).background(Kx.w(.06f)))
+                                // critique-C P3: the connector joins every pair of events within a day (none after the day's last one).
+                                Box(Modifier.padding(top = 4.dp).weight(1f).width(2.dp).clip(RoundedCornerShape(1.dp)).background(if (joinsNext) Kx.w(.1f) else Color.Transparent))
                             }
                             Column(Modifier.weight(1f).padding(bottom = 6.dp)) {
                                 Text(buildAnnotatedString {
@@ -124,11 +126,14 @@ fun AdminLogScreen(ctx: KxScreenCtx) {
                                 Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(r.t, style = KxType.style(11.sp, color = Kx.text4))
                                     if (r.act.isNotEmpty()) {
-                                        val label = if (d) (if (r.act == "report") "Отправлено" else "Снято") else (if (r.act == "report") "Сообщить о спаме" else "Снять блокировку")
+                                        val label = if (d) (if (r.act == "report") "Отправлено" else "Снято") else (if (r.act == "report") "Это спам — пожаловаться" else "Снять блокировку")
                                         Box(Modifier.height(28.dp).clip(RoundedCornerShape(14.dp)).background(if (d) Color(0x248FD3AC) else Kx.w(.08f))
                                             .kxClick(label) { if (!d) { done.add(r.id); tip.say(if (r.act == "report") "Жалоба на спам отправлена" else "Блокировка снята") } }
                                             .padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-                                            Text(label, style = KxType.style(12.sp, FontWeight.ExtraBold, if (d) Kx.accent else Kx.text))
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                if (r.act == "report" && !d) Icon(Icons.Outlined.Flag, null, Modifier.size(14.dp), tint = Kx.text2)
+                                                Text(label, style = KxType.style(12.sp, FontWeight.ExtraBold, if (d) Kx.accent else Kx.text))
+                                            }
                                         }
                                     }
                                 }

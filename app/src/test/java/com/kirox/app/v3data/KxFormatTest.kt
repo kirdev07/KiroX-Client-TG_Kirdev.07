@@ -110,17 +110,17 @@ class KxFormatTest {
 
     @Test fun lastSeen() {
         assertEquals("в сети", KxFormat.status(TelegramUserStatus.Online, now, utc))
-        assertEquals("был(а) только что", KxFormat.status(TelegramUserStatus.Offline(nowS - 20), now, utc))
-        assertEquals("был(а) 1 минуту назад", KxFormat.status(TelegramUserStatus.Offline(nowS - 60), now, utc))
-        assertEquals("был(а) 2 минуты назад", KxFormat.status(TelegramUserStatus.Offline(nowS - 120), now, utc))
-        assertEquals("был(а) 5 минут назад", KxFormat.status(TelegramUserStatus.Offline(nowS - 300), now, utc))
-        assertEquals("был(а) 21 минуту назад", KxFormat.status(TelegramUserStatus.Offline(nowS - 21 * 60), now, utc))
-        assertEquals("был(а) в 09:05", KxFormat.status(TelegramUserStatus.Offline(1_795_338_300), now, utc))
-        assertEquals("был(а) вчера в 23:59", KxFormat.status(TelegramUserStatus.Offline(1_795_305_540), now, utc))
-        assertEquals("был(а) 17 нояб. в 10:00", KxFormat.status(TelegramUserStatus.Offline(1_794_909_600), now, utc))
-        assertEquals("был(а) 31.12.25", KxFormat.status(TelegramUserStatus.Offline(1_767_175_200), now, utc))
-        assertEquals("был(а) недавно", KxFormat.status(TelegramUserStatus.Recently, now, utc))
-        assertEquals("был(а) на этой неделе", KxFormat.status(TelegramUserStatus.LastWeek, now, utc))
+        assertEquals("в сети только что", KxFormat.status(TelegramUserStatus.Offline(nowS - 20), now, utc))
+        assertEquals("в сети 1 минуту назад", KxFormat.status(TelegramUserStatus.Offline(nowS - 60), now, utc))
+        assertEquals("в сети 2 минуты назад", KxFormat.status(TelegramUserStatus.Offline(nowS - 120), now, utc))
+        assertEquals("в сети 5 минут назад", KxFormat.status(TelegramUserStatus.Offline(nowS - 300), now, utc))
+        assertEquals("в сети 21 минуту назад", KxFormat.status(TelegramUserStatus.Offline(nowS - 21 * 60), now, utc))
+        assertEquals("в сети в 09:05", KxFormat.status(TelegramUserStatus.Offline(1_795_338_300), now, utc))
+        assertEquals("в сети вчера в 23:59", KxFormat.status(TelegramUserStatus.Offline(1_795_305_540), now, utc))
+        assertEquals("в сети 17 нояб. в 10:00", KxFormat.status(TelegramUserStatus.Offline(1_794_909_600), now, utc))
+        assertEquals("в сети 31.12.25", KxFormat.status(TelegramUserStatus.Offline(1_767_175_200), now, utc))
+        assertEquals("в сети недавно", KxFormat.status(TelegramUserStatus.Recently, now, utc))
+        assertEquals("в сети на этой неделе", KxFormat.status(TelegramUserStatus.LastWeek, now, utc))
         assertEquals("", KxFormat.status(null, now, utc))
     }
 

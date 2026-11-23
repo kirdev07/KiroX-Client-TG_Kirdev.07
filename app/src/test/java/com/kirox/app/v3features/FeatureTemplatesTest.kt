@@ -65,11 +65,11 @@ class FeatureTemplatesTest {
 
     @Test fun sendWhenOnlineNeedsVisibleLastSeen() {
         assertTrue(KxSendWhen.lastSeenVisible("в сети"))
-        assertTrue(KxSendWhen.lastSeenVisible("был(а) 5 минут назад"))
-        assertTrue(KxSendWhen.lastSeenVisible("был(а) вчера в 21:14"))
-        assertFalse(KxSendWhen.lastSeenVisible("был(а) недавно"))
-        assertFalse(KxSendWhen.lastSeenVisible("был(а) на этой неделе"))
-        assertFalse(KxSendWhen.lastSeenVisible("был(а) давно"))
+        assertTrue(KxSendWhen.lastSeenVisible("в сети 5 минут назад"))
+        assertTrue(KxSendWhen.lastSeenVisible("в сети вчера в 21:14"))
+        assertFalse(KxSendWhen.lastSeenVisible("в сети недавно"))
+        assertFalse(KxSendWhen.lastSeenVisible("в сети на этой неделе"))
+        assertFalse(KxSendWhen.lastSeenVisible("давно не в сети"))
         assertFalse(KxSendWhen.lastSeenVisible("бот"))
         assertFalse(KxSendWhen.lastSeenVisible(""))
     }

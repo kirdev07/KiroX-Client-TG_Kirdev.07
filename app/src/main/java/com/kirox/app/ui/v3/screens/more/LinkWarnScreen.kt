@@ -40,7 +40,7 @@ import kotlinx.coroutines.delay
 private data class LwLink(val label: String, val domain: String, val path: String, val title: String)
 private val LW = mapOf(
     "safe" to LwLink("вот тут", "rasp.example.kz", "/trains/saturday", "Открыть ссылку?"),
-    "bad" to LwLink("личном кабинете", "kab1net-vyp1ata.top", "/login?id=88412", "Осторожно: подозрительная ссылка"),
+    "bad" to LwLink("личный кабинет", "kab1net-vyp1ata.top", "/login?id=88412", "Осторожно: подозрительная ссылка"),
 )
 
 /** LinkWarn board: tapping a link shows its real address first; a hidden or look-alike address gets a red warning. */
@@ -90,7 +90,7 @@ fun LinkWarnScreen(ctx: KxScreenCtx) {
                 }
                 Column(Modifier.weight(1f)) {
                     Text(l.title, style = mts(18, W8))
-                    Text("Текст ссылки: «${l.label}»", style = mts(12, color = MoSub))
+                    Text("Ссылка подписана как «${l.label}»", style = mts(12, color = MoSub))
                 }
             }
             Box(Modifier.padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.Black.copy(alpha = .3f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(16.dp))

@@ -234,7 +234,7 @@ private fun routeName(r: CallAudioRoute) = when (r) {
 /** «Вывод звука»: phone, speaker, wired headset, Bluetooth — only what is connected; the current one ticked. */
 @Composable
 private fun RouteSheet(visible: Boolean, current: CallAudioRoute, routes: Set<CallAudioRoute>, onPick: (CallAudioRoute) -> Unit, onClose: () -> Unit) {
-    MSheet(visible, onClose, dim = .45f, top = SheetBg, bottom = SheetBg, border = Kx.w(.08f), highlight = null,
+    MSheet(visible, onClose, dim = .6f, top = SheetBg, bottom = SheetBg, border = Kx.w(.08f), highlight = null,
         handleColor = Color(0xFF3A4540), handleWidth = 36.dp, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 28.dp)) {
         T("Вывод звука", 17.sp, FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp))
         CallAudioRoute.entries.filter { it in routes }.forEach { o ->
@@ -362,7 +362,7 @@ private fun LiveCallScreen(store: KxStore, c: KxCallState, router: CallAudioRout
                 }
             }
             if (!com.kirox.app.telegram.TelegramVoipRepository.mediaAvailable) Box(Modifier.padding(top = 10.dp).clip(RoundedCornerShape(12.dp)).background(Kx.warning.copy(alpha = .14f))
-                .padding(horizontal = 10.dp, vertical = 4.dp)) { T("Тест сигналинга · звук и видео пока не подключены", 11.sp, FontWeight.SemiBold, Kx.warning) }
+                .padding(horizontal = 10.dp, vertical = 4.dp)) { T("Звук и видео в звонках пока недоступны в этой версии", 11.sp, FontWeight.SemiBold, Kx.warning) }
             if (c.reconnecting || (live && c.signalBars <= 1)) {
                 val (title, sub) = if (c.reconnecting) "Переподключаемся…" to "Звонок продолжится сам, как только вернётся сеть" else "Слабая связь" to (if (c.cameraOn) "Видео может подтормаживать" else "Звук может прерываться")
                 Row(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color(0xB83C2C0E)).padding(12.dp),
@@ -392,23 +392,16 @@ private fun LiveCallScreen(store: KxStore, c: KxCallState, router: CallAudioRout
         // Controls.
         Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 14.dp, end = 14.dp, bottom = 26.dp)
             .graphicsLayer { alpha = uiA; translationY = (1f - uiA) * 30.dp.toPx() }) {
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(34.dp)).background(Kx.surface.copy(alpha = .7f)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
-                .border(1.dp, Kx.w(.16f), RoundedCornerShape(34.dp)).topHighlight(Kx.w(.18f)).padding(horizontal = 10.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.Top) {
-                val speakerOn = route != CallAudioRoute.Earpiece
-                CallBtn(routeIcon(route), if (routes.size > 2) route.label else "Динамик", if (speakerOn) OnBtn else GlassBtn, if (speakerOn) Kx.bg else OnBtn) {
-                    if (routes.size > 2) outSheet = true else router.toggle()
-                }
-                CallBtn(if (c.cameraOn) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff, if (c.cameraOn) "Камера" else "Камера выкл.",
-                    if (c.cameraOn) OnBtn else GlassBtn, if (c.cameraOn) Kx.bg else OnBtn) { store.turnCallCamera(!c.cameraOn) }
-                val rot by animateFloatAsState(if (c.frontCamera) 0f else 180f, tween(300), label = "rot")
-                CallBtn(Icons.Rounded.Cameraswitch, "Повернуть", GlassBtn, if (c.cameraOn) OnBtn else Color(0xFF5C6661), rot) {
-                    if (c.cameraOn) store.flipCallCamera() else toast("Сначала включите камеру")
-                }
-                CallBtn(if (c.micMuted) Icons.Rounded.MicOff else Icons.Rounded.Mic, if (c.micMuted) "Без звука" else "Микрофон",
-                    if (c.micMuted) OnBtn else GlassBtn, if (c.micMuted) Kx.bg else OnBtn) { store.muteCallMic(!c.micMuted) }
-                CallBtn(Icons.Rounded.CallEnd, "Завершить", EndRed, Color.White) { outSheet = false; keyOpen = false; store.hangUp() }
-            }
+            // critique-C P1: one control row, one rule (white = on; the mic is white while it is on, MicOff on glass when muted).
+            val speakerOn = route != CallAudioRoute.Earpiece
+            KxCallControls(listOf(
+                KxCallButton(routeIcon(route), if (routes.size > 2) route.label else "Динамик", speakerOn) { if (routes.size > 2) outSheet = true else router.toggle() },
+                KxCallButton(if (c.cameraOn) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff, "Камера", c.cameraOn) { store.turnCallCamera(!c.cameraOn) },
+                KxCallButton(Icons.Rounded.Cameraswitch, "Сменить") { if (c.cameraOn) store.flipCallCamera() else toast("Сначала включите камеру") },
+                KxCallButton(if (c.micMuted) Icons.Rounded.MicOff else Icons.Rounded.Mic, "Микрофон", !c.micMuted) { store.muteCallMic(!c.micMuted) },
+                KxCallButton(Icons.Rounded.CallEnd, "Завершить", end = true) { outSheet = false; keyOpen = false; store.hangUp() },
+            ), Modifier.clip(RoundedCornerShape(34.dp)).background(Kx.surface.copy(alpha = .7f)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
+                .border(1.dp, Kx.w(.16f), RoundedCornerShape(34.dp)).topHighlight(Kx.w(.18f)).padding(horizontal = 4.dp, vertical = 14.dp))
         }
 
         RouteSheet(outSheet, route, routes, onPick = { router.select(it); outSheet = false }, onClose = { outSheet = false })
@@ -487,7 +480,7 @@ private fun IncomingCall(store: KxStore, c: KxCallState, toast: (String) -> Unit
             }
         }
 
-        MSheet(reply, { reply = false; own = null }, dim = .5f, top = SheetBg, bottom = SheetBg, border = Kx.w(.08f), highlight = null,
+        MSheet(reply, { reply = false; own = null }, dim = .6f, top = SheetBg, bottom = SheetBg, border = Kx.w(.08f), highlight = null,
             handleColor = Color(0xFF3A4540), handleWidth = 36.dp, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 26.dp)) {
             T("Отклонить и написать", 18.sp, FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp))
             val typed = own
@@ -743,37 +736,27 @@ private fun LiveGroupScreen(store: KxStore, g: KxGroupCallState, router: CallAud
                         if (g.screenSharing) store.stopGroupScreenShare() else askScreen()
                     }
             }
-            Row(Modifier.fillMaxWidth()
-                .shadow(40.dp, RoundedCornerShape(34.dp), ambientColor = Color.Black.copy(alpha = .5f), spotColor = Color.Black.copy(alpha = .5f))
-                .clip(RoundedCornerShape(34.dp)).background(Kx.surface).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
-                .border(1.dp, Kx.w(.16f), RoundedCornerShape(34.dp)).topHighlight(Kx.w(.18f)).padding(start = 8.dp, end = 8.dp, top = 14.dp, bottom = 12.dp),
-                horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.Bottom) {
-                GroupBtn(if (g.cameraOn) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff, "Камера", if (g.cameraOn) on else glass, if (g.cameraOn) Kx.bg else on) {
+            val speakerOn = route != CallAudioRoute.Earpiece
+            val live = !g.muted
+            // critique-C P1: the same control row as 1:1 calls (white = on; no green «live» mic).
+            KxCallControls(listOf(
+                KxCallButton(if (g.cameraOn) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff, "Камера", g.cameraOn) {
                     if (g.cameraOn) store.turnGroupCamera(false) else if (g.canEnableVideo) store.turnGroupCamera(true) else toast("Камеры в этом видеочате выключены")
-                }
-                val speakerOn = route != CallAudioRoute.Earpiece
-                GroupBtn(routeIcon(route), if (routes.size > 2) route.label else if (speakerOn) "Динамик" else "Телефон", if (speakerOn) on else glass, if (speakerOn) Kx.bg else on) {
+                },
+                KxCallButton(routeIcon(route), if (routes.size > 2) route.label else if (speakerOn) "Динамик" else "Телефон", speakerOn) {
                     if (routes.size > 2) outSheet = true else router.toggle()
-                }
-                val live = !g.muted
-                val micLabel = if (!g.canUnmute && g.muted) "Нельзя" else if (live) "В эфире" else "Микрофон"
-                Column(Modifier.width(76.dp).kxClick(micLabel) {
+                },
+                KxCallButton(if (live) Icons.Rounded.Mic else Icons.Rounded.MicOff, if (!g.canUnmute && g.muted) "Нельзя" else "Микрофон", live) {
                     if (g.canUnmute || !g.muted) store.muteGroupMic(!g.muted) else toast("Админы выключили микрофоны — поднимите руку")
-                }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.size(62.dp, 50.dp).clip(RoundedCornerShape(25.dp)).then(if (live) Modifier.cssGrad(140f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.16f))),
-                        contentAlignment = Alignment.Center) {
-                        Icon(if (live) Icons.Rounded.Mic else Icons.Rounded.MicOff, null, Modifier.size(28.dp), tint = if (live) Kx.onAccent else on)
-                    }
-                    Text(micLabel, style = ts(11.sp, FontWeight.Bold, if (live) Kx.accent else Kx.text2), maxLines = 1, softWrap = false)
-                }
-                GroupBtn(Icons.Rounded.FrontHand, if (g.handRaised) "Опустить" else "Поднять руку", if (g.handRaised) Kx.warning else glass, if (g.handRaised) Color(0xFF1A1206) else on) {
-                    store.raiseGroupHand(!g.handRaised)
-                }
-                GroupBtn(Icons.Rounded.CallEnd, "Выйти", EndRed, Color.White) { confirmLeave = true }
-            }
+                },
+                KxCallButton(Icons.Rounded.FrontHand, if (g.handRaised) "Опустить руку" else "Рука", g.handRaised) { store.raiseGroupHand(!g.handRaised) },
+                KxCallButton(Icons.Rounded.CallEnd, "Выйти", end = true) { confirmLeave = true },
+            ), Modifier.shadow(40.dp, RoundedCornerShape(34.dp), ambientColor = Color.Black.copy(alpha = .5f), spotColor = Color.Black.copy(alpha = .5f))
+                .clip(RoundedCornerShape(34.dp)).background(Kx.surface).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
+                .border(1.dp, Kx.w(.16f), RoundedCornerShape(34.dp)).topHighlight(Kx.w(.18f)).padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 12.dp))
         }
 
-        MSheet(people, { people = false }, dim = .5f, top = SheetBg, bottom = SheetBg, border = Kx.w(.08f), highlight = null,
+        MSheet(people, { people = false }, dim = .6f, top = SheetBg, bottom = SheetBg, border = Kx.w(.08f), highlight = null,
             handleColor = Color(0xFF3A4540), handleWidth = 36.dp, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp), modifier = Modifier.heightIn(max = 620.dp)) {
             T("Участники · $count", 19.sp, FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp))
             Column(Modifier.verticalScroll(rememberScrollState())) {

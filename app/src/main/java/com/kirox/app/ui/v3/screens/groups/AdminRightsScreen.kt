@@ -101,14 +101,16 @@ fun AdminRightsScreen(ctx: KxScreenCtx) {
                         Text(sub, style = KxType.style(12.sp, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
                     }
                 }
-                Row(Modifier.padding(top = 12.dp).fillMaxWidth().height(54.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(20.dp))
+                // critique-C P2: the role row is the editable custom title, labelled, with a clear «n/16» counter.
+                Text("Должность", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 8.dp))
+                Row(Modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(20.dp))
                     .padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Outlined.Badge, null, Modifier.size(24.dp), tint = Kx.text3)
                     Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                        if (title.isEmpty()) Text("Должность (видна в группе)", style = KxType.style(15.sp, color = Kx.text4), maxLines = 1)
+                        if (title.isEmpty()) Text("Видна рядом с именем в группе", style = KxType.style(15.sp, color = Kx.text4), maxLines = 1)
                         BasicTextField(title, { title = it.take(16) }, Modifier.fillMaxWidth(), textStyle = KxType.style(15.sp), singleLine = true, cursorBrush = SolidColor(Kx.accent))
                     }
-                    Text("${16 - title.length}", style = KxType.style(12.sp, color = Kx.text4))
+                    Text("${title.length}/16", style = KxType.style(12.sp, color = Kx.text4))
                 }
                 Text("Быстро выбрать", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -141,7 +143,7 @@ fun AdminRightsScreen(ctx: KxScreenCtx) {
                                 val sub = if (warn) "Осторожно: сможет назначать новых админов" else r.sub
                                 if (sub != null) Text(sub, style = KxType.style(12.sp, color = if (warn) Kx.warning else Kx.text4), modifier = Modifier.padding(top = 2.dp))
                             }
-                            KxSwitch(x, trackOn = if (i == 8) Color(0xFFB07A2E) else Kx.accentDeep)
+                            KxSwitch(x, onTint = if (i == 8) Color(0xFFB07A2E) else null)
                         }
                     }
                 }

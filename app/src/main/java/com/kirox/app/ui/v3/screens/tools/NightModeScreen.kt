@@ -148,7 +148,7 @@ fun NightModeScreen(ctx: KxScreenCtx) {
                     val v = if (k == 0) from else to
                     Column(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(TTile).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(ic, null, Modifier.size(16.dp), tint = Kx.text3); Text(label, style = KxType.style(12.sp, color = Kx.text3))
+                            Icon(ic, null, Modifier.size(16.dp), tint = Kx.text3); Text("$label · ±1 ч", style = KxType.style(12.sp, color = Kx.text3))
                         }
                         Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             TRoundBtn(Icons.Rounded.Remove, "Раньше") { if (k == 0) store.putPref(KxPrefs.NIGHT_FROM, (from + 23) % 24) else store.putPref(KxPrefs.NIGHT_TO, (to + 23) % 24) }
@@ -161,6 +161,9 @@ fun NightModeScreen(ctx: KxScreenCtx) {
         }
 
         TCap("Тема ночью")
+        // critique-B: say what the day theme is (the app is dark-only: day = the theme of «Оформление», night = one of these).
+        THint("Днём — ваша тема из «Оформления» (${com.kirox.app.ui.v3.screens.settings.CustomThemes[store.pref(KxPrefs.THEME).coerceIn(0, com.kirox.app.ui.v3.screens.settings.CustomThemes.lastIndex)].name}). Ночью — выбранная ниже.", top = 0.dp)
+        Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(Triple("kiroX тёмная", Color(0xFF0A0C0B), Kx.accent), Triple("Чистый чёрный", Color.Black, Kx.accent), Triple("Ночное небо", Color(0xFF0D1222), Color(0xFF9FB7FF)))
                 .forEachIndexed { i, (label, bg, a) ->

@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -42,8 +43,8 @@ import com.kirox.app.ui.v3.model.pref
 
 private val AC_CB = listOf(
     listOf("Обычные", "Как задумано") to listOf(Color(0xFF8FD3AC), Color(0xFFFF8A80), Color(0xFFE8B04A)),
-    listOf("Красный–зелёный", "Дейтеранопия") to listOf(Color(0xFF6FA9D8), Color(0xFFE8B04A), Color(0xFFEEF3EF)),
-    listOf("Синий–жёлтый", "Тританопия") to listOf(Color(0xFF4FC3C3), Color(0xFFF07AA0), Color(0xFFEEF3EF)),
+    listOf("Красный–зелёный", "Плохо различаю красный и зелёный") to listOf(Color(0xFF6FA9D8), Color(0xFFE8B04A), Color(0xFFEEF3EF)),
+    listOf("Синий–жёлтый", "Плохо различаю синий и жёлтый") to listOf(Color(0xFF4FC3C3), Color(0xFFF07AA0), Color(0xFFEEF3EF)),
     listOf("Монохром", "Без цвета") to listOf(Color(0xFFEEF3EF), Color(0xFF8A958F), Color(0xFFC9D2CC)))
 private data class AcOpt(val icon: ImageVector, val label: String, val sub: String)
 private val AC_OPTS = listOf(
@@ -78,6 +79,8 @@ fun AccessScreen(ctx: KxScreenCtx) {
             .then(if (contrast) Modifier.background(Color.Black).border(2.dp, Color.White, pShape) else Modifier.background(Color(0xFF111614)).drawBehind {
                 drawRect(Brush.radialGradient(0f to Kx.accentDeep.copy(alpha = .2f), .6f to Color.Transparent, center = Offset(size.width * .85f, 0f), radius = size.width * .9f))
             }.border(1.dp, Kx.w(.08f), pShape)).padding(14.dp)) {
+            // critique-B: the preview is labelled as such and its «Ответить» is drawn as a picture of a button (not tappable-looking).
+            Text("Пример", style = KxType.style(11.sp, FontWeight.Bold, Kx.text4), modifier = Modifier.padding(bottom = 6.dp))
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.size(av).clip(CircleShape).background(Color(0xFFC0443C)), contentAlignment = Alignment.Center) { Text("А", style = KxType.style(13.sp, FontWeight.ExtraBold)) }
                 val inShape = RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)
@@ -96,7 +99,7 @@ fun AccessScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.weight(1f).height(btnH).clip(RoundedCornerShape(999.dp)).background(acc), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f).height(btnH).clip(RoundedCornerShape(999.dp)).background(acc.copy(alpha = .75f)).clearAndSetSemantics { }, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.AutoMirrored.Outlined.Reply, null, Modifier.size(18.dp), tint = Kx.onAccent); Spacer(Modifier.width(6.dp))
                     Text("Ответить", style = KxType.style(if (big) 16.sp else 14.sp, FontWeight.ExtraBold, Kx.onAccent))
                 }

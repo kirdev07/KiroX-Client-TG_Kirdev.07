@@ -75,7 +75,7 @@ fun ReportScreen(ctx: KxScreenCtx) {
         // Chat behind
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = Kx.text)
+                com.kirox.app.ui.v3.components.KxBackButton(ctx.back)
                 LetterAv(head?.title?.take(1)?.uppercase() ?: "?", hex("#5C6661"), 40.dp, 16)
                 Column {
                     Text(head?.title ?: "+7 700 000 00 00", style = ts(16, W800), maxLines = 1)

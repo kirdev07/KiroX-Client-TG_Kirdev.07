@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.Forward
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.Icon
@@ -138,19 +139,19 @@ fun BrowserScreen(ctx: KxScreenCtx) {
             }
         }
 
-        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 14.dp, end = 14.dp, bottom = 22.dp).fillMaxWidth().height(60.dp)
+        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 14.dp, end = 14.dp, bottom = 22.dp).fillMaxWidth().height(66.dp)
             .shadow(40.dp, RoundedCornerShape(30.dp), ambientColor = Color.Black.copy(alpha = .5f), spotColor = Color.Black.copy(alpha = .5f))
             .clip(RoundedCornerShape(30.dp)).background(Kx.surface).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
             .border(1.dp, Kx.w(.16f), RoundedCornerShape(30.dp)).topHighlight(Kx.w(.18f)).padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
             Tool(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", if (canBack) Kx.text else Color(0xFF4A544F)) { if (canBack) { pos--; load() } }
             Tool(Icons.AutoMirrored.Outlined.ArrowForward, "Вперёд", if (canFwd) Kx.text else Color(0xFF4A544F)) { if (canFwd) { pos++; load() } }
-            Tool(Icons.AutoMirrored.Outlined.Send, "Отправить в чат", Kx.accent) { say("Ссылка отправлена в «Избранное»") }
+            Tool(Icons.AutoMirrored.Outlined.Forward, "В чат", Kx.accent) { say("Ссылка отправлена в «Избранное»") }
             Tool(Icons.Outlined.Refresh, "Обновить", Kx.text) { load() }
-            Tool(Icons.AutoMirrored.Outlined.OpenInNew, "Открыть во внешнем браузере", Kx.text) { say("Откроется во внешнем браузере") }
+            Tool(Icons.AutoMirrored.Outlined.OpenInNew, "Браузер", Kx.text) { say("Откроется во внешнем браузере") }
         }
 
-        MSheet(menu, { menu = false }, dim = .5f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
+        MSheet(menu, { menu = false }, dim = .6f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
             handleColor = Color(0xFF3A4540), handleWidth = 36.dp, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 26.dp)) {
             Row(Modifier.padding(start = 4.dp, end = 4.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).hero(pg))
@@ -187,7 +188,12 @@ fun BrowserScreen(ctx: KxScreenCtx) {
 @Composable
 private fun Tool(icon: ImageVector, label: String, ink: Color, onClick: () -> Unit) {
     val c by animateColorAsState(ink, tween(200), label = "t")
-    Box(Modifier.size(52.dp, 46.dp).clip(RoundedCornerShape(23.dp)).kxClick(label, onClick = onClick), contentAlignment = Alignment.Center) { Icon(icon, null, tint = c) }
+    // critique-C P3: icon + label for every tool.
+    Column(Modifier.widthIn(min = 60.dp).height(54.dp).clip(RoundedCornerShape(18.dp)).kxClick(label, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
+        Icon(icon, null, Modifier.size(22.dp), tint = c)
+        T(label, 10.sp, FontWeight.SemiBold, c.copy(alpha = .85f), maxLines = 1)
+    }
 }
 
 @Composable

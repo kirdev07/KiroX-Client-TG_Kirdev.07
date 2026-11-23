@@ -38,8 +38,8 @@ import kotlinx.coroutines.delay
 
 private class DgItem(val kind: String, val chat: String, val l: String, val c: Color, val time: String, val text: String, val openText: String, val chatId: Long = 0)
 private val DgDemo = listOf(
-    DgItem("m", "Kotlin-клуб", "K", Color(0xFF2F6E9E), "23:41", "Дмитрий: @kirill_dev, глянешь мой PR до обеда?", "Ответить"),
-    DgItem("m", "Выпускники 2018", "В", Color(0xFF6A4C9C), "22:10", "Олег: @kirill_dev ты в субботу с нами?", "Ответить"),
+    DgItem("m", "Kotlin-клуб", "K", Color(0xFF2F6E9E), "23:41", "Дмитрий: @alex_codes, глянешь мой PR до обеда?", "Ответить"),
+    DgItem("m", "Выпускники 2018", "В", Color(0xFF6A4C9C), "22:10", "Олег: @alex_codes ты в субботу с нами?", "Ответить"),
     DgItem("r", "Анна", "А", Color(0xFFC0443C), "07:52", "Ответ на ваше сообщение: «Да, давай в 7!»", "Открыть"),
     DgItem("c", "Мама", "М", Color(0xFFB07A2E), "07:30", "Не забудь позвонить бабушке, у неё сегодня день рождения 🎂", "Позвонить"),
     DgItem("c", "Лиза", "Л", Color(0xFFC0443C), "00:12", "3 новых фото", "Посмотреть"),
@@ -91,7 +91,7 @@ fun DigestScreen(ctx: KxScreenCtx) {
                 Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Kx.w(.07f))) {
                     Box(Modifier.fillMaxWidth(pct).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(Brush.horizontalGradient(listOf(Kx.accentMid, Kx.accentDeep))))
                 }
-                Text("Разобрано $doneN из $n", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 6.dp))
+                Text("Разобрано $doneN из $n", style = ts(13.sp, FontWeight.SemiBold, Kx.text3), modifier = Modifier.padding(top = 6.dp))
                 var last = ""
                 left.forEach { i ->
                     val it = items[i]

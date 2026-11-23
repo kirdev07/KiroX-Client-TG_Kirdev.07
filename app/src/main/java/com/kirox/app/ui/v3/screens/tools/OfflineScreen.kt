@@ -109,8 +109,13 @@ fun OfflineScreen(ctx: KxScreenCtx) {
                         withStyle(SpanStyle(color = Kx.warning, fontWeight = FontWeight.Bold)) { append("Нет сети.") }
                         append(" " + if (waiting > 0) "$waiting " + (if (waiting == 1) "сообщение ждёт" else "сообщения ждут") + " отправки" else "Сообщения уйдут, когда сеть появится")
                     }, style = KxType.style(13.sp, color = Color(0xFFE4D3B0)), modifier = Modifier.weight(1f))
-                    Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(Kx.warning.copy(alpha = .18f)).kxClick { net = "connecting" }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                        Text("Включить сеть", style = KxType.style(12.sp, FontWeight.ExtraBold, Kx.warning))
+                    // critique-B: kiroX cannot switch the network on — the button opens Android's network settings (the demo chat then «reconnects»).
+                    val sysCtx = androidx.compose.ui.platform.LocalContext.current
+                    Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(Kx.warning.copy(alpha = .18f)).kxClick {
+                        if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) net = "connecting"
+                        else runCatching { sysCtx.startActivity(android.content.Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+                        Text("Настройки сети", style = KxType.style(12.sp, FontWeight.ExtraBold, Kx.warning))
                     }
                 }
                 else Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(Kx.accent.copy(alpha = .18f), Kx.accent.copy(alpha = .05f))))

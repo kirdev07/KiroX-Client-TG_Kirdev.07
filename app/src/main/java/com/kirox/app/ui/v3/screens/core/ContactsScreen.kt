@@ -52,10 +52,10 @@ fun ContactsScreen(ctx: KxScreenCtx) {
     val online = list.filter { it.online }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         KxGlow(diameter = 380.dp, x = (-90).dp, y = (-110).dp, alignEnd = true)
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 40.dp)) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 110.dp)) {
             item {
                 Row(Modifier.statusBarsPadding().padding(start = 8.dp, end = 16.dp, top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    KxIconButton(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", size = 42.dp, filled = false, tint = Kx.text, onClick = ctx.back)
+                    KxBackButton(ctx.back) // critique-A S
                     Text("Контакты", style = KxType.style(30.sp, FontWeight.ExtraBold).copy(letterSpacing = (-.4).sp), modifier = Modifier.weight(1f), maxLines = 1,
                         autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 20.sp, maxFontSize = 30.sp))
                     Row(Modifier.height(42.dp).clip(RoundedCornerShape(21.dp)).background(Kx.fill).border(1.dp, Kx.w(.09f), RoundedCornerShape(21.dp)).topHighlight(Kx.w(.14f))
@@ -64,7 +64,6 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                         Icon(Icons.Outlined.SwapVert, null, Modifier.size(18.dp), tint = Kx.text2)
                         Text(if (byName) "А–Я" else "В сети", style = KxType.style(13.sp, FontWeight.SemiBold, Kx.text2))
                     }
-                    KxIconButton(Icons.Rounded.PersonAddAlt1, "Добавить контакт", size = 42.dp, accent = true) { ctx.open("AddContact") }
                 }
             }
             item {
@@ -93,7 +92,8 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
-            if (online.isNotEmpty() && q.isEmpty()) item {
+            // critique-A: the online strip only when it adds something (a long list), not a copy of the first rows.
+            if (online.isNotEmpty() && q.isEmpty() && list.size >= 12) item {
                 Row(Modifier.padding(top = 12.dp).horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     online.forEach { c ->
                         Column(Modifier.width(58.dp).clip(RoundedCornerShape(14.dp)).kxClick(c.name) { sheet = c }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -110,7 +110,8 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                 list.sortedWith(compareBy(java.text.Collator.getInstance(java.util.Locale.forLanguageTag("ru"))) { it.name }).groupBy { it.name.take(1).uppercase() }.toList()
             else listOf("По времени захода" to (list.filter { it.online } + list.filterNot { it.online }))
             groups.forEach { (head, items) ->
-                item(key = "h$head") { Text(head, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)) }
+                // critique-A: letter headers only for a long list (< 20 contacts = half the height was headers).
+                if (list.size >= 20 || !byName) item(key = "h$head") { Text(head, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)) }
                 items(items, key = { it.id }) { c ->
                     Row(Modifier.fillMaxWidth().heightIn(min = 62.dp).kxRise(0, 400).kxClick(c.name) { sheet = c }.padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
@@ -129,6 +130,8 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                 }
             }
         }
+        // critique-A S: «Добавить контакт» is a bottom-right FAB (was top-right).
+        KxFab(Icons.Rounded.PersonAddAlt1, "Добавить контакт", Modifier.align(Alignment.BottomEnd), aboveDock = false) { ctx.open("AddContact") }
         sheet?.let { c -> ContactSheet(c, ctx) { sheet = null } }
     }
 }

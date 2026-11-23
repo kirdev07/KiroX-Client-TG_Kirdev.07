@@ -105,7 +105,7 @@ fun YearRecapScreen(ctx: KxScreenCtx) {
                 Text("Ваш 2026 в kiroX", style = ts(13.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
                 ExRoundBtn(Icons.Outlined.Close, "Закрыть", size = 36.dp, bg = Color.Black.copy(alpha = .25f), border = null) { ctx.back() }
             }
-            Row(Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = 26.dp).fillMaxWidth().height(54.dp).clip(RoundedCornerShape(27.dp)).background(Color.White.copy(alpha = .92f))
+            Row(Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = 26.dp).fillMaxWidth().height(54.dp).clip(RoundedCornerShape(27.dp)).lin2(135f, Kx.accentMid, Kx.accentDeep) // critique-B P3: system accent CTA
                 .kxClick(if (last) "Поделиться итогами" else "Дальше") { if (last) exShare(context, "Мой 2026 в kiroX: 24 318 сообщений, любимый эмодзи 😂") else go(1) },
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                 Icon(if (last) Icons.Rounded.IosShare else Icons.AutoMirrored.Rounded.ArrowForward, null, Modifier.size(20.dp), tint = Kx.onAccent)

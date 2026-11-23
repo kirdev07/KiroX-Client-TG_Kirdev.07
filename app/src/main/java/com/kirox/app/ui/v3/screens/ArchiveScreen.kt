@@ -83,7 +83,7 @@ fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit
                     if (i >= chats.size - 10) LaunchedEffect(chats.size) { store.loadMoreChats(-1) }
                     ArchiveRow(c, c.id in sel, hideBadge, Modifier.animateItem(), onClick = { if (sel.isNotEmpty()) toggle(c.id) else onOpenChat(c.id) }, onLong = { toggle(c.id) })
                 }
-                if (chats.isEmpty()) item { KxEmpty("Архив пуст") }
+                if (chats.isEmpty()) item { KxEmpty(androidx.compose.material.icons.Icons.Outlined.Archive, "Архив пуст", "Чаты, убранные в архив, появятся здесь", Modifier.padding(top = 40.dp)) }
             }
         }
         if (sel.isNotEmpty()) {

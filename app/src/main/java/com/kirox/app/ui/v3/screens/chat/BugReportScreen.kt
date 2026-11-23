@@ -61,8 +61,9 @@ fun BugReportScreen(ctx: KxScreenCtx) {
     Column(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ChRound(Icons.Outlined.Close, "Закрыть", 44.dp, border = Color.Transparent, onClick = ctx.back)
-            Text("Сообщить об ошибке", style = ts(20, W800), modifier = Modifier.weight(1f))
+            // critique-A: the bug sits in the title area, not top-right where it read as a button.
             BugIcon()
+            Text("Сообщить об ошибке", style = ts(20, W800), modifier = Modifier.weight(1f))
         }
         if (st == "form") {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {

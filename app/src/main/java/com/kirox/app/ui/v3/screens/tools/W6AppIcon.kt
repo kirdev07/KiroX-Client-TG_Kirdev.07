@@ -146,7 +146,7 @@ internal fun AppIconReal(ctx: KxScreenCtx) {
 }
 
 private val W6Swatches = listOf(0xFF6C4CE0, 0xFF396FDB, 0xFF2AABEE, 0xFF1FA463, 0xFFF29D38, 0xFFE0475B, 0xFFC2185B,
-    0xFF121214, 0xFF37474F, 0xFF8D6E63, 0xFFFFFFFF, 0xFFFFD43B, 0xFF7B4CE0, 0xFF0B2242).map { it.toInt() }
+    0xFF121214, 0xFF37474F, 0xFF8D6E63, 0xFFFFFFFF, 0xFFFFD43B, 0xFF00897B, 0xFF0B2242).map { it.toInt() }
 
 @Composable
 private fun W6SwatchGrid(selected: Int?, onPick: (Int) -> Unit) {
@@ -207,7 +207,7 @@ fun CustomIconScreen(ctx: KxScreenCtx) {
             }
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(TTile)) {
-                TRow(Icons.Outlined.Send, "Самолётик kiroX", "Поверх фона или фото", iconTint = Kx.text3, onClick = { showPlane = !showPlane }) { TSwitch(showPlane) }
+                TRow(Icons.Outlined.ChatBubbleOutline, "Знак kiroX", "Поверх фона или фото", iconTint = Kx.text3, onClick = { showPlane = !showPlane }) { TSwitch(showPlane) }
             }
             if (showPlane) {
                 TCap("Цвет самолётика")

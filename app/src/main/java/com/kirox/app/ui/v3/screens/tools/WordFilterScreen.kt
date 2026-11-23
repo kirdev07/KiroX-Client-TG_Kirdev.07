@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.components.KxSwitch
 import com.kirox.app.ui.v3.components.dashedBorder
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
@@ -91,11 +92,12 @@ fun WordFilterScreen(ctx: KxScreenCtx) {
         store.putPrefList(KxPrefsAccount.FILTER_LIST, words + d); draft = ""; last = d
     }
 
-    TScreen("Фильтр слов", ctx.back, titleSize = 20, actions = {
-        Box(Modifier.semantics { contentDescription = "Фильтр включён" }.kxClick(role = Role.Switch) { store.togglePref(KxPrefsAccount.FILTER_ON) }) {
-            TSwitch(on, Kx.accentDeep, Kx.w(.14f), 52.dp, 30.dp, 24.dp, Kx.text, Kx.text3, shadow = false)
+    TScreen("Фильтр слов", ctx.back, titleSize = 20) {
+        // critique-B: the master switch is a labelled row at the top (was an unlabeled switch in the header).
+        TGroup(Modifier.padding(bottom = 12.dp)) {
+            TRow(Icons.Outlined.FilterAlt, "Фильтр включён", if (on) "Сообщения со словами из списка скрываются" else "Сейчас ничего не скрывается",
+                onClick = { store.togglePref(KxPrefsAccount.FILTER_ON) }) { KxSwitch(on) }
         }
-    }) {
         Column(Modifier.alpha(bodyOp)) {
             val sx = shake.value.let { p -> if (p < .25f) -5f * p / .25f else if (p < .75f) -5f + 10f * (p - .25f) / .5f else 5f * (1f - (p - .75f) / .25f) }
             Row(Modifier.graphicsLayer { translationX = sx * density }, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -113,7 +115,7 @@ fun WordFilterScreen(ctx: KxScreenCtx) {
                 val ok = d.isNotEmpty() && !dup
                 Box(Modifier.size(50.dp).clip(RoundedCornerShape(25.dp)).background(if (ok) Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)) else solid(Kx.w(.07f)))
                     .kxClick("Добавить слово") { add() }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Add, null, Modifier.size(24.dp), tint = if (ok) Kx.onAccent else Color(0xFF5C6661))
+                    Icon(Icons.Rounded.Add, null, Modifier.size(24.dp), tint = if (ok) Kx.onAccent else Kx.text3)
                 }
             }
             Text(if (dup) "Это слово уже в фильтре" else "Регистр не важен. Ищем и внутри слов: «скидк» найдёт «скидка» и «скидки».",
@@ -129,12 +131,12 @@ fun WordFilterScreen(ctx: KxScreenCtx) {
                         val hits = msgs.count { it.text.lowercase().contains(w.lowercase()) }
                         val cShape = RoundedCornerShape(17.dp)
                         Row(Modifier.graphicsLayer { scaleX = sc; scaleY = sc; alpha = (p / .7f).coerceAtMost(1f) }.height(34.dp).clip(cShape)
-                            .background(Kx.dangerSolid.copy(alpha = .12f)).border(1.dp, Kx.dangerSolid.copy(alpha = .3f), cShape).padding(start = 12.dp, end = 4.dp),
+                            .background(Kx.w(.07f)).border(1.dp, Kx.w(.1f), cShape).padding(start = 12.dp, end = 4.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(w, style = KxType.style(13.sp, FontWeight.Bold, Color(0xFFFFB3AC)))
-                            if (hits > 0) Text("· $hits", style = KxType.style(11.sp, FontWeight.SemiBold, Color(0xFFC98A84)))
+                            Text(w, style = KxType.style(13.sp, FontWeight.Bold, Kx.text))
+                            if (hits > 0) Text("· $hits", style = KxType.style(11.sp, FontWeight.SemiBold, Kx.text3))
                             Box(Modifier.size(26.dp).clip(RoundedCornerShape(13.dp)).kxClick("Убрать слово $w") { store.putPrefList(KxPrefsAccount.FILTER_LIST, words - w) }, contentAlignment = Alignment.Center) {
-                                Icon(Icons.Rounded.Close, null, Modifier.size(16.dp), tint = Color(0xFFFFB3AC))
+                                Icon(Icons.Rounded.Close, null, Modifier.size(16.dp), tint = Kx.text3)
                             }
                         }
                     }
@@ -171,7 +173,8 @@ fun WordFilterScreen(ctx: KxScreenCtx) {
                 }
             }
 
-            FlowRow(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Где фильтровать", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp))
+            FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 WF_SCOPES.forEach { (label, ic, k) ->
                     val sel = k in scope
                     val bg by animateColorAsState(if (sel) Kx.accent.copy(alpha = .14f) else Kx.w(.05f), tween(200), label = "sb")

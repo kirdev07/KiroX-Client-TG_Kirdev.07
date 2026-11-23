@@ -50,8 +50,8 @@ import kotlinx.coroutines.delay
 private val RPerms = listOf(Icons.Outlined.Chat to "Текст", Icons.Outlined.Image to "Фото и видео", Icons.Outlined.EmojiEmotions to "Стикеры и GIF",
     Icons.Outlined.Link to "Ссылки", Icons.Outlined.Ballot to "Опросы", Icons.Outlined.PersonAdd to "Приглашать")
 private data class RDur(val chip: String, val word: String, val until: String)
-private val RDurs = listOf(RDur("1 ч", "1 час", "19:20"), RDur("1 дн", "1 день", "завтра в 18:20"), RDur("1 нед", "1 неделю", "29 ноября"),
-    RDur("1 мес", "1 месяц", "22 декабря"), RDur("∞", "навсегда", ""))
+private val RDurs = listOf(RDur("1 час", "1 час", "19:20"), RDur("1 день", "1 день", "завтра в 18:20"), RDur("1 неделя", "1 неделю", "29 ноября"),
+    RDur("1 месяц", "1 месяц", "22 декабря"), RDur("Навсегда", "навсегда", ""))
 private val RReasons = listOf("Спам", "Реклама", "Оскорбления", "Флуд", "Другое")
 private val Red = Color(0xFFE5534B)
 
@@ -147,7 +147,7 @@ fun RestrictScreen(ctx: KxScreenCtx) {
                 if (!ban) {
                     Row(Modifier.padding(top = 14.dp).gxRise(0, 200, 8.dp).padding(start = 4.dp, end = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("Что разрешить", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.weight(1f))
-                        Text("Запретить всё", style = KxType.style(12.sp, FontWeight.Bold, Kx.warning), modifier = Modifier.kxClick { allow = emptySet() }.padding(vertical = 4.dp))
+                        Text("Снять все", style = KxType.style(13.sp, FontWeight.Bold, Kx.text3), modifier = Modifier.kxHitClick("Снять все разрешения", RoundedCornerShape(10.dp)) { allow = emptySet() }.padding(horizontal = 4.dp, vertical = 4.dp))
                     }
                     Column(Modifier.gxRise(0, 200, 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         RPerms.withIndex().chunked(2).forEach { row ->
@@ -234,14 +234,15 @@ private fun Stamp(text: String, ink: Color, modifier: Modifier) {
 
 @Composable
 private fun Perm(icon: ImageVector, label: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val bg by animateColorAsState(if (on) Color(0x1A8FD3AC) else Color(0x0FE5534B), tween(200), label = "pb")
-    val bd by animateColorAsState(if (on) Color(0x598FD3AC) else Color(0x33E5534B), tween(200), label = "pd")
-    val ink by animateColorAsState(if (on) Kx.text else Color(0xFFC98A84), tween(200), label = "pi")
-    Row(modifier.clip(RoundedCornerShape(18.dp)).background(bg).border(1.dp, bd, RoundedCornerShape(18.dp)).kxClick(label, Role.Switch, onClick = onClick).padding(12.dp),
+    // critique-C P2: one neutral tile; a check = allowed, an empty circle = forbidden (no red, no strike-through).
+    val bd by animateColorAsState(if (on) Color(0x598FD3AC) else Kx.w(.08f), tween(200), label = "pd")
+    Row(modifier.clip(RoundedCornerShape(18.dp)).background(Kx.w(.04f)).border(1.dp, bd, RoundedCornerShape(18.dp)).kxToggleState(on).kxClick(label, Role.Switch, onClick = onClick).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(icon, null, Modifier.size(22.dp), tint = if (on) Kx.accent else Color(0xFFC98A84))
-        Text(label, style = KxType.style(13.sp, FontWeight.Bold, ink).copy(textDecoration = if (on) TextDecoration.None else TextDecoration.LineThrough),
-            modifier = Modifier.weight(1f), maxLines = 1)
+        Icon(icon, null, Modifier.size(22.dp), tint = if (on) Kx.accent else Kx.text3)
+        Text(label, style = KxType.style(13.sp, FontWeight.Bold, if (on) Kx.text else Kx.text2), modifier = Modifier.weight(1f), maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        Box(Modifier.size(20.dp).clip(CircleShape).then(if (on) Modifier.background(Kx.accent) else Modifier.border(1.5.dp, Kx.w(.3f), CircleShape)),
+            contentAlignment = Alignment.Center) { if (on) Icon(Icons.Outlined.Check, null, Modifier.size(14.dp), tint = Kx.onAccent) }
     }
 }
 

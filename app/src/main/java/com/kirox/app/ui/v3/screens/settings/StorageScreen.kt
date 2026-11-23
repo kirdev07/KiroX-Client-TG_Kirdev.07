@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.screens.tools.W6StorageOverlayHost
+import com.kirox.app.ui.v3.screens.tools.TConfirmSheet
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
@@ -93,6 +94,7 @@ fun StorageScreen(ctx: KxScreenCtx) {
     var freed by rememberSaveable { mutableLongStateOf(0L) }
     var net by rememberSaveable { mutableIntStateOf(0) }
     var state by rememberSaveable { mutableStateOf("idle") }
+    var askClear by remember { mutableStateOf(false) }
     val keep = store.keepMedia.coerceIn(0, store.keepMediaOptions.lastIndex.coerceAtLeast(0))
     // demo: needs store (auto-download presets per network are not in the store yet)
     var auto by remember { mutableStateOf(listOf(
@@ -130,7 +132,7 @@ fun StorageScreen(ctx: KxScreenCtx) {
                         }
                         Column(Modifier.size(80.dp).clip(CircleShape).background(Color(0xFF121614)), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                             Text(if (done) "0 МБ" else sBytes(total), style = KxType.style(20.sp, FontWeight.ExtraBold))
-                            Text("кэш kiroX", style = KxType.style(11.sp, color = Kx.text4))
+                            Text("временные файлы", style = KxType.style(11.sp, color = Kx.text4))
                         }
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -143,7 +145,8 @@ fun StorageScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                ClearButton(state, sBytes(freed)) { when (state) { "busy" -> Unit; "done" -> state = "idle"; else -> state = "busy" } }
+                // critique-B: the button names the size and asks first (it fired straight away).
+                ClearButton(state, sBytes(freed), if (total > 0) "Освободить ${sBytes(total)}" else "Освободить место") { when (state) { "busy" -> Unit; "done" -> state = "idle"; else -> askClear = true } }
 
                 // wave6: the real account's auto-download per network, cache limit, GIF, gallery and per-chat clean are v3 (tools/W6Storage.kt);
                 // the demo keeps the board's local switches.
@@ -157,7 +160,7 @@ fun StorageScreen(ctx: KxScreenCtx) {
                     Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         kDefs.forEachIndexed { i, (k, label, limit) ->
                             val on = auto[net][k] == true
-                            Row(Modifier.fillMaxWidth().height(50.dp).clip(groupShape(i, 4, 20.dp)).background(TileBg)
+                            Row(Modifier.fillMaxWidth().height(50.dp).kxGroupItem(groupShape(i, 4, 20.dp), TileBg, 46.dp)
                                 .kxClick(role = Role.Switch) { auto = auto.toMutableList().also { it[net] = it[net] + (k to !on) } }.padding(horizontal = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon(kIcons[i], null, Modifier.size(20.dp), tint = Kx.text4)
@@ -172,10 +175,8 @@ fun StorageScreen(ctx: KxScreenCtx) {
                 }
                 val keepOpts = store.keepMediaOptions.let { o -> if (o.size == 4) listOf("3 дня", "Неделя", "Месяц", "Всегда") else o }
                 Column(Modifier.sRise(120).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(TileBg).padding(horizontal = 14.dp, vertical = 12.dp)) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text("Хранить медиа", style = KxType.style(14.sp), modifier = Modifier.weight(1f))
-                        Text(keepOpts[keep], style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
-                    }
+                    // critique-B P3: the selected pill already shows the value (it was repeated on the right).
+                    Text("Хранить медиа", style = KxType.style(14.sp))
                     Spacer(Modifier.height(10.dp))
                     SPills(keepOpts, keep) { store.setKeepMedia(it) }
                 }
@@ -183,7 +184,7 @@ fun StorageScreen(ctx: KxScreenCtx) {
                 Column(Modifier.sRise(160), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     GroupLabel("Файлы и сеть")
                     val rows = listOf(
-                        Triple(Icons.Rounded.FolderOpen, "Файлы Telegram", "Скачанные файлы с проверкой") to "Files",
+                        Triple(Icons.Rounded.FolderOpen, "Скачанные файлы", "Файлы из чатов, с проверкой") to "Files",
                         Triple(Icons.Rounded.Download, "Загрузки", "Что скачивается сейчас") to "Downloads",
                         Triple(Icons.Rounded.CleaningServices, "Чистка подписок", "Каналы и группы, которые вы не читаете") to "Cleanup",
                         Triple(Icons.Rounded.DataUsage, "Трафик", "Сколько потрачено по сетям") to "Traffic",
@@ -196,11 +197,16 @@ fun StorageScreen(ctx: KxScreenCtx) {
             }
         }
         W6StorageOverlayHost(ctx, storageOverlay)
+        if (askClear) run {
+            TConfirmSheet(Icons.Rounded.CleaningServices, "Освободить ${sBytes(total)}?",
+                "Удалятся временные копии фото, видео и файлов на этом телефоне — их можно скачать из Telegram снова. Сообщения, чаты и ваши настройки останутся.",
+                "Освободить", { askClear = false }, danger = false) { state = "busy" }
+        }
     }
 }
 
 @Composable
-private fun ClearButton(state: String, freed: String, onClick: () -> Unit) {
+private fun ClearButton(state: String, freed: String, idle: String, onClick: () -> Unit) {
     val done = state == "done"
     val bg by animateColorAsState(if (done) Kx.accent.copy(alpha = .16f) else Kx.accent, tween(300), label = "cb")
     val ink = if (done) Color(0xFFC8F0D8) else Kx.onAccent
@@ -225,6 +231,6 @@ private fun ClearButton(state: String, freed: String, onClick: () -> Unit) {
             }, tint = ink)
             Spacer(Modifier.width(8.dp))
         }
-        Text(when (state) { "busy" -> "Очищаем…"; "done" -> "Освобождено $freed"; else -> "Очистить кэш" }, style = KxType.style(15.sp, FontWeight.ExtraBold, ink))
+        Text(when (state) { "busy" -> "Очищаем…"; "done" -> "Освобождено $freed"; else -> idle }, style = KxType.style(15.sp, FontWeight.ExtraBold, ink))
     }
 }

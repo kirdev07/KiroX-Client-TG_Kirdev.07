@@ -130,7 +130,7 @@ fun ChatStyleScreen(ctx: KxScreenCtx) {
                                         drawRoundRect(Kx.bg, Offset(-g, -g), Size(size.width + 2 * g, size.height + 2 * g), androidx.compose.ui.geometry.CornerRadius(cr + g))
                                     }
                                 }.clip(ws).drawBehind { drawWall(i, 1.5.dp, 12.dp, 6.dp, .2f) }.then(if (!on) Modifier.border(1.dp, Kx.w(.12f), ws) else Modifier))
-                                Text(label, style = KxType.style(11.sp, color = if (on) Kx.text else Kx.text4), maxLines = 1)
+                                Text(label, style = KxType.style(11.sp, if (on) FontWeight.Bold else FontWeight.Normal, if (on) Kx.text else Kx.text3), maxLines = 1) // P3: unselected labels readable
                             }
                         }
                     }

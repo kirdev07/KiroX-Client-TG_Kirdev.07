@@ -93,11 +93,11 @@ fun UpdateScreen(ctx: KxScreenCtx) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(if (inst) "Устанавливаем…" else if (done) "Готово к установке" else if (dl) "Скачиваем обновление" else "Вышла новая версия", style = KxType.style(24.sp, FontWeight.ExtraBold))
                     Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("1.0.0-rc.1", style = KxType.style(14.sp, color = Kx.text3))
+                        Text("Версия 1.0", style = KxType.style(14.sp, color = Kx.text3))
                         Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(18.dp), tint = Kx.accent)
                         Text("1.0.0", style = KxType.style(14.sp, FontWeight.ExtraBold, Kx.accent))
                     }
-                    Text("28,4 МБ · релиз", style = KxType.style(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 4.dp))
+                    Text("28,4 МБ", style = KxType.style(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 4.dp))
                 }
                 if (dl || done || inst) Column(Modifier.padding(top = 18.dp).tRise(0, 250, 10.dp)) {
                     val w by animateFloatAsState(prog / 100f, tween(200, easing = LinearEasing), label = "w")
@@ -119,9 +119,9 @@ fun UpdateScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Row(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(20.dp))) {
-                    TRow(Icons.Outlined.Wifi, "Скачивать сам по Wi-Fi", "Установить всё равно спросит вас", iconTint = Kx.text3, subColor = Kx.text4, onClick = { auto = !auto }) { TSmallSwitch(auto) }
+                    TRow(Icons.Outlined.Wifi, "Скачивать автоматически по Wi-Fi", "Перед установкой kiroX всё равно спросит", iconTint = Kx.text3, subColor = Kx.text4, onClick = { auto = !auto }) { TSmallSwitch(auto) }
                 }
-                THint("Чаты, вход и настройки сохранятся. Файл подписан тем же ключом, что и установленная версия.", Modifier.padding(start = 4.dp, end = 4.dp), top = 12.dp)
+                THint("Чаты, вход и настройки сохранятся. Проверено: обновление от того же разработчика, что и установленная версия.", Modifier.padding(start = 4.dp, end = 4.dp), top = 12.dp)
             }
         }
         Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(0f to Kx.bg.copy(alpha = 0f), .4f to Kx.bg)).navigationBarsPadding()

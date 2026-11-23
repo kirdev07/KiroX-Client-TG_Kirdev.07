@@ -43,7 +43,7 @@ import kotlinx.coroutines.delay
 // Demo pack «Лис». Real account: StickerPackLive (set by name, install / remove, favourites, send to the chat of the arg).
 private val Fox = listOf("🦊" to "привет", "😏" to "хитро", "🍂" to "осень", "🔥" to "огонь", "🌙" to "спокойной ночи", "🎒" to "в путь", "☕" to "кофе", "📚" to "учёба",
     "🎸" to "музыка", "👋" to "пока", "🧣" to "холодно", "🏕️" to "поход", "😴" to "спать", "🥳" to "праздник", "🤔" to "хмм", "❤️" to "люблю", "😭" to "плачу",
-    "👍" to "класс", "🙈" to "стыдно", "🫶" to "спасибо")
+    "👍" to "класс", "🙈" to "стыдно", "🫶" to "спасибо").filter { kxEmojiRenderable(it.first) } // critique-A S: no tofu
 
 /** Board «Набор стикеров»: pack sheet with a 4-col grid, big preview (send / favorite), add or remove the pack with a confirm. */
 @Composable

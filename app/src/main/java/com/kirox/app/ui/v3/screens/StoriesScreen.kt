@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.rounded.*
@@ -59,19 +61,21 @@ private fun Modifier.look(i: Int) = drawBehind {
 
 /** Stories tab: «Моя история» + 2-column cards; tap opens the viewer. */
 @Composable
-fun StoriesScreen(store: KxStore, onOpenViewer: (Int) -> Unit, onOpen: (String) -> Unit, bottomPadding: Dp = 110.dp) {
+fun StoriesScreen(store: KxStore, onOpenViewer: (Int) -> Unit, onOpen: (String) -> Unit, bottomPadding: Dp = kxBottomContentPadding()) {
     val peers = store.stories.filter { !it.mine && it.slides.isNotEmpty() }
     Box(Modifier.fillMaxSize()) {
         KxGlow(diameter = 380.dp, x = (-90).dp, y = (-110).dp)
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Истории", style = KxType.style(30.sp, FontWeight.ExtraBold).copy(letterSpacing = (-.4).sp), modifier = Modifier.weight(1f))
-                KxIconButton(Icons.Outlined.VisibilityOff, "Скрытые истории", size = 42.dp, glass = true) { onOpen("HiddenStories") }
-                KxIconButton(Icons.Outlined.AddAPhoto, "Новая история", size = 42.dp, accent = true) { onOpen("StoryPost") }
             }
             LazyVerticalGrid(GridCells.Fixed(2), Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = bottomPadding),
                 horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item {
+                // critique-A: one «add» entry (the camera action), unseen first, viewed ones in their own dimmed section,
+                // «Скрытые истории» as a labelled row at the end instead of a mystery eye icon in the header.
+                val fresh = peers.withIndex().filter { it.value.unseen }
+                val seen = peers.withIndex().filter { !it.value.unseen }
+                if (peers.isEmpty()) item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                     Column(Modifier.height(214.dp).clip(RoundedCornerShape(24.dp))
                         .drawBehind { drawRect(Brush.linearGradient(listOf(Color(0xFF1E3A2A), Color(0xFF0F1A14)), cssAngleStart(160f, size), cssAngleEnd(160f, size))) }
                         .dashedBorder(Kx.accent.copy(alpha = .35f), 24.dp).kxClick("Добавить историю") { onOpen("StoryPost") },
@@ -79,13 +83,28 @@ fun StoriesScreen(store: KxStore, onOpenViewer: (Int) -> Unit, onOpen: (String) 
                         Box(Modifier.size(58.dp).clip(CircleShape).background(Kx.accent.copy(alpha = .16f)), contentAlignment = Alignment.Center) {
                             Icon(Icons.Rounded.Add, null, Modifier.size(30.dp), tint = Kx.accent)
                         }
-                        Text("Моя история", style = KxType.style(15.sp, FontWeight.Bold))
-                        Text("Фото или видео на 24 часа", style = KxType.style(12.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
+                        Text("Историй пока нет", style = KxType.style(15.sp, FontWeight.Bold))
+                        Text("Опубликуйте свою — фото или видео на 24 часа", style = KxType.style(12.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
                     }
                 }
-                itemsIndexed(peers, key = { _, p -> p.id }) { i, p -> StoryCard(p, Modifier.kxRise(i * 60, 500)) { onOpenViewer(i) } }
+                items(fresh.size, key = { fresh[it].value.id }) { k -> val (i, p) = fresh[k]; StoryCard(p, Modifier.kxRise(k * 60, 500)) { onOpenViewer(i) } }
+                if (seen.isNotEmpty()) item(key = "seen-h", span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                    Text("Просмотренные", style = KxType.style(13.sp, FontWeight.Bold, Kx.text3), modifier = Modifier.padding(start = 4.dp, top = if (fresh.isEmpty()) 0.dp else 6.dp))
+                }
+                items(seen.size, key = { seen[it].value.id }) { k -> val (i, p) = seen[k]; StoryCard(p, Modifier.graphicsLayer { alpha = .62f }) { onOpenViewer(i) } }
+                item(key = "hidden", span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                    Row(Modifier.padding(top = 4.dp).fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.045f))
+                        .kxClick("Скрытые истории") { onOpen("HiddenStories") }.padding(horizontal = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Icon(Icons.Outlined.VisibilityOff, null, Modifier.size(20.dp), tint = Kx.text3)
+                        Text("Скрытые истории", style = KxType.style(15.sp, FontWeight.SemiBold, Kx.text2), modifier = Modifier.weight(1f))
+                        Icon(Icons.Rounded.ChevronRight, null, tint = Kx.text4)
+                    }
+                }
             }
         }
+        // critique-A S: the only «add» entry — a bottom-right FAB above the dock.
+        KxFab(Icons.Outlined.AddAPhoto, "Новая история", Modifier.align(Alignment.BottomEnd)) { onOpen("StoryPost") }
     }
 }
 
@@ -95,7 +114,7 @@ private fun StoryCard(p: KxStoryPeer, modifier: Modifier, onClick: () -> Unit) {
     val spin = remember { Animatable(0f) }
     val reduced = LocalKxReducedMotion.current
     LaunchedEffect(p.unseen, reduced) { if (p.unseen && !reduced) spin.animateTo(720f, tween(12000, easing = LinearEasing)) }
-    Box(modifier.height(214.dp).clip(RoundedCornerShape(24.dp)).look(first.look).then(Modifier)
+    Box(modifier.height(196.dp).clip(RoundedCornerShape(24.dp)).look(first.look).then(Modifier)
         .then(if (p.unseen) Modifier.border(1.dp, Kx.accent.copy(alpha = .35f), RoundedCornerShape(24.dp)) else Modifier)
         .kxClick("История: ${p.name}", onClick = onClick)) {
         // fixer-misc4: the film-strip / motif placeholder only while there is no decoded cover.
@@ -136,6 +155,8 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
     val flying = remember { mutableStateListOf<Pair<Long, String>>() }
     var paused by remember { mutableStateOf(false) }
     var held by remember { mutableStateOf(false) }
+    var muted by remember { mutableStateOf(false) }
+    var storyMenu by remember { mutableStateOf(false) }
     var hideUi by remember { mutableStateOf(false) }
     var reply by remember { mutableStateOf("") }
     var replyFocused by remember { mutableStateOf(false) }
@@ -170,10 +191,11 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
         }
     }
     DisposableEffect(player) { onDispose { player?.release() } }
+    LaunchedEffect(player, muted) { player?.volume = if (muted) 0f else 1f }
     val photo = if (player == null) rememberKxBitmap(s.media) else null
     // Waiting for the media: nothing loaded yet, or a photo still decoding. Demo slides (no media, not pending) run at once.
     val waiting = s.pending || (player == null && s.media != null && photo == null)
-    val running = !paused && !held && !replyFocused && !waiting
+    val running = !paused && !held && !replyFocused && !waiting && !storyMenu
     LaunchedEffect(openId, slideAt, running, player) {
         val p = player
         if (p != null) {
@@ -247,7 +269,21 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
                     Box(Modifier.size(40.dp).kxClick(if (paused) "Продолжить" else "Пауза") { paused = !paused }, contentAlignment = Alignment.Center) {
                         Icon(if (paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause, null, tint = Color.White)
                     }
+                    // critique-A: a speaker toggle for video stories and ⋮ (hide the author) next to ✕.
+                    if (player != null) Box(Modifier.size(40.dp).kxClick(if (muted) "Включить звук" else "Выключить звук") { muted = !muted }, contentAlignment = Alignment.Center) {
+                        Icon(if (muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp, null, tint = Color.White)
+                    }
+                    Box(Modifier.size(40.dp).kxClick("Ещё") { storyMenu = !storyMenu }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.MoreVert, null, tint = Color.White) }
                     Box(Modifier.size(40.dp).kxClick("Закрыть", onClick = onClose), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Close, null, tint = Color.White) }
+                }
+                if (storyMenu) Column(Modifier.align(Alignment.End).padding(top = 6.dp).width(230.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xF21E2421))
+                    .border(1.dp, Kx.w(.14f), RoundedCornerShape(18.dp)).padding(6.dp)) {
+                    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(12.dp)).kxClick("Скрыть истории ${peer.name}") {
+                        storyMenu = false; store.hideStories(peer.id, true); toast("Истории ${peer.name} скрыты"); onClose()
+                    }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Icon(Icons.Outlined.VisibilityOff, null, Modifier.size(20.dp), tint = Kx.text2)
+                        Text("Скрыть истории автора", style = KxType.style(14.sp, FontWeight.SemiBold))
+                    }
                 }
             }
             Text(s.caption, style = KxType.style(18.sp, FontWeight.Bold).copy(shadow = androidx.compose.ui.graphics.Shadow(Color.Black.copy(alpha = .5f), blurRadius = 20f)),

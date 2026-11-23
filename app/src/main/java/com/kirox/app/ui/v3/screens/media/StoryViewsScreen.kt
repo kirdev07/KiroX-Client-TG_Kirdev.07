@@ -130,21 +130,36 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
                 }
                 Spacer(Modifier.weight(1f))
                 MRoundBtn(Icons.Outlined.IosShare, "Поделиться историей", size = 40.dp, iconSize = 20.dp, bg = Kx.w(.07f), border = null) { toast.show(if (live) "Ссылка на историю пока недоступна" else "Ссылка на историю скопирована", Icons.Rounded.Link) }
-                MRoundBtn(Icons.Outlined.Delete, "Удалить историю", size = 40.dp, iconSize = 20.dp, bg = Color(0xFFE5534B).copy(alpha = .12f), border = null, tint = Kx.danger) {
-                    confirm.ask("Удалить историю?", "История исчезнет у всех, кто ещё не успел её посмотреть.", "Удалить") {
-                        if (!live) ctx.back()
-                        else scope.launch { val err = store.deleteStory(storyId!!); if (err == null) ctx.back() else toast.show(err, Icons.Rounded.Delete) }
+                // critique-C P2: delete lives in ⋮ (with confirmation), away from «Поделиться».
+                Box {
+                    var menu by remember { mutableStateOf(false) }
+                    MRoundBtn(Icons.Rounded.MoreVert, "Ещё", size = 40.dp, iconSize = 20.dp, bg = Kx.w(.07f), border = null) { menu = true }
+                    androidx.compose.material3.DropdownMenu(menu, { menu = false }, containerColor = Color(0xFF1E2421)) {
+                        androidx.compose.material3.DropdownMenuItem(text = { T("Удалить историю", 15.sp, color = Kx.danger) },
+                            leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = Kx.danger) },
+                            onClick = {
+                                menu = false
+                                confirm.ask("Удалить историю?", "История исчезнет у всех, кто ещё не успел её посмотреть.", "Удалить") {
+                                    if (!live) ctx.back()
+                                    else scope.launch { val err = store.deleteStory(storyId!!); if (err == null) ctx.back() else toast.show(err, Icons.Rounded.Delete) }
+                                }
+                            })
                     }
                 }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("Все · ${count(total)}", "С реакцией · $reactions", if (live) "Близкие друзья · ${viewers.count { it.close }}" else "Близкие друзья").forEachIndexed { i, label ->
+                listOf("Все · ${count(total)}", "С реакцией · $reactions", "★ Близкие · ${if (live) viewers.count { it.close } else StoryViewers.count { it.close }}").forEachIndexed { i, label ->
                     val on = tab == i
                     val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f), tween(200), label = "t")
                     Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(bg).kxClick { tab = i }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
                         T(label, 12.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text2)
                     }
                 }
+            }
+            // critique-C P2: say what the green star on avatars means.
+            Row(Modifier.padding(start = 18.dp, end = 16.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(Modifier.size(16.dp).clip(CircleShape).background(Kx.accent), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Star, null, Modifier.size(10.dp), tint = Kx.onAccent) }
+                T("— близкие друзья", 12.sp, color = Kx.text4)
             }
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 16.dp)) {
                 itemsIndexed(list, key = { _, v -> "$tab/${v.name}/${v.time}" }) { k, v ->

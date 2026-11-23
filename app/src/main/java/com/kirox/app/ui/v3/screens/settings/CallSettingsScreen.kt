@@ -42,7 +42,7 @@ private data class CSheet(val title: String, val opts: List<Pair<String, String>
 
 private val CSheets = mapOf(
     "ring" to CSheet("Мелодия звонка", listOf("Волна kiroX" to "", "Лёгкий звон" to "", "Классика" to "", "Без звука, только вибрация" to ""), true),
-    "p2p" to CSheet("Прямое соединение", listOf("Все" to "Быстрее, IP виден собеседнику", "Мои контакты" to "Остальные через серверы Telegram", "Никто" to "Всегда через серверы Telegram")),
+    "p2p" to CSheet("Прямое соединение в звонках", listOf("Все" to "Быстрее, но собеседник может узнать ваш адрес в сети", "Мои контакты" to "Остальные через серверы Telegram", "Никто" to "Всегда через серверы Telegram")),
     "calls" to CSheet("Кто может звонить", listOf("Все" to "", "Мои контакты" to "", "Никто" to "")),
 )
 
@@ -87,8 +87,8 @@ fun CallSettingsScreen(ctx: KxScreenCtx) {
                 }
                 Caption16("Расход трафика")
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf(Triple(Icons.Outlined.SignalCellularAlt, "Высокое", "~1 МБ/мин"), Triple(Icons.Outlined.SignalCellularAlt2Bar, "Сбалансир.", "~500 КБ/мин"),
-                        Triple(Icons.Outlined.SignalCellularAlt1Bar, "Экономно", "~200 КБ/мин")).forEachIndexed { i, (ic, label, sub) ->
+                    listOf(Triple(Icons.Outlined.SignalCellularAlt, "Высокий", "~1 МБ/мин"), Triple(Icons.Outlined.SignalCellularAlt2Bar, "Средний", "~500 КБ/мин"),
+                        Triple(Icons.Outlined.SignalCellularAlt1Bar, "Экономный", "~200 КБ/мин")).forEachIndexed { i, (ic, label, sub) ->
                         val on = value("data") == i
                         val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .12f) else TileBg, tween(200), label = "db")
                         val bd by animateColorAsState(if (on) Kx.accent.copy(alpha = .45f) else Color.Transparent, tween(200), label = "dd")
@@ -107,11 +107,11 @@ fun CallSettingsScreen(ctx: KxScreenCtx) {
                     SetLine(Icons.Outlined.Call, "Кто может звонить", "Остальные не дозвонятся", false, role = Role.Button, onClick = { if (ready("calls")) sheet = "calls" }) {
                         ValueChevron(if (ready("calls")) CSheets.getValue("calls").opts[value("calls")].first else "…")
                     }
-                    SetLine(Icons.Outlined.Lan, "Прямое соединение", "Peer-to-peer для звонков", true, role = Role.Button, onClick = { if (ready("p2p")) sheet = "p2p" }) {
+                    SetLine(Icons.Outlined.Lan, "Прямое соединение в звонках", "Звонок идёт напрямую, без серверов Telegram", true, role = Role.Button, onClick = { if (ready("p2p")) sheet = "p2p" }) {
                         ValueChevron(if (ready("p2p")) CSheets.getValue("p2p").opts[value("p2p")].first else "…")
                     }
                 }
-                Text("Прямое соединение быстрее, но собеседник может узнать ваш IP-адрес. Через серверы Telegram адрес скрыт.", style = KxType.style(12.sp, color = Kx.text4, lineHeight = 17.sp),
+                Text("Прямое соединение быстрее, но собеседник может узнать ваш адрес в сети. Через серверы Telegram адрес скрыт. Это те же правила, что в «Конфиденциальности».", style = KxType.style(12.sp, color = Kx.text4, lineHeight = 17.sp),
                     modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 8.dp))
             }
         }

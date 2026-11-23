@@ -102,12 +102,14 @@ fun HashtagScreen(ctx: KxScreenCtx) {
             }
             Text(if (list.isNotEmpty()) "${list.size} ${moPlural(list.size, "сообщение", "сообщения", "сообщений")} с #$tag" else "Нет сообщений с #$tag",
                 style = mts(12, color = MoMuted), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 4.dp))
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 12.dp, end = 12.dp, bottom = 16.dp)) {
-                list.forEach { r ->
+            // critique-A: one grouped list with dividers (A1), not a stack of bordered cards.
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp)
+                .then(if (list.isNotEmpty()) Modifier.clip(RoundedCornerShape(20.dp)).background(Kx.w(.045f)) else Modifier)) {
+                list.forEachIndexed { ri, r ->
                     key(r.chat + r.before + k) {
                         val p = moEnter(300)
-                        Column(Modifier.padding(top = 8.dp).fillMaxWidth().graphicsLayer { alpha = p; translationY = (1f - p) * 10.dp.toPx() }.clip(RoundedCornerShape(20.dp))
-                            .background(Brush.verticalGradient(listOf(Kx.w(.07f), Kx.w(.035f)))).border(1.dp, Kx.w(.08f), RoundedCornerShape(20.dp))
+                        if (ri > 0) Box(Modifier.padding(start = 58.dp).fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
+                        Column(Modifier.fillMaxWidth().graphicsLayer { alpha = p; translationY = (1f - p) * 10.dp.toPx() }
                             .kxClick { toast = "Откроем сообщение в «${r.chat}»"; tk++ }.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 MoLetter(r.l, r.c, size = 36.dp, fontSize = 14, square = if (r.channel) 12.dp else null)

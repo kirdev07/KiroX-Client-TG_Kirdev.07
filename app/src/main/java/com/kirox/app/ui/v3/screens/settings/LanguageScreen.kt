@@ -70,8 +70,7 @@ fun LanguageScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, if (en) "Back" else "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back,
-                    modifier = Modifier.border(1.dp, Kx.w(.09f), CircleShape))
+                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, if (en) "Back" else "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Text(if (en) "Language" else "Язык", style = KxType.h1)
             }
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -123,13 +122,14 @@ fun LanguageScreen(ctx: KxScreenCtx) {
                     }
                     Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         base.forEachIndexed { i, orig ->
-                            Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).background(Color.Black.copy(alpha = .22f)).padding(horizontal = 12.dp),
+                            // critique-B: a real text field (border + placeholder), not label = value.
+                            Row(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(14.dp)).background(Color.Black.copy(alpha = .22f)).border(1.dp, Kx.w(.12f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Icon(outlined[i], null, Modifier.size(18.dp), tint = Kx.text4)
                                 Text(orig, style = KxType.style(12.sp, color = Kx.text4), modifier = Modifier.width(86.dp))
                                 Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                                     val v = names[i] ?: ""
-                                    if (v.isEmpty()) Text(orig, style = KxType.style(14.sp, FontWeight.SemiBold, Kx.text4.copy(alpha = .7f)))
+                                    if (v.isEmpty()) Text(if (en) "Own name" else "Своё название", style = KxType.style(14.sp, color = Kx.text4.copy(alpha = .7f)))
                                     BasicTextField(v, { names = names + (i to it); changed = i to System.nanoTime() }, Modifier.fillMaxWidth(), singleLine = true,
                                         textStyle = KxType.style(14.sp, FontWeight.SemiBold), cursorBrush = SolidColor(Kx.accent))
                                 }
@@ -139,14 +139,11 @@ fun LanguageScreen(ctx: KxScreenCtx) {
                     Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.07f))
                             .kxClick { saveNames(fun_.withIndex().associate { it.index to it.value }); changed = 2 to System.nanoTime() }, contentAlignment = Alignment.Center) {
-                            Text(if (en) "Fun set" else "Весёлый набор", style = KxType.style(12.sp, FontWeight.Bold))
+                            Text(if (en) "Fun set" else "Шуточные", style = KxType.style(12.sp, FontWeight.Bold))
                         }
                         Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.07f)).kxClick { saveNames(emptyMap()); changed = null },
                             contentAlignment = Alignment.Center) {
-                            Text(if (en) "As in kiroX" else "Как задумано", style = KxType.style(12.sp, FontWeight.Bold))
-                        }
-                        Box(Modifier.size(38.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.07f)).kxClick("Поделиться набором") {}, contentAlignment = Alignment.Center) {
-                            Icon(Icons.Outlined.Share, null, Modifier.size(18.dp), tint = Kx.text)
+                            Text(if (en) "Reset" else "Сбросить", style = KxType.style(12.sp, FontWeight.Bold))
                         }
                     }
                 }

@@ -119,7 +119,7 @@ fun ReadAloudScreen(ctx: KxScreenCtx) {
                                     .kxClick(w) { i = k; playing = true; gen++ }.padding(horizontal = 2.dp, vertical = 1.dp))
                             }
                         }
-                        Text("09:30 · 12,4K просмотров", style = ts(11.sp, color = Kx.text4), textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
+                        Text("09:30 · 12,4 тыс. просмотров", style = ts(11.sp, color = Kx.text4), textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
                     }
                     Text("Нажмите на слово, чтобы читать с него", style = ts(11.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 }

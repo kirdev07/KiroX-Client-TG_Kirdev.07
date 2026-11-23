@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.media
 
+import androidx.compose.material.icons.rounded.Close
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
@@ -54,7 +55,14 @@ fun KxRoundRecorder(onDone: (RecordedVideoNote) -> Unit, onCancel: () -> Unit, o
 
 @Composable
 private fun RoundRecorderBody(onDone: (RecordedVideoNote) -> Unit, onCancel: () -> Unit, onError: (String) -> Unit) {
-    val note = rememberVideoNoteCapture(onDone, onCancel, onError)
+    // critique-C P2: a finished recording waits in a preview («Удалить» / «Отправить») instead of going out at once.
+    var pending by remember { mutableStateOf<RecordedVideoNote?>(null) }
+    val note = rememberVideoNoteCapture({ pending = it }, onCancel, onError)
+    pending?.let { done ->
+        BackHandler { runCatching { done.file.delete() }; pending = null }
+        RoundPreview(done, onDelete = { runCatching { done.file.delete() }; pending = null }, onSend = { pending = null; onDone(done) })
+        return
+    }
     val recording = note.isRecording
     val processing = note.processing
     val elapsed = note.elapsedMs
@@ -107,28 +115,61 @@ private fun RoundRecorderBody(onDone: (RecordedVideoNote) -> Unit, onCancel: () 
         // qa-real2: the hint is centred under the circle / timer (it was left-aligned and wrapped).
         androidx.compose.material3.Text(when {
             processing -> "Ещё секунду — обрезаем видео в кружок"
-            recording -> "Нажмите на кнопку — кружок отправится"
+            recording -> "Нажмите на кнопку, чтобы остановить — потом можно посмотреть"
             else -> "Нажмите на кнопку, чтобы записать кружок · до 1 минуты"
         }, style = ts(13.sp, FontWeight.Normal, Color(0xFF9AA59F)).copy(textAlign = androidx.compose.ui.text.style.TextAlign.Center),
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 24.dp, end = 24.dp))
         Spacer(Modifier.weight(1f))
         Row(Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, bottom = 40.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(52.dp).clip(CircleShape).background(Color(0xFFE5534B).copy(alpha = .12f)).border(1.dp, Color(0xFFE5534B).copy(alpha = .3f), CircleShape)
-                .kxClick(if (recording) "Удалить запись" else "Закрыть", enabled = !processing) { cancel() }, contentAlignment = Alignment.Center) {
+            // critique-C P2: «Удалить запись» (red, while recording) and «Закрыть» (quiet) are different buttons.
+            if (recording) Box(Modifier.size(52.dp).clip(CircleShape).background(Color(0xFFE5534B).copy(alpha = .12f)).border(1.dp, Color(0xFFE5534B).copy(alpha = .3f), CircleShape)
+                .kxClick("Удалить запись", enabled = !processing) { cancel() }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Delete, null, tint = Color(0xFFFF8A80))
+            } else Box(Modifier.size(52.dp).clip(CircleShape).background(Kx.w(.08f)).border(1.dp, Kx.w(.12f), CircleShape)
+                .kxClick("Закрыть", enabled = !processing) { cancel() }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Close, null, tint = Kx.text)
             }
             Box(Modifier.size(76.dp), contentAlignment = Alignment.Center) {
                 if (recording) CallRings(Modifier.matchParentSize(), color = Kx.accent.copy(alpha = .45f), periodMs = 1200, toScale = 1.5f, fromAlpha = .55f, fill = true)
                 Box(Modifier.size(72.dp).clip(CircleShape).cssGrad(140f, Kx.accentMid, Kx.accentDeep)
-                    .kxClick(if (recording) "Отправить кружок" else "Записать кружок", enabled = !processing) { if (recording) note.finish(canceled = false) else note.start() },
+                    .kxClick(if (recording) "Остановить запись" else "Записать кружок", enabled = !processing) { if (recording) note.finish(canceled = false) else note.start() },
                     contentAlignment = Alignment.Center) {
-                    Icon(if (recording) Icons.AutoMirrored.Rounded.Send else Icons.Rounded.Videocam, null, Modifier.size(32.dp), tint = Kx.onAccent)
+                    if (recording) Box(Modifier.size(24.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(6.dp)).background(Kx.onAccent))
+                    else Icon(Icons.Rounded.Videocam, null, Modifier.size(32.dp), tint = Kx.onAccent)
                 }
             }
             Box(Modifier.size(52.dp).clip(CircleShape).background(Kx.w(if (recording || processing) .04f else .08f)).border(1.dp, Kx.w(.12f), CircleShape)
                 .kxClick("Сменить камеру", enabled = !recording && !processing) { note.flip() }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Cameraswitch, null, tint = if (recording || processing) Kx.text4 else Kx.text)
             }
+        }
+    }
+}
+
+/** critique-C P2: the recorded round video loops in the circle; «Удалить» drops the file, «Отправить» sends it. */
+@Composable
+private fun RoundPreview(note: RecordedVideoNote, onDelete: () -> Unit, onSend: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(Color(0xF0050706)).statusBarsPadding().navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(140.dp))
+        Box(Modifier.size(272.dp).clip(CircleShape).background(Color(0xFF070B09)).border(5.dp, Kx.accent, CircleShape)) {
+            AndroidView({ c ->
+                android.widget.VideoView(c).apply {
+                    setVideoPath(note.file.absolutePath)
+                    setOnPreparedListener { mp -> mp.isLooping = true; start() }
+                }
+            }, Modifier.matchParentSize().padding(5.dp).clip(CircleShape), onRelease = { it.stopPlayback() })
+        }
+        T("%d:%02d".format(note.durationSeconds / 60, note.durationSeconds % 60), 16.sp, FontWeight.SemiBold, modifier = Modifier.padding(top = 22.dp))
+        androidx.compose.material3.Text("Посмотрите кружок перед отправкой", style = ts(13.sp, FontWeight.Normal, Color(0xFF9AA59F)),
+            modifier = Modifier.padding(top = 8.dp))
+        Spacer(Modifier.weight(1f))
+        Row(Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, bottom = 40.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(52.dp).clip(CircleShape).background(Color(0xFFE5534B).copy(alpha = .12f)).border(1.dp, Color(0xFFE5534B).copy(alpha = .3f), CircleShape)
+                .kxClick("Удалить запись", onClick = onDelete), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Delete, null, tint = Color(0xFFFF8A80)) }
+            Box(Modifier.size(72.dp).clip(CircleShape).cssGrad(140f, Kx.accentMid, Kx.accentDeep).kxClick("Отправить кружок", onClick = onSend), contentAlignment = Alignment.Center) {
+                Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(32.dp), tint = Kx.onAccent)
+            }
+            Spacer(Modifier.size(52.dp))
         }
     }
 }

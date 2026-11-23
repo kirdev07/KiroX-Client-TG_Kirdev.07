@@ -82,15 +82,14 @@ fun SendOptionsScreen(ctx: KxScreenCtx) {
                 }
                 Column(Modifier.weight(1f)) {
                     Text(header?.title ?: "Анна", style = mts(16, W8), maxLines = 1)
-                    Text(if (live) header!!.status else if (online) "в сети" else "в сети в 23:42", style = mts(12, color = if (online) Kx.accent else MoSub), maxLines = 1)
+                    Text(if (live) header!!.status else if (online) "в сети" else "была в 23:42", style = mts(12, color = if (online) Kx.accent else MoSub), maxLines = 1)
                 }
-                if (!live && !online && sent.any { it.kind == "online" && !it.done }) {
-                    Box(Modifier.dashedBorder(Kx.accent.copy(alpha = .5f), 18.dp).padding(3.dp)) {
-                        MoPill("Макет: Анна в сети", height = 32.dp, size = 11, ink = MoSub, padH = 10.dp) {
-                            onlineDemo = true
-                            sent.indices.forEach { i -> if (sent[i].kind == "online") sent[i] = sent[i].copy(done = true) }
-                        }
-                    }
+            }
+            // critique-A S: demo-only switch lives in the dashed «демо» tray (never on a real account).
+            if (!live && !online && sent.any { it.kind == "online" && !it.done }) com.kirox.app.ui.v3.components.KxDemoControls(ctx.store) {
+                MoPill("Анна заходит в сеть", height = 32.dp, size = 11, ink = MoSub, padH = 10.dp) {
+                    onlineDemo = true
+                    sent.indices.forEach { i -> if (sent[i].kind == "online") sent[i] = sent[i].copy(done = true) }
                 }
             }
 
@@ -132,7 +131,7 @@ fun SendOptionsScreen(ctx: KxScreenCtx) {
                     SoOpt(Icons.Rounded.NotificationsOff, "Без звука", "Придёт тихо, без уведомления", Kx.accent, "silent"),
                     SoOpt(Icons.Rounded.Event, "Отложить", if (live) "Уйдёт в 08:00" else "Выбрать дату и время", Color(0xFF7FB8E0), "later"),
                     SoOpt(Icons.Rounded.HowToReg, "Когда будет в сети", "Отправим, как только $name зайдёт", MoAmber, "online"),
-                    SoOpt(Icons.AutoMirrored.Rounded.Send, "Отправить сейчас", "Обычно, со звуком", Kx.text2, "normal"),
+                    // critique-A: no «Отправить сейчас» — the send button itself does that.
                 ).filter { canOnline || it.kind != "online" }.forEach { o ->
                     Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(18.dp)).kxClick { add(o.kind) }.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

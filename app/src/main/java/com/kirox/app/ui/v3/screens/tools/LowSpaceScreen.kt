@@ -67,6 +67,7 @@ fun LowSpaceScreen(ctx: KxScreenCtx) {
     }
     androidx.activity.compose.BackHandler(sheet && !running) { sheet = false }
 
+    var dismissed by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -77,7 +78,7 @@ fun LowSpaceScreen(ctx: KxScreenCtx) {
                 val d = remember { Animatable(0f) }
                 LaunchedEffect(Unit) { d.animateTo(1f, tween(350, easing = TEase)) }
                 val m = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 6.dp).graphicsLayer { alpha = d.value; translationY = -(1f - d.value) * 14.dp.toPx() }
-                if (freed == 0f) Row(m.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.warning.copy(alpha = .1f)).border(1.dp, Kx.warning.copy(alpha = .35f), RoundedCornerShape(20.dp))
+                if (freed == 0f && !dismissed) Row(m.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.warning.copy(alpha = .1f)).border(1.dp, Kx.warning.copy(alpha = .35f), RoundedCornerShape(20.dp))
                     .kxClick { sheet = true }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Rounded.Storage, null, Modifier.size(24.dp), tint = Kx.warning)
                     Column(Modifier.weight(1f)) {
@@ -85,7 +86,11 @@ fun LowSpaceScreen(ctx: KxScreenCtx) {
                         Text(if (real && storage == null) "Считаем кэш Telegram…" else if (total <= 0f) "Кэш Telegram пуст — чистить нечего" else "kiroX может освободить ${lsFmt(total)} — чаты не пострадают", style = KxType.style(12.sp, color = Color(0xFFE8D2A0)))
                     }
                     Icon(Icons.Rounded.ChevronRight, null, Modifier.size(24.dp), tint = Kx.warning)
-                } else Row(m.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.accent.copy(alpha = .08f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(20.dp))
+                    // critique-B P3: the banner can be dismissed.
+                    Box(Modifier.size(40.dp).clip(CircleShape).kxClick("Скрыть") { dismissed = true }, contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.Close, null, Modifier.size(20.dp), tint = Kx.warning)
+                    }
+                } else if (freed > 0f) Row(m.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.accent.copy(alpha = .08f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(20.dp))
                     .padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Rounded.CheckCircle, null, Modifier.size(24.dp), tint = Kx.accent)
                     Text(if (real) "Освобождено ~${lsFmt(freed)}" + (space?.let { " · теперь свободно ${lsFmt(it.first / gib)}" } ?: "") else "Освобождено ${lsFmt(freed)} · теперь свободно ${lsFmt(1.1f + freed)}", style = KxType.style(14.sp, FontWeight.Bold), modifier = Modifier.weight(1f))

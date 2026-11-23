@@ -100,10 +100,13 @@ fun ProxyScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back, modifier = Modifier.border(1.dp, Kx.w(.09f), CircleShape))
+                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Text("Прокси", style = KxType.h1, modifier = Modifier.weight(1f))
-                Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.fill).kxClick("Проверить все") { check(list.indices.toList()) }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Outlined.Refresh, null, Modifier.graphicsLayer { rotationZ = if (checking.isNotEmpty() && !reduced) spin else 0f }, tint = Kx.text)
+                // critique-B P3: the refresh button says what it does.
+                Row(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.fill).kxClick("Проверить все") { check(list.indices.toList()) }.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Outlined.Refresh, null, Modifier.size(20.dp).graphicsLayer { rotationZ = if (checking.isNotEmpty() && !reduced) spin else 0f }, tint = Kx.text)
+                    Text("Проверить", style = KxType.style(13.sp, FontWeight.Bold))
                 }
             }
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 110.dp)) {
@@ -130,7 +133,7 @@ fun ProxyScreen(ctx: KxScreenCtx) {
                     Text(sub, style = KxType.style(12.sp, color = Kx.text3), modifier = Modifier.padding(top = 3.dp))
                 }
                 Column(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg)) {
-                    listOf(Triple("Использовать прокси", "Весь трафик kiroX пойдёт через выбранный сервер", use), Triple("Переключать автоматически", "Если прокси упал, взять самый быстрый из списка", auto))
+                    listOf(Triple("Использовать прокси", "Весь трафик kiroX пойдёт через выбранный сервер", use), Triple("Переключать автоматически", "Если прокси перестал работать, взять самый быстрый из списка", auto))
                         .forEachIndexed { i, (label, s, on) ->
                             Row(Modifier.fillMaxWidth().drawBehind { if (i > 0) drawLine(Kx.w(.06f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }
                                 .kxClick(role = Role.Switch) { if (i == 0) setUse(!use) else auto = !auto }.padding(horizontal = 16.dp, vertical = 13.dp),

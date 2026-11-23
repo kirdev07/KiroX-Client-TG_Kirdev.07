@@ -221,9 +221,9 @@ private fun MainCard(main: String, onCopy: () -> Unit, onShare: () -> Unit, onQr
                 }
             }
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GxPillButton("Поделиться", Modifier.weight(1f), height = 46.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent,
+                GxPillButton("Поделиться", Modifier.weight(1.4f), height = 46.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent,
                     size = 14, weight = FontWeight.ExtraBold, icon = Icons.Rounded.Share, iconSize = 20.dp, gap = 6.dp, hPad = 0.dp, onClick = onShare)
-                GxPillButton("QR-код", Modifier.weight(1f), height = 46.dp, size = 14, icon = Icons.Outlined.QrCode2, iconSize = 20.dp, gap = 6.dp, hPad = 0.dp, onClick = onQr)
+                GxPillButton("QR-код", Modifier.weight(.9f), height = 46.dp, size = 14, icon = Icons.Outlined.QrCode2, iconSize = 20.dp, gap = 6.dp, hPad = 0.dp, onClick = onQr)
                 GxPillButton("Сменить", Modifier.weight(1f), height = 46.dp, size = 14, icon = Icons.Outlined.Autorenew, iconSize = 20.dp, gap = 6.dp, hPad = 0.dp, onClick = onReset)
             }
             Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

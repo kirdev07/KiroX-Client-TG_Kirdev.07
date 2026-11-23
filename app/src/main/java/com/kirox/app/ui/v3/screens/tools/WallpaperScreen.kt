@@ -128,7 +128,8 @@ fun WallpaperScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
-            Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 14.dp)) {
+            // critique-B: the scroll area ends 24 dp above the bottom segmented bar, so «Движение» / «Притемнять» are never cut by it.
+            Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 24.dp)) {
                 (listOf(-1) + WPS.indices).chunked(4).forEachIndexed { r, row ->
                     Row(Modifier.padding(top = if (r > 0) 8.dp else 0.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { i ->

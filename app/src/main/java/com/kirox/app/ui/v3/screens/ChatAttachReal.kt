@@ -1,5 +1,7 @@
 package com.kirox.app.ui.v3.screens
 
+import androidx.compose.foundation.combinedClickable
+import com.kirox.app.ui.v3.screens.media.mSheetDrag
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.components.KxButton
 import com.kirox.app.ui.v3.components.KxChip
 import com.kirox.app.ui.v3.components.kxClick
+import com.kirox.app.ui.v3.components.kxHitClick
 import com.kirox.app.ui.v3.model.KxDeviceMedia
 import com.kirox.app.ui.v3.model.KxStore
 import com.kirox.app.ui.v3.screens.media.UriThumb
@@ -229,54 +232,59 @@ internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, 
     val kinds = listOf(
         AttachKind(Icons.Rounded.PhotoLibrary, "Галерея", Color(0xFF2E5C45), Color(0xFFC8F0D8)) { pickGallery() },
         AttachKind(Icons.Rounded.Description, "Файл", Color(0xFF2D4E73), Color(0xFFC6DBF5), board("FilePicker:$chatId")),
-        AttachKind(Icons.Rounded.LocationOn, "Место", Color(0xFF6B4E2E), Color(0xFFF2DDBF), board("Location:$chatId")),
+        AttachKind(Icons.Rounded.LocationOn, "Геопозиция", Color(0xFF6B4E2E), Color(0xFFF2DDBF), board("Location:$chatId")),
         AttachKind(Icons.Rounded.Ballot, "Опрос", Color(0xFF4B3F7A), Color(0xFFDCD0FF), board("Poll:$chatId")),
         AttachKind(Icons.Rounded.Person, "Контакт", Color(0xFF2E6B66), Color(0xFFBDEDE8), board("ShareContact:$chatId")),
         AttachKind(Icons.Rounded.MusicNote, "Музыка", Color(0xFFA24B5B), Color(0xFFFFD6DE)) {
             runCatching { pickMusic.launch(arrayOf("audio/*")) }.onFailure { toast("Не удалось открыть файлы") }
         },
+        // critique-C P2: every tile has its own hue.
+        AttachKind(Icons.Rounded.RadioButtonChecked, "Кружок", Color(0xFF2D4E73), Color(0xFF9FE3FF)) { onClose(); onRound() },
         AttachKind(Icons.Rounded.Casino, "Игры", Color(0xFF5A6B2E), Color(0xFFE6F2BF), board("DiceGames:$chatId")),
-        AttachKind(Icons.Rounded.ScheduleSend, "Позже", Color(0xFF3A4540), Color(0xFFC9D2CC), board("SendOptions:$chatId")),
-        AttachKind(Icons.Rounded.Checklist, "Список", Color(0xFF2E5C45), Color(0xFFC8F0D8), board("Checklist:$chatId")),
-        AttachKind(Icons.Rounded.Visibility, "Один раз", Color(0xFF4B3F7A), Color(0xFFDCD0FF), board("ViewOnce:$chatId")),
-        AttachKind(Icons.Rounded.RadioButtonChecked, "Кружок", Color(0xFF2D4E73), Color(0xFFC6DBF5)) { onClose(); onRound() },
+        // critique-C P2: «Позже» is not an attachment (long-press on send schedules) — dropped here.
+        AttachKind(Icons.Rounded.Checklist, "Список", Color(0xFF2E5C45), Color(0xFFFFE3A3), board("Checklist:$chatId")),
+        AttachKind(Icons.Rounded.Visibility, "Исчезающее фото", Color(0xFF4B3F7A), Color(0xFFFFC4B0), board("ViewOnce:$chatId")),
     )
+    var moreKinds by remember { mutableStateOf(false) }
+    var preview by remember { mutableStateOf<KxDeviceMedia?>(null) }
+    val moreKind = AttachKind(Icons.Rounded.MoreHoriz, "Ещё", Color(0xFF3A4540), Color(0xFFC9D2CC)) { moreKinds = true }
+    val lessKind = AttachKind(Icons.Rounded.ExpandLess, "Меньше", Color(0xFF3A4540), Color(0xFFC9D2CC)) { moreKinds = false }
     val y = remember { Animatable(1f) }
     LaunchedEffect(Unit) { y.animateTo(0f, tween(300, easing = KxMotion.rise)) }
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(Color(0x99050706)).kxClick("Закрыть вложения", onClick = onClose))
-        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
+        Column(Modifier.align(Alignment.BottomCenter).mSheetDrag(onClose).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
             .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Color(0xFF101412)).background(Brush.verticalGradient(listOf(Color(0xEB222C27), Color(0xF5101412))))
             .drawBehind { drawLine(Kx.w(.14f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }.navigationBarsPadding().imePadding().padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 18.dp)) {
             Box(Modifier.align(Alignment.CenterHorizontally).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))
-            Row(Modifier.padding(top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (picked.isEmpty()) "Недавние" else "Выбрано: ${picked.size}", style = KxType.style(17.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
-                Box(Modifier.size(36.dp).clip(CircleShape).background(Kx.fillHi).kxClick("Закрыть", onClick = onClose), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Close, null, Modifier.size(20.dp), tint = Kx.text) }
+            // critique-A: the title names the sheet, no extra ✕ (handle, scrim tap and Back close it).
+            Row(Modifier.padding(top = 10.dp, bottom = 10.dp).heightIn(min = 36.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(if (picked.isEmpty()) "Отправить" else "Выбрано: ${picked.size}", style = KxType.style(17.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
             }
             val list = media
             if (list == null && extra.isEmpty()) Box(Modifier.fillMaxWidth().height(108.dp), contentAlignment = Alignment.Center) { Text("Загрузка…", style = KxType.style(14.sp, color = Kx.text4)) }
             else {
                 val shown = (extra + list.orEmpty()).distinctBy { it.uri }
                 LazyRow(Modifier.clip(RoundedCornerShape(18.dp)), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Board: the first cell is the camera; a tap offers «Фото» or «Видео».
+                    // critique-C P2: the camera is one tap — the big area takes a photo, the strip below records a video.
                     item(key = "camera") {
-                        if (!camChoice) Column(Modifier.size(108.dp).background(Color(0xFF151A17)).kxClick("Камера: снять фото или видео") { camChoice = true },
-                            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Icon(Icons.Outlined.PhotoCamera, null, Modifier.size(30.dp), tint = Kx.accent)
-                            Text("Камера", style = KxType.style(12.sp, FontWeight.SemiBold, Kx.accent), modifier = Modifier.padding(top = 4.dp))
-                        } else Column(Modifier.size(108.dp).background(Color(0xFF151A17))) {
-                            listOf(false to "Фото", true to "Видео").forEach { (video, label) ->
-                                Row(Modifier.weight(1f).fillMaxWidth().kxClick(if (video) "Снять видео" else "Снять фото") { camera(video) },
-                                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                                    Icon(if (video) Icons.Rounded.Videocam else Icons.Outlined.PhotoCamera, null, Modifier.size(20.dp), tint = Kx.accent)
-                                    Text(label, style = KxType.style(12.sp, FontWeight.SemiBold, Kx.accent), modifier = Modifier.padding(start = 6.dp))
-                                }
+                        Column(Modifier.size(108.dp).background(Color(0xFF151A17))) {
+                            Column(Modifier.weight(1f).fillMaxWidth().kxClick("Снять фото") { camera(false) },
+                                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                Icon(Icons.Outlined.PhotoCamera, null, Modifier.size(28.dp), tint = Kx.accent)
+                                Text("Фото", style = KxType.style(12.sp, FontWeight.SemiBold, Kx.accent), modifier = Modifier.padding(top = 2.dp))
+                            }
+                            Row(Modifier.fillMaxWidth().height(36.dp).background(Kx.w(.05f)).kxClick("Снять видео") { camera(true) },
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                Icon(Icons.Rounded.Videocam, null, Modifier.size(18.dp), tint = Kx.text2)
+                                Text("Видео", style = KxType.style(12.sp, FontWeight.SemiBold, Kx.text2), modifier = Modifier.padding(start = 4.dp))
                             }
                         }
                     }
                     items(shown, key = { it.uri }) { m ->
                         val order = picked.indexOfFirst { it.uri == m.uri }
-                        Box(Modifier.size(108.dp).background(Kx.w(.06f)).kxClick(if (m.video) "Видео" else "Фото") {
+                        // critique-C P2: long-press opens a large preview before sending.
+                        Box(Modifier.size(108.dp).background(Kx.w(.06f)).combinedClickable(onLongClickLabel = "Посмотреть", onLongClick = { preview = m }) {
                             if (order >= 0) picked.removeAt(order) else if (picked.size < 10) picked.add(m) else toast("Можно выбрать до 10")
                         }) {
                             // Camera videos (FileProvider) have no system thumbnail: the icon stays under the missing preview.
@@ -291,22 +299,26 @@ internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, 
                         }
                     }
                     // No gallery access (or nothing on the phone): ask for it; «Галерея» below works without it.
+                    // critique-A: two honest states — no permission (ask) vs. an empty gallery.
                     if (list != null && list.isEmpty()) item(key = "access") {
-                        Column(Modifier.size(216.dp, 108.dp).background(Kx.w(.05f)).kxClick("Разрешить доступ к галерее") { ask.launch(galleryPermissions()) },
+                        val canRead = granted(context, *galleryPermissions())
+                        Column(Modifier.size(216.dp, 108.dp).background(Kx.w(.05f)).then(if (canRead) Modifier else Modifier.kxClick("Разрешить доступ к галерее") { ask.launch(galleryPermissions()) }),
                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Icon(Icons.Rounded.PhotoLibrary, null, tint = Kx.accent)
-                            Text("Нет доступа к галерее или в ней пусто", style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.padding(top = 6.dp, start = 8.dp, end = 8.dp))
-                            Text("Разрешить доступ", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(top = 2.dp))
+                            Icon(Icons.Rounded.PhotoLibrary, null, tint = if (canRead) Kx.text4 else Kx.accent)
+                            Text(if (canRead) "В галерее пока нет фото" else "Нет доступа к галерее", style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.padding(top = 6.dp, start = 8.dp, end = 8.dp))
+                            if (!canRead) Text("Разрешить доступ", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(top = 2.dp))
                         }
                     }
                 }
             }
-            if (picked.isEmpty()) kinds.chunked(4).forEach { row ->
+            // critique-A: 7 main kinds + «Ещё»; the rarer ones (Игры, Позже, Список, Один раз) open under «Ещё».
+            if (picked.isEmpty()) (if (moreKinds) kinds.take(7) + kinds.drop(7) + lessKind else kinds.take(7) + moreKind).chunked(4).forEach { row ->
                 Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     row.forEach { k ->
                         Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).kxClick(k.label, enabled = !sending, onClick = k.act).padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(Modifier.size(52.dp).clip(RoundedCornerShape(18.dp)).background(k.bg), contentAlignment = Alignment.Center) { Icon(k.icon, null, tint = k.ink) }
-                            Text(k.label, style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.padding(top = 6.dp))
+                            // D18: one saturation for every tile (ink at .18 on the sheet), labels on one line.
+                            Box(Modifier.size(52.dp).clip(RoundedCornerShape(18.dp)).background(k.ink.copy(alpha = .18f)), contentAlignment = Alignment.Center) { Icon(k.icon, null, tint = k.ink) }
+                            Text(k.label, style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.padding(top = 6.dp), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         }
                     }
                     repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
@@ -337,6 +349,11 @@ internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, 
                 }
             }
         }
+        preview?.let { m ->
+            val on = picked.any { it.uri == m.uri }
+            AttachPreview(m, on, onPick = { val k = picked.indexOfFirst { it.uri == m.uri }; if (k >= 0) picked.removeAt(k) else if (picked.size < 10) picked.add(m) else toast("Можно выбрать до 10") },
+                onClose = { preview = null })
+        }
     }
 }
 
@@ -345,6 +362,20 @@ internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, 
  * tap to record / tap to send, 1 min, cropped square) sent through store.sendVideoNote. Each change of [request]
  * (> 0) opens it; camera + microphone are asked first.
  */
+@Composable
+private fun AttachPreview(m: KxDeviceMedia, picked: Boolean, onPick: () -> Unit, onClose: () -> Unit) {
+    androidx.activity.compose.BackHandler(onBack = onClose)
+    Box(Modifier.fillMaxSize().background(Color(0xF2050706)).kxClick("Закрыть просмотр", onClick = onClose)) {
+        com.kirox.app.ui.v3.screens.media.UriThumb(m.uri, Modifier.fillMaxSize().statusBarsPadding().padding(bottom = 96.dp), px = 1600,
+            scale = androidx.compose.ui.layout.ContentScale.Fit)
+        if (m.video) Icon(Icons.Rounded.Movie, null, Modifier.align(Alignment.Center).size(40.dp), tint = Kx.text3)
+        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            KxButton("Закрыть", Modifier.weight(1f), com.kirox.app.ui.v3.components.KxButtonKind.Quiet, height = 48.dp, onClick = onClose)
+            KxButton(if (picked) "Убрать из выбранных" else "Выбрать", Modifier.weight(1f), height = 48.dp) { onPick(); onClose() }
+        }
+    }
+}
+
 @Composable
 internal fun RealRoundVideo(store: KxStore, chatId: Long, request: Int, toast: (String) -> Unit) {
     val context = LocalContext.current

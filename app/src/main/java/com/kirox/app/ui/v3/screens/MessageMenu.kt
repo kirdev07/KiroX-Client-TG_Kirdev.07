@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens
 
+import com.kirox.app.ui.v3.screens.media.mSheetDrag
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,7 +38,8 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.KxMessage
 import com.kirox.app.ui.v3.theme.*
 
-private val MenuGlass = Brush.verticalGradient(listOf(Color(0xF22E3A34), Color(0xF5181E1B)))
+// critique-C P2: opaque — the bubble text behind must not show through the list.
+private val MenuGlass = Brush.verticalGradient(listOf(Color(0xFF2E3A34), Color(0xFF181E1B)))
 private val Reactions = listOf("❤️", "🔥", "👍", "😂", "😮", "😢", "🎉")
 
 /**
@@ -58,7 +60,10 @@ fun MessageMenuSheet(
     more: List<Triple<ImageVector, String, () -> Unit>> = emptyList(),
     /** qa-real: the message is in «Избранное» — no «В Избранное», delete text says so. */
     inSaved: Boolean = false,
+    /** critique-C P2: the chat's allowed reactions (store.availableReactions); null = the default seven. */
+    reactions: List<String>? = null,
 ) {
+    val reactionList = (reactions?.takeIf { it.isNotEmpty() } ?: Reactions).take(7)
     var deleting by remember { mutableStateOf(false) }
     androidx.activity.compose.BackHandler { if (deleting) deleting = false else onDismiss() }
     val clipboard = LocalClipboardManager.current
@@ -72,7 +77,8 @@ fun MessageMenuSheet(
         // Short / narrow screens: the menu starts higher and scrolls; the reaction cells shrink to fit (board: 170dp, 40dp).
         val menuTop = (maxHeight - 520.dp).coerceIn(56.dp, 170.dp)
         val cell = ((maxWidth - 92.dp) / 7).coerceIn(30.dp, 40.dp)
-        Box(Modifier.fillMaxSize().graphicsLayer { alpha = appear.value }.background(if (deleting) Color(0x99050706) else Color(0x8C050706)).kxClick(if (deleting) "Отмена" else "Закрыть меню", onClick = onDismiss))
+        val reactionsShown = reactionList
+        Box(Modifier.fillMaxSize().graphicsLayer { alpha = appear.value }.background(if (deleting) Color(0x99050706) else Color(0xB8050706)) /* critique-A: dim more so only the lifted bubble reads */.kxClick(if (deleting) "Отмена" else "Закрыть меню", onClick = onDismiss))
         if (!deleting) Column(
             Modifier.fillMaxWidth().pointerInput(onDismiss) { detectTapGestures { onDismiss() } }.verticalScroll(rememberScrollState()).padding(start = 14.dp, end = 14.dp, top = menuTop, bottom = 16.dp),
             horizontalAlignment = if (m.out) Alignment.End else Alignment.Start, verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -81,17 +87,17 @@ fun MessageMenuSheet(
             if (!m.deleted) Row(
                 Modifier.graphicsLayer { alpha = strip.value.coerceIn(0f, 1f); translationY = (1 - strip.value) * 10.dp.toPx(); scaleX = .8f + .2f * strip.value; scaleY = scaleX }
                     .height(52.dp).shadow(30.dp, RoundedCornerShape(26.dp), spotColor = Color.Black.copy(alpha = .5f)).clip(RoundedCornerShape(26.dp))
-                    .background(MenuGlass).border(1.dp, Kx.stroke, RoundedCornerShape(26.dp)).padding(horizontal = 8.dp),
+                    .background(Color(0xFF1C2320)).background(MenuGlass).border(1.dp, Kx.stroke, RoundedCornerShape(26.dp)).padding(horizontal = 8.dp), // opaque: no text shows through
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Reactions.forEachIndexed { i, e ->
+                reactionsShown.forEachIndexed { i, e ->
                     val mine = m.reactions.any { it.emoji == e && it.mine }
                     val pop = remember { Animatable(if (reduced) 1f else 0f) }
                     LaunchedEffect(Unit) { kotlinx.coroutines.delay(i * 30L); pop.animateTo(1f, tween(300, easing = CubicBezierEasing(.34f, 1.5f, .5f, 1f))) }
-                    Box(Modifier.graphicsLayer { alpha = pop.value.coerceIn(0f, 1f); translationY = (1 - pop.value) * 12.dp.toPx(); scaleX = .4f + .6f * pop.value; scaleY = scaleX }.size(cell).clip(CircleShape).background(if (mine) Kx.accent.copy(alpha = .25f) else Color.Transparent).kxClick("Реакция $e") { onReact(e) },
+                    Box(Modifier.graphicsLayer { alpha = pop.value.coerceIn(0f, 1f); translationY = (1 - pop.value) * 12.dp.toPx(); scaleX = .4f + .6f * pop.value; scaleY = scaleX }.kxHitClick("Реакция $e", CircleShape, min = 44.dp) { onReact(e) }.size(cell).clip(CircleShape).background(if (mine) Kx.accent.copy(alpha = .25f) else Color.Transparent),
                         contentAlignment = Alignment.Center) { Text(e, style = KxType.style(24.sp)) }
                 }
-                Box(Modifier.size(34.dp).clip(CircleShape).background(Kx.fillHi).kxClick("Все реакции", onClick = onAllReactions), contentAlignment = Alignment.Center) {
+                Box(Modifier.kxHitClick("Все реакции", CircleShape, min = 44.dp, onClick = onAllReactions).size(34.dp).clip(CircleShape).background(Kx.fillHi), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.ExpandMore, null, Modifier.size(20.dp), tint = Kx.text)
                 }
             }
@@ -118,22 +124,32 @@ fun MessageMenuSheet(
                 Text(menuPreviewText(m), style = KxType.style(15.sp, color = if (m.out) Color(0xFFE6F6EC) else Kx.text, lineHeight = 21.sp),
                     modifier = Modifier.padding(start = 13.dp, end = 13.dp, top = if (m.reply != null) 6.dp else 9.dp, bottom = 7.dp))
             }
-            // Actions
+            // Actions — design-critique D17: the frequent ones as an icon row on top, the rest in the list,
+            // destructive last behind a divider.
             Column(
-                Modifier.width(230.dp).graphicsLayer { alpha = appear.value; translationY = (1 - appear.value) * -8.dp.toPx() }
+                Modifier.width(264.dp).graphicsLayer { alpha = appear.value; translationY = (1 - appear.value) * -8.dp.toPx() }
                     .shadow(40.dp, RoundedCornerShape(22.dp), spotColor = Color.Black.copy(alpha = .6f)).clip(RoundedCornerShape(22.dp))
                     .background(MenuGlass).border(1.dp, Kx.stroke, RoundedCornerShape(22.dp)).padding(6.dp)
             ) {
                 // fixer-chat4 (compat): a message deleted on Telegram (kept here) offers only copy / select / remove from screen.
-                if (!m.deleted) MenuItem(Icons.AutoMirrored.Outlined.Reply, "Ответить", onClick = onReply)
-                if (m.canCopy && m.text.isNotEmpty()) MenuItem(Icons.Outlined.ContentCopy, "Копировать") { clipboard.setText(AnnotatedString(m.text)); onCopied() }
-                if (m.text.isNotEmpty()) MenuItem(Icons.Outlined.Translate, if (m.translation != null) "Показать оригинал" else "Перевести", onClick = onTranslate)
-                if (m.canForward && !m.deleted) MenuItem(Icons.AutoMirrored.Outlined.Forward, "Переслать", onClick = onForward)
-                if (m.canForward && !inSaved && !m.deleted) MenuItem(Icons.Outlined.BookmarkBorder, "В Избранное", onClick = onSave)
-                if (m.canPin && !m.deleted) MenuItem(Icons.Outlined.PushPin, if (m.pinned) "Открепить" else "Закрепить", onClick = onPin)
-                if (m.canEdit && !m.deleted && m.kind in EditableKinds) MenuItem(Icons.Outlined.Edit, if (m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Text) "Изменить" else "Изменить подпись", onClick = onEdit)
-                MenuItem(Icons.Outlined.CheckCircle, "Выбрать", onClick = onSelect)
-                more.forEach { (ic, label, action) -> MenuItem(ic, label, onClick = action) }
+                val quick = buildList {
+                    if (!m.deleted) add(Triple(Icons.AutoMirrored.Outlined.Reply, "Ответить", onReply))
+                    if (m.canCopy && m.text.isNotEmpty()) add(Triple(Icons.Outlined.ContentCopy, "Копировать") { clipboard.setText(AnnotatedString(m.text)); onCopied() })
+                    if (m.canForward && !m.deleted) add(Triple(Icons.AutoMirrored.Outlined.Forward, "Переслать", onForward))
+                    add(Triple(Icons.Outlined.CheckCircle, "Выбрать", onSelect))
+                }
+                Row(Modifier.fillMaxWidth()) { quick.forEach { (ic, label, action) -> QuickItem(ic, label, Modifier.weight(1f), action) } }
+                val list = buildList {
+                    if (m.text.isNotEmpty()) add(Triple(Icons.Outlined.Translate, if (m.translation != null) "Показать оригинал" else "Перевести", onTranslate))
+                    if (m.canForward && !inSaved && !m.deleted) add(Triple(Icons.Outlined.BookmarkBorder, "В Избранное", onSave))
+                    if (m.canPin && !m.deleted) add(Triple(Icons.Outlined.PushPin, if (m.pinned) "Открепить" else "Закрепить", onPin))
+                    if (m.canEdit && !m.deleted && m.kind in EditableKinds) add(Triple(Icons.Outlined.Edit, if (m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Text) "Изменить" else "Изменить подпись", onEdit))
+                    addAll(more)
+                }
+                if (list.isNotEmpty()) MenuDivider()
+                list.forEach { (ic, label, action) -> MenuItem(ic, label, onClick = action) }
+                val del = m.deleted || m.canDeleteForMe || m.canDeleteForAll
+                if (del) MenuDivider()
                 if (m.deleted) MenuItem(Icons.Outlined.Delete, "Убрать с экрана", danger = true) { onDelete(false) }
                 else if (m.canDeleteForMe || m.canDeleteForAll) MenuItem(Icons.Outlined.Delete, "Удалить…", danger = true) { deleting = true }
             }
@@ -181,6 +197,19 @@ private fun menuPreviewText(m: KxMessage): AnnotatedString {
 }
 
 @Composable
+private fun MenuDivider() = Box(Modifier.padding(horizontal = 10.dp, vertical = 4.dp).fillMaxWidth().height(1.dp).background(Kx.w(.08f)))
+
+/** Icon + one-line label of the top row of the message menu (D17). */
+@Composable
+private fun QuickItem(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+    Column(modifier.heightIn(min = 60.dp).clip(RoundedCornerShape(14.dp)).kxClick(label, onClick = onClick).padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(icon, null, Modifier.size(22.dp), tint = Kx.accent)
+        Text(label, style = KxType.style(11.sp, FontWeight.Medium, Kx.text2), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
 private fun MenuItem(icon: ImageVector, label: String, danger: Boolean = false, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick(onClick = onClick).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -203,7 +232,7 @@ fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCanc
     val y = remember { Animatable(1f) }
     LaunchedEffect(Unit) { y.animateTo(0f, tween(300, easing = KxMotion.rise)) }
     Column(
-        modifier.fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
+        modifier.mSheetDrag(onCancel).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
             .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
             .background(Brush.verticalGradient(listOf(Color(0xFF1E2421), Color(0xFF121614))))
             .drawBehind { drawLine(Kx.stroke, androidx.compose.ui.geometry.Offset(0f, .5f), androidx.compose.ui.geometry.Offset(size.width, .5f), 1f) }
@@ -211,7 +240,9 @@ fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCanc
     ) {
         Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 14.dp).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))
         Text(if (count > 1) "Удалить сообщения: $count?" else "Удалить сообщение?", style = KxType.style(18.sp, FontWeight.ExtraBold))
-        if (count == 1) KxLine(m.text.ifEmpty { menuKindLabel(m) }, KxType.style(14.sp, color = Kx.text2), Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.w(.05f)).padding(horizontal = 12.dp, vertical = 10.dp))
+        // critique-A: the message preview is a quote (accent bar), not something that looks like an input field.
+        if (count == 1) KxLine(m.text.ifEmpty { menuKindLabel(m) }, KxType.style(14.sp, color = Kx.text2), Modifier.padding(top = 8.dp).fillMaxWidth()
+            .drawBehind { drawRect(Kx.accent, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height)) }.padding(start = 13.dp, end = 4.dp, top = 4.dp, bottom = 4.dp))
         if (forAllOnly) Text("Сообщение удалится у всех участников чата.", style = KxType.caption, modifier = Modifier.padding(top = 6.dp))
         else if (canDeleteForAll) Row(Modifier.padding(top = 10.dp).fillMaxWidth().heightIn(min = 52.dp).kxClick(role = androidx.compose.ui.semantics.Role.Checkbox) { both = !both },
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -219,7 +250,12 @@ fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCanc
                 .border(2.dp, if (both) Kx.accent else Kx.w(.3f), RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) {
                 if (both) Icon(Icons.Rounded.Check, null, Modifier.size(17.dp), tint = Kx.onAccent)
             }
-            Text(if (isGroup) "Удалить у всех участников" else "Также удалить у: $peerName", style = KxType.style(15.sp), modifier = Modifier.weight(1f))
+            // Names can't be declined reliably, so the person is named on a second line instead of «у: Анна».
+            if (isGroup) Text("Удалить у всех участников", style = KxType.style(15.sp), modifier = Modifier.weight(1f))
+            else Column(Modifier.weight(1f)) {
+                Text("Удалить и у собеседника", style = KxType.style(15.sp))
+                if (peerName.isNotBlank()) Text(peerName, style = KxType.caption, maxLines = 1)
+            }
         } else Text(when { inSaved -> "Сообщение удалится из Избранного."; m.out -> "Сообщение удалится только у вас."; else -> "Чужое сообщение удалится только у вас." },
             style = KxType.caption, modifier = Modifier.padding(top = 6.dp))
         Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

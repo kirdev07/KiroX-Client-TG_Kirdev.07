@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens
 
+import com.kirox.app.ui.v3.screens.media.mSheetDrag
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -66,7 +67,7 @@ internal fun ChatSendOptionsSheet(
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(Color(0x99050706)).kxClick("Закрыть", onClick = onDismiss))
         Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
+            Modifier.align(Alignment.BottomCenter).mSheetDrag(onDismiss).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
                 .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
                 .background(Brush.verticalGradient(listOf(Color(0xFF1E2421), Color(0xFF121614))))
                 .navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 22.dp)
@@ -90,6 +91,18 @@ internal fun ChatSendOptionsSheet(
                             .border(1.dp, if (on) Kx.accent.copy(alpha = .45f) else Color.Transparent, RoundedCornerShape(18.dp))
                             .kxClick(d) { day = i; err = null }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
                             Text(d, style = KxType.style(13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text))
+                        }
+                    }
+                }
+                // critique-C P3: one-tap presets above the wheels.
+                Row(Modifier.padding(top = 10.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val nowH = now.get(java.util.Calendar.HOUR_OF_DAY); val nowM = now.get(java.util.Calendar.MINUTE)
+                    listOf("Через час" to Triple(if (nowH == 23) 1 else 0, (nowH + 1) % 24, (nowM + 4) / 5 * 5 % 60),
+                        "Сегодня вечером" to Triple(if (nowH >= 20) 1 else 0, 20, 0),
+                        "Завтра утром" to Triple(1, 9, 0)).forEach { (label, t) ->
+                        Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.06f)).border(1.dp, Kx.line, RoundedCornerShape(18.dp))
+                            .kxClick(label) { day = t.first.coerceAtMost(days.lastIndex); hh = t.second; mm = t.third; err = null }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
+                            Text(label, style = KxType.style(13.sp, FontWeight.SemiBold, Kx.text2))
                         }
                     }
                 }

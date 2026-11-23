@@ -162,7 +162,10 @@ fun AddContactScreen(ctx: KxScreenCtx) {
             }
         }
         Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(0f to Kx.bg.copy(alpha = 0f), .4f to Kx.bg))
-            .navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp)) {
+            .navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = if (can) 14.dp else 34.dp, bottom = 22.dp)) {
+            // critique-B P3: a disabled «Сохранить» says what is missing.
+            if (!can) Text(if (first.isBlank()) "Введите имя" else "Введите номер полностью — 10 цифр", style = ts(12.sp, color = Kx.text3),
+                modifier = Modifier.align(Alignment.TopCenter).offset(y = (-22).dp))
             val bgA by animateFloatAsState(if (can) 1f else 0f, tween(250), label = "save")
             Row(Modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(27.dp)).background(Kx.w(.07f)).graphicsLayerAlphaBg(bgA)
                 .kxClick(if (found) "Добавить и написать" else "Сохранить контакт") {

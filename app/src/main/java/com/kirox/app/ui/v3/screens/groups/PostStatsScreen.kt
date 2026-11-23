@@ -80,10 +80,10 @@ fun PostStatsScreen(ctx: KxScreenCtx) {
                 }
             }
             val kpis = if (ps != null) listOf(
-                listOf(Icons.Outlined.Visibility, "Просмотры", gxNum(ps.views), "", Kx.accent), listOf(Icons.AutoMirrored.Outlined.Forward, "Репосты", gxNum(ps.forwards), "", Kx.accent),
+                listOf(Icons.Outlined.Visibility, "Просмотры", gxNum(ps.views), "", Kx.accent), listOf(Icons.AutoMirrored.Outlined.Forward, "Пересылки", gxNum(ps.forwards), "", Kx.accent),
                 listOf(Icons.Outlined.FavoriteBorder, "Реакции", gxNum(ps.reactions), "", Kx.accent), listOf(Icons.Outlined.ChatBubbleOutline, "Комментарии", gxNum(ps.comments), "", Kx.accent),
             ) else listOf(
-                listOf(Icons.Outlined.Visibility, "Просмотры", "21 410", "+38% к среднему", Kx.accent), listOf(Icons.AutoMirrored.Outlined.Forward, "Репосты", "486", "+12%", Kx.accent),
+                listOf(Icons.Outlined.Visibility, "Просмотры", "21 410", "+38% к среднему", Kx.accent), listOf(Icons.AutoMirrored.Outlined.Forward, "Пересылки", "486", "+12%", Kx.accent),
                 listOf(Icons.Outlined.FavoriteBorder, "Реакции", "312", "−4%", Kx.danger), listOf(Icons.Outlined.ChatBubbleOutline, "Комментарии", "57", "+21%", Kx.accent),
             )
             kpis.chunked(2).forEachIndexed { row, pair ->
@@ -104,15 +104,7 @@ fun PostStatsScreen(ctx: KxScreenCtx) {
             Column(Modifier.padding(top = 16.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.07f), RoundedCornerShape(22.dp)).padding(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Просмотры", style = KxType.style(15.sp, FontWeight.ExtraBold), modifier = Modifier.weight(1f))
-                    Row(Modifier.clip(RoundedCornerShape(14.dp)).background(Kx.w(.05f)).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        listOf("Первые 24 ч" to 0, "7 дней" to 1).forEach { (t, i) ->
-                            val on = r == i
-                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(11.dp)).background(if (on) Color(0x2E8FD3AC) else Color.Transparent)
-                                .kxClick(t) { r = i; sel = 0; k++ }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-                                Text(t, style = KxType.style(12.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text3))
-                            }
-                        }
-                    }
+                    GxSegmented(listOf("Первые 24 ч", "7 дней"), r, Modifier.width(200.dp)) { r = it; sel = 0; k++ }
                 }
                 Text(buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold, color = Kx.text)) { append(gxRu(data[s])) }
@@ -135,13 +127,20 @@ fun PostStatsScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Text(if (r == 0) "15 ноя, 10:00 · 16 ноя, 10:00" else "15 ноя · 21 ноя", style = KxType.style(11.sp, color = Kx.text4), modifier = Modifier.padding(top = 4.dp))
+                // critique-C P2: start label left, end label right.
+                Row(Modifier.padding(top = 4.dp).fillMaxWidth()) {
+                    Text(if (r == 0) "15 нояб., 10:00" else "15 нояб.", style = KxType.style(11.sp, color = Kx.text4), modifier = Modifier.weight(1f))
+                    Text(if (r == 0) "16 нояб., 10:00" else "21 нояб.", style = KxType.style(11.sp, color = Kx.text4))
+                }
             }
-            Text("Откуда смотрят канал · 7 дней", style = KxType.style(15.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 16.dp))
-            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                val src = listOf("Подписчики" to 15200, "Репосты в другие каналы" to 3480, "Поиск" to 1610, "По ссылке" to 1120)
-                src.forEachIndexed { i, (t, v) ->
-                    GxBarRow(t, gxRu(v), "${(v / 21410.0 * 100).roundToInt()}%", v.toFloat() / src[0].second, Kx.accent.copy(alpha = 1f - i * .18f))
+            // critique-C P2: the same card as «Откуда приходят» on ChannelStats.
+            Column(Modifier.padding(top = 16.dp).gxCard().padding(14.dp)) {
+                Text("Откуда смотрят · 7 дней", style = KxType.style(15.sp, FontWeight.ExtraBold))
+                Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val src = listOf("Подписчики" to 15200, "Пересылки в другие каналы" to 3480, "Поиск" to 1610, "По ссылке" to 1120)
+                    src.forEachIndexed { i, (t, v) ->
+                        GxBarRow(t, gxRu(v), "${(v / 21410.0 * 100).roundToInt()}%", v.toFloat() / src[0].second, Kx.accent.copy(alpha = 1f - i * .18f))
+                    }
                 }
             }
             Text("Реакции · 312", style = KxType.style(15.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 16.dp))

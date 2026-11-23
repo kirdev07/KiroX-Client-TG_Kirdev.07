@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens
 
+import com.kirox.app.ui.v3.screens.media.mSheetDrag
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -50,7 +51,7 @@ internal fun ChatMsgInfoSheet(store: KxStore, chatId: Long, m: KxMessage, kind: 
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(Color(0x99050706)).kxClick("Закрыть", onClick = onDismiss))
         Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
+            Modifier.align(Alignment.BottomCenter).mSheetDrag(onDismiss).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
                 .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
                 .background(Brush.verticalGradient(listOf(Color(0xFF1E2421), Color(0xFF121614))))
                 .navigationBarsPadding().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 22.dp)
@@ -65,12 +66,12 @@ internal fun ChatMsgInfoSheet(store: KxStore, chatId: Long, m: KxMessage, kind: 
                 else {
                     InfoRow(Icons.AutoMirrored.Rounded.Send, if (m.out) "Отправлено" else "Получено", i.sent.ifBlank { m.time })
                     // fixer-chat4: an edited message always shows «Изменено» (TDLib may give no edit date, e.g. after a reload of the bubble).
-                    if (i.edited.isNotBlank() || m.edited) InfoRow(Icons.Rounded.Edit, "Изменено", i.edited.ifBlank { "да" })
+                    if (i.edited.isNotBlank() || m.edited) InfoRow(Icons.Rounded.Edit, "Изменено", i.edited) // critique-C P3: the time, or no value
                     if (kind == KxChatKind.Private && m.out) InfoRow(Icons.Rounded.DoneAll, "Прочитано",
                         i.read.removePrefix("Прочитано ").ifBlank { i.readNote.ifBlank { "—" } })
                     if (i.views > 0) InfoRow(Icons.Outlined.Visibility, "Просмотры", i.views.toString())
                     if (i.forwards > 0) InfoRow(Icons.Outlined.Forward, "Пересылки", i.forwards.toString())
-                    if (i.via.isNotBlank()) InfoRow(Icons.AutoMirrored.Rounded.Send, "Через", i.via)
+                    if (i.via.isNotBlank()) InfoRow(Icons.AutoMirrored.Rounded.Send, "Через бота", i.via)
                     if (i.autoDeleteIn > 0) InfoRow(Icons.Outlined.Timer, "Удалится через", if (i.autoDeleteIn >= 3600) "${i.autoDeleteIn / 3600} ч" else "${maxOf(1, i.autoDeleteIn / 60)} мин")
                 }
             }

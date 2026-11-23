@@ -73,7 +73,7 @@ private fun DemoKeyCheckScreen(ctx: KxScreenCtx) {
                 Box(Modifier.matchParentSize().graphicsLayer { scaleX = ss; scaleY = ss; alpha = (sh.value / .6f).coerceAtMost(1f) }.clip(CircleShape)
                     .background(if (ok) Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)) else solid(if (bad) Kx.dangerSolid.copy(alpha = .18f) else Kx.accent.copy(alpha = .14f))),
                     contentAlignment = Alignment.Center) {
-                    Icon(if (ok) Icons.Rounded.VerifiedUser else if (bad) Icons.Rounded.GppBad else Icons.Rounded.EnhancedEncryption, null, Modifier.size(44.dp),
+                    Icon(if (ok) Icons.Rounded.VerifiedUser else if (bad) Icons.Rounded.GppBad else Icons.Rounded.Key, null, Modifier.size(44.dp),
                         tint = if (ok) Kx.onAccent else if (bad) Kx.danger else Kx.accent)
                 }
                 if (ok) repeat(12) { i ->

@@ -137,17 +137,20 @@ fun ChatThemeScreen(ctx: KxScreenCtx) {
                         val on = t == i
                         val ty by animateDpAsState(if (on) (-4).dp else 0.dp, tween(200), label = "ty")
                         val bd by animateColorAsState(if (on) Kx.text else Color.Transparent, tween(200), label = "bd")
+                        // critique-A: «Без темы» is an outlined card with a label, not a red ❌.
                         Column(Modifier.offset(y = ty).size(70.dp, 92.dp).clip(RoundedCornerShape(18.dp)).moLin(170f, x.bgA, x.bgB)
+                            .then(if (i == 0 && !on) Modifier.border(1.dp, Kx.w(.18f), RoundedCornerShape(18.dp)) else Modifier)
                             .border(2.5.dp, bd, RoundedCornerShape(18.dp)).kxClick(x.name) { t = i; k++ }.padding(start = 6.dp, end = 6.dp, top = 8.dp, bottom = 6.dp),
                             verticalArrangement = Arrangement.SpaceBetween) {
                             Box(Modifier.align(Alignment.End).size(34.dp, 10.dp).clip(RoundedCornerShape(5.dp)).moLin(135f, x.outA, x.outB))
                             Box(Modifier.align(Alignment.Start).size(26.dp, 10.dp).clip(RoundedCornerShape(5.dp)).background(Kx.w(.35f)))
-                            Text(x.e, style = mts(24), modifier = Modifier.align(Alignment.CenterHorizontally))
+                            if (i == 0) Text("Без темы", style = mts(11, W7, Kx.text2), maxLines = 1, modifier = Modifier.align(Alignment.CenterHorizontally))
+                            else Text(x.e, style = mts(24), modifier = Modifier.align(Alignment.CenterHorizontally))
                         }
                     }
                 }
                 Row(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("У обоих · тема Telegram" to true, "Только у меня" to false).filter { !live || it.second }.forEach { (label, v) ->
+                    listOf("Для обоих" to true, "Только у меня" to false).filter { !live || it.second }.forEach { (label, v) ->
                         val on = both == v
                         Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(14.dp)).background(if (on) Kx.accent.copy(alpha = .18f) else Color.Transparent)
                             .kxClick { both = v }, contentAlignment = Alignment.Center) { Text(label, style = mts(13, W7, if (on) Kx.accent else MoSub), maxLines = 1) }

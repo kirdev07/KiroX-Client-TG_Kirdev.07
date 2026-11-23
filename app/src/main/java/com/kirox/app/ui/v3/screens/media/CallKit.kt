@@ -85,4 +85,4 @@ fun Modifier.personPlaceholder(head: Color, headDark: Color, body: Color, bodyDa
     drawPath(path, Brush.radialGradient(0f to body, .8f to bodyDark, center = Offset(size.width / 2, bt + bh * .2f), radius = bw * .55f))
 }
 
-fun fmtClock(sec: Int): String = "${(sec / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}"
+fun fmtClock(sec: Int): String = com.kirox.app.ui.v3.model.kxDuration(sec) // critique-C P2: m:ss everywhere

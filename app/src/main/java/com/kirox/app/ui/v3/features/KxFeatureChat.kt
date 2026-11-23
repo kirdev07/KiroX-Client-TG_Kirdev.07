@@ -172,8 +172,8 @@ private fun BoxScope.LayerContent(store: KxStore, chatId: Long, header: KxChatHe
     var noteText by remember(chatId, noteOpen) { mutableStateOf(f.note(chatId)) }
     BSheet(noteOpen, { KxFeatureUi.noteFor = null }) {
         Column(Modifier.imePadding()) {
-            Text("Заметка · ${header.title}", style = ts(18, W800), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("Видите только вы. Хранится на этом телефоне, в Telegram не отправляется.", style = ts(12, color = Kx.text4, lh = 17.sp), modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
+            Text("Заметка kiroX · ${header.title}", style = ts(18, W800), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("Видите только вы. Только на этом телефоне — в Telegram не отправляется.", style = ts(12, color = Kx.text4, lh = 17.sp), modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
             BTextArea(noteText, { noteText = it.take(4000) }, "Например: день рождения 12 марта, любит кофе без сахара", 140.dp)
             Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (f.note(chatId).isNotBlank()) Box(Modifier.size(56.dp).clip(RoundedCornerShape(18.dp)).background(Kx.danger.copy(alpha = .1f))

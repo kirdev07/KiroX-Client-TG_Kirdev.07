@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -76,11 +77,13 @@ fun UndoSendScreen(ctx: KxScreenCtx) {
         if (live && delaySec <= 0) ctx.store.send(chatId!!, t)
         if (delaySec > 0) { left = delaySec * 10; pend = id }
     }
+    // critique-A: the demo board opens in its key state — a message just sent, with the undo bar counting down.
+    LaunchedEffect(Unit) { if (!live) send() }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
             MoChatHeader(ctx.back, (header?.title ?: "Р").take(1).uppercase(), Color(0xFF5C6661), null, header?.title ?: "Работа", header?.status ?: "8 участников") {
-                MoRound(Icons.AutoMirrored.Outlined.Undo, "Настройки отмены", bg = if (settings) Kx.accent.copy(alpha = .16f) else Kx.w(.06f), border = null,
+                MoRound(Icons.Outlined.Timer, "Задержка перед отправкой", bg = if (settings) Kx.accent.copy(alpha = .16f) else Kx.w(.06f), border = null,
                     tint = if (settings) Kx.accent else Kx.text) { settings = !settings }
             }
             if (settings) Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().moIn(250, dy = 10.dp).clip(RoundedCornerShape(22.dp))
@@ -119,7 +122,7 @@ fun UndoSendScreen(ctx: KxScreenCtx) {
                     }
                     Text("${(left + 9) / 10}", style = mts(13, W8))
                 }
-                Text("Отправляем…", style = mts(14, color = Kx.text2), modifier = Modifier.weight(1f))
+                Text("Сообщение отправится через ${(left + 9) / 10} с", style = mts(14, color = Kx.text2), modifier = Modifier.weight(1f), maxLines = 2)
                 MoPill("Отменить", height = 40.dp, bg = Kx.accent.copy(alpha = .16f), ink = Kx.accent, size = 14, weight = W8, padH = 16.dp,
                     icon = Icons.AutoMirrored.Outlined.Undo, iconSize = 18.dp, gap = 6.dp) {
                     val m = sent.firstOrNull { it.id == pend }; sent.removeAll { it.id == pend }; pend = -1; left = 0; draft = m?.t ?: ""

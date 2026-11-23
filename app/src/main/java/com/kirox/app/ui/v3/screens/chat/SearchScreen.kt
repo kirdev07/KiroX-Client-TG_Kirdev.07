@@ -146,7 +146,10 @@ fun SearchScreen(ctx: KxScreenCtx) {
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon(Icons.Outlined.History, null, Modifier.size(20.dp), tint = Kx.text4)
                                 Text(r, style = ts(15, color = Kx.text2), modifier = Modifier.weight(1f))
-                                Icon(Icons.Outlined.NorthWest, null, Modifier.size(18.dp), tint = Kx.text4)
+                                // critique-A: each recent query can be removed on its own.
+                                Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Удалить «$r» из недавних") { recent = recent - r }, contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text4)
+                                }
                             }
                         }
                     }
@@ -206,6 +209,6 @@ internal fun chatSub(store: KxStore, c: KxChat): String {
         KxChatKind.Channel -> if (st.isNotEmpty()) "Канал · $st" else "Канал"
         KxChatKind.Saved -> "Ваши сохранённые сообщения"
         KxChatKind.Bot -> "Бот"
-        else -> st.ifEmpty { if (c.online) "в сети" else "был(а) недавно" }
+        else -> st.ifEmpty { if (c.online) "в сети" else "в сети недавно" }
     }
 }

@@ -81,7 +81,7 @@ class KxNav(start: KxRoute = KxRoute.Home, restored: List<KxRoute> = emptyList()
  */
 @Composable
 fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean = false) = KxTheme(reducedMotion || kxAccessNoMotion(store) || kxPowerNoMotion(store) || com.kirox.app.ui.v3.theme.kxAnimOff(store)) { KxAccessScale(store) {
-    // Saved look applied to the whole v3 UI: colour theme (Кастомизация) + contrast/bold/outlines/big buttons/palette (Спец. возможности).
+    // Saved look applied to the whole v3 UI: colour theme (Оформление) + contrast/bold/outlines/big buttons/palette (Спец. возможности).
     val themeIdx = store.pref(com.kirox.app.ui.v3.model.KxPrefs.THEME)
     val accessFlags = store.pref(com.kirox.app.ui.v3.model.KxPrefsAccount.ACCESS_FLAGS)
     val accessPalette = store.pref(com.kirox.app.ui.v3.model.KxPrefsAccount.ACCESS_PALETTE)
@@ -127,7 +127,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
     var selecting by remember { mutableStateOf(false) }
     // wave3-account: tabs turned off in the settings (the old app's KiroxTweaks) leave the dock.
     val hiddenTabs = buildSet { if (store.tweaks["hideCallsTab"] == true) add(KxTab.Calls); if (store.tweaks["hideStoriesTab"] == true) add(KxTab.Stories)
-        // music: the «Музыка» tab is off until turned on in Кастомизация → Нижняя панель.
+        // music: the «Музыка» tab is off until turned on in Оформление → Нижняя панель.
         if (store.pref(com.kirox.app.ui.v3.model.KxPrefs.MUSIC_TAB) == 0) add(KxTab.Music) }
     LaunchedEffect(hiddenTabs) { if (tab in hiddenTabs) tab = KxTab.Chats }
     // New Telegram terms (popup ones): the TermsUpdate board opens once per terms id.

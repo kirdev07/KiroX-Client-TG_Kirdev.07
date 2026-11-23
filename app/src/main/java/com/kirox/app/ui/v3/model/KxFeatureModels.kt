@@ -92,6 +92,11 @@ object KxFeatureLangs {
         "hi" -> "хинди"; "he" -> "иврита"; "nl" -> "нидерландского"; "cs" -> "чешского"; "ka" -> "грузинского"
         else -> "«$code»"
     }
+    /** ISO code → Russian name in the nominative («Язык перевода: русский»). */
+    fun nominative(code: String): String = when (code) {
+        "hi" -> "хинди"; "he" -> "иврит"
+        else -> name(code).let { g -> if (g.endsWith("ого")) g.dropLast(3) + "ий" else g } // русского → русский
+    }
 }
 
 /** Template variables, expanded when a template is inserted (unit-tested). Unknown {words} stay as typed. */
@@ -140,9 +145,12 @@ object KxSendWhen {
     fun lastSeenVisible(status: String): Boolean {
         val s = status.trim()
         if (s == "в сети") return true
-        if (!s.startsWith("был")) return false
-        return s !in setOf("был(а) недавно", "был(а) на этой неделе", "был(а) в этом месяце", "был(а) давно")
+        // Neutral wording (critique-A S): «в сети 5 минут назад» = visible; «в сети недавно / на этой неделе…», «давно не в сети» = hidden.
+        if (!s.startsWith("в сети") && !s.startsWith("был")) return false
+        // old wording («был(а) недавно») maps to the same hidden set
+        return (if (s.startsWith("был")) "в сети " + s.substringAfter(' ').trim() else s).let { if (it == "в сети давно") "давно не в сети" else it } !in Hidden
     }
+    private val Hidden = setOf("в сети недавно", "в сети на этой неделе", "в сети в этом месяце", "давно не в сети")
 
     /** Unix time for the scheduling sheet: -1 = when online, 0 = now, else the time. */
     const val WHEN_ONLINE = -1

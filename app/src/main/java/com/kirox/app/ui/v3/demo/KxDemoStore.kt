@@ -59,11 +59,11 @@ class KxDemoStore : KxStore {
     )
     override val contacts = listOf(
         KxContact(11, "Анна Ким", "в сети", online = true, hasStory = true, colorIndex = 0),
-        KxContact(15, "Илья Петров", "был(а) 5 мин назад", colorIndex = 5),
+        KxContact(15, "Илья Петров", "в сети 5 мин назад", colorIndex = 5),
         KxContact(20, "Максим Ли", "в сети", online = true, colorIndex = 1),
-        KxContact(13, "Мама", "был(а) недавно", colorIndex = 3),
+        KxContact(13, "Мама", "в сети недавно", colorIndex = 3),
         KxContact(16, "Света Орлова", "в сети", online = true, colorIndex = 6),
-        KxContact(17, "Дмитрий Ан", "был(а) на этой неделе", colorIndex = 2),
+        KxContact(17, "Дмитрий Ан", "в сети на этой неделе", colorIndex = 2),
     )
     /** The board shows the sum of unread messages in unmuted chats. */
     override val unreadTotal: Int get() = list.filter { !it.muted }.sumOf { it.unread }
@@ -90,7 +90,7 @@ class KxDemoStore : KxStore {
             KxChatKind.Saved -> ""
             KxChatKind.Group -> "8 участников, 3 в сети"
             KxChatKind.Channel -> "24 500 подписчиков"
-            else -> if (c.online) "в сети" else "был(а) недавно"
+            else -> if (c.online) "в сети" else "в сети недавно"
         }
         return KxChatHeader(c.id, c.title, status, c.kind, c.online, muted = c.muted, pinned = pinnedMsg[chatId], colorIndex = c.colorIndex,
             composer = if (c.kind == KxChatKind.Channel) (if (c.muted) KxComposer.Unmute else KxComposer.Mute) else KxComposer.Write)
@@ -211,13 +211,13 @@ class KxDemoStore : KxStore {
 
     private val privacyRules = mutableStateListOf(
         KxPrivacyRule("PhoneNumber", "Номер телефона", 2),
-        KxPrivacyRule("LastSeen", "Время захода", 1, exceptions = 3),
+        KxPrivacyRule("LastSeen", "Время последней активности", 1, exceptions = 3),
         KxPrivacyRule("ProfilePhoto", "Фото профиля", 0),
         KxPrivacyRule("Bio", "О себе", 0),
         KxPrivacyRule("Birthdate", "Дата рождения", 1),
         KxPrivacyRule("ForwardLink", "Ссылка при пересылке", 1),
         KxPrivacyRule("Calls", "Звонки", 1, exceptions = 1),
-        KxPrivacyRule("PeerToPeer", "Peer-to-peer в звонках", 1),
+        KxPrivacyRule("PeerToPeer", "Прямое соединение в звонках", 1),
         KxPrivacyRule("VoiceNotes", "Голосовые и видеосообщения", 0),
         KxPrivacyRule("ChatInvites", "Приглашения в группы", 1),
     )
@@ -231,7 +231,7 @@ class KxDemoStore : KxStore {
     override val archiveNewChats get() = archiveNew
     override fun setArchiveNewChats(on: Boolean) { archiveNew = on }
     override val blockedCount get() = blocked.size
-    override val blocked get() = listOf(KxContact(40, "Спам-бот", "был(а) давно", colorIndex = 4), KxContact(41, "Неизвестный", "был(а) недавно", colorIndex = 2))
+    override val blocked get() = listOf(KxContact(40, "Спам-бот", "давно не в сети", colorIndex = 4), KxContact(41, "Неизвестный", "в сети недавно", colorIndex = 2))
 
     private val scopes = mutableStateListOf(
         KxNotifyScope("private", "Личные чаты", true, exceptions = 2),
@@ -270,7 +270,7 @@ class KxDemoStore : KxStore {
         else -> KxUsernameState.Free
     }
     override suspend fun findByPhone(phone: String): KxContact? =
-        if (phone.filter(Char::isDigit).endsWith("00")) null else KxContact(50, "Ольга", "был(а) недавно", colorIndex = 3)
+        if (phone.filter(Char::isDigit).endsWith("00")) null else KxContact(50, "Ольга", "в сети недавно", colorIndex = 3)
     override suspend fun searchMessages(query: String): List<KxFound> = if (query.isBlank()) emptyList() else listOf(
         KxFound(11, 1, "Анна", "Беру билеты на 19:30, $query", "21:58"),
         KxFound(12, 2, "Команда kiroX", "$query — сборка прошла", "21:29"),
@@ -289,8 +289,8 @@ class KxDemoStore : KxStore {
         username = "kirox_team", isPublic = true, slowModeSeconds = 0, reactions = listOf("❤", "🔥", "👍"), members = 128, owner = true,
         canChangeInfo = true, canRestrict = true, canPromote = true, canInvite = true)
     override suspend fun members(chatId: Long): List<KxMember> = listOf(
-        KxMember(1, "Алекс Миронов", "Создатель", "в сети"), KxMember(20, "Максим", "Администратор", "был(а) в 21:14", canEdit = true),
-        KxMember(11, "Анна", "", "в сети", canEdit = true), KxMember(17, "Дмитрий", "Только чтение", "был(а) вчера", canEdit = true))
+        KxMember(1, "Алекс Миронов", "Создатель", "в сети"), KxMember(20, "Максим", "Администратор", "в сети в 21:14", canEdit = true),
+        KxMember(11, "Анна", "", "в сети", canEdit = true), KxMember(17, "Дмитрий", "Только чтение", "в сети вчера", canEdit = true))
     override suspend fun inviteLinks(chatId: Long): List<KxInviteLink> = listOf(
         KxInviteLink("https://t.me/+AbCdEf123", primary = true, members = 42), KxInviteLink("https://t.me/+Xyz789", "Для друзей", members = 7, expires = "до 30 нояб.", limit = 20))
     override suspend fun joinRequests(chatId: Long): List<KxJoinRequest> = listOf(KxJoinRequest(60, "Ольга", "Дизайнер интерфейсов", "21:10"), KxJoinRequest(61, "Тимур", "", "вчера"))
@@ -387,6 +387,26 @@ class KxDemoStore : KxStore {
     override suspend fun emojiStatuses(): List<KxEmojiStatus> = listOf("🎉", "💼", "🌴", "🎧", "🔥", "😴").mapIndexed { i, e -> KxEmojiStatus(i + 1L, e) }
     override suspend fun countries(): List<KxCountry> = listOf(KxCountry("KZ", "Казахстан", "7", "🇰🇿"), KxCountry("RU", "Россия", "7", "🇷🇺"), KxCountry("UZ", "Узбекистан", "998", "🇺🇿"))
     override suspend fun myCountry(): String = "KZ"
+
+    // critique-C P1: the «MusicPlayer» board needs a loaded track (else the player shows «Ничего не играет»).
+    private val demoQueue = listOf(
+        KxTrack(14, 901, "Ночные огни", "Лето", "Новости", duration = 222),
+        KxTrack(14, 902, "Северный ветер", "Полярная", "Новости", duration = 245),
+        KxTrack(14, 903, "Город спит", "Неон", "Новости", duration = 178),
+        KxTrack(14, 904, "Тёплый вечер", "Солнце", "Новости", duration = 201),
+    )
+    private var demoPlayer by mutableStateOf(KxPlayerState(demoQueue[0], playing = true, positionMs = 52_000, durationMs = 222_000,
+        source = "Моя музыка", queue = demoQueue))
+    override val player: KxPlayerState get() = demoPlayer
+    private fun demoPlayAt(i: Int) { val t = demoPlayer.queue.getOrNull(i) ?: return
+        demoPlayer = demoPlayer.copy(track = t, playing = true, positionMs = 0, durationMs = t.duration * 1000L) }
+    override fun playTracks(tracks: List<KxTrack>, index: Int) { if (tracks.isNotEmpty()) { demoPlayer = demoPlayer.copy(queue = tracks); demoPlayAt(index.coerceIn(0, tracks.lastIndex)) } }
+    override fun playerToggle() { demoPlayer = demoPlayer.copy(playing = !demoPlayer.playing) }
+    override fun playerNext() { val q = demoPlayer.queue; demoPlayAt((q.indexOf(demoPlayer.track) + 1).mod(q.size.coerceAtLeast(1))) }
+    override fun playerPrevious() { val q = demoPlayer.queue; demoPlayAt((q.indexOf(demoPlayer.track) - 1).mod(q.size.coerceAtLeast(1))) }
+    override fun playerSeek(fraction: Float) { demoPlayer = demoPlayer.copy(positionMs = (demoPlayer.durationMs * fraction.coerceIn(0f, 1f)).toLong()) }
+    override fun playerShuffle() { demoPlayer = demoPlayer.copy(shuffle = !demoPlayer.shuffle) }
+    override fun playerRepeat() { demoPlayer = demoPlayer.copy(repeat = (demoPlayer.repeat + 1) % 3) }
 }
 
 /** A store for screens shown before sign-in (they only use ctx.auth). */

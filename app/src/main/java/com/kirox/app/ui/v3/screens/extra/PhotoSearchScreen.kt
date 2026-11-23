@@ -95,7 +95,7 @@ fun PhotoSearchScreen(ctx: KxScreenCtx) {
                 }
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 30.dp)) {
-                Text(if (qq.isEmpty()) "Например: чек, пароль, адрес, дата" else if (busy) "Ищем текст на фото…" else "Нашли на ${res.size} фото из 1 248", style = ts(12.sp, color = Kx.text4),
+                Text(if (qq.isEmpty()) "Например: чек, пароль, адрес, дата" else if (busy) "Ищем текст на фото…" else "Нашлось " + res.size + " " + com.kirox.app.ui.v3.data.KxFormat.plural(res.size, "фото", "фото", "фото") + " из 1 248", style = ts(12.sp, color = Kx.text4),
                     modifier = Modifier.padding(start = 2.dp, end = 2.dp, bottom = 8.dp))
                 key(qq) {
                     res.forEachIndexed { k, p ->
@@ -124,7 +124,7 @@ fun PhotoSearchScreen(ctx: KxScreenCtx) {
                                 }, style = ts(14.sp, color = Kx.text2, lh = 19.6.sp), modifier = Modifier.padding(top = 4.dp))
                                 Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     ExPill("В чате", height = 30.dp, bg = Kx.accent.copy(alpha = .14f), ink = Kx.accent, size = 12.sp, padH = 10.dp) {}
-                                    ExPill("Текст", height = 30.dp, bg = Kx.w(.06f), ink = Kx.text2, size = 12.sp, padH = 10.dp, icon = Icons.Outlined.ContentCopy) {
+                                    ExPill("Скопировать текст", height = 30.dp, bg = Kx.w(.06f), ink = Kx.text2, size = 12.sp, padH = 10.dp, icon = Icons.Outlined.ContentCopy) {
                                         clip.setText(AnnotatedString(p.text)); ctx.toast("Текст скопирован")
                                     }
                                 }

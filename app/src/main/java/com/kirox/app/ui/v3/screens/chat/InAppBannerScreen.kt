@@ -156,7 +156,7 @@ private fun Banner(m: BnMsg, replying: Boolean, chars: Int, hearted: Boolean, bk
             }
             Row(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.08f)).kxClick(onClick = onMute).padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(Icons.Outlined.NotificationsOff, null, Modifier.size(16.dp), tint = Kx.text2); Text("На час", style = ts(12, W700, Kx.text2))
+                Icon(Icons.Outlined.NotificationsOff, null, Modifier.size(16.dp), tint = Kx.text2); Text("Без звука 1 ч", style = ts(12, W700, Kx.text2))
             }
         }
         Box(Modifier.fillMaxWidth().height(3.dp).background(Kx.w(.06f))) {

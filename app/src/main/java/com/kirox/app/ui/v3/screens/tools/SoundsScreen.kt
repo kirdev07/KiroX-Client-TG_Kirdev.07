@@ -36,6 +36,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private data class Snd(val name: String, val icon: ImageVector, val sub: String, val grp: String)
+/** The demo sound catalogue — the one source for «Звук уведомлений», «Уведомления» chips and per-chat notifications. */
+internal val KxDemoSoundNames: List<String> get() = SOUNDS.map { it.name }
 private val SOUNDS = listOf(
     Snd("Без звука", Icons.Rounded.NotificationsOff, "Только вибрация", "kiroX"),
     Snd("Капля", Icons.Rounded.WaterDrop, "kiroX · 0,4 с", "kiroX"), Snd("Стекло", Icons.Rounded.WineBar, "kiroX · 0,6 с", "kiroX"),
@@ -128,7 +130,7 @@ fun SoundsScreen(ctx: KxScreenCtx) {
         list.forEachIndexed { i, s ->
             if (s.grp != last) {
                 last = s.grp
-                Text(s.grp.uppercase(), style = KxType.style(12.sp, FontWeight.Bold, Kx.text4).copy(letterSpacing = .6.sp), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp, bottom = 6.dp))
+                TCap(s.grp)
             }
             val on = sel[scope] == i
             val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .1f) else Color.Transparent, tween(200), label = "bg")

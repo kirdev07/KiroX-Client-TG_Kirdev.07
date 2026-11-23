@@ -67,7 +67,7 @@ fun BackupScreen(ctx: KxScreenCtx) {
                 val json = com.kirox.app.settings.SettingsBackup.export(context)
                 val stamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm", java.util.Locale.US).format(java.util.Date())
                 val file = java.io.File(context.cacheDir, "kirox-settings-$stamp.json").apply { writeText(json) }
-                store.sendFile(savedId, file.absolutePath, "Копия настроек kiroX")
+                store.sendFile(savedId, file.absolutePath, "Резервная копия настроек kiroX")
             }.isSuccess
             if (ok) { store.putPref(com.kirox.app.ui.v3.model.KxPrefsAccount.BACKUP_LAST, (System.currentTimeMillis() / 1000).toInt()); phase = "savedUp" }
             else { phase = "idle"; ctx.toast("Не получилось сохранить копию") }
@@ -80,7 +80,7 @@ fun BackupScreen(ctx: KxScreenCtx) {
             val text = runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } }.getOrNull()
             val ok = text != null && com.kirox.app.settings.SettingsBackup.restore(context, text)
             phase = if (ok) "savedDown" else "idle"
-            if (!ok) ctx.toast("Это не копия настроек kiroX") else ctx.toast("Настройки вернулись — перезапустите kiroX, чтобы всё применилось")
+            if (!ok) ctx.toast("Это не резервная копия настроек kiroX") else ctx.toast("Настройки восстановлены — перезапустите kiroX, чтобы всё применилось")
         }
     }
     val n = on.count { it }
@@ -101,7 +101,7 @@ fun BackupScreen(ctx: KxScreenCtx) {
         }
     }
 
-    TScreen("Копия настроек kiroX", ctx.back, titleSize = 20, overlay = { confirm?.let { KxConfirmDialog(it) { confirm = null } } }) {
+    TScreen("Резервная копия настроек", ctx.back, titleSize = 20, overlay = { confirm?.let { KxConfirmDialog(it) { confirm = null } } }) {
         val cShape = RoundedCornerShape(26.dp)
         Column(Modifier.fillMaxWidth().clip(cShape).background(Kx.w(.04f))
             .drawBehind { drawRect(Brush.radialGradient(0f to Kx.accentDeep.copy(alpha = .3f), .65f to Color.Transparent, center = Offset(size.width / 2, 0f), radius = size.width)) }
@@ -123,7 +123,7 @@ fun BackupScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Rounded.Check, null, Modifier.offset(33.dp, 28.dp).size(24.dp).graphicsLayer { scaleX = s; scaleY = s; alpha = (pop.value / .6f).coerceAtMost(1f) }, tint = Kx.onAccent)
                 }
             }
-            Text(when (phase) { "up" -> "Сохраняем…"; "down" -> "Возвращаем настройки…"; "savedUp" -> "Копия сохранена"; "savedDown" -> "Настройки вернулись"; else -> "Последняя копия · 15 ноября" },
+            Text(when (phase) { "up" -> "Сохраняем…"; "down" -> "Восстанавливаем настройки…"; "savedUp" -> "Копия сохранена"; "savedDown" -> "Настройки восстановлены"; else -> "Последняя копия · 15 ноября" },
                 style = KxType.style(17.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 6.dp))
             Text(if (busy) (if (demo) "${Math.round(prog)}%" else "Секунду…") else if (!demo && phase == "idle") (if (lastSec > 0) "Последняя копия: " + java.text.SimpleDateFormat("d MMMM, HH:mm", java.util.Locale("ru")).format(java.util.Date(lastSec * 1000L)) else "Копий ещё не было") else if (phase == "savedDown") "kiroX перезапустит экран, чтобы применить их" else "Перенесите свой kiroX на новый телефон за минуту",
                 style = KxType.style(13.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
@@ -135,8 +135,8 @@ fun BackupScreen(ctx: KxScreenCtx) {
             }
             Row(Modifier.padding(top = 14.dp).alpha(if (busy) .5f else 1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TPill("Сохранить", Modifier.weight(1f), Icons.Outlined.Backup, 48.dp, Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), size = 14) { if (n > 0 && !busy) { if (demo) phase = "up" else realUp() } }
-                TPill("Вернуть", Modifier.weight(1f), Icons.Outlined.SettingsBackupRestore, 48.dp, solid(Kx.w(.08f)), Kx.text, 14, FontWeight.Bold) {
-                    if (!busy) confirm = KxConfirm("Вернуть настройки из копии?", "Текущие настройки kiroX на этом телефоне заменятся настройками из копии.", "Вернуть") { if (demo) phase = "down" else picker.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
+                TPill("Восстановить", Modifier.weight(1f), Icons.Outlined.SettingsBackupRestore, 48.dp, solid(Kx.w(.08f)), Kx.text, 14, FontWeight.Bold) {
+                    if (!busy) confirm = KxConfirm("Восстановить настройки из копии?", "Текущие настройки kiroX на этом телефоне заменятся настройками из копии.", "Восстановить") { if (demo) phase = "down" else picker.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
                 }
             }
         }
@@ -156,6 +156,8 @@ fun BackupScreen(ctx: KxScreenCtx) {
                             Text(p.label, style = KxType.style(13.sp, FontWeight.Bold), maxLines = 1)
                             Text(p.sub, style = KxType.style(11.sp, color = Kx.text4), maxLines = 1)
                         }
+                        // critique-B: a visible checked state on the tile.
+                        Icon(if (sel) Icons.Rounded.CheckCircle else Icons.Outlined.Circle, null, Modifier.size(20.dp), tint = if (sel) Kx.accent else Kx.w(.3f))
                     }
                 }
             }
@@ -168,19 +170,23 @@ fun BackupScreen(ctx: KxScreenCtx) {
                 onClick = { auto = !auto }) { TSmallSwitch(auto) }
         }
 
-        if (!demo) THint("В копию попадают все настройки kiroX сразу. Чтобы вернуть, нажмите «Вернуть» и выберите файл копии (его можно скачать из «Избранного»).",
+        if (!demo) THint("В копию попадают все настройки kiroX сразу. Чтобы восстановить, нажмите «Восстановить» и выберите файл копии (его можно скачать из «Избранного»).",
             Modifier.padding(start = 4.dp, end = 4.dp), top = 12.dp)
         if (demo) TCap("Прошлые копии")
         if (demo) hist.forEach { (date, sub, fresh) ->
             key(date) {
-                Row(Modifier.tRise(0, 250, 8.dp).fillMaxWidth().padding(horizontal = 6.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // critique-B: a past copy is actionable — tap = restore (asks first).
+                Row(Modifier.tRise(0, 250, 8.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).kxClick("Восстановить копию от $date") {
+                    if (!busy) confirm = KxConfirm("Восстановить копию от $date?", "Текущие настройки kiroX на этом телефоне заменятся настройками из этой копии.", "Восстановить") { phase = "down" }
+                }.padding(horizontal = 6.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TIconTile(Icons.Outlined.Description, Kx.accent, Kx.accent.copy(alpha = .1f), 38.dp)
                     Column(Modifier.weight(1f)) {
                         Text(date, style = KxType.style(14.sp, FontWeight.Bold)); Text(sub, style = KxType.style(12.sp, color = Kx.text4))
                     }
-                    if (fresh) Box(Modifier.clip(RoundedCornerShape(8.dp)).background(Kx.accent).padding(horizontal = 8.dp, vertical = 2.dp)) {
-                        Text("НОВАЯ", style = KxType.style(11.sp, FontWeight.Black, Kx.onAccent))
+                    if (fresh) Box(Modifier.clip(RoundedCornerShape(8.dp)).background(Kx.accent.copy(alpha = .16f)).padding(horizontal = 8.dp, vertical = 2.dp)) {
+                        Text("Новая", style = KxType.style(11.sp, FontWeight.Bold, Kx.accent))
                     }
+                    Icon(Icons.Rounded.ChevronRight, null, tint = Kx.text4)
                 }
             }
         }

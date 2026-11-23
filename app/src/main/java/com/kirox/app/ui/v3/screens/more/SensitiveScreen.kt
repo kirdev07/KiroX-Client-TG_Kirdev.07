@@ -70,7 +70,7 @@ fun SensitiveScreen(ctx: KxScreenCtx) {
 
         if (sheet) MoSheet({ sheet = false; ageAsk = false }, pad = PaddingValues(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 24.dp),
             colors = listOf(Color(0xFC28302C), Color(0xFF121614))) {
-            Text("Чувствительный контент", style = mts(18, W8))
+            Text("Откровенные кадры", style = mts(18, W8))
             Text("Фото и видео, которые автор или Telegram пометили как откровенные или жестокие.", style = mts(13, color = MoSub, lh = 1.4f), modifier = Modifier.padding(top = 4.dp))
             Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(Triple("blur", Icons.Outlined.BlurOn, "Размывать" to "Покажем по нажатию — как сейчас"),
@@ -120,7 +120,7 @@ private fun SePostCard(p: SePost, shown: Boolean, revealed: Boolean, onTap: () -
                     Box(Modifier.size(52.dp).clip(CircleShape).background(Color.Black.copy(alpha = .5f)), contentAlignment = Alignment.Center) {
                         Icon(if (p.sens) Icons.Rounded.VisibilityOff else Icons.Rounded.AutoAwesome, null, Modifier.size(26.dp), tint = Kx.text)
                     }
-                    Text(if (p.sens) "Чувствительный контент" else "Спойлер", style = mts(14, W8))
+                    Text(if (p.sens) "Откровенные или шокирующие кадры" else "Спойлер", style = mts(14, W8))
                     Text("Нажмите, чтобы посмотреть", style = mts(12, color = Kx.text2))
                 }
             }

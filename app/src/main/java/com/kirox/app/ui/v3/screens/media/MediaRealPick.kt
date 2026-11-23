@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.media
 
+import androidx.compose.foundation.combinedClickable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -69,19 +70,23 @@ private fun mediaPermissions(): Array<String> = if (android.os.Build.VERSION.SDK
 @Composable
 internal fun RealStoryPost(ctx: KxScreenCtx) {
     val store = ctx.store
+    val toast = remember { MPillToastState() }
     val scope = rememberCoroutineScope()
     var media by remember { mutableStateOf<List<KxDeviceMedia>?>(null) }
     var askKey by remember { mutableIntStateOf(0) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { askKey++ }
     LaunchedEffect(askKey) { media = store.deviceMedia(90) }
     var picked by remember { mutableStateOf<KxDeviceMedia?>(null) }
+    // critique-C P2: several stories in one go — long-press starts a numbered selection.
+    val multi = remember { mutableStateListOf<KxDeviceMedia>() }
+    fun okForStory(m: KxDeviceMedia): Boolean =
+        if (m.video && m.durationMs > 60_000) { toast.show("Видео для истории — до 60 секунд", Icons.Rounded.Movie); false } else true
     var caption by remember { mutableStateOf("") }
     var aud by remember { mutableIntStateOf(0) }
     var audOpen by remember { mutableStateOf(false) }
     var closeCount by remember { mutableIntStateOf(-1) }
     LaunchedEffect(Unit) { closeCount = store.closeFriends().size }
     var posting by remember { mutableStateOf(false) }
-    val toast = remember { MPillToastState() }
     val labels = listOf("Все", "Мои контакты", "Близкие друзья" + if (closeCount >= 0) " · $closeCount" else "")
     val subs = listOf("Все, кто видит ваши истории", "Только люди из ваших контактов", "Только выбранные вами")
     val icons = listOf(Icons.Rounded.Public, Icons.Rounded.Contacts, Icons.Rounded.Star)
@@ -106,10 +111,21 @@ internal fun RealStoryPost(ctx: KxScreenCtx) {
                 }
                 else -> LazyVerticalGrid(GridCells.Fixed(3), Modifier.fillMaxSize(), contentPadding = PaddingValues(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(list, key = { it.uri }) { m ->
-                        Box(Modifier.aspectRatio(.62f).clip(RoundedCornerShape(10.dp)).background(Kx.w(.06f)).kxClick(if (m.video) "Видео" else "Фото") {
-                            if (m.video && m.durationMs > 60_000) toast.show("Видео для истории — до 60 секунд", Icons.Rounded.Movie) else picked = m
+                        val order = multi.indexOfFirst { it.uri == m.uri }
+                        Box(Modifier.aspectRatio(.62f).clip(RoundedCornerShape(10.dp)).background(Kx.w(.06f)).combinedClickable(
+                            onClickLabel = if (m.video) "Видео" else "Фото", onLongClickLabel = "Выбрать несколько",
+                            onLongClick = { if (order < 0 && okForStory(m)) multi.add(m) }) {
+                            when {
+                                order >= 0 -> multi.removeAt(order)
+                                multi.isNotEmpty() -> { if (multi.size >= 10) toast.show("Можно выбрать до 10", Icons.Rounded.PhotoLibrary) else if (okForStory(m)) multi.add(m) }
+                                okForStory(m) -> picked = m
+                            }
                         }) {
                             UriThumb(m.uri, Modifier.matchParentSize())
+                            if (multi.isNotEmpty()) Box(Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp).clip(CircleShape).background(if (order >= 0) Kx.accent else Color.Black.copy(alpha = .3f))
+                                .border(1.5.dp, Color.White.copy(alpha = .85f), CircleShape), contentAlignment = Alignment.Center) {
+                                if (order >= 0) T("${order + 1}", 12.sp, FontWeight.ExtraBold, Kx.onAccent)
+                            }
                             if (m.video) T(fmtSec((m.durationMs / 1000).toInt()), 11.sp, FontWeight.Bold, Color.White, modifier = Modifier.align(Alignment.BottomStart).padding(5.dp)
                                 .clip(RoundedCornerShape(6.dp)).background(Color.Black.copy(alpha = .55f)).padding(horizontal = 6.dp, vertical = 2.dp))
                         }
@@ -128,7 +144,7 @@ internal fun RealStoryPost(ctx: KxScreenCtx) {
                 Spacer(Modifier.weight(1f))
                 Row(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(Color.Black.copy(alpha = .35f)).kxClick { picked = null }.padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Outlined.PhotoLibrary, null, Modifier.size(17.dp), tint = Color.White); T("Другое фото", 12.sp, FontWeight.Bold, Color.White)
+                    Icon(Icons.Outlined.PhotoLibrary, null, Modifier.size(17.dp), tint = Color.White); T(if (multi.size > 1) "Выбрано: ${multi.size}" else "Другое фото", 12.sp, FontWeight.Bold, Color.White)
                 }
             }
             Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding().padding(start = 12.dp, end = 12.dp, bottom = 22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -147,9 +163,11 @@ internal fun RealStoryPost(ctx: KxScreenCtx) {
                         if (posting) return@kxClick
                         posting = true
                         scope.launch {
-                            val err = store.postStory(p, caption.trim(), aud)
+                            val all = if (multi.size > 1) multi.toList() else listOf(p)
+                            var err: String? = null
+                            for (m in all) { err = store.postStory(m, caption.trim(), aud); if (err != null) break }
                             posting = false
-                            if (err == null) { ctx.toast("История опубликована"); ctx.back() } else toast.show(err, Icons.Rounded.ErrorOutline)
+                            if (err == null) { ctx.toast(if (all.size > 1) "Опубликовано историй: ${all.size}" else "История опубликована"); ctx.back() } else toast.show(err, Icons.Rounded.ErrorOutline)
                         }
                     }.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (posting) CircularProgressIndicator(Modifier.size(20.dp), color = Kx.onAccent, strokeWidth = 2.dp)
@@ -169,6 +187,11 @@ internal fun RealStoryPost(ctx: KxScreenCtx) {
                 }
                 if (aud == 2 && closeCount == 0) T("Список близких друзей пуст — историю никто не увидит.", 12.sp, color = Kx.warning, modifier = Modifier.padding(top = 6.dp))
             }
+        }
+        if (p == null && multi.isNotEmpty()) Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp).height(54.dp).clip(RoundedCornerShape(27.dp))
+            .cssGrad(140f, Kx.accent, Kx.accentDeep).kxClick("Далее") { picked = multi.first() }.padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            T("Далее · ${multi.size}", 15.sp, FontWeight.ExtraBold, Kx.onAccent)
         }
         MPillToastHost(toast)
     }

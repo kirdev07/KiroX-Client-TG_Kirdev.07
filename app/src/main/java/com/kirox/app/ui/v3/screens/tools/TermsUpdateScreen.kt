@@ -76,18 +76,18 @@ fun TermsUpdateScreen(ctx: KxScreenCtx) {
                     Text("Telegram обновил условия", style = KxType.style(20.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 10.dp))
                     Text("Это условия самого Telegram, не kiroX. Мы показываем их как есть.", style = KxType.style(13.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
                 }
-                Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kx.w(.05f)).padding(4.dp)) {
-                    Box(Modifier.fillMaxWidth(.5f).height(34.dp).clip(RoundedCornerShape(12.dp)).background(Kx.accent.copy(alpha = .18f)), contentAlignment = Alignment.Center) {
-                        Text("Полный текст", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
-                    }
-                }
+                // critique-B: no one-option segmented control — just the caption of the text below.
+                Text("Полный текст", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp))
                 Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp).fillMaxWidth().weight(1f).clip(RoundedCornerShape(18.dp)).background(Color.Black.copy(alpha = .25f))
                     .border(1.dp, Kx.w(.08f), RoundedCornerShape(18.dp)).verticalScroll(rememberScrollState()).padding(14.dp)) {
                     if (!demo && terms != null && terms.minAge > 0) Text("Пользоваться Telegram можно с ${terms.minAge} лет.", style = KxType.style(13.sp, FontWeight.Bold, Kx.warning), modifier = Modifier.padding(bottom = 8.dp))
-                    Text(if (!demo && terms != null) terms.text else "Здесь будет полный текст, который пришлёт сервер Telegram, с заголовками и ссылками. В макете — заглушка.\n\n1. Общие положения…\n2. Использование сервиса…\n3. Платные функции…\n4. Конфиденциальность…\n5. Изменения условий…",
+                    Text(if (!demo && terms != null) terms.text else "Условия обслуживания Telegram\n\n1. Общие положения. Пользуясь Telegram, вы соглашаетесь с этими условиями.\n2. Использование сервиса. Запрещены спам, мошенничество и публикация незаконного контента.\n3. Платные функции. Telegram Premium и Звёзды оплачиваются через магазин приложений.\n4. Конфиденциальность. Как Telegram обрабатывает данные — в Политике конфиденциальности.\n5. Изменения условий. Об изменениях Telegram сообщает в приложении.",
                         style = KxType.style(13.sp, color = Kx.text2, lineHeight = 21.sp))
                 }
                 Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // critique-B: the consequence is said before the buttons, not only after «Не принимать».
+                    Text("Без принятия условий Telegram может удалить аккаунт по своим правилам. kiroX сам ничего не удаляет.",
+                        style = KxType.style(12.sp, color = Kx.text3, lineHeight = 17.sp), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp))
                     TPill(if (busy) "Принимаем…" else "Принять", Modifier.fillMaxWidth(), h = 54.dp, bg = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), size = 16) { accept() }
                     TPill("Не принимать", Modifier.fillMaxWidth(), h = 44.dp, bg = solid(Color.Transparent), ink = Kx.text3, size = 14, weight = FontWeight.Bold) { st = "warn" }
                 }

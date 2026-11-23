@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.groups
 
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -114,25 +115,35 @@ fun PinnedMsgsScreen(ctx: KxScreenCtx) {
                 }
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                msgs.forEach { m ->
+                msgs.forEachIndexed { mi, m ->
                     val pinned = m.id in pins
+                    // critique-C P3: a 32dp avatar on the last bubble of someone's series.
+                    val lastOfSeries = !m.me && m.who != null && msgs.getOrNull(mi + 1)?.who != m.who
                     val flash = remember { Animatable(0f) }
                     LaunchedEffect(hk) { if (hk > 0 && hi == m.id) { flash.snapTo(1f); flash.animateTo(0f, tween(1400, easing = LinearOutSlowInEasing)) } }
                     val shape = if (m.me) RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp) else RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)
                     val ink = if (m.me) Kx.onAccent else Kx.text
-                    Column(Modifier.align(if (m.me) Alignment.End else Alignment.Start).widthIn(max = 290.dp).clip(shape)
+                    Row(Modifier.align(if (m.me) Alignment.End else Alignment.Start), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (!m.me && m.who != null) { if (lastOfSeries) KxAvatar(m.who, m.who.hashCode().toLong(), size = 32.dp) else Spacer(Modifier.width(32.dp)) }
+                    Column(Modifier.widthIn(max = 290.dp).clip(shape)
                         .then(if (m.me) Modifier.cssLinear(135f, Kx.accentMid, Kx.accentDeep) else Modifier.background(lerpColor(Kx.w(.07f), Color(0x478FD3AC), flash.value)))
                         .padding(horizontal = 12.dp, vertical = 8.dp)) {
                         if (!m.me && m.who != null) Text(m.who, style = KxType.style(12.sp, FontWeight.ExtraBold, m.nc))
                         if (m.photo != null) Box(Modifier.padding(top = 2.dp, bottom = 6.dp).size(220.dp, 120.dp).clip(RoundedCornerShape(12.dp)).cssLinear(160f, m.photo.first, m.photo.second),
                             contentAlignment = Alignment.Center) { Text(m.pe, style = KxType.style(40.sp)) }
                         Row(verticalAlignment = Alignment.Bottom) {
+                            // critique-C P3: the pin sits in the time / meta line instead of competing beside it.
                             Text(buildAnnotatedString {
                                 append(m.text); append("  ")
+                                if (pinned) appendInlineContent("pin", "📌")
                                 withStyle(SpanStyle(fontSize = 11.sp, color = ink.copy(alpha = .6f))) { append(m.t.replace(" ", "\u00A0")) }
-                            }, style = KxType.style(15.sp, color = ink, lineHeight = 21.sp), modifier = Modifier.weight(1f, false))
-                            if (pinned) Icon(Icons.Rounded.PushPin, "Закреплено", Modifier.padding(start = 4.dp, bottom = 3.dp).size(13.dp), tint = if (m.me) Kx.onAccent else Kx.accent)
+                            }, style = KxType.style(15.sp, color = ink, lineHeight = 21.sp), modifier = Modifier.weight(1f, false),
+                                inlineContent = mapOf("pin" to androidx.compose.foundation.text.InlineTextContent(
+                                    androidx.compose.ui.text.Placeholder(14.sp, 13.sp, androidx.compose.ui.text.PlaceholderVerticalAlign.TextCenter)) {
+                                    Icon(Icons.Rounded.PushPin, "Закреплено", Modifier.fillMaxSize(), tint = ink.copy(alpha = .6f))
+                                }))
                         }
+                    }
                     }
                 }
             }

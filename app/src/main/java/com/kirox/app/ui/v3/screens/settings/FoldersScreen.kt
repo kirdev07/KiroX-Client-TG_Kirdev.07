@@ -1,5 +1,11 @@
 package com.kirox.app.ui.v3.screens.settings
 
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -57,7 +63,8 @@ fun FoldersScreen(ctx: KxScreenCtx) {
     val tiles = listOf(Color(0xFF1F2E40) to Color(0xFFA9CBF5), Color(0xFF3A1E2A) to Color(0xFFFF9CC8), Color(0xFF3B2A22) to Color(0xFFFFB68F), Color(0xFF1F3A2C) to Color(0xFF8FD3AC))
     val list = store.folders.filter { it.id != 0 }.mapIndexed { i, f ->
         val n = f.chatCount
-        val sub = (if (n > 0) "$n " + plural(n, "чат", "чата", "чатов") else "Пустая") + (if (f.unread > 0) " · ${f.unread} " + plural(f.unread, "непрочитанный", "непрочитанных", "непрочитанных") else "")
+        // critique-B: never «Пустая · 2 непрочитанных» — the chat count is shown, unread only when there are chats.
+        val sub = (if (n > 0) "$n " + plural(n, "чат", "чата", "чатов") else "Нет чатов") + (if (n > 0 && f.unread > 0) " · ${f.unread} " + plural(f.unread, "непрочитанный", "непрочитанных", "непрочитанных") else "")
         FFolder(f.id.toLong(), f.title, TdIconToLocal[f.icon] ?: "folder", sub, tiles[i % tiles.size].first, tiles[i % tiles.size].second)
     }
     var moved by remember { mutableStateOf<Pair<Long, Long>?>(null) }
@@ -76,10 +83,24 @@ fun FoldersScreen(ctx: KxScreenCtx) {
         return store.chats.filter { c -> (kinds.isEmpty() || c.kind in kinds) && (t["unread"] != true || c.unread > 0 || c.markedUnread) }.map { it.id }
     }
     fun add(title: String, icon: String, t: Map<String, Boolean>) { store.createFolder(title, LocalIconToTd[icon] ?: "Custom", chatsFor(t)) }
-    fun move(i: Int, d: Int) {
-        val j = i + d; if (j < 0 || j >= list.size) return
-        val l = list.toMutableList(); val t = l[i]; l[i] = l[j]; l[j] = t
-        store.reorderFolders(l.map { it.id.toInt() }); moved = t.id to System.nanoTime()
+    // critique-B: order by dragging the handle (was ▲▼ per row); the new order is sent to Telegram once, when the finger lifts.
+    var order by remember { mutableStateOf<List<Long>?>(null) }
+    var dragId by remember { mutableLongStateOf(0L) }
+    var dragDy by remember { mutableFloatStateOf(0f) }
+    val shown = order?.mapNotNull { id -> list.firstOrNull { it.id == id } }?.takeIf { it.size == list.size } ?: list
+    val rowStep = with(androidx.compose.ui.platform.LocalDensity.current) { 66.dp.toPx() }
+    fun dragBy(id: Long, dy: Float) {
+        val cur = (order ?: list.map { it.id }).toMutableList()
+        if (order == null) order = cur
+        dragId = id; dragDy += dy
+        val i = cur.indexOf(id)
+        if (dragDy > rowStep / 2 && i < cur.lastIndex) { cur.removeAt(i); cur.add(i + 1, id); order = cur; dragDy -= rowStep }
+        else if (dragDy < -rowStep / 2 && i > 0) { cur.removeAt(i); cur.add(i - 1, id); order = cur; dragDy += rowStep }
+    }
+    fun dragEnd() {
+        val o = order
+        if (o != null && o != list.map { it.id }) { store.reorderFolders(o.map { it.toInt() }); moved = dragId to System.nanoTime() }
+        dragId = 0L; dragDy = 0f; order = null
     }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -87,8 +108,7 @@ fun FoldersScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back,
-                    modifier = Modifier.border(1.dp, Kx.w(.09f), RoundedCornerShape(22.dp)))
+                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Text("Папки с чатами", style = KxType.h1, modifier = Modifier.weight(1f))
             }
             // preview
@@ -96,8 +116,8 @@ fun FoldersScreen(ctx: KxScreenCtx) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp).fillMaxWidth().clip(pShape).background(Kx.w(.04f)).border(1.dp, Kx.w(.06f), pShape).padding(12.dp)) {
                 Text("Так папки выглядят в списке чатов", style = KxType.style(11.sp, color = Kx.text4), modifier = Modifier.padding(bottom = 8.dp))
                 Row(Modifier.clipToBounds(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.accent).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                        Text("Все", style = KxType.style(12.sp, FontWeight.Bold, Kx.onAccent), maxLines = 1)
+                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.accent.copy(alpha = .14f)).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+                        Text("Все", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent), maxLines = 1)
                     }
                     list.forEach { f ->
                         Row(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.w(.07f)).padding(horizontal = 12.dp),
@@ -111,11 +131,11 @@ fun FoldersScreen(ctx: KxScreenCtx) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp)) {
                 Row(Modifier.padding(start = 4.dp, end = 4.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Мои папки", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.weight(1f))
-                    Text("Стрелками — порядок", style = KxType.style(11.sp, color = Kx.text4))
+                    Text("Порядок — перетащите за ручку", style = KxType.style(11.sp, color = Kx.text4))
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    list.forEachIndexed { i, f ->
-                        key(f.id) { FolderRow(f, i == 0, i == list.lastIndex, moved?.takeIf { it.first == f.id }?.second, { move(i, -1) }, { move(i, 1) },
+                    shown.forEach { f ->
+                        key(f.id) { FolderRow(f, moved?.takeIf { it.first == f.id }?.second, if (dragId == f.id) dragDy else 0f, { dragBy(f.id, it) }, { dragEnd() },
                             onOpen = { ctx.open("FolderEdit:${f.id}") }, onShare = { ctx.open("FolderShare:${f.id}") }) }
                     }
                     Row(Modifier.fillMaxWidth().height(56.dp).dashedBorder(Kx.accent.copy(alpha = .4f), 18.dp).clip(RoundedCornerShape(18.dp))
@@ -187,12 +207,13 @@ fun FoldersScreen(ctx: KxScreenCtx) {
 }
 
 @Composable
-private fun FolderRow(f: FFolder, first: Boolean, last: Boolean, flashKey: Long?, onUp: () -> Unit, onDown: () -> Unit, onOpen: () -> Unit = {}, onShare: () -> Unit = {}) {
+private fun FolderRow(f: FFolder, flashKey: Long?, dy: Float, onDrag: (Float) -> Unit, onDragEnd: () -> Unit, onOpen: () -> Unit = {}, onShare: () -> Unit = {}) {
     // kxFlash .6s on the moved row, kxRise .3s (8dp) otherwise.
     val flash = remember { Animatable(0f) }
     LaunchedEffect(flashKey) { if (flashKey != null) { flash.snapTo(1f); flash.animateTo(0f, tween(600, easing = CssEase)) } }
     val bg = androidx.compose.ui.graphics.lerp(TileBg, Kx.accent.copy(alpha = .25f), flash.value)
-    Row(Modifier.sRise(0, 300, 8.dp).fillMaxWidth().height(62.dp).clip(RoundedCornerShape(18.dp)).background(bg).kxClick(f.title, onClick = onOpen).padding(start = 12.dp, end = 6.dp),
+    Row(Modifier.sRise(0, 300, 8.dp).zIndex(if (dy != 0f) 1f else 0f).graphicsLayer { translationY = dy }.fillMaxWidth().height(62.dp).clip(RoundedCornerShape(18.dp))
+        .background(if (dy != 0f) Kx.surface3 else bg).kxClick(f.title, onClick = onOpen).padding(start = 12.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(f.bg), contentAlignment = Alignment.Center) {
             Icon(FolderIcons[f.icon] ?: Icons.Rounded.Folder, null, Modifier.size(21.dp), tint = f.ink)
@@ -201,14 +222,13 @@ private fun FolderRow(f: FFolder, first: Boolean, last: Boolean, flashKey: Long?
             Text(f.title, style = KxType.style(15.sp, FontWeight.SemiBold), maxLines = 1)
             Text(f.sub, style = KxType.style(12.sp, color = Kx.text4), maxLines = 1)
         }
-        Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).kxClick("Поделиться папкой", onClick = onShare), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).kxClick("Поделиться папкой", onClick = onShare), contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.Share, null, Modifier.size(19.dp), tint = Kx.text2)
         }
-        Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).kxClick("Выше", onClick = onUp), contentAlignment = Alignment.Center) {
-            Icon(Icons.Outlined.KeyboardArrowUp, null, tint = if (first) Kx.dashed else Kx.text2)
-        }
-        Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).kxClick("Ниже", onClick = onDown), contentAlignment = Alignment.Center) {
-            Icon(Icons.Outlined.KeyboardArrowDown, null, tint = if (last) Kx.dashed else Kx.text2)
+        Box(Modifier.size(44.dp).semantics { contentDescription = "Перетащите, чтобы изменить порядок" }
+            .pointerInput(f.id) { detectDragGestures(onDragEnd = onDragEnd, onDragCancel = onDragEnd) { ch, d -> ch.consume(); onDrag(d.y) } },
+            contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.DragHandle, null, tint = Kx.text3)
         }
     }
 }

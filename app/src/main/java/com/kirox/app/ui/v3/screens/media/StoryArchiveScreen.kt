@@ -128,7 +128,9 @@ private fun DemoStoryArchiveScreen(ctx: KxScreenCtx) {
                             Text(cap(x), style = ts(11.sp, FontWeight.Bold, Color.White).copy(shadow = capShadow), modifier = Modifier.align(Alignment.BottomStart).padding(start = 7.dp, bottom = 6.dp))
                             if (sel) Box(Modifier.align(Alignment.TopEnd).padding(6.dp).size(22.dp).clip(CircleShape).background(if (on) Kx.accent else Color.Black.copy(alpha = .25f))
                                 .border(2.dp, Color.White, CircleShape), contentAlignment = Alignment.Center) { if (on) Icon(Icons.Rounded.Check, null, Modifier.size(16.dp), tint = Kx.onAccent) }
-                            if (x.id in pinned) Icon(Icons.Rounded.PushPin, null, Modifier.align(Alignment.TopStart).padding(6.dp).size(15.dp), tint = Kx.accent)
+                            if (x.id in pinned) Box(Modifier.align(Alignment.TopStart).padding(6.dp).size(22.dp).clip(CircleShape).background(Color.Black.copy(alpha = .55f)), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.PushPin, "Закреплено", Modifier.size(13.dp), tint = Color.White) // critique-C P3: readable on any cover
+                            }
                         }
                     }
                 }
@@ -227,7 +229,7 @@ private fun RealStoryArchiveScreen(ctx: KxScreenCtx) {
             if (items == null) Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator(color = Kx.accent) }
             else LazyVerticalGrid(GridCells.Fixed(3), Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 90.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (list.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { T("В архиве пока нет историй", 15.sp, FontWeight.Bold, Kx.text3, modifier = Modifier.padding(vertical = 30.dp)) }
+                if (list.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { KxEmpty(androidx.compose.material.icons.Icons.Rounded.AutoStories, "В архиве пока нет историй", "Ваши истории попадают сюда, когда исчезают из ленты", Modifier.padding(top = 24.dp)) }
                 list.groupBy { it.month }.forEach { (m, xs) ->
                     item(span = { GridItemSpan(maxLineSpan) }, key = "h$m") { T("$m · ${xs.size}", 13.sp, FontWeight.Bold, Kx.text3, modifier = Modifier.padding(start = 2.dp, end = 2.dp, top = 8.dp, bottom = 2.dp)) }
                     items(xs, key = { it.id }) { x ->
@@ -237,7 +239,9 @@ private fun RealStoryArchiveScreen(ctx: KxScreenCtx) {
                             ArcCover(x, Modifier.matchParentSize())
                             if (sel) Box(Modifier.align(Alignment.TopEnd).padding(6.dp).size(22.dp).clip(CircleShape).background(if (on) Kx.accent else Color.Black.copy(alpha = .25f))
                                 .border(2.dp, Color.White, CircleShape), contentAlignment = Alignment.Center) { if (on) Icon(Icons.Rounded.Check, null, Modifier.size(16.dp), tint = Kx.onAccent) }
-                            if (x.id in pinned) Icon(Icons.Rounded.PushPin, null, Modifier.align(Alignment.TopStart).padding(6.dp).size(15.dp), tint = Kx.accent)
+                            if (x.id in pinned) Box(Modifier.align(Alignment.TopStart).padding(6.dp).size(22.dp).clip(CircleShape).background(Color.Black.copy(alpha = .55f)), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.PushPin, "Закреплено", Modifier.size(13.dp), tint = Color.White) // critique-C P3: readable on any cover
+                            }
                             if (x.views > 0) Text("👁 ${x.views}", style = ts(10.sp, FontWeight.Bold, Color.White).copy(shadow = capShadow), modifier = Modifier.align(Alignment.BottomEnd).padding(end = 6.dp, bottom = 6.dp))
                         }
                     }

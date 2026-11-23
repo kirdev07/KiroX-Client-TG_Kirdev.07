@@ -51,7 +51,7 @@ private val WnLogRelease = listOf(
         WnItem(Icons.Rounded.GraphicEq, Kx.accent, "Голосовые, кружки и звонки прямо из чата"))),
 )
 private val WnLogDemo = listOf(
-    Triple("1.0.0-rc.1", "Сегодня", listOf(WnItem(Icons.Rounded.Palette, Kx.accent, "Свой вид для отдельного чата"), WnItem(Icons.Rounded.FormatPaint, Kx.accent, "Готовые темы и конструктор"),
+    Triple("1.0", "Сегодня", listOf(WnItem(Icons.Rounded.Palette, Kx.accent, "Свой вид для отдельного чата"), WnItem(Icons.Rounded.FormatPaint, Kx.accent, "Готовые темы и конструктор"),
         WnItem(Icons.Rounded.ShieldMoon, Color(0xFF6FA9D8), "Инструменты админов"), WnItem(Icons.Rounded.BugReport, Kx.warning, "Исправлены вылеты при открытии файлов"))),
     Triple("0.9.5", "10 ноября", listOf(WnItem(Icons.Rounded.Redeem, Kx.warning, "Подарки за звёзды"), WnItem(Icons.Rounded.GraphicEq, Kx.accent, "Расшифровка голосовых"),
         WnItem(Icons.Rounded.Casino, Color(0xFFB39DDB), "Игры с кубиком"))),
@@ -76,7 +76,7 @@ fun WhatsNewScreen(ctx: KxScreenCtx) {
             val updates = com.kirox.app.ui.v3.KxLegacy.Local.current != null
             Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.accent.copy(alpha = .14f))
                 .then(if (updates) Modifier.kxClick("Проверить обновления") { ctx.open("Update") } else Modifier).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                Text(if (updates) "v" + com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-') + " · Обновления" else "1.0.0-rc.1", style = ts(12.sp, FontWeight.ExtraBold, Kx.accent))
+                Text(if (updates) "v" + com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-') + " · Обновления" else "Версия 1.0", style = ts(12.sp, FontWeight.ExtraBold, Kx.accent))
             }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 30.dp)) {
@@ -145,8 +145,8 @@ fun WhatsNewScreen(ctx: KxScreenCtx) {
                             Text("Версия $ver", style = ts(15.sp, FontWeight.ExtraBold))
                             Text(date, style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 2.dp))
                         }
-                        if (k == 0) Box(Modifier.clip(RoundedCornerShape(8.dp)).background(Kx.accent).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                            Text("НОВОЕ", style = ts(11.sp, FontWeight.Black, Kx.onAccent))
+                        if (k == 0) Box(Modifier.clip(RoundedCornerShape(8.dp)).background(Kx.accent.copy(alpha = .16f)).padding(horizontal = 8.dp, vertical = 3.dp)) {
+                            Text("Новое", style = ts(11.sp, FontWeight.Bold, Kx.accent))
                         }
                         Icon(Icons.Outlined.ExpandMore, null, Modifier.size(24.dp).graphicsLayer { rotationZ = rot }, tint = Kx.text3)
                     }

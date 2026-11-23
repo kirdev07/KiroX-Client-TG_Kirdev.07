@@ -154,9 +154,10 @@ private fun SeenBody(ctx: KxScreenCtx, chatId: Long?, live: Boolean, header: com
             Column(Modifier.height(560.dp)) {
                 Box(Modifier.align(Alignment.CenterHorizontally).size(36.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.dashed))
                 Spacer(Modifier.height(12.dp))
-                data class T(val id: String, val icon: ImageVector?, val e: String, val n: Int)
-                val tabs = listOf(T("all", Icons.Outlined.Groups, "", people.size), T("seen", Icons.Outlined.DoneAll, "", seenN),
-                    T("unseen", Icons.Outlined.Schedule, "", total - seenN)).filter { !live || it.id != "unseen" } + counts.map { (e, n) -> T(e, null, e, n) }
+                data class T(val id: String, val icon: ImageVector?, val e: String, val n: Int, val label: String = "")
+                // critique-B: the counts say what they count.
+                val tabs = listOf(T("all", Icons.Outlined.Groups, "", people.size, "Все"), T("seen", Icons.Outlined.DoneAll, "", seenN, "Прочитали"),
+                    T("unseen", Icons.Outlined.Schedule, "", total - seenN, "Не прочитали")).filter { !live || it.id != "unseen" } + counts.map { (e, n) -> T(e, null, e, n) }
                 Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     tabs.forEach { t ->
                         val on = tab == t.id
@@ -165,7 +166,7 @@ private fun SeenBody(ctx: KxScreenCtx, chatId: Long?, live: Boolean, header: com
                         Row(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(bg).kxClick(t.id) { tab = t.id }.padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             if (t.icon != null) Icon(t.icon, null, Modifier.size(17.dp), tint = ink) else Text(t.e, style = ts(16.sp))
-                            Text("${t.n}", style = ts(13.sp, FontWeight.Bold, ink))
+                            Text(if (t.label.isNotEmpty()) "${t.label} · ${t.n}" else "${t.n}", style = ts(13.sp, FontWeight.Bold, ink))
                         }
                     }
                 }
@@ -187,7 +188,7 @@ private fun SeenBody(ctx: KxScreenCtx, chatId: Long?, live: Boolean, header: com
                                     val ink = if (p.seen.isNotEmpty()) Kx.accent else Kx.text4
                                     Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                         Icon(if (p.seen.isNotEmpty()) Icons.Outlined.DoneAll else Icons.Outlined.Schedule, null, Modifier.size(14.dp), tint = ink)
-                                        Text(if (p.seen.isNotEmpty()) "прочитал(а) в ${p.seen}" else "ещё не прочитал(а)", style = ts(12.sp, color = ink))
+                                        Text(if (p.seen.isNotEmpty()) "прочитано в ${p.seen}" else "ещё не прочитано", style = ts(12.sp, color = ink))
                                     }
                                 }
                                 if (p.r.isNotEmpty()) Text(p.r, style = ts(22.sp))

@@ -37,7 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// Wave 6: own themes in v3 — list, select (Кастомизация «Своя»), editor with a colour picker, share / save to
+// Wave 6: own themes in v3 — list, select (Оформление «Своя»), editor with a colour picker, share / save to
 // Downloads / import from a file or pasted text, delete with confirm. Same CustomThemes store as the old screen.
 
 /** Accents for «Из одного цвета». */
@@ -74,7 +74,7 @@ private fun W6ThemePreview(t: CustomTheme, modifier: Modifier = Modifier, height
     }
 }
 
-/** «Свои темы»: own themes, pick one for Кастомизация «Своя», create / edit / share / load / delete. */
+/** «Свои темы»: own themes, pick one for Оформление «Своя», create / edit / share / load / delete. */
 @Composable
 fun OwnThemesScreen(ctx: KxScreenCtx) {
     val context = LocalContext.current
@@ -110,11 +110,7 @@ fun OwnThemesScreen(ctx: KxScreenCtx) {
 
     Box(Modifier.fillMaxSize()) {
         TScreen("Свои темы", ctx.back, sub = if (list.isEmpty()) "Пока нет своих тем" else "${list.size} ${tPlural(list.size, "тема", "темы", "тем")}") {
-            if (list.isEmpty()) Column(Modifier.fillMaxWidth().padding(vertical = 30.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Outlined.Palette, null, Modifier.size(44.dp), tint = Kx.text4)
-                Text("Своих тем пока нет", style = KxType.style(15.sp, FontWeight.Bold, Kx.text2), modifier = Modifier.padding(top = 8.dp))
-                Text("Создайте тему из своих цветов или загрузите присланную", style = KxType.style(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 4.dp))
-            }
+            if (list.isEmpty()) KxEmpty(Icons.Outlined.Palette, "Своих тем пока нет", "Создайте тему из своих цветов или загрузите присланную")
             list.chunked(2).forEach { row ->
                 Row(Modifier.padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     row.forEach { t ->
@@ -125,7 +121,10 @@ fun OwnThemesScreen(ctx: KxScreenCtx) {
                             W6ThemePreview(t)
                             Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 if (on) { Icon(Icons.Rounded.CheckCircle, null, Modifier.size(16.dp), tint = Kx.accent); Spacer(Modifier.width(4.dp)) }
-                                Text(t.name, style = KxType.style(13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text), maxLines = 1, modifier = Modifier.weight(1f))
+                                Column(Modifier.weight(1f)) {
+                                    Text(t.name, style = KxType.style(13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text), maxLines = 1)
+                                    if (on) Text("используется", style = KxType.style(11.sp, color = Kx.accent)) // critique-B P3
+                                }
                                 Box(Modifier.size(30.dp).clip(CircleShape).kxClick("Действия с темой «${t.name}»") { menu = t }, contentAlignment = Alignment.Center) {
                                     Icon(Icons.Rounded.MoreHoriz, null, Modifier.size(20.dp), tint = Kx.text3)
                                 }
@@ -140,9 +139,9 @@ fun OwnThemesScreen(ctx: KxScreenCtx) {
                     val accent = Kx.accent.toArgbLong()
                     editing = CustomTheme.fromAccent(if (real) CustomThemes.newId() else "demo" + System.nanoTime(), "Моя тема", accent)
                 }
-                TPill("Загрузить", Modifier.weight(1f), Icons.Outlined.FileDownload, h = 50.dp, bg = solid(Kx.w(.07f)), ink = Kx.text, size = 14, weight = FontWeight.Bold) { loading = true }
+                TPill("Из файла", Modifier.weight(1f), Icons.Outlined.FileDownload, h = 50.dp, bg = solid(Kx.w(.07f)), ink = Kx.text, size = 14, weight = FontWeight.Bold) { loading = true }
             }
-            THint("Своя тема — ваши цвета фона, панелей, кнопок и сообщений; в kiroX она включается как «Своя» в Кастомизации. Темой можно поделиться, а присланную — загрузить.", top = 12.dp)
+            THint("Своя тема — ваши цвета фона, панелей, кнопок и сообщений; в kiroX она включается как «Своя» в «Оформлении». Темой можно поделиться, а присланную — загрузить.", top = 12.dp)
         }
         menu?.let { t ->
             TSheet({ menu = null }, t.name) {
@@ -174,7 +173,7 @@ fun OwnThemesScreen(ctx: KxScreenCtx) {
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     acts.forEachIndexed { i, (a, act) ->
-                        Row(Modifier.fillMaxWidth().height(52.dp).clip(groupShape(i, acts.size, 20.dp)).background(Kx.w(.05f)).kxClick(a.second) { menu = null; act() }.padding(horizontal = 14.dp),
+                        Row(Modifier.fillMaxWidth().height(52.dp).kxGroupItem(groupShape(i, acts.size, 20.dp), Kx.w(.05f), 46.dp).kxClick(a.second) { menu = null; act() }.padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Icon(a.first, null, Modifier.size(20.dp), tint = if (a.third == Kx.danger) Kx.danger else Kx.text3)
                             Text(a.second, style = KxType.style(15.sp, FontWeight.SemiBold, a.third))
@@ -183,16 +182,16 @@ fun OwnThemesScreen(ctx: KxScreenCtx) {
                 }
             }
         }
-        if (loading) TSheet({ loading = false }, "Загрузить тему") {
+        if (loading) TSheet({ loading = false }, "Загрузить тему из файла") {
             Text("Загрузить тему", style = KxType.style(19.sp, FontWeight.ExtraBold), modifier = Modifier.padding(start = 4.dp, bottom = 12.dp))
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).clip(groupShape(0, 2, 20.dp)).background(Kx.w(.05f)).kxClick("Из файла") {
+                Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).kxGroupItem(groupShape(0, 2, 20.dp), Kx.w(.05f), 62.dp).kxClick("Из файла") {
                     loading = false; pickFile.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
                 }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TIconTile(Icons.Outlined.FolderOpen)
                     Column { Text("Из файла", style = KxType.style(15.sp, FontWeight.SemiBold)); Text("Файл .json, например из «Загрузок»", style = KxType.style(12.sp, color = Kx.text4)) }
                 }
-                Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).clip(groupShape(1, 2, 20.dp)).background(Kx.w(.05f)).kxClick("Вставить текст") { loading = false; pasting = true }
+                Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).kxGroupItem(groupShape(1, 2, 20.dp), Kx.w(.05f), 62.dp).kxClick("Вставить текст") { loading = false; pasting = true }
                     .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TIconTile(Icons.Outlined.ContentPaste)
                     Column { Text("Вставить текст", style = KxType.style(15.sp, FontWeight.SemiBold)); Text("Если тему прислали сообщением", style = KxType.style(12.sp, color = Kx.text4)) }
@@ -258,7 +257,7 @@ private fun W6ThemeEditor(ctx: KxScreenCtx, initial: CustomTheme, onBack: () -> 
             TCap("Цвета")
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 fields.forEachIndexed { i, (key, v) ->
-                    Row(Modifier.fillMaxWidth().height(54.dp).clip(groupShape(i, fields.size, 20.dp)).background(TTile).kxClick(v.first) { picking = key }.padding(horizontal = 14.dp),
+                    Row(Modifier.fillMaxWidth().height(54.dp).kxGroupItem(groupShape(i, fields.size, 20.dp), TTile, 14.dp).kxClick(v.first) { picking = key }.padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(v.first, style = KxType.style(15.sp), modifier = Modifier.weight(1f))
                         Text(CustomThemes.hex(v.second).replace("#FF", "#"), style = KxType.style(12.sp, color = Kx.text4))

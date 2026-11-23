@@ -31,6 +31,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
+import com.kirox.app.ui.v3.components.KxCallControls
+import com.kirox.app.ui.v3.components.KxCallButton
 import com.kirox.app.ui.v3.demo.KxDemoStore
 import com.kirox.app.ui.v3.theme.Kx
 import com.kirox.app.ui.v3.theme.LocalKxReducedMotion
@@ -50,6 +52,8 @@ fun CallWeakScreen(ctx: KxScreenCtx) {
     var sec by remember { mutableIntStateOf(754) }
     var cam by remember { mutableStateOf(true) }
     var audioOnly by remember { mutableStateOf(false) }
+    var micOn by remember { mutableStateOf(true) }
+    var speakerOn by remember { mutableStateOf(true) }
     var k by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) { while (true) { delay(1000); if (net != "lost") sec++ } }
     val reduced = LocalKxReducedMotion.current
@@ -117,17 +121,26 @@ fun CallWeakScreen(ctx: KxScreenCtx) {
         val selfOn = cam && !audioOnly
         Box(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 150.dp, end = 16.dp).size(96.dp, 140.dp).clip(RoundedCornerShape(18.dp))
             .then(if (selfOn) Modifier.cssGradient(160f, hex("#3A403D"), hex("#1B201E")) else Modifier.background(hex("#111111"))).border(1.dp, Kx.w(.2f), RoundedCornerShape(18.dp)),
-            contentAlignment = Alignment.Center) { if (!selfOn) Icon(Icons.Rounded.VideocamOff, null, Modifier.size(30.dp), tint = Kx.w(.6f)) }
+            contentAlignment = Alignment.Center) {
+            // critique-C P3: the self tile says what it is (letter + «Камера выключена» when off).
+            if (selfOn) LetterAv("А", hex("#3F9A6C"), 52.dp, 20)
+            else Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Rounded.VideocamOff, null, Modifier.size(26.dp), tint = Kx.w(.6f))
+                Text("Камера\nвыключена", style = ts(11, color = Kx.text2), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            }
+        }
         // Controls + demo network
         Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 12.dp, end = 12.dp, bottom = 20.dp)) {
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).background(Brush.verticalGradient(listOf(Kx.w(.16f), Kx.w(.07f)))).border(1.dp, Kx.w(.16f), RoundedCornerShape(30.dp)).padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceAround) {
-                CwBtn(if (selfOn) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff, if (selfOn) Kx.w(.12f) else Kx.w(.28f), "Камера") { cam = !cam }
-                CwBtn(Icons.Rounded.Mic, Kx.w(.12f), null)
-                CwBtn(Icons.AutoMirrored.Rounded.VolumeUp, Kx.w(.12f), null)
-                CwBtn(Icons.Rounded.CallEnd, Kx.dangerSolid, "Завершить", onClick = ctx.back)
-            }
-            Row(Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            // critique-C P1: the shared call control row.
+            KxCallControls(listOf(
+                KxCallButton(if (selfOn) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff, "Камера", selfOn) { cam = !cam },
+                KxCallButton(if (micOn) Icons.Rounded.Mic else Icons.Rounded.MicOff, "Микрофон", micOn) { micOn = !micOn },
+                KxCallButton(Icons.AutoMirrored.Rounded.VolumeUp, "Динамик", speakerOn) { speakerOn = !speakerOn },
+                KxCallButton(Icons.Rounded.CallEnd, "Завершить", end = true, onClick = ctx.back),
+            ), Modifier.clip(RoundedCornerShape(30.dp)).background(Brush.verticalGradient(listOf(Kx.w(.16f), Kx.w(.07f)))).border(1.dp, Kx.w(.16f), RoundedCornerShape(30.dp)).padding(vertical = 12.dp))
+            // critique-C P3: the network switcher is a demo control — say so, like other boards.
+            Text("Макет: качество связи", style = ts(12, color = Kx.text4), modifier = Modifier.padding(top = 14.dp, start = 4.dp))
+            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(Triple("good", Icons.Outlined.SignalCellularAlt, "Хорошо"), Triple("weak", Icons.Outlined.SignalCellularAlt2Bar, "Слабо"),
                     Triple("theirs", Icons.Outlined.PersonOff, "У Анны"), Triple("lost", Icons.Outlined.SignalCellularConnectedNoInternet0Bar, "Пропала")).forEach { (key, ic, t) ->
                     val on = net == key
@@ -142,6 +155,7 @@ fun CallWeakScreen(ctx: KxScreenCtx) {
     }
 }
 
+@Suppress("unused")
 @Composable
 private fun CwBtn(icon: ImageVector, bg: Color, label: String?, onClick: (() -> Unit)? = null) {
     Box(Modifier.size(56.dp).clip(CircleShape).background(bg).then(if (onClick != null) Modifier.kxClick(label, onClick = onClick) else Modifier), contentAlignment = Alignment.Center) {

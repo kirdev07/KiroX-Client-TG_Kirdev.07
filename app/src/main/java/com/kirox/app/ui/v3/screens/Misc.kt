@@ -34,12 +34,7 @@ fun KxComingSoon(name: String, onBack: () -> Unit) {
 }
 
 @Composable
-fun KxEmpty(text: String) {
-    Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(Icons.Rounded.Construction, null, Modifier.size(40.dp), tint = Kx.accent)
-        Text(text, style = KxType.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 12.dp))
-    }
-}
+fun KxEmpty(text: String) = com.kirox.app.ui.v3.components.KxEmpty(Icons.Rounded.Construction, text, modifier = Modifier.fillMaxSize()) // A4: one empty look
 
 /** Honest stand-in on a real account for a board whose data kiroX can't collect yet (no invented numbers). */
 @Composable

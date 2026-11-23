@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
@@ -163,13 +164,18 @@ fun LocationScreen(ctx: KxScreenCtx) {
                     if (!realSend) ChRound(Icons.Rounded.MyLocation, "Моё местоположение", bg = Kx.w(.1f), border = Kx.w(.14f), tint = Kx.accent) { place = -1 }
                 }
             }
-            Column(Modifier.weight(1f).offset(y = (-24).dp).clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(Color(0xFF111513))
+            // critique-A: the sheet overlaps the map by 24dp but still reaches the screen bottom (no black band under the list).
+            Column(Modifier.weight(1f).layout { m, c ->
+                val extra = 24.dp.roundToPx()
+                val pl = m.measure(c.copy(minHeight = (c.minHeight + extra).coerceAtMost(c.maxHeight + extra), maxHeight = if (c.hasBoundedHeight) c.maxHeight + extra else c.maxHeight))
+                layout(pl.width, (pl.height - extra).coerceAtLeast(0)) { pl.place(0, -extra) }
+            }.clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(Color(0xFF111513))
                 .drawBehind { drawLine(Kx.w(.08f), Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
                 .verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 44.dp)) {
                 Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp).size(36.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.dashed))
                 LocRow(Icons.Rounded.NearMe, "Отправить мою геопозицию", accuracy, true) { askAndSend() }
                 Spacer(Modifier.height(8.dp))
-                LocRow(Icons.Outlined.ShareLocation, "Транслировать геопозицию", "Обновляется, пока вы двигаетесь", false) { sheet = true }
+                LocRow(Icons.Outlined.ShareLocation, "Делиться геопозицией в реальном времени", "Обновляется, пока вы двигаетесь", false) { sheet = true }
                 // qa-real: nearby places are board demo data — not on the real account (nothing to send there).
                 if (!realSend) Text("Места рядом", style = ts(13, W800, Kx.accent), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 14.dp, bottom = 6.dp))
                 if (!realSend) Places.forEachIndexed { i, p ->
@@ -233,7 +239,7 @@ fun LocationScreen(ctx: KxScreenCtx) {
         }
         ChSheet(sheet, { sheet = false }, scrim = Color.Black.copy(alpha = .5f), bg = Brush.verticalGradient(listOf(Color(0xFF121614), Color(0xFF121614)))) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 26.dp)) {
-                Text("Транслировать геопозицию", style = ts(19, W800), modifier = Modifier.padding(horizontal = 4.dp))
+                Text("Делиться геопозицией в реальном времени", style = ts(19, W800), modifier = Modifier.padding(horizontal = 4.dp))
                 Text("${h.title.substringBefore(' ')} будет видеть, где вы, в течение выбранного времени. Остановить можно в любой момент.",
                     style = ts(13, color = Kx.text3, lh = 19.sp), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp, bottom = 14.dp))
                 Durs.chunked(2).forEachIndexed { r, row ->

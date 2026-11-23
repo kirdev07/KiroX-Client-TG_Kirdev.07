@@ -115,8 +115,13 @@ fun CommentsScreen(ctx: KxScreenCtx) {
                 Text("$total ${plural(total, "комментарий", "комментария", "комментариев")}", style = ts(20, W800))
                 Text((if (live) store.header(chatId!!).title else "Android Weekly") + " · обсуждение", style = ts(12, color = Kx.text3))
             }
-            ChRound(if (mute) Icons.Outlined.NotificationsOff else Icons.Outlined.Notifications, if (mute) "Включить уведомления об ответах" else "Выключить уведомления об ответах",
-                border = Color.Transparent, tint = if (mute) Kx.text3 else Kx.accent) { mute = !mute }
+            // critique-A: the bell has a label — what it does is no longer a guess.
+            Row(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(if (mute) Kx.w(.06f) else Kx.accent.copy(alpha = .14f))
+                .kxClick(if (mute) "Следить за ответами" else "Не следить за ответами") { mute = !mute }.padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(if (mute) Icons.Outlined.NotificationsOff else Icons.Outlined.Notifications, null, Modifier.size(18.dp), tint = if (mute) Kx.text3 else Kx.accent)
+                Text(if (mute) "Следить" else "Слежу", style = ts(13, W800, if (mute) Kx.text2 else Kx.accent))
+            }
         }
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp)) {
             item {
@@ -158,7 +163,9 @@ fun CommentsScreen(ctx: KxScreenCtx) {
                 val isNew = c.id == fresh
                 val flash = remember { Animatable(if (isNew) 1f else 0f) }
                 LaunchedEffect(isNew) { if (isNew) { delay(300); flash.animateTo(0f, tween(1600)) } }
+                // critique-A: the whole comment is the reply target (48 dp+), not only the small «Ответить» link.
                 Row(Modifier.fillMaxWidth().then(if (isNew) Modifier.chIn(dy = 10.dp) else Modifier).drawBehind { if (flash.value > 0f) drawRect(Kx.accent.copy(alpha = .16f * flash.value)) }
+                    .kxClick("Ответить ${if (c.mine) "себе" else c.name}") { reply = Triple(r.parent?.id ?: c.id, if (c.mine) "себе" else c.name, c.text) }
                     .padding(start = if (r.child) 60.dp else 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(Modifier.size(av).clip(CircleShape).background(c.c), contentAlignment = Alignment.Center) { Text(c.l, style = ts(13, W800, Color.White)) }
                     Column(Modifier.weight(1f)) {
@@ -170,7 +177,7 @@ fun CommentsScreen(ctx: KxScreenCtx) {
                         if (r.child && c.to != null) Text("↳ ${c.to}", style = ts(12, color = Kx.accent), modifier = Modifier.padding(top = 2.dp))
                         Text(c.text, style = ts(14, color = Color(0xFFE2E9E4), lh = 19.6.sp), modifier = Modifier.padding(top = 3.dp))
                         Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            Text("Ответить", style = ts(12, W700, Kx.text3), modifier = Modifier.kxClick { reply = Triple(r.parent?.id ?: c.id, if (c.mine) "себе" else c.name, c.text) })
+                            Text("Ответить", style = ts(12, W700, Kx.text3), modifier = Modifier.kxClick { reply = Triple(r.parent?.id ?: c.id, if (c.mine) "себе" else c.name, c.text) }.padding(vertical = 6.dp))
                             if (!r.child && c.replies.isNotEmpty()) Row(Modifier.kxClick { open[c.id] = !isOpen }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Icon(if (isOpen) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, Modifier.size(16.dp), tint = Kx.accent)
                                 Text(if (isOpen) "Скрыть ответы" else "${c.replies.size} ${plural(c.replies.size, "ответ", "ответа", "ответов")}", style = ts(12, W700, Kx.accent))

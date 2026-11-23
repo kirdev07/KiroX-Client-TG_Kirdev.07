@@ -60,8 +60,8 @@ fun ActivityScreen(ctx: KxScreenCtx) {
     val g = st.group
 
     Column(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding().navigationBarsPadding()) {
-        Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Brush.verticalGradient(listOf(Kx.w(.12f), Kx.w(.05f))))
-            .border(1.dp, Kx.w(.12f), RoundedCornerShape(22.dp)).padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        // critique-A: the standard flat header (no floating capsule).
+        Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp).fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", Modifier.kxClick("Назад", onClick = ctx.back), tint = Kx.text2)
             LetterAv(if (g) "K" else "А", hex(if (g) "#3F9A6C" else "#C0443C"), 42.dp, 16)
             Column(Modifier.weight(1f)) {

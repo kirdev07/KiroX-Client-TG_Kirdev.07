@@ -46,7 +46,7 @@ private data class PrivDef(val key: String, val icon: ImageVector, val label: St
 
 private val PrivDefs = listOf(
     PrivDef("phone", Icons.Outlined.Call, "Номер телефона", "Кто видит ваш номер в профиле", "PhoneNumber"),
-    PrivDef("seen", Icons.Outlined.Schedule, "Время захода", "Скрыв время, вы тоже не увидите его у других", "LastSeen"),
+    PrivDef("seen", Icons.Outlined.Schedule, "Время последней активности", "Скрыв время, вы тоже не увидите его у других", "LastSeen"),
     PrivDef("photo", Icons.Outlined.AccountCircle, "Фото профиля", "Кто видит ваши фотографии", "ProfilePhoto"),
     PrivDef("calls", Icons.Outlined.PhoneInTalk, "Звонки", "Кто может вам звонить", "Calls"),
     PrivDef("invites", Icons.Outlined.GroupAdd, "Приглашения", "Кто может добавлять вас в группы", "ChatInvites"),
@@ -90,7 +90,7 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                         Text(if (good) "Аккаунт хорошо защищён" else "Можно защитить лучше", style = KxType.style(15.sp, FontWeight.Bold))
                         // wave6: the advice names only what is really still open (was always «закройте номер»).
                         val todo = listOfNotNull(if (!pin) "включите код-пароль" else null, if (!cloud) "включите облачный пароль" else null,
-                            if ((vals["phone"] ?: 0) == 0) "закройте номер" else null, if ((vals["seen"] ?: 0) == 0) "скройте время захода" else null)
+                            if ((vals["phone"] ?: 0) == 0) "закройте номер" else null, if ((vals["seen"] ?: 0) == 0) "скройте время активности" else null)
                         Text(if (good) (if (pin && cloud) "Код-пароль и облачный пароль включены" else "Основные правила закрыты")
                             else todo.joinToString(", ").replaceFirstChar { it.uppercase() }.ifEmpty { "Закройте ещё пару правил «Кто видит»" }, style = KxType.style(12.sp, color = Color(0xFFA6B5AC)))
                     }
@@ -98,15 +98,12 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                 // security tiles
                 Column(Modifier.sRise(50)) {
                     GroupLabel("Безопасность")
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SecTile(Icons.Rounded.Pin, Kx.accent, if (pin) "Включён" else "Выключен", if (pin) Kx.accent else Kx.danger, "Код-пароль", Modifier.weight(1f)) { ctx.open("Lock") }
-                            SecTile(Icons.Rounded.Key, Kx.link, if (cloud) "Включён" else "Выключен", if (cloud) Kx.accent else Kx.danger, "Облачный пароль", Modifier.weight(1f)) { ctx.open("TwoStep") }
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SecTile(Icons.Rounded.Devices, Color(0xFFFFD27A), store.sessions.size.toString(), Kx.text3, "Устройства", Modifier.weight(1f)) { ctx.open("Devices") }
-                            SecTile(Icons.Rounded.Block, Kx.danger, store.blockedCount.toString(), Kx.text3, "Чёрный список", Modifier.weight(1f)) { ctx.open("Blocked") }
-                        }
+                    // critique-B: one group of rows with the value on the right (was a 2×2 tile grid inside a list).
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        SNavRow(Icons.Rounded.Pin, "Код-пароль", null, groupShape(0, 4, 20.dp), value = if (pin) "Включён" else "Выключен") { ctx.open("Lock") }
+                        SNavRow(Icons.Rounded.Key, "Облачный пароль", null, groupShape(1, 4, 20.dp), value = if (cloud) "Включён" else "Выключен") { ctx.open("TwoStep") }
+                        SNavRow(Icons.Rounded.Devices, "Устройства", null, groupShape(2, 4, 20.dp), value = store.sessions.size.toString()) { ctx.open("Devices") }
+                        SNavRow(Icons.Rounded.Block, "Заблокированные", null, groupShape(3, 4, 20.dp), value = store.blockedCount.toString()) { ctx.open("Blocked") }
                     }
                 }
                 // who sees
@@ -116,11 +113,10 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                         PrivDefs.forEachIndexed { i, d ->
                             val v = vals[d.key] ?: 0
                             val vc by animateColorAsState(when (v) { 2 -> Kx.accent; 1 -> Kx.text2; else -> Kx.text3 }, tween(300), label = "vc")
-                            Row(Modifier.fillMaxWidth().height(52.dp).clip(groupShape(i, PrivDefs.size, 20.dp)).background(TileBg).kxClick { picking = d.key }.padding(horizontal = 14.dp),
+                            Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).kxGroupItem(groupShape(i, PrivDefs.size, 20.dp), TileBg, 46.dp).kxClick { picking = d.key }.padding(horizontal = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon(d.icon, null, Modifier.size(20.dp), tint = Kx.text4)
-                                Text(d.label, style = KxType.style(15.sp), modifier = Modifier.weight(1f))
-                                Text(PrivOpts[v], style = KxType.style(13.sp, FontWeight.SemiBold, vc))
+                                KxTitleValue(d.label, PrivOpts[v], Modifier.weight(1f).padding(vertical = 6.dp), valueStyle = KxType.style(13.sp, FontWeight.SemiBold, vc))
                                 Icon(Icons.Rounded.ChevronRight, null, Modifier.size(18.dp), tint = Kx.text4)
                             }
                         }
@@ -132,7 +128,7 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                 }
                 // wave6: every Telegram rule + exceptions + account TTL on v3 (PrivacyRulesScreen).
                 Column(Modifier.sRise(170), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SNavRow(Icons.Rounded.Tune, "Все правила конфиденциальности", "О себе, день рождения, голосовые, подарки, поиск по номеру, звонки P2P, контакты, срок аккаунта", groupShape(0, 1, 20.dp)) { ctx.open("PrivacyAll") }
+                    SNavRow(Icons.Rounded.Tune, "Все правила конфиденциальности", "О себе, день рождения, голосовые, подарки, поиск по номеру, прямое соединение в звонках, контакты, срок аккаунта", groupShape(0, 1, 20.dp)) { ctx.open("PrivacyAll") }
                 }
                 // wave5: account security boards that had no entry.
                 Column(Modifier.sRise(200), verticalArrangement = Arrangement.spacedBy(2.dp)) {

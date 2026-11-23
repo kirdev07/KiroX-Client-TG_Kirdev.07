@@ -58,7 +58,7 @@ fun GiftOpenScreen(ctx: KxScreenCtx) {
                     val c = remember { Animatable(if (sk > 0 && !reduced) 0f else 1f) }
                     LaunchedEffect(Unit) { c.animateTo(1f, tween(500)) }
                     Box(Modifier.graphicsLayer { val s = 1f + .3f * sin(Math.PI * c.value).toFloat(); scaleX = s; scaleY = s }.height(32.dp).clip(RoundedCornerShape(16.dp))
-                        .background(Kx.warning.copy(alpha = .14f)).padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("★ $stars", style = ts(13, W800, Kx.warning)) }
+                        .background(Kx.warning.copy(alpha = .14f)).padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("★ $stars ${plural(stars, "звезда", "звезды", "звёзд")}", style = ts(13, W800, Kx.warning)) }
                 }
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
@@ -71,7 +71,8 @@ fun GiftOpenScreen(ctx: KxScreenCtx) {
                     horizontalAlignment = Alignment.CenterHorizontally) {
                     Wobble(if (done) (if (result == "stars") "⭐" else "🧸") else "🎁", phase == "closed")
                     Text(if (done) (if (result == "stars") "Обменяно на 40 ★" else "Плюшевый мишка") else "Подарок · Лиза", style = ts(15, W800), modifier = Modifier.padding(top = 6.dp))
-                    Text(if (done) (if (result == "stars") "Звёзды на вашем балансе" else if (show) "Виден в вашем профиле" else "Скрыт из профиля") else "Нажмите, чтобы открыть",
+                    // critique-A: no «Нажмите, чтобы открыть» next to the «Открыть» button.
+                    if (done) Text(if (result == "stars") "Звёзды на вашем балансе" else if (show) "Виден в вашем профиле" else "Скрыт из профиля",
                         style = ts(12, color = Kx.text2), modifier = Modifier.padding(top = 2.dp), textAlign = TextAlign.Center)
                     Box(Modifier.padding(top = 10.dp).height(32.dp).clip(RoundedCornerShape(16.dp)).background(Kx.warning.copy(alpha = .2f)).padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
                         Text(if (done) "Открыть ещё раз" else "Открыть", style = ts(13, W800, hex("#F2C66B")))

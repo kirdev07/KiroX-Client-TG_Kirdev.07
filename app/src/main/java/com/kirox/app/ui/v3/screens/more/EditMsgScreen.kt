@@ -58,8 +58,9 @@ fun EditMsgScreen(ctx: KxScreenCtx) {
     if (live && !target!!.canEdit) { C3NeedChat(ctx, "Изменить сообщение", "Telegram больше не даёт изменить это сообщение."); return }
     val before = if (live) peek.lastOrNull { !it.out && it.text.isNotBlank() && it.id < target!!.id } else null
     val versions = remember(target?.id) { mutableStateListOf(target?.text ?: EDIT_ORIG) }
-    var editing by remember { mutableStateOf(false) }
-    var draft by remember { mutableStateOf("") }
+    // critique-A S: the demo board opens with the edit bar active (a real chat opens on the message, as before).
+    var editing by remember { mutableStateOf(!live) }
+    var draft by remember { mutableStateOf(if (!live) versions.last() else "") }
     var history by remember { mutableStateOf(false) }
     var k by remember { mutableIntStateOf(0) }
     val cur = versions.last()

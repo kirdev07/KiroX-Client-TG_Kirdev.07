@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Smartphone
@@ -78,7 +79,7 @@ fun FilePickerScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Row(Modifier.fillMaxWidth().moBottomLine().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", Modifier.size(24.dp).kxClick("Назад", onClick = ctx.back), tint = Kx.text)
+                com.kirox.app.ui.v3.components.KxBackButton(ctx.back)
                 MoLetter("Р", Color(0xFF5C6661))
                 Text("Работа", style = mts(16, W8))
             }
@@ -126,7 +127,8 @@ fun FilePickerScreen(ctx: KxScreenCtx) {
                             val places = listOf(
                                 FpPlace(Icons.Rounded.Download, "Загрузки", "4 файла", Kx.accent, Kx.accent.copy(alpha = .16f), null, "dl"),
                                 FpPlace(Icons.Rounded.Description, "Документы", "3 файла", Color(0xFF7FB8E0), Color(0x297FB8E0), null, "docs"),
-                                FpPlace(Icons.Rounded.Image, "Галерея", "Отправить как файл, без сжатия", MoAmber, Color(0x29E8B04A), null, null),
+                                FpPlace(Icons.Rounded.Image, "Галерея", "Без сжатия", MoAmber, Color(0x29E8B04A), null, null),
+                                FpPlace(Icons.Rounded.MusicNote, "Музыка", "Аудиофайлы", Kx.premium, Kx.premium.copy(alpha = .16f), null, null),
                                 FpPlace(Icons.Rounded.Smartphone, "Память телефона", "Свободно 38 из 128 ГБ", Kx.text2, Kx.w(.08f), .7f, "dl"),
                             )
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -10,7 +10,7 @@ package com.kirox.app.ui.v3.model
  * Read-only keys (counts, battery) ignore [KxStore.putPref]. Wallpaper keys may name one chat: "wall.preset:<chatId>".
  */
 object KxPrefs {
-    // Кастомизация
+    // Оформление
     /** 0..11: colour look of the Custom board (11 = «Своя»). */
     const val THEME = "theme"
     /** Anim board: animations on (1/0), scene 0 Авто 1 Основная 2 Хэллоуин 3 Зима 4 Новый год, speed 0 Обычные 1 Меньше 2 Выкл., quality 0 Авто 1 Высокое 2 Лёгкое. */

@@ -37,7 +37,8 @@ private val VR_DELAYS = listOf(0, 100, 200, 300, 150, 250, 50, 350, 120, 220)
 /** VoiceRecord board: hold to record, slide left to cancel (mic into the bin), slide up to lock, pause / delete / send. */
 @Composable
 fun VoiceRecordScreen(ctx: KxScreenCtx) {
-    var mode by remember { mutableStateOf("idle") }
+    // critique-A: the board opens in its key state — recording (timer, «Влево — отмена», lock ↑).
+    var mode by remember { mutableStateOf("hold") }
     var sec by remember { mutableIntStateOf(0) }
     var paused by remember { mutableStateOf(false) }
     val sent = remember { mutableStateListOf<Pair<Int, String>>() }
@@ -154,11 +155,14 @@ fun VoiceRecordScreen(ctx: KxScreenCtx) {
                 }
             }
 
-            Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                VrGesture(Icons.Outlined.TouchApp, "Удержать", mode == "idle") { start() }
-                VrGesture(Icons.Outlined.West, "Влево", mode == "hold") { cancel() }
-                VrGesture(Icons.Outlined.North, "Вверх", mode == "hold") { mode = "lock" }
-                VrGesture(Icons.AutoMirrored.Outlined.Send, if (mode == "lock") "Отправить" else "Отпустить", rec) { send() }
+            // critique-A S: gesture switchers are demo controls (dashed «демо» tray, demo store only).
+            com.kirox.app.ui.v3.components.KxDemoControls(ctx.store, Modifier.padding(bottom = 8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    VrGesture(Icons.Outlined.TouchApp, "Удержать", mode == "idle") { start() }
+                    VrGesture(Icons.Outlined.West, "Влево", mode == "hold") { cancel() }
+                    VrGesture(Icons.Outlined.North, "Вверх", mode == "hold") { mode = "lock" }
+                    VrGesture(Icons.AutoMirrored.Outlined.Send, if (mode == "lock") "Отправить" else "Отпустить", rec) { send() }
+                }
             }
         }
 

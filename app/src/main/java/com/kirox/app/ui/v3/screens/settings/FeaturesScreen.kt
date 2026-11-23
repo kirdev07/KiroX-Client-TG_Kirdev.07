@@ -49,7 +49,7 @@ private val FTiles = listOf(
     FTile("edits", Icons.Rounded.History, "История изменений", "Старые версии текста"),
     FTile("guard", Icons.Rounded.Shield, "Проверка файлов", "Предупреждать об опасных"),
     FTile("browser", Icons.Rounded.TravelExplore, "Встроенный браузер", "Ссылки внутри kiroX"),
-    FTile("ids", Icons.Rounded.Tag, "ID в профилях", "Нажатие копирует"),
+    FTile("ids", Icons.Rounded.Tag, "Показывать ID", "В профилях; нажатие копирует"),
     FTile("noAuthor", Icons.AutoMirrored.Rounded.Forward, "Пересылка без автора", "Скрывать отправителя"),
 )
 
@@ -81,11 +81,8 @@ fun FeaturesScreen(ctx: KxScreenCtx) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 2.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
-                Text(buildAnnotatedString {
-                    append("Функции ")
-                    withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("kiro") }
-                    withStyle(SpanStyle(color = Kx.accent)) { append("X") }
-                }, style = KxType.h1)
+                // critique-B: the same name as the Settings row (the section above it is «Функции kiroX»).
+                Text("Режим призрака и другое", style = KxType.h1, maxLines = 1)
             }
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp).navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -99,18 +96,18 @@ fun FeaturesScreen(ctx: KxScreenCtx) {
                     }
                 }
 
-                val tapOpts = listOf("Ничего", "Реакция ❤️", "Ответить", "Копировать")
+                val tapOpts = listOf("Ничего не делать", "Реакция ❤️", "Ответить", "Копировать")
                 val powerOpts = listOf("Как в системе", "Всегда", "Никогда")
-                val confOpts = listOf("Ничего", "Стикеры", "Стикеры, GIF", "Всё")
+                val confOpts = listOf("Не спрашивать", "Стикеры", "Стикеры, GIF", "Всё")
                 data class L(val icon: ImageVector, val label: String, val value: String, val next: () -> Unit)
                 val links = listOf(
-                    L(Icons.Outlined.TouchApp, "Двойной тап по сообщению", tapOpts[tap]) { store.putPref(KxPrefs.DOUBLE_TAP, (tap + 1) % tapOpts.size) },
+                    L(Icons.Outlined.TouchApp, "Двойное нажатие на сообщение", tapOpts[tap]) { store.putPref(KxPrefs.DOUBLE_TAP, (tap + 1) % tapOpts.size) },
                     L(Icons.AutoMirrored.Outlined.Help, "Спрашивать перед отправкой", confOpts[confirm]) { val next = confirmSets[(confirm + 1) % confOpts.size]; confKeys.forEach { store.setTweak(it, it in next) } },
                     // wave5 (1.0 = v3 only): opens the Power board (threshold covers Как в системе / Всегда / Никогда) instead of cycling.
                     L(Icons.Outlined.BatterySaver, "Энергосбережение", powerOpts[power]) { ctx.open("Power") },
                     L(Icons.Outlined.FilterAlt, "Фильтры сообщений", if (words == 0) "" else "$words ${if (words % 10 == 1 && words % 100 != 11) "слово" else if (words % 10 in 2..4 && words % 100 !in 12..14) "слова" else "слов"}") { ctx.open("WordFilter") },
                     L(Icons.Outlined.Backup, "Резервная копия настроек", "") { ctx.open("Backup") },
-                    L(Icons.Outlined.FolderOpen, "Файлы Telegram", "") { ctx.open("Files") },
+                    L(Icons.Outlined.FolderOpen, "Скачанные файлы", "") { ctx.open("Files") },
                     L(Icons.Outlined.HourglassEmpty, "Время в kiroX", "") { ctx.open("Wellbeing") },
                     // wave6: the old hybrid pages are v3 now (tools/W6Tools.kt, StickerManage).
                     L(Icons.Outlined.Public, "Встроенный браузер", if (t["browser"] == true) "Вкл." else "") { ctx.open("BrowserSettings") },
@@ -119,7 +116,7 @@ fun FeaturesScreen(ctx: KxScreenCtx) {
                 )
                 Column(Modifier.sRise(120), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     links.forEachIndexed { i, l ->
-                        Row(Modifier.fillMaxWidth().height(50.dp).clip(groupShape(i, links.size, 20.dp)).background(TileBg).kxClick(onClick = l.next).padding(horizontal = 14.dp),
+                        Row(Modifier.fillMaxWidth().height(50.dp).kxGroupItem(groupShape(i, links.size, 20.dp), TileBg, 46.dp).kxClick(onClick = l.next).padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Icon(l.icon, null, Modifier.size(20.dp), tint = Kx.text4)
                             Text(l.label, style = KxType.style(14.sp), modifier = Modifier.weight(1f), maxLines = 1)
@@ -202,13 +199,6 @@ private fun FeatureTile(ft: FTile, on: Boolean, modifier: Modifier, onFlip: () -
     }
 }
 
-/** 34x20 switch with a 16dp knob and no shadow (feature tiles). */
+/** A2: the feature tiles use the one [KxSwitch]. */
 @Composable
-internal fun MiniSwitch(on: Boolean) {
-    val reduced = LocalKxReducedMotion.current
-    val x by animateDpAsState(if (on) 14.dp else 0.dp, if (reduced) tween(0) else tween(300, easing = SpringEase), label = "mk")
-    val track by animateColorAsState(if (on) Kx.accent else Kx.badgeMuted, tween(300), label = "mt")
-    Box(Modifier.kxToggleState(on).size(34.dp, 20.dp).clip(RoundedCornerShape(10.dp)).background(track)) {
-        Box(Modifier.offset(2.dp + x, 2.dp).size(16.dp).clip(RoundedCornerShape(8.dp)).background(Color.White))
-    }
-}
+internal fun MiniSwitch(on: Boolean) = KxSwitch(on)

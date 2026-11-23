@@ -84,10 +84,7 @@ fun GroupStatsScreen(ctx: KxScreenCtx) {
                 }
             }
             Column(Modifier.padding(top = 16.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.07f), RoundedCornerShape(22.dp)).padding(14.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Когда пишут · по часам и дням недели", style = KxType.style(15.sp, FontWeight.ExtraBold), modifier = Modifier.weight(1f))
-                    Text("${GDays[sel.first]}, $h:00–${h + 3}:00 · $v сообщ.", style = KxType.style(12.sp, color = Kx.text3), textAlign = TextAlign.End, modifier = Modifier.widthIn(max = 130.dp))
-                }
+                Text("Когда пишут", style = KxType.style(15.sp, FontWeight.ExtraBold), maxLines = 1)
                 Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
                         Spacer(Modifier.width(22.dp))
@@ -111,6 +108,9 @@ fun GroupStatsScreen(ctx: KxScreenCtx) {
                     listOf(Color(0x1A8FD3AC), Color(0x598FD3AC), Color(0xA68FD3AC), Kx.accent).forEach { Box(Modifier.size(14.dp, 10.dp).clip(RoundedCornerShape(3.dp)).background(it)) }
                     Text("больше", style = KxType.style(11.sp, color = Kx.text4))
                 }
+                // critique-C P3: the selected cell's readout under the grid, words in full.
+                Text("${GDays[sel.first]}, $h:00–${h + 3}:00 — $v ${gxPlural(v, "сообщение", "сообщения", "сообщений")}", style = KxType.style(13.sp, FontWeight.SemiBold, Kx.text2),
+                    modifier = Modifier.padding(top = 8.dp))
             }
             Text("Самые активные", style = KxType.style(15.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 16.dp))
             Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

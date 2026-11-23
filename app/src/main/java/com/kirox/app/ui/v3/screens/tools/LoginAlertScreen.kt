@@ -112,7 +112,7 @@ fun LoginAlertScreen(ctx: KxScreenCtx) {
                             }
                         }
                     }
-                    Text("Место примерное — определено по IP-адресу.", style = KxType.style(12.sp, color = Kx.text3, lineHeight = 17.sp), modifier = Modifier.padding(top = 10.dp))
+                    Text("Место примерное — определено по подключению к интернету.", style = KxType.style(12.sp, color = Kx.text3, lineHeight = 17.sp), modifier = Modifier.padding(top = 10.dp))
                     Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TPill("Это не я", Modifier.weight(1f), h = 48.dp, bg = solid(Kx.dangerSolid), ink = Color.White) {
                             val s = shown

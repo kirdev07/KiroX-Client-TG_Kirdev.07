@@ -94,7 +94,7 @@ fun AccountsScreen(ctx: KxScreenCtx) {
             }
             Column(Modifier.padding(horizontal = 16.dp)) {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg)) {
-                    listOf(Triple(Icons.Outlined.Person, "Мой профиль", "EditProfile"), Triple(Icons.Outlined.Palette, "Кастомизация", "Custom"),
+                    listOf(Triple(Icons.Outlined.Person, "Мой профиль", "EditProfile"), Triple(Icons.Outlined.Palette, "Оформление", "Custom"),
                         Triple(Icons.Outlined.Lock, "Конфиденциальность", "Privacy"), Triple(Icons.Outlined.Devices, "Устройства", "Devices")).forEachIndexed { i, (ic, label, route) ->
                         Row(Modifier.fillMaxWidth().height(56.dp).drawBehind { if (i > 0) drawLine(Kx.w(.06f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }
                             .kxClick { ctx.open(route) }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -108,7 +108,11 @@ fun AccountsScreen(ctx: KxScreenCtx) {
                     .border(1.dp, Kx.danger.copy(alpha = .2f), RoundedCornerShape(20.dp)).kxClick { confirm = true; sheet = false },
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     Icon(Icons.AutoMirrored.Outlined.Logout, null, tint = Kx.danger); Spacer(Modifier.width(8.dp))
-                    Text("Выйти из ${a.name}", style = KxType.style(15.sp, FontWeight.Bold, Kx.danger))
+                    // critique-B: names are not declined in Russian → «Выйти из аккаунта» + the name below.
+                    Column {
+                        Text("Выйти из аккаунта", style = KxType.style(15.sp, FontWeight.Bold, Kx.danger))
+                        Text(a.name, style = KxType.style(12.sp, color = Kx.text3), maxLines = 1)
+                    }
                 }
             }
         }

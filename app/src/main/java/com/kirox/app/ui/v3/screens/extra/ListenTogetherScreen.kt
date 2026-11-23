@@ -82,7 +82,8 @@ fun ListenTogetherScreen(ctx: KxScreenCtx) {
                 }
                 ExRoundBtn(Icons.Outlined.PersonAdd, "Пригласить", border = null) {}
             }
-            Row(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 6.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.warning.copy(alpha = .1f))
+            // critique-B: the «idea» banner only on the demo store (a real account never reaches this board, see ExtraDevOnly).
+            if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) Row(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 6.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.warning.copy(alpha = .1f))
                 .border(1.dp, Kx.warning.copy(alpha = .35f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Outlined.Construction, null, Modifier.size(18.dp), tint = Kx.warning)
                 Text("Идея, не решено. В Telegram нет протокола «слушать синхронно», нужен свой сервер kiroX. Без него — только «поделиться треком».", style = ts(12.sp, color = Color(0xFFF2D9A6), lh = 17.sp))

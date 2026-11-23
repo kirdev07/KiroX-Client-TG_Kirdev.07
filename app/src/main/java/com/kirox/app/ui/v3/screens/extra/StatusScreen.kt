@@ -32,7 +32,7 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
 private val StGroups = listOf(
-    "Недавние" to "🌿🎧💻☕🏔️✈️🔥", "Настроение" to "😊😎🥳😴🤒🤯🥰🙂🤓😇🫡🤔😤🫠",
+    "Недавние" to "🌿🎧💻☕🏔️✈️🔥", "Настроение" to "😊😎🥳😴🤒🤯🥰🙂🤓😇😌🤔😤🙃",
     "Занятия" to "💼🎮📚🏋️🎨🎬🍳🚗🏖️🎵⚽🧘🛒🛠️", "Символы" to "⭐💚💎🌙⚡🍀🌈❄️🎯🚀🌸🦊🐼🎉",
 )
 private val StDurs = listOf("Навсегда" to 0, "1 час" to 1, "8 часов" to 8, "До завтра" to 24, "Неделя" to 168)
@@ -45,6 +45,7 @@ internal fun graphemes(s: String): List<String> {
 }
 
 /** Board «Статус»: emoji status (Premium) with preview, pop + sparks, duration chips, emoji grid, save / remove. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun StatusScreen(ctx: KxScreenCtx) {
     // wave3: real store — Telegram's default emoji statuses (custom emoji, shown by their plain emoji) and SetEmojiStatus with expiry.
@@ -118,7 +119,8 @@ fun StatusScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            // critique-B: the duration chips wrap instead of being cut at the edge.
+            FlowRow(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 StDurs.forEachIndexed { i, (label, _) ->
                     val on = i == dur
                     val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f), tween(200), label = "db$i")
@@ -127,7 +129,7 @@ fun StatusScreen(ctx: KxScreenCtx) {
                         contentAlignment = Alignment.Center) { Text(label, style = ts(13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text)) }
                 }
             }
-            Column(Modifier.weight(1f).padding(top = 12.dp).verticalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, bottom = 110.dp)) {
+            Column(Modifier.weight(1f).padding(top = 12.dp).verticalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, bottom = 130.dp)) {
                 if (realStore && statuses == null) Text("Загружаем статусы…", style = ts(13.sp, color = Kx.text3), modifier = Modifier.padding(6.dp))
                 if (realStore && statuses?.isEmpty() == true) Text("Telegram не прислал статусы. Они доступны с Premium.", style = ts(13.sp, color = Kx.text3), modifier = Modifier.padding(6.dp))
                 if (realStore) statuses.orEmpty().chunked(7).forEach { row ->
@@ -161,7 +163,9 @@ fun StatusScreen(ctx: KxScreenCtx) {
         }
         // The emoji grid scrolls under the buttons: fade it out so «Убрать» and the Premium note stay readable.
         com.kirox.app.ui.v3.components.KxBottomFade(Modifier.align(Alignment.BottomCenter))
-        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 26.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // critique-B: the Premium note sits above the buttons (was under the CTA).
+        Text("Эмодзи-статус работает с Telegram Premium", style = ts(12.sp, color = Kx.text3), modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 86.dp))
+        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (emoji.isNotEmpty()) Box(Modifier.weight(1f).height(54.dp).clip(RoundedCornerShape(18.dp)).background(Kx.bg).background(Kx.w(.08f)).kxClick("Убрать") { emoji = ""; picked = 0L }, contentAlignment = Alignment.Center) {
                 Text("Убрать", style = ts(15.sp, FontWeight.Bold))
             }
@@ -182,7 +186,6 @@ fun StatusScreen(ctx: KxScreenCtx) {
                 }
             }
         }
-        Text("Эмодзи-статус работает с Telegram Premium", style = ts(11.sp, color = Kx.text4), modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 6.dp))
         ExToast(toast, bottom = 96.dp)
     }
 }

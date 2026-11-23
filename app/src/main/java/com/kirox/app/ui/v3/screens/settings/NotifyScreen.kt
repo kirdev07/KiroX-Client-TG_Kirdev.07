@@ -70,7 +70,7 @@ fun NotifyScreen(ctx: KxScreenCtx) {
         if (sc != null) store.setNotifyScope(sc.key, v, sc.preview) else localOn = localOn + (key to v)
     }
     var open by rememberSaveable { mutableStateOf<String?>("users") }
-    var sound by rememberSaveable { mutableStateOf("Нота") }
+    var sound by rememberSaveable { mutableStateOf(com.kirox.app.ui.v3.screens.tools.KxDemoSoundNames[1]) }
     var demoApp by remember { mutableStateOf(mapOf("sound" to true, "vibrate" to true, "banner" to true, "badge" to true)) }
     // wave5: on the real account the «В приложении» switches are the app's notification prefs (were local, lost on leave);
     // wave6: reactions / calls / sounds / exceptions / reset are v3 too (tools/W6Notify.kt), no old screen any more.
@@ -90,32 +90,35 @@ fun NotifyScreen(ctx: KxScreenCtx) {
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         SGlow(glowGreen(.18f), alignEnd = true)
         Column(Modifier.fillMaxSize()) {
-            SHeader("Уведомления", ctx.back, bottom = 2.dp) {
-                // fixer-misc4: on the real account «Проверить» also posts a real system notification (honest text, no demo chat).
-                val appCtx = androidx.compose.ui.platform.LocalContext.current.applicationContext
-                TestButton {
-                    banner = System.nanoTime()
-                    if (real && !com.kirox.app.notify.MessageNotifications.postTest(appCtx)) ctx.toast("Уведомления выключены для kiroX в настройках Android")
-                }
+            SHeader("Уведомления", ctx.back, bottom = 2.dp)
+            // fixer-misc4: on the real account the test also posts a real system notification (honest text, no demo chat).
+            val appCtx = androidx.compose.ui.platform.LocalContext.current.applicationContext
+            fun sendTest() {
+                banner = System.nanoTime()
+                if (real && !com.kirox.app.notify.MessageNotifications.postTest(appCtx)) ctx.toast("Уведомления выключены для kiroX в настройках Android")
             }
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp).navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // A1: the categories are one card with hairlines (was a card per category).
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 cats.forEachIndexed { i, c ->
                     val isOn = on[c.key] == true
                     val isOpen = open == c.key
                     val border by animateColorAsState(if (isOpen) Kx.accent.copy(alpha = .3f) else Color.Transparent, tween(300), label = "bd")
                     val chev by animateFloatAsState(if (isOpen) 180f else 0f, tween(300), label = "chev")
                     val shape = RoundedCornerShape(22.dp)
-                    Column(Modifier.sRise(i * 40, 400).fillMaxWidth().clip(shape).background(TileBg).border(1.dp, border, shape)) {
-                        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).kxClick { open = if (isOpen) null else c.key },
+                    @Suppress("UNUSED_VARIABLE") val unusedBorder = border to shape
+                    Column(Modifier.sRise(i * 40, 400).fillMaxWidth().kxGroupItem(groupShape(i, cats.size), TileBg, 64.dp)) {
+                        // critique-B: the whole row expands; only the switch on the right toggles.
+                        Row(Modifier.kxClick(c.label) { open = if (isOpen) null else c.key }.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(Modifier.weight(1f),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(c.tile), contentAlignment = Alignment.Center) {
+                                Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(c.ink.copy(alpha = .14f)), contentAlignment = Alignment.Center) { // A3: one tile rule
                                     Icon(c.icon, null, Modifier.size(21.dp), tint = c.ink)
                                 }
                                 Column(Modifier.weight(1f)) {
                                     Text(c.label, style = KxType.style(15.sp, FontWeight.SemiBold))
-                                    Text(if (!isOn) "Выключены" else if (c.key == "calls") "Мелодия · вибрация" else if (real) (if (scopeOf(c.key)?.preview != false) "С текстом сообщения" else "Без текста") else "Звук «$sound» · превью",
+                                    Text(if (!isOn) "Выключены" else if (c.key == "calls") "Мелодия · вибрация" else if (real) (if (scopeOf(c.key)?.preview != false) "С текстом сообщения" else "Без текста") else "Звук «$sound» · текст сообщения",
                                         style = KxType.style(12.sp, color = if (isOn) Kx.text3 else Kx.danger))
                                 }
                                 Icon(Icons.Rounded.ExpandMore, null, Modifier.size(20.dp).graphicsLayer { rotationZ = chev }, tint = Kx.text4)
@@ -127,9 +130,11 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                         if (isOpen) Column(Modifier.sRise(0, 250, (-6).dp).padding(start = 64.dp, end = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             // Sound names were never applied: the demo only; real sounds are per Android channel (old screen).
                             if (!real) Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("Нота", "Капля", "Звон", "Без звука").forEach { s ->
+                                // critique-B: one catalogue with «Звук уведомлений» — its first 3 + «Ещё…».
+                                val names = com.kirox.app.ui.v3.screens.tools.KxDemoSoundNames
+                                (names.take(3).let { if (sound in it) it else it.dropLast(1) + sound } + "Ещё…").forEach { s ->
                                     val sel = s == sound
-                                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(if (sel) Kx.accent else Kx.w(.07f)).kxClick { sound = s }.padding(horizontal = 10.dp),
+                                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(if (sel) Kx.accent else Kx.w(.07f)).kxClick { if (s == "Ещё…") ctx.open("Sounds") else sound = s }.padding(horizontal = 10.dp),
                                         contentAlignment = Alignment.Center) {
                                         Text(s, style = KxType.style(12.sp, FontWeight.Bold, if (sel) Kx.onAccent else Kx.text2), maxLines = 1)
                                     }
@@ -143,13 +148,14 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Text("В приложении", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp))
+                }
+                KxGroupCaption("В приложении", Modifier.padding(top = 2.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     val defs = listOf(Triple("sound", Icons.AutoMirrored.Outlined.VolumeUp, "Звук"), Triple("vibrate", Icons.Outlined.Vibration, "Вибрация"),
                         Triple("banner", Icons.Outlined.WebAsset, "Баннер сверху"), Triple("badge", Icons.Outlined.LooksOne, "Счётчик на иконке"))
                     defs.forEachIndexed { i, (key, icon, label) ->
                         val v = app[key] == true
-                        Row(Modifier.fillMaxWidth().height(50.dp).clip(groupShape(i, defs.size, 20.dp)).background(TileBg).kxClick(role = Role.Switch) { setApp(key, !v) }.padding(horizontal = 14.dp),
+                        Row(Modifier.fillMaxWidth().height(50.dp).kxGroupItem(groupShape(i, defs.size, 20.dp), TileBg, 46.dp).kxClick(role = Role.Switch) { setApp(key, !v) }.padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Icon(icon, null, Modifier.size(20.dp), tint = Kx.text4)
                             Text(label, style = KxType.style(15.sp), modifier = Modifier.weight(1f))
@@ -159,37 +165,18 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                 }
                 // wave5: boards that had no entry.
                 Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    val n = if (real) 3 else 2
+                    val n = if (real) 4 else 3
                     SNavRow(Icons.Rounded.Bedtime, "Не беспокоить", "Тишина по расписанию и исключения", groupShape(0, n, 20.dp)) { ctx.open("Dnd") }
-                    SNavRow(Icons.Rounded.MusicNote, "Звуки уведомлений", "Свои звуки из чатов", groupShape(1, n, 20.dp)) { ctx.open("Sounds") }
+                    SNavRow(Icons.Rounded.MusicNote, "Звук уведомлений", "Свои звуки из чатов", groupShape(1, n, 20.dp)) { ctx.open("Sounds") }
                     if (real) SNavRow(Icons.Rounded.Tune, "Исключения", "Чаты со своими настройками уведомлений", groupShape(2, n, 20.dp)) { ctx.open("NotifyExceptions") }
+                    // critique-B: the test lives in the body with a clear name (was a «Проверить» pill in the header).
+                    SNavRow(Icons.Rounded.NotificationsActive, "Отправить тестовое уведомление", "Покажет, как выглядит уведомление kiroX", groupShape(n - 1, n, 20.dp)) { sendTest() }
                 }
                 com.kirox.app.ui.v3.screens.tools.W6NotifyExtras(ctx, overlay)
             }
         }
         if (banner != 0L && app["banner"] == true) key(banner) { TestBanner(real) { banner = 0L } }
         W6NotifyOverlayHost(overlay)
-    }
-}
-
-@Composable
-private fun TestButton(onClick: () -> Unit) {
-    val reduced = LocalKxReducedMotion.current
-    val rot = remember { Animatable(0f) }
-    // kxRing 2.4s: 10% 14°, 20% -12°, 30% 8°, 40% -4°, 50% 0, rest still. Decorative → twice.
-    LaunchedEffect(reduced) {
-        if (!reduced) repeat(2) {
-            rot.animateTo(0f, keyframes {
-                durationMillis = 2400
-                14f at 240 using CssEaseInOut; -12f at 480 using CssEaseInOut; 8f at 720 using CssEaseInOut; -4f at 960 using CssEaseInOut; 0f at 1200 using CssEaseInOut
-            })
-        }
-    }
-    val shape = RoundedCornerShape(20.dp)
-    Row(Modifier.height(40.dp).clip(shape).background(Kx.accent.copy(alpha = .14f)).border(1.dp, Kx.accent.copy(alpha = .3f), shape).kxClick(onClick = onClick).padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Icon(Icons.Rounded.NotificationsActive, null, Modifier.size(18.dp).graphicsLayer { rotationZ = rot.value }, tint = Color(0xFFC8F0D8))
-        Text("Проверить", style = KxType.style(13.sp, FontWeight.Bold, Color(0xFFC8F0D8)))
     }
 }
 

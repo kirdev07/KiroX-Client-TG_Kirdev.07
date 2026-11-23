@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.media
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -109,7 +110,7 @@ fun FilesScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MRoundBtn(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", highlight = Kx.w(.14f)) { ctx.back() }
-                T("Файлы Telegram", 22.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f), maxLines = 1)
+                T("Файлы", 22.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f), maxLines = 1)
                 Row(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.06f)).border(1.dp, Kx.w(.09f), RoundedCornerShape(20.dp))
                     .kxClick(if (big) "Сначала большие" else "Сначала новые") { big = !big }.padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -126,7 +127,9 @@ fun FilesScreen(ctx: KxScreenCtx) {
                     BasicTextField(query, { query = it }, Modifier.fillMaxWidth(), singleLine = true, textStyle = ts(15.sp), cursorBrush = SolidColor(Kx.accent))
                 }
             }
-            FlowRow(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            // critique-C P3: one scrolling chip row with an edge fade (it wrapped to two rows).
+            val catScroll = androidx.compose.foundation.rememberScrollState()
+            Row(Modifier.padding(top = 10.dp).kxEdgeFade(catScroll).horizontalScroll(catScroll).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FileCats.forEach { c ->
                     val on = c == cat; val warn = c == "Опасные"
                     val bg by animateColorAsState(if (on) (if (warn) Red else Kx.accent) else Kx.w(.06f), tween(250), label = "chip")
@@ -155,8 +158,8 @@ fun FilesScreen(ctx: KxScreenCtx) {
                         Icon(Icons.Outlined.MoreVert, null, Modifier.size(20.dp), tint = Kx.text4)
                     }
                 }
-                if (list.isEmpty()) item { Box(Modifier.fillMaxWidth().padding(vertical = 36.dp), contentAlignment = Alignment.Center) {
-                    T(if (files == null) "Загрузка…" else if (real && files.orEmpty().isEmpty()) "Скачанных файлов пока нет" else "Здесь пусто", 14.sp, color = Kx.text4) } }
+                if (list.isEmpty()) item { if (files == null) Box(Modifier.fillMaxWidth().padding(vertical = 36.dp), contentAlignment = Alignment.Center) { T("Загрузка…", 14.sp, color = Kx.text4) }
+                    else KxEmpty(Icons.Outlined.Folder, if (real && files.orEmpty().isEmpty()) "Скачанных файлов пока нет" else "Здесь пусто", "Файлы из чатов появятся здесь после загрузки", Modifier.padding(top = 24.dp)) }
             }
         }
 

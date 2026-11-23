@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.dashedBorder
 import com.kirox.app.ui.v3.components.kxClick
@@ -52,8 +53,11 @@ private fun chatWord(k: Int) = if (k % 10 == 1 && k % 100 != 11) "чат" else i
 fun ShareInScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val demo = store is KxDemoStore
-    val chats = store.chats.sortedBy { if (it.kind == KxChatKind.Saved) 0 else 1 }.take(12)
-    val sel = remember { mutableStateListOf<Long>() }
+    var q by remember { mutableStateOf("") }
+    val all = store.chats.sortedBy { if (it.kind == KxChatKind.Saved) 0 else 1 }
+    // critique-A: an inline search over all chats (not a jump to the global Search screen).
+    val chats = if (q.isBlank()) all.take(12) else all.filter { it.title.contains(q.trim(), ignoreCase = true) }
+    val sel = remember { mutableStateListOf<Long>().apply { if (demo) all.firstOrNull()?.let { add(it.id) } } }
     var last by remember { mutableStateOf<Long?>(null) }
     var k by remember { mutableIntStateOf(0) }
     var hd by remember { mutableStateOf(false) }
@@ -86,9 +90,11 @@ fun ShareInScreen(ctx: KxScreenCtx) {
                         Text("Отправить 3 фото", style = ts(18, W800))
                         Text("из «Галереи» · 8,4 МБ", style = ts(12, color = Kx.text3))
                     }
-                    Box(Modifier.size(40.dp).clip(CircleShape).background(Kx.w(.06f)).kxClick("Поиск") { ctx.open("Search") }, contentAlignment = Alignment.Center) {
-                        Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text)
-                    }
+                }
+                Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp).fillMaxWidth().height(42.dp).clip(RoundedCornerShape(21.dp)).background(Kx.w(.06f)).padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text4)
+                    ChInput(q, { q = it }, "Кому отправить?", Modifier.weight(1f))
                 }
                 Box(Modifier.weight(1f)) {
                     LazyVerticalGrid(GridCells.Fixed(4), Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 16.dp, bottom = 120.dp),
@@ -117,7 +123,7 @@ fun ShareInScreen(ctx: KxScreenCtx) {
                                         }
                                     }
                                 }
-                                Text(c.title, style = ts(12, color = if (on) Kx.accent else Kx.text2), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                Text(c.title, style = ts(12, color = if (on) Kx.accent else Kx.text2, lh = 15.sp), textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.widthIn(max = 80.dp))
                             }
                         }
@@ -156,7 +162,8 @@ fun ShareInScreen(ctx: KxScreenCtx) {
                 Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(46.dp), tint = Kx.accent)
                 Text(if (n > 1) "Отправлено в $n ${chatWord(n)}" else "Отправлено в «$first»", style = ts(17, W800), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
                 Text("Вы остались в «Галерее»", style = ts(13, color = Kx.text3), modifier = Modifier.padding(top = 4.dp))
-                Box(Modifier.padding(top = 14.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 22.dp).padding(2.dp).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.08f))
+                // critique-A S: demo-only replay control
+                if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) Box(Modifier.padding(top = 14.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 22.dp).padding(2.dp).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.08f))
                     .kxClick { sel.clear(); st = "pick"; last = null }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
                     Text("Макет: показать снова", style = ts(13, W700, Kx.accent))
                 }

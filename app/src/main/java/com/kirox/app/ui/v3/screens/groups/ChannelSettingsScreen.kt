@@ -69,11 +69,17 @@ fun ChannelSettingsScreen(ctx: KxScreenCtx) {
     var opts by remember { mutableStateOf(listOf(true, false, true, true, false)) }
     var askDelete by remember { mutableStateOf(false) }
     val tip = rememberGxTip()
+    // critique-C P2: «Сохранить» stays disabled until something changed (like AdminRights).
+    var saved by remember { mutableStateOf<List<Any>?>(null) }
+    val snapshot = listOf(title, desc, pub, opts)
+    LaunchedEffect(info) { if (saved == null || info != null) saved = listOf(title, desc, pub, opts) }
+    val changed = saved != null && snapshot != saved
     val (sign, protect, comments, react) = opts
     LaunchedEffect(info) {
         val i = info ?: return@LaunchedEffect
         title = i.title; desc = i.description; pub = i.isPublic
         opts = opts.toMutableList().also { it[1] = i.protectedContent; it[3] = i.reactions == null || i.reactions.isNotEmpty() }
+        saved = listOf(title, desc, pub, opts)
     }
     val pubLink = if (chatId == null) "t.me/android_weekly_ru" else info?.username?.takeIf { it.isNotBlank() }?.let { "t.me/$it" } ?: ""
     val privLink = if (chatId == null) "t.me/+Ab3dK9xQ2pLm" else links?.firstOrNull { it.primary }?.link?.removePrefix("https://") ?: ""
@@ -94,15 +100,22 @@ fun ChannelSettingsScreen(ctx: KxScreenCtx) {
                         Box(Modifier.align(Alignment.BottomEnd).offset(2.dp, 2.dp).size(28.dp).clip(CircleShape).background(Kx.bg).padding(2.dp).clip(CircleShape).background(Color(0xFF1A201D)),
                             contentAlignment = Alignment.Center) { Icon(Icons.Outlined.PhotoCamera, null, Modifier.size(16.dp), tint = Kx.text) }
                     }
-                    Box(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(16.dp)).padding(horizontal = 14.dp),
-                        contentAlignment = Alignment.CenterStart) {
-                        BasicTextField(title, { title = it }, Modifier.fillMaxWidth(), textStyle = KxType.style(16.sp, FontWeight.Bold), singleLine = true, cursorBrush = SolidColor(Kx.accent))
+                    Column(Modifier.weight(1f)) {
+                        Text("Название", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+                        Box(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(16.dp)).padding(horizontal = 14.dp),
+                            contentAlignment = Alignment.CenterStart) {
+                            BasicTextField(title, { title = it.take(128) }, Modifier.fillMaxWidth(), textStyle = KxType.style(16.sp, FontWeight.Bold), singleLine = true, cursorBrush = SolidColor(Kx.accent))
+                        }
                     }
                 }
-                Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(76.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(16.dp))
+                Row(Modifier.padding(start = 4.dp, end = 4.dp, top = 12.dp, bottom = 4.dp)) {
+                    Text("Описание", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.weight(1f))
+                    Text("${desc.length}/255", style = KxType.style(12.sp, color = Kx.text4))
+                }
+                Box(Modifier.fillMaxWidth().height(76.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(16.dp))
                     .padding(horizontal = 14.dp, vertical = 12.dp)) {
                     if (desc.isEmpty()) Text("Описание", style = KxType.style(14.sp, color = Kx.text4))
-                    BasicTextField(desc, { desc = it }, Modifier.fillMaxSize(), textStyle = KxType.style(14.sp, lineHeight = 19.6.sp), cursorBrush = SolidColor(Kx.accent))
+                    BasicTextField(desc, { desc = it.take(255) }, Modifier.fillMaxSize(), textStyle = KxType.style(14.sp, lineHeight = 19.6.sp), cursorBrush = SolidColor(Kx.accent))
                 }
                 CsLabel("Тип канала")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -134,7 +147,7 @@ fun ChannelSettingsScreen(ctx: KxScreenCtx) {
                         val v = opts[i]
                         Row(Modifier.fillMaxWidth().hairline(Kx.w(.05f)).kxClick(o.label, Role.Switch) { opts = opts.toMutableList().also { it[i] = !v } }
                             .padding(horizontal = 16.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Icon(o.icon, null, Modifier.size(24.dp), tint = if (v) Kx.accent else Kx.text3)
+                            Icon(o.icon, null, Modifier.size(24.dp), tint = Kx.accent) // critique-C P2: one tint for every row icon
                             Column(Modifier.weight(1f)) {
                                 Text(o.label, style = KxType.style(15.sp, FontWeight.SemiBold))
                                 Text(o.sub, style = KxType.style(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 2.dp))
@@ -183,8 +196,11 @@ fun ChannelSettingsScreen(ctx: KxScreenCtx) {
         }
         Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(0f to Color(0x000A0C0B), .4f to Kx.bg))
             .navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp)) {
-            GxPillButton("Сохранить", Modifier.fillMaxWidth(), height = 54.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent,
+            GxPillButton(if (changed) "Сохранить" else "Изменений нет", Modifier.fillMaxWidth(), height = 54.dp,
+                brush = if (changed) Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)) else SolidColor(Kx.w(.07f)), ink = if (changed) Kx.onAccent else Color(0xFF5C6661),
                 size = 16, weight = FontWeight.ExtraBold, icon = Icons.Rounded.Done) {
+                if (!changed) return@GxPillButton
+                saved = snapshot
                 if (chatId != null) {
                     val i = info
                     if (title.isNotBlank() && title != i?.title) store.setChatTitle(chatId, title.trim())

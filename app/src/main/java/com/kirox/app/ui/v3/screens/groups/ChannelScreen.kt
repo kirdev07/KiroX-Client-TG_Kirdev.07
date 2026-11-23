@@ -143,9 +143,10 @@ fun ChannelScreen(ctx: KxScreenCtx) {
                                 }
                                 if (!live || p.comments > 0) Row(Modifier.fillMaxWidth().height(42.dp).hairline(top = true).kxClick { if (live) ctx.open("Comments:$chatId:${p.id}") else ctx.open("Comments") }.padding(horizontal = 14.dp),
                                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    // critique-C P2: comment authors as letter avatars, not blank circles.
                                     Row {
-                                        Box(Modifier.size(20.dp).clip(CircleShape).background(CardBg).padding(2.dp).clip(CircleShape).background(Color(0xFF4B3F7A)))
-                                        Box(Modifier.offset(x = (-6).dp).size(20.dp).clip(CircleShape).background(CardBg).padding(2.dp).clip(CircleShape).background(Color(0xFF2D4E73)))
+                                        Box(Modifier.size(22.dp).clip(CircleShape).background(CardBg).padding(2.dp)) { KxAvatar("Мария", 41, size = 18.dp, colorIndex = 7) }
+                                        Box(Modifier.offset(x = (-6).dp).size(22.dp).clip(CircleShape).background(CardBg).padding(2.dp)) { KxAvatar("Олег", 42, size = 18.dp, colorIndex = 4) }
                                     }
                                     Text("${p.comments} ${gxPlural(p.comments, "комментарий", "комментария", "комментариев")}", style = KxType.style(13.sp, FontWeight.SemiBold, Kx.accent),
                                         modifier = Modifier.weight(1f).offset(x = (-6).dp))
@@ -156,6 +157,8 @@ fun ChannelScreen(ctx: KxScreenCtx) {
                         if (ad && !live) CAd(why, onWhy = { why = !why }, onHide = { tip.say("Скрыть рекламу можно с Telegram Premium") })
                     }
                 }
+                // critique-C P2: posts fade out under the floating header instead of a cut-off sliver peeking out.
+                Box(Modifier.fillMaxWidth().height(28.dp).background(Brush.verticalGradient(listOf(Kx.bg, Kx.bg.copy(alpha = 0f)))))
             }
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 18.dp, bottom = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!sub) {
@@ -292,7 +295,7 @@ private fun CAd(why: Boolean, onWhy: () -> Unit, onHide: () -> Unit) {
             }
         }
         AnimatedVisibility(why) {
-            Text("Рекламу в больших публичных каналах показывает Telegram. Она не зависит от ваших личных данных и чатов. kiroX показывает её по правилам Telegram API.",
+            Text("Рекламу в больших публичных каналах показывает Telegram. Она не зависит от ваших личных данных и чатов. kiroX показывает её по правилам Telegram.",
                 style = KxType.style(12.sp, color = Kx.text3, lineHeight = 17.sp),
                 modifier = Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Kx.w(.05f)).padding(horizontal = 10.dp, vertical = 8.dp))
         }

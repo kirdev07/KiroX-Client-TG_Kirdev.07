@@ -76,12 +76,8 @@ internal fun SHeader(title: String, onBack: () -> Unit, bottom: Dp = 4.dp, actio
 }
 
 /** Grouped tiles: 22 outer corners, 6 inner. */
-internal fun groupShape(i: Int, n: Int, big: Dp = 22.dp, small: Dp = 6.dp): Shape = when {
-    n == 1 -> RoundedCornerShape(big)
-    i == 0 -> RoundedCornerShape(big, big, small, small)
-    i == n - 1 -> RoundedCornerShape(small, small, big, big)
-    else -> RoundedCornerShape(small)
-}
+@Suppress("UNUSED_PARAMETER")
+internal fun groupShape(i: Int, n: Int, big: Dp = 22.dp, small: Dp = 6.dp): Shape = kxSlotShape(i, n) // A1: one card with hairlines (see kxGroupItem)
 
 internal val TileBg = Color.White.copy(alpha = .045f)
 
@@ -99,48 +95,39 @@ internal fun SHint(text: String, modifier: Modifier = Modifier) =
 @Composable
 internal fun SNavRow(icon: ImageVector, title: String, sub: String?, shape: Shape, tint: Color = Kx.accent, tileBg: Color = Kx.w(.07f),
                      height: Dp = 58.dp, value: String? = null, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = height).clip(shape).background(TileBg).kxClick(onClick = onClick).padding(horizontal = 14.dp),
+    // A1: inside a KxGroup the group draws the card; A3: tile = tint .14 (one rule); A10: destructive = red text + icon only.
+    val danger = tint == Kx.danger
+    Row(Modifier.kxDividerInset(64.dp).fillMaxWidth().heightIn(min = height).kxGroupItem(shape, TileBg, 64.dp).kxClick(onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(tileBg), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(if (tileBg == Kx.w(.07f)) tint.copy(alpha = .14f) else tileBg), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(20.dp), tint = tint)
         }
-        Column(Modifier.weight(1f)) {
-            Text(title, style = KxType.style(15.sp), maxLines = 1)
-            if (sub != null) Text(sub, style = KxType.style(12.sp, color = Kx.text4), maxLines = 1)
-        }
-        if (value != null) Text(value, style = KxType.style(13.sp, color = Kx.text4))
+        // A8: the value drops under the title when the line is short (the title never wraps).
+        KxTitleValue(title, value, Modifier.weight(1f).padding(vertical = 8.dp), titleStyle = KxType.style(15.sp, color = if (danger) Kx.danger else Kx.text),
+            sub = sub)
         Icon(Icons.Rounded.ChevronRight, null, Modifier.size(20.dp), tint = Kx.text4)
     }
 }
 
-/**
- * The white-knob switch of the settings boards: [w]x[h], knob [knob] white with shadow 0 2 6 .4,
- * track inset highlight, knob travel with cubic-bezier(.34,1.5,.5,1) .35s, track colour .3s.
- */
+/** A2: the settings boards' switch is the one [KxSwitch] (old size/colour params ignored). */
 @Composable
-internal fun SSwitch(on: Boolean, trackOn: Color = Kx.accent, trackOff: Color = Kx.badgeMuted, w: Dp = 50.dp, h: Dp = 30.dp, knob: Dp = 24.dp, highlight: Boolean = true, knobShadow: Boolean = true) {
-    val pad = (h - knob) / 2
-    val reduced = LocalKxReducedMotion.current
-    val x by animateDpAsState(if (on) w - knob - pad * 2 else 0.dp, if (reduced) tween(0) else tween(350, easing = SpringEase), label = "knob")
-    val track by animateColorAsState(if (on) trackOn else trackOff, tween(if (reduced) 0 else 300), label = "track")
-    Box(Modifier.kxToggleState(on).size(w, h).clip(RoundedCornerShape(h / 2)).background(track).then(if (highlight) Modifier.topHighlight(Kx.w(.15f)) else Modifier)) {
-        Box(Modifier.offset(pad + x, pad).size(knob).then(if (knobShadow) Modifier.shadow(3.dp, CircleShape, ambientColor = Color.Black, spotColor = Color.Black) else Modifier)
-            .clip(CircleShape).background(Color.White))
-    }
-}
+@Suppress("UNUSED_PARAMETER")
+internal fun SSwitch(on: Boolean, trackOn: Color = Kx.accent, trackOff: Color = Kx.badgeMuted, w: Dp = 50.dp, h: Dp = 30.dp, knob: Dp = 24.dp, highlight: Boolean = true, knobShadow: Boolean = true) =
+    KxSwitch(on)
 
 /** 54dp switch row of the tiles (plain 20dp #8A958F icon, gap 12, label 15). */
 @Composable
 internal fun SSwitchRow(icon: ImageVector?, label: String, on: Boolean, shape: Shape, sub: String? = null, trackOn: Color = Kx.accent,
                         height: Dp = 54.dp, small: Boolean = false, subSize: Int = 12, onFlip: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = height).clip(shape).background(TileBg).kxClick(role = Role.Switch, onClick = onFlip).padding(horizontal = 14.dp),
+    Row(Modifier.kxDividerInset(if (icon != null) 46.dp else 14.dp).fillMaxWidth().heightIn(min = maxOf(height, 52.dp)).kxGroupItem(shape, TileBg, if (icon != null) 46.dp else 14.dp)
+        .kxClick(role = Role.Switch, onClick = onFlip).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         if (icon != null) Icon(icon, null, Modifier.size(20.dp), tint = Kx.text4)
         Column(Modifier.weight(1f).padding(vertical = if (sub != null) 8.dp else 0.dp)) {
             Text(label, style = KxType.style(15.sp))
             if (sub != null) Text(sub, style = KxType.style(subSize.sp, color = Kx.text4, lineHeight = (subSize + 4).sp))
         }
-        if (small) SSwitch(on, trackOn, w = 48.dp, h = 28.dp, knob = 22.dp, highlight = false) else SSwitch(on, trackOn)
+        KxSwitch(on)
     }
 }
 

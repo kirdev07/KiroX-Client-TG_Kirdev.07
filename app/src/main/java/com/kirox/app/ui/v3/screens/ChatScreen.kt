@@ -585,6 +585,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
         menuFor?.let { m ->
             MessageMenuSheet(
                 m, peerName = header.title, onDismiss = { menuFor = null },
+                reactions = store.availableReactions(chatId, m.id), // fix-C hook: the chat's allowed reactions in the strip
                 onReply = { replyTo = m; editing = null; menuFor = null },
                 onEdit = { if (editing == null) beforeEdit = text; editing = m; replyTo = null; text = store.editableText(chatId, m.id) ?: m.text; menuFor = null },
                 onReact = { react(m.id, it); menuFor = null },
@@ -690,7 +691,7 @@ private fun ChatHeader(h: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) ->
     Column(modifier.fillMaxWidth().background(Color(0xFF0D100E)).drawBehind { drawLine(Kx.w(.06f), Offset(0f, size.height - .5f), Offset(size.width, size.height - .5f), 1f) }
         .statusBarsPadding().padding(start = 6.dp, end = 6.dp, top = 4.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", size = 48.dp, filled = false, tint = Kx.text, onClick = onBack)
+            KxBackButton(onBack) // critique-A S: one circled back button
             Row(Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(16.dp)).kxClick("Профиль: ${h.title}", onClick = onProfile).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box {
                     // qa-real: Saved shows the bookmark (not my photo + online dot).
@@ -1581,9 +1582,9 @@ private fun AttachSheet(onClose: () -> Unit, onSend: (Int) -> Unit, onOpen: (Str
             .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Brush.verticalGradient(listOf(Color(0xEB222C27), Color(0xF5101412))))
             .drawBehind { drawLine(Kx.w(.14f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }.navigationBarsPadding().padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 18.dp)) {
             Box(Modifier.align(Alignment.CenterHorizontally).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))
-            Row(Modifier.padding(top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (picked.isEmpty()) "Недавние" else "Выбрано: ${picked.size}", style = KxType.style(17.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
-                Box(Modifier.size(36.dp).clip(CircleShape).background(Kx.fillHi).kxClick("Закрыть", onClick = onClose), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Close, null, Modifier.size(20.dp), tint = Kx.text) }
+            // critique-A: the sheet title names the sheet («Отправить»), no extra ✕ (handle + scrim close it).
+            Row(Modifier.padding(top = 10.dp, bottom = 10.dp).heightIn(min = 36.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(if (picked.isEmpty()) "Отправить" else "Выбрано: ${picked.size}", style = KxType.style(17.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
             }
             val cells = listOf(-1) + tiles.indices
             Column(Modifier.clip(RoundedCornerShape(18.dp)), verticalArrangement = Arrangement.spacedBy(4.dp)) { cells.chunked(3).forEach { row ->

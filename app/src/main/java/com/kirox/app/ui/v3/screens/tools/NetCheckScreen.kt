@@ -36,7 +36,7 @@ import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-private val NC_STEPS = listOf("Интернет", "Имена сайтов (DNS)", "Доступ к Telegram", "Скорость загрузки")
+private val NC_STEPS = listOf("Интернет", "Поиск серверов", "Серверы Telegram", "Скорость")
 private val NC_DCS = listOf("DC1" to 186, "DC2" to 48, "DC3" to 192, "DC4" to 61, "DC5" to 214)
 
 /** Board «Проверка соединения»: phone → internet → Telegram path, 4 step checks with spinners, data-centre latency bars, verdict; demo toggle norm / blocked. */
@@ -72,7 +72,7 @@ fun NetCheckScreen(ctx: KxScreenCtx) {
     fun st(i: Int) = if (step < 0 || i > step) "wait" else if (i == step && !done) "run" else if (i >= failAt) "fail" else "ok"
     val subs = if (real) listOf(
         r?.let { if (it.online) it.network else "Нет подключения к сети" } ?: "",
-        if (r?.dnsOk == false) "Не удалось найти telegram.org — проблема с DNS" else "Работает",
+        if (r?.dnsOk == false) "Телефон не находит адрес telegram.org — проблема у провайдера или в настройках сети" else "Работает",
         when {
             r == null -> ""
             r.pingMs != null -> "Ответ сервера за ${r.pingMs} мс · ${r.connection.lowercase()}"

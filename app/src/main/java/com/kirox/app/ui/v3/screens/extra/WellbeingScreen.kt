@@ -34,10 +34,16 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-private val WbDays = listOf(Triple("Пн", 82, "понедельник"), Triple("Вт", 64, "вторник"), Triple("Ср", 95, "среда"), Triple("Чт", 51, "четверг"),
-    Triple("Пт", 118, "пятница"), Triple("Сб", 74, "суббота"), Triple("Вс", 47, "сегодня"))
+private val WbMinutes = listOf(82, 64, 95, 51, 118, 74, 47)
+/** critique-B: the 7 bars are the last 7 days ending today, named from the real date (was a fixed Пн…Вс with «Вс» as today). */
+private val WbDays: List<Triple<String, Int, String>> get() = (6 downTo 0).mapIndexed { i, back ->
+    val c = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -back) }
+    val ru = java.util.Locale("ru")
+    Triple(java.text.SimpleDateFormat("EE", ru).format(c.time).replaceFirstChar { it.uppercase() }.take(2), WbMinutes[i],
+        if (back == 0) "сегодня" else if (back == 1) "вчера" else java.text.SimpleDateFormat("EEEE", ru).format(c.time))
+}
 private class WbSplit(val name: String, val l: String, val c: Color, val f: Float)
-private val WbSplits = listOf(WbSplit("Kotlin-клуб", "K", Kx.accentDeep, .34f), WbSplit("Мама", "М", Color(0xFFB07A2E), .22f), WbSplit("Каналы", "К", Color(0xFF2F6E9E), .26f), WbSplit("Анна", "А", Color(0xFFC0443C), .18f))
+private val WbSplits = listOf(WbSplit("Kotlin-клуб", "K", Kx.accentDeep, .34f), WbSplit("Мама", "М", Color(0xFFB07A2E), .22f), WbSplit("Дмитрий", "Д", Color(0xFF2F6E9E), .26f), WbSplit("Анна", "А", Color(0xFFC0443C), .18f))
 private val WbLimits = listOf("Нет" to 0, "45 мин" to 45, "1 час" to 60, "1,5 ч" to 90)
 private fun hm(m: Int) = if (m >= 60) (if (m % 60 == 0) "${m / 60} ч" else "${m / 60} ч ${m % 60} мин") else "$m мин" // «1 ч», not «1 ч 0 мин»
 
@@ -52,8 +58,9 @@ fun WellbeingScreen(ctx: KxScreenCtx) {
     var breakR by remember { mutableStateOf(true) }
     var night by remember { mutableStateOf(false) }
     val max = 130f
-    val d = WbDays[day]
-    val avg = Math.round(WbDays.sumOf { it.second } / 7.0).toInt()
+    val days = remember { WbDays }
+    val d = days[day]
+    val avg = Math.round(days.sumOf { it.second } / 7.0).toInt()
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             ExBar("Время в kiroX", { ctx.back() })
@@ -75,9 +82,9 @@ fun WellbeingScreen(ctx: KxScreenCtx) {
                         modifier = Modifier.padding(top = 4.dp))
                     Box(Modifier.padding(top = 16.dp).fillMaxWidth().height(130.dp)) {
                         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
-                            WbDays.forEachIndexed { i, (wd, m, name) ->
+                            days.forEachIndexed { i, (wd, m, name) ->
                                 val over = limit > 0 && m > limit; val on = day == i
-                                val c by animateColorAsState(if (on) (if (over) Kx.warning else Kx.accent) else if (over) Kx.warning.copy(alpha = .4f) else Kx.accent.copy(alpha = .35f), tween(200), label = "bc")
+                                val c by animateColorAsState(if (on) (if (over) Kx.warning else Kx.accent) else if (over) Kx.warning.copy(alpha = .62f) else Kx.accent.copy(alpha = .35f), tween(200), label = "bc")
                                 val g = enter(600, i * 50, KxMotion.rise)
                                 Column(Modifier.weight(1f).fillMaxHeight().kxClick("$name: ${hm(m)}") { day = i }, verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Bottom),
                                     horizontalAlignment = Alignment.CenterHorizontally) {
@@ -95,18 +102,23 @@ fun WellbeingScreen(ctx: KxScreenCtx) {
                             Text("лимит ${hm(limit)}", style = ts(11.sp, color = Kx.warning), modifier = Modifier.align(Alignment.BottomEnd).offset(y = -y).padding(bottom = 2.dp))
                         }
                     }
-                    Text("Нажмите на день, чтобы посмотреть подробнее", style = ts(11.sp, color = Kx.text4), modifier = Modifier.padding(top = 6.dp))
+                    Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (limit > 0) { Box(Modifier.size(10.dp).clip(RoundedCornerShape(2.dp)).background(Kx.warning)); Text("выше лимита", style = ts(11.sp, color = Kx.text3)) }
+                        Text((if (limit > 0) "· " else "") + "нажмите на день, чтобы посмотреть подробнее", style = ts(11.sp, color = Kx.text4))
+                    }
                 }
                 Text("Где проводили время · ${d.third}", style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 8.dp))
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp)).padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    WbSplits.forEach { w ->
+                    // The rows add up to the day total (the last row takes the rounding rest).
+                    val parts = WbSplits.dropLast(1).map { Math.round(d.second * it.f) }.let { it + (d.second - it.sum()) }
+                    WbSplits.forEachIndexed { wi, w ->
                         Row(Modifier.exIn(250, dy = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             ExLetter(w.l, 34.dp, w.c, font = 13.sp, ink = Kx.text)
                             Column(Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.Bottom) {
                                     Text(w.name, style = ts(14.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
-                                    Text(hm(Math.round(d.second * w.f)), style = ts(13.sp, color = Kx.text2).copy(fontFeatureSettings = "tnum"))
+                                    Text(hm(parts[wi]), style = ts(13.sp, color = Kx.text2).copy(fontFeatureSettings = "tnum"))
                                 }
                                 Box(Modifier.padding(top = 4.dp).fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Kx.w(.06f))) {
                                     Box(Modifier.fillMaxWidth(w.f / .34f).fillMaxHeight().clip(RoundedCornerShape(0.dp, 3.dp, 3.dp, 0.dp)).background(Kx.accent))

@@ -37,7 +37,7 @@ import com.kirox.app.ui.v3.components.topHighlight
 import com.kirox.app.ui.v3.theme.*
 import com.kirox.app.ui.v3.model.*
 
-private val DND_DURS = listOf("1 час", "3 часа", "До утра", "Пока не выключу")
+private val DND_DURS = listOf("1 час", "3 часа", "До утра", "Бессрочно")
 private val DND_PEOPLE = listOf(Triple("Мама", "М", Color(0xFFB07A2E)), Triple("Анна", "А", Color(0xFFC0443C)), Triple("Папа", "П", Color(0xFF2F6E9E)),
     Triple("Дмитрий", "Д", Color(0xFF6A4C9C)), Triple("Работа", "Р", Color(0xFF5C6661)), Triple("Алекс", "А", Color(0xFF3F9A6C)))
 private val DND_INKS = listOf(Color(0xFFB07A2E), Color(0xFFC0443C), Color(0xFF2F6E9E), Color(0xFF6A4C9C), Color(0xFF5C6661), Color(0xFF3F9A6C), Color(0xFF2E7A7A))
@@ -132,11 +132,12 @@ fun DndScreen(ctx: KxScreenCtx) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 DND_DURS.forEachIndexed { i, label ->
                     val sel = dur == i
-                    val bg by animateColorAsState(if (sel) (if (on) Violet.copy(alpha = .16f) else Kx.accent.copy(alpha = .14f)) else Kx.w(.05f), tween(200), label = "b")
-                    val bd by animateColorAsState(if (sel) (if (on) Violet.copy(alpha = .45f) else Kx.accent.copy(alpha = .45f)) else Kx.w(.08f), tween(200), label = "d")
+                    // critique-B: a filled chip only while «Не беспокоить» is on; off, the chosen period is just outlined.
+                    val bg by animateColorAsState(if (sel && on) Violet.copy(alpha = .16f) else Kx.w(.05f), tween(200), label = "b")
+                    val bd by animateColorAsState(if (sel) (if (on) Violet.copy(alpha = .45f) else Kx.w(.3f)) else Kx.w(.08f), tween(200), label = "d")
                     val shape = RoundedCornerShape(16.dp)
                     Box(Modifier.weight(1f).height(44.dp).clip(shape).background(bg).border(1.dp, bd, shape).kxClick(role = Role.RadioButton) { store.putPref(P.DND_DUR, i); if (on) { val cal = java.util.Calendar.getInstance(); store.putPref(P.DND_UNTIL, com.kirox.app.ui.v3.data.KxAccountMapping.dndUntil(i, nowSec, cal.get(java.util.Calendar.HOUR_OF_DAY), cal.get(java.util.Calendar.MINUTE), to).toInt()) } }, contentAlignment = Alignment.Center) {
-                        Text(label, style = KxType.style(13.sp, FontWeight.Bold, if (sel) acc else Kx.text2), textAlign = TextAlign.Center)
+                        Text(label, style = KxType.style(13.sp, FontWeight.Bold, if (sel && on) acc else if (sel) Kx.text else Kx.text2), textAlign = TextAlign.Center, maxLines = 1)
                     }
                 }
             }
@@ -170,8 +171,8 @@ fun DndScreen(ctx: KxScreenCtx) {
                 Box(Modifier.padding(top = 12.dp, bottom = 4.dp).fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
                 if (!demo) Text("Звонки «Не беспокоить» не глушит: они звонят как обычно. Сообщения приходят без звука и вибрации.",
                     style = KxType.style(12.sp, color = Kx.text4, lineHeight = 17.sp), modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp))
-                if (demo) listOf(Triple(Icons.Outlined.Call, "Звонки от избранных", "Звонок пройдёт, даже если сообщения молчат"),
-                    Triple(Icons.Outlined.Replay, "Повторный звонок", "Если звонят второй раз за 3 минуты — пропустим")).forEachIndexed { i, (ic, label, sub) ->
+                if (demo) listOf(Triple(Icons.Outlined.Call, "Звонки от выбранных людей", "Звонок пройдёт, даже если сообщения молчат"),
+                    Triple(Icons.Outlined.Replay, "Повторный звонок", "Пропустить второй звонок от того же человека за 3 минуты")).forEachIndexed { i, (ic, label, sub) ->
                     val v = if (i == 0) calls else repeatC
                     Row(Modifier.fillMaxWidth().kxClick(role = Role.Switch) { store.togglePref(if (i == 0) P.DND_CALLS else P.DND_REPEAT) }.padding(horizontal = 4.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -195,13 +196,14 @@ fun DndScreen(ctx: KxScreenCtx) {
                 if (sched) Column(Modifier.padding(top = 14.dp).tRise(0, 200, 8.dp)) {
                     val wraps = from > to
                     val bar = if (on) Brush.horizontalGradient(listOf(VioletDeep, Color(0xFF9C88F0))) else Brush.horizontalGradient(listOf(Kx.accentDeep, Kx.accentMid))
-                    BoxWithConstraints(Modifier.fillMaxWidth().height(34.dp).clip(RoundedCornerShape(17.dp)).background(Kx.w(.06f))) {
+                    // critique-B: hour labels above the bar (they sat on the fill); a range over midnight is two segments, 18→24 and 0→to.
+                    Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        listOf("0:00", "6:00", "12:00", "18:00", "24:00").forEach { Text(it, style = KxType.style(11.sp, color = Kx.text4)) }
+                    }
+                    BoxWithConstraints(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp)).background(Kx.w(.06f))) {
                         val w = maxWidth
-                        Box(Modifier.offset(x = w * (from / 24f)).width(w * ((if (wraps) 24 - from else to - from).coerceAtLeast(0) / 24f)).fillMaxHeight().background(bar))
-                        if (wraps) Box(Modifier.width(w * (to / 24f)).fillMaxHeight().background(bar))
-                        Row(Modifier.matchParentSize().padding(horizontal = 10.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            listOf("0", "6", "12", "18", "24").forEach { Text(it, style = KxType.style(11.sp, color = Kx.text4)) }
-                        }
+                        Box(Modifier.offset(x = w * (from / 24f)).width(w * ((if (wraps) 24 - from else to - from).coerceAtLeast(0) / 24f)).fillMaxHeight().clip(RoundedCornerShape(7.dp)).background(bar))
+                        if (wraps) Box(Modifier.width(w * (to / 24f)).fillMaxHeight().clip(RoundedCornerShape(7.dp)).background(bar))
                     }
                     Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("С" to 0, "До" to 1).forEach { (label, k) ->
@@ -222,4 +224,4 @@ fun DndScreen(ctx: KxScreenCtx) {
 }
 
 @Composable
-private fun DndSwitch(v: Boolean, night: Boolean) = TSwitch(v, if (night) VioletDeep else Kx.accentDeep, Kx.w(.14f), 48.dp, 28.dp, 22.dp, Kx.text, Kx.text3, shadow = false)
+private fun DndSwitch(v: Boolean, night: Boolean) = com.kirox.app.ui.v3.components.KxSwitch(v, onTint = if (night) VioletDeep else null)

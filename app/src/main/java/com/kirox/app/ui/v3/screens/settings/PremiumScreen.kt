@@ -83,14 +83,12 @@ fun PremiumScreen(ctx: KxScreenCtx) {
         })
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.w(.08f)).border(1.dp, Kx.w(.12f), CircleShape).kxClick("Назад", onClick = ctx.back), contentAlignment = Alignment.Center) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = Kx.text)
-                }
+                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Spacer(Modifier.weight(1f))
                 Row(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.08f)).padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Rounded.Star, null, Modifier.size(18.dp), tint = Color(0xFFFFD27A))
-                    Text("$stars", style = KxType.style(14.sp, FontWeight.ExtraBold))
+                    Text("Звёзды: $stars", style = KxType.style(14.sp, FontWeight.ExtraBold))
                 }
             }
             Column(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -100,7 +98,7 @@ fun PremiumScreen(ctx: KxScreenCtx) {
             }
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 PFeats.forEachIndexed { i, f ->
-                    Row(Modifier.sRise(i * 40, 400).fillMaxWidth().height(50.dp).clip(groupShape(i, PFeats.size, 18.dp)).background(TileBg).padding(horizontal = 12.dp),
+                    Row(Modifier.sRise(i * 40, 400).fillMaxWidth().height(50.dp).kxGroupItem(groupShape(i, PFeats.size, 18.dp), TileBg, 56.dp).padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(Modifier.size(32.dp).clip(RoundedCornerShape(11.dp)).background(f.bg), contentAlignment = Alignment.Center) { Icon(f.icon, null, Modifier.size(18.dp), tint = f.ink) }
                         Column(Modifier.weight(1f)) {
@@ -266,8 +264,12 @@ private fun BotButton(modifier: Modifier, reduced: Boolean, onClick: () -> Unit)
         Box(Modifier.width(40.dp).fillMaxHeight().graphicsLayer { translationX = shine.value * 40.dp.toPx(); rotationZ = 0f; transformOrigin = androidx.compose.ui.graphics.TransformOrigin.Center }
             .drawBehind { drawRect(Brush.horizontalGradient(listOf(Color.Transparent, Kx.w(.35f), Color.Transparent))) })
         Row(Modifier.matchParentSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-            Icon(Icons.Rounded.SmartToy, null, Modifier.size(20.dp), tint = Kx.text); Spacer(Modifier.width(8.dp))
-            Text("Через @PremiumBot", style = KxType.style(15.sp, FontWeight.ExtraBold))
+            Icon(Icons.Rounded.Star, null, Modifier.size(20.dp), tint = Kx.text); Spacer(Modifier.width(8.dp))
+            // critique-B: the action, not the mechanism; «откроется официальный бот» is said right under the buttons.
+            Column {
+                Text("Подключить Premium", style = KxType.style(15.sp, FontWeight.ExtraBold), maxLines = 1)
+                Text("откроется официальный бот", style = KxType.style(11.sp, color = Kx.w(.8f)), maxLines = 1)
+            }
         }
     }
 }

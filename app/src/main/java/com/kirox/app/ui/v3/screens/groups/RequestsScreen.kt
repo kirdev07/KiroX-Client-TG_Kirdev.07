@@ -41,7 +41,7 @@ private data class RReq(val name: String, val l: String, val c: Color, val meta:
                         val chatId: Long = 0, val userId: Long = 0, val avatar: String? = null)
 private val RColors = listOf(Color(0xFF2F6E9E), Color(0xFFC0443C), Color(0xFF3F9A6C), Color(0xFFB07A2E), Color(0xFF6A4C9C), Color(0xFF2E6B66), Color(0xFF5C6661))
 private val RReqs = listOf(
-    RReq("Ерлан Сейтов", "Е", Color(0xFF2F6E9E), "@erlan_s · нет фото · 2 общие группы", "Здравствуйте! Я от Олега, по поводу ремонта на Абая. Удобно созвониться завтра?", mutual = 2),
+    RReq("Ерлан Сейтов", "Е", Color(0xFF2F6E9E), "@erlan_s · нет фото", "Здравствуйте! Я от Олега, по поводу ремонта на Абая. Удобно созвониться завтра?", mutual = 2),
     RReq("Crypto Bonus", "C", Color(0xFF5C6661), "нет общих чатов · нет фото", "Вы выиграли 500$! Перейдите по ссылке, чтобы забрать приз 🎁", risky = true, media = "Ссылка скрыта"),
     RReq("Дана", "Д", Color(0xFFC0443C), "@dana_m · из группы «Kotlin-клуб»", "Привет! Твой доклад на митапе — огонь. Можно пару вопросов про Compose?", mutual = 1, media = "1 фото скрыто"),
 )
@@ -140,9 +140,20 @@ fun RequestsScreen(ctx: KxScreenCtx) {
                                 Text(r.media, style = KxType.style(12.sp, color = Kx.text3))
                             }
                             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                RBtn(Icons.Outlined.Block, "Блок", Modifier.weight(1f), bg = Color(0x1FE5534B), ink = Kx.danger) { if (dir == null) { if (demo) leaving[i] = 3 else ask = i to 3 } }
-                                RBtn(Icons.Outlined.Delete, "Удалить", Modifier.weight(1f), bg = Kx.w(.07f), ink = Kx.text, weight = FontWeight.Bold) { if (dir == null) { if (demo) leaving[i] = 2 else ask = i to 2 } }
-                                RBtn(Icons.Rounded.Check, "Принять", Modifier.weight(1f), brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent) { if (dir == null) leaving[i] = 1 }
+                                val onBlock = { if (dir == null) { if (demo) leaving[i] = 3 else ask = i to 3 } }
+                                val onDelete = { if (dir == null) { if (demo) leaving[i] = 2 else ask = i to 2 } }
+                                val onAccept = { if (dir == null) leaving[i] = 1 }
+                                if (r.risky) {
+                                    // critique-C P1: spam-looking → «Заблокировать» is the filled action, «Принять» quiet.
+                                    RBtn(Icons.Rounded.Check, "Принять", Modifier.weight(1f), bg = Kx.w(.07f), ink = Kx.text, weight = FontWeight.Bold, onClick = onAccept)
+                                    RBtn(Icons.Outlined.Delete, "Удалить", Modifier.weight(1f), bg = Kx.w(.07f), ink = Kx.text, weight = FontWeight.Bold, onClick = onDelete)
+                                    RBtn(Icons.Outlined.Block, "Заблокировать", Modifier.weight(1.4f), bg = Kx.dangerSolid, ink = Color.White, onClick = onBlock)
+                                } else {
+                                    Box(Modifier.kxHitClick("Заблокировать", CircleShape, onClick = onBlock).size(44.dp).clip(CircleShape).background(Color(0x1FE5534B)),
+                                        contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Block, null, Modifier.size(20.dp), tint = Kx.danger) }
+                                    RBtn(Icons.Outlined.Delete, "Удалить", Modifier.weight(1f), bg = Kx.w(.07f), ink = Kx.text, weight = FontWeight.Bold, onClick = onDelete)
+                                    RBtn(Icons.Rounded.Check, "Принять", Modifier.weight(1.4f), brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent, onClick = onAccept)
+                                }
                             }
                         }
                     }
@@ -168,10 +179,10 @@ fun RequestsScreen(ctx: KxScreenCtx) {
 
 @Composable
 private fun RBtn(icon: ImageVector, label: String, modifier: Modifier, bg: Color = Color.Transparent, brush: Brush? = null, ink: Color, weight: FontWeight = FontWeight.ExtraBold, onClick: () -> Unit) {
-    Row(modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).then(if (brush != null) Modifier.background(brush) else Modifier.background(bg)).kxClick(label, onClick = onClick),
+    Row(modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).then(if (brush != null) Modifier.background(brush) else Modifier.background(bg)).kxClick(label, onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, Modifier.size(17.dp), tint = ink)
-        Text(label, style = KxType.style(12.sp, weight, ink))
+        Text(label, style = KxType.style(12.sp, weight, ink), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
     }
 }
 

@@ -91,7 +91,7 @@ internal fun UpdateReal(ctx: KxScreenCtx, updates: UpdateCenter) {
                             Text(release.version, style = KxType.style(14.sp, FontWeight.ExtraBold, Kx.accent))
                         }
                     }
-                    val info = listOfNotNull(release?.apkSize?.takeIf { it > 0 }?.let(::w6Bytes), release?.let { if (it.prerelease) "бета" else "релиз" },
+                    val info = listOfNotNull(release?.apkSize?.takeIf { it > 0 }?.let(::w6Bytes), release?.let { if (it.prerelease) "бета" else "новая версия" },
                         if (release == null) (if (updates.currentVersion.contains('-')) "бета" else "стабильная") else null)
                     Text(info.joinToString(" · "), style = KxType.style(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 4.dp))
                     (s as? UpdateState.Failed)?.let { Text(it.message, style = KxType.style(13.sp, color = Kx.danger), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp)) }

@@ -35,9 +35,9 @@ import com.kirox.app.ui.v3.model.KxStore
 import com.kirox.app.ui.v3.model.pref
 import com.kirox.app.ui.v3.theme.*
 
-/** Settings tab (board "Настройки"): profile card, Premium + gifts, main rows, 2x2 tiles, ⋮ menu. */
+/** Settings tab (board "Настройки"): profile card, Premium + gifts, grouped rows with captions, ⋮ menu. */
 @Composable
-fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp = 110.dp) {
+fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp = kxBottomContentPadding()) {
     var menu by remember { mutableStateOf(false) }
     val me = store.me
     Box(Modifier.fillMaxSize()) {
@@ -52,6 +52,24 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
         Column(Modifier.weight(1f).fillMaxWidth().clipToBounds().verticalScroll(rememberScrollState()).padding(bottom = bottomPadding)) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ProfileCard(store, onOpen)
+                // design-critique B11–B14/A1/A3: one list of grouped cards with captions; tiles by group colour
+                // (security = green, look = purple, data = blue, kiroX = green, help = neutral); no 2-column tile grid.
+                Column(Modifier.kxRise(180)) {
+                    KxGroupCaption("Аккаунт и безопасность")
+                    KxGroup {
+                        SetRow(Icons.Rounded.Notifications, "Уведомления и звуки", KxTint.security) { onOpen("Notify") }
+                        SetRow(Icons.Rounded.Lock, "Конфиденциальность", KxTint.security) { onOpen("Privacy") }
+                        SetRow(Icons.Rounded.Shield, "Защита kiroX", KxTint.security) { onOpen("Shield") } // shield: hub entry
+                    }
+                    KxGroupCaption("Приложение", Modifier.padding(top = 8.dp))
+                    KxGroup {
+                        SetRow(Icons.Rounded.Storage, "Данные и память", KxTint.data, store.storage?.totalBytes?.let { com.kirox.app.ui.v3.screens.settings.sBytes(it) }) { onOpen("Storage") }
+                        SetRow(Icons.Rounded.Palette, "Оформление", KxTint.look, com.kirox.app.ui.v3.screens.settings.CustomThemes[store.pref(com.kirox.app.ui.v3.model.KxPrefs.THEME).coerceIn(0, com.kirox.app.ui.v3.screens.settings.CustomThemes.lastIndex)].name) { onOpen("Custom") }
+                        // qa-real: «Язык» hidden in 1.0 (Russian only); «Специальные возможности» gets its own row.
+                        SetRow(Icons.Rounded.Accessibility, "Специальные возможности", KxTint.look) { onOpen("Access") }
+                    }
+                }
+                // critique-A: Premium + Подарки come after the main settings (not above them).
                 Row(Modifier.kxRise(120), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     PremiumButton(Modifier.weight(1.4f)) { onOpen("Premium") }
                     Row(Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.05f)).border(1.dp, Kx.fillHi, RoundedCornerShape(22.dp))
@@ -60,40 +78,14 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                         Column { Text("Подарки", style = KxType.style(15.sp, FontWeight.Bold)); Text("За звёзды", style = KxType.caption) }
                     }
                 }
-                Column(Modifier.kxRise(180), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    val rows = listOf(
-                        Row5(Icons.Rounded.Notifications, "Уведомления и звуки", null, Color(0xFF3B2A22), Color(0xFFFFB68F), "Notify"),
-                        Row5(Icons.Rounded.Lock, "Конфиденциальность", null, Color(0xFF1F2E40), Color(0xFFA9CBF5), "Privacy"),
-                        Row5(Icons.Rounded.Shield, "Защита kiroX", null, Color(0xFF1F3A2C), Color(0xFF8FD3AC), "Shield"), // shield: hub entry
-                        Row5(Icons.Rounded.Storage, "Данные и память", store.storage?.totalBytes?.let { com.kirox.app.ui.v3.screens.settings.sBytes(it) }, Color(0xFF1E3333), Color(0xFF9FDCD6), "Storage"),
-                        Row5(Icons.Rounded.Palette, "Кастомизация", com.kirox.app.ui.v3.screens.settings.CustomThemes[store.pref(com.kirox.app.ui.v3.model.KxPrefs.THEME).coerceIn(0, com.kirox.app.ui.v3.screens.settings.CustomThemes.lastIndex)].name, Color(0xFF1F3A2C), Color(0xFF8FD3AC), "Custom"),
-                        // qa-real: «Язык» hidden in 1.0 (Russian only); «Специальные возможности» gets its own row.
-                        Row5(Icons.Rounded.Accessibility, "Специальные возможности", null, Color(0xFF2E2A3D), Color(0xFFCFC2F2), "Access"),
-                    )
-                    rows.forEachIndexed { i, r ->
-                        val shape = when (i) { 0 -> RoundedCornerShape(22.dp, 22.dp, 6.dp, 6.dp); rows.lastIndex -> RoundedCornerShape(6.dp, 6.dp, 22.dp, 22.dp); else -> RoundedCornerShape(6.dp) }
-                        Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).clip(shape).background(Kx.w(.045f)).kxClick { onOpen(r.route) }.padding(horizontal = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(r.bg), contentAlignment = Alignment.Center) { Icon(r.icon, null, Modifier.size(20.dp), tint = r.fg) }
-                            Text(r.title, style = KxType.style(15.sp, FontWeight.Normal), modifier = Modifier.weight(1f))
-                            // the value gives way first (ellipsis) so a large system font does not break the title mid-word
-                            r.value?.let { Text(it, style = KxType.style(13.sp, color = Kx.text4), modifier = Modifier.widthIn(max = 100.dp), maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.End) }
-                            Icon(Icons.Rounded.ChevronRight, null, Modifier.size(20.dp), tint = Kx.text4)
-                        }
+                com.kirox.app.ui.v3.features.KxFeatureSettingsSection(store, onOpen) // features: «Функции kiroX» group (+ Музыка, Режим призрака)
+                Column(Modifier.kxRise(300)) {
+                    KxGroupCaption("kiroX")
+                    KxGroup {
+                        SetRow(Icons.Rounded.HelpOutline, "Помощь", KxTint.neutral) { onOpen("Help") }
+                        SetRow(androidx.compose.material.icons.Icons.Outlined.Info, "О приложении", KxTint.neutral, com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-')) { onOpen("WhatsNew") }
                     }
                 }
-                Column(Modifier.kxRise(240), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Tile(Icons.Rounded.MusicNote, "Музыка", Color(0xFFF2A6C0), Modifier.weight(1f)) { onOpen("Music") }
-                        Tile(Icons.Rounded.Bolt, "kiroX функции", Kx.accent, Modifier.weight(1f), green = true) { onOpen("Features") }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Tile(Icons.Rounded.HelpOutline, "Помощь", Kx.link, Modifier.weight(1f)) { onOpen("Help") }
-                        Tile(androidx.compose.material.icons.Icons.Outlined.Info, "О приложении", Color(0xFFFFD58A), Modifier.weight(1f), corner = com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-')) { onOpen("WhatsNew") }
-                    }
-                }
-                com.kirox.app.ui.v3.features.KxFeatureSettingsSection(store, onOpen) // features: «Функции kiroX» rows
             }
         }
         }
@@ -113,7 +105,10 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
     }
 }
 
-private data class Row5(val icon: ImageVector, val title: String, val value: String?, val bg: Color, val fg: Color, val route: String)
+/** One Settings row (inside a KxGroup): tinted icon tile, title, value that drops under the title when short, chevron. */
+@Composable
+private fun SetRow(icon: ImageVector, title: String, tint: Color, value: String? = null, onClick: () -> Unit) =
+    com.kirox.app.ui.v3.screens.settings.SNavRow(icon, title, null, RoundedCornerShape(0.dp), tint = tint, value = value, onClick = onClick)
 
 @Composable
 private fun GlassRound(icon: ImageVector, label: String, onClick: () -> Unit) {
@@ -139,7 +134,9 @@ private fun ProfileCard(store: KxStore, onOpen: (String) -> Unit) {
             }
             Column(Modifier.weight(1f)) {
                 KxLine(me.name, KxType.style(20.sp, FontWeight.Bold))
-                KxLine(listOf(me.phone, if (me.username.isNotEmpty()) "@${me.username}" else "").filter { it.isNotEmpty() }.joinToString(" · "), KxType.style(14.sp, color = Color(0xFFA6B5AC)))
+                // B13: username and phone each on their own line (no «@demon6…» cut).
+                if (me.username.isNotEmpty()) KxLine("@${me.username}", KxType.style(14.sp, FontWeight.SemiBold, Kx.accent))
+                if (me.phone.isNotEmpty()) KxLine(me.phone, KxType.style(13.sp, color = Color(0xFFA6B5AC)))
             }
             Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(Color.Black.copy(alpha = .25f)).kxClick("Мой QR-код") { onOpen("MyQr") }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.QrCode2, null, tint = Color(0xFFC8F0D8))
@@ -152,7 +149,7 @@ private fun ProfileCard(store: KxStore, onOpen: (String) -> Unit) {
                 Icon(Icons.Rounded.Edit, null, Modifier.size(18.dp), tint = Kx.text)
                 Text("Изменить профиль", style = KxType.style(13.sp, FontWeight.SemiBold), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             } }
-            Text("Аккаунты", style = KxType.caption, maxLines = 1)
+            // critique-A: no «Аккаунты» caption here — it squeezed «Изменить профиль» to «Изменить проф…» (the avatars keep the label for TalkBack).
             Row(Modifier.padding(start = 2.dp).kxClick("Аккаунты") { onOpen("Accounts") }) {
                 store.accounts.forEachIndexed { i, a ->
                     val sw = if (i == 0) KxAvatarPalette.Swatch(Color(0xFF3E7A5A), Color(0xFF173A28), Color(0xFFDDF5E5)) else KxAvatarPalette.Swatch(Color(0xFF3C7BD0), Color(0xFF142A4A), Color(0xFFD6E6FF))
@@ -182,19 +179,5 @@ private fun PremiumButton(modifier: Modifier, onClick: () -> Unit) {
             Icon(Icons.Rounded.Star, null, tint = Color(0xFFFFE38A))
             Column { Text("Premium", style = KxType.style(15.sp, FontWeight.Bold)); Text("Статусы, подарки", style = KxType.style(12.sp, color = Color(0xFFE2DAFF))) }
         }
-    }
-}
-
-@Composable
-private fun Tile(icon: ImageVector, title: String, tint: Color, modifier: Modifier, green: Boolean = false, corner: String? = null, onClick: () -> Unit) {
-    Column(modifier.height(74.dp).clip(RoundedCornerShape(22.dp))
-        .background(if (green) Brush.linearGradient(listOf(Color(0x383F9A6C), Kx.w(.03f))) else Brush.linearGradient(listOf(Kx.w(.045f), Kx.w(.045f))))
-        .then(if (green) Modifier.border(1.dp, Kx.accent.copy(alpha = .16f), RoundedCornerShape(22.dp)) else Modifier)
-        .kxClick(onClick = onClick).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, Modifier.size(22.dp), tint = tint)
-            corner?.let { Text(it, style = KxType.tiny) }
-        }
-        Text(title, style = KxType.style(14.sp, FontWeight.SemiBold))
     }
 }

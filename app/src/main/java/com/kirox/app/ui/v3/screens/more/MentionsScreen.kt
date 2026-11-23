@@ -62,6 +62,9 @@ fun MentionsScreen(ctx: KxScreenCtx) {
     var flash by remember { mutableIntStateOf(-1) }
     var f by remember { mutableIntStateOf(0) }
     var down by remember { mutableStateOf(false) }
+    // critique-A: the hint is a one-time tip that hides itself after 4 s.
+    var hint by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(4000); hint = false }
     val leftAt = MN_AT.filter { it !in seenAt }
     val ys = remember { mutableStateMapOf<Int, Float>() }
     var colH by remember { mutableFloatStateOf(0f) }
@@ -85,7 +88,7 @@ fun MentionsScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Column(Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (!seenReact) MnFab("К новым реакциям", glass = true, badge = "3", badgeBg = Color(0xFFF07AA0), badgeInk = Color.White, onClick = { seenReact = true; down = false; go(4) }) {
+                    if (!seenReact) MnFab("К новым реакциям", glass = true, badge = "3", badgeBg = Kx.accentDeep, badgeInk = Color.White, onClick = { seenReact = true; down = false; go(4) }) {
                         Text("❤️", style = mts(22))
                     }
                     if (leftAt.isNotEmpty()) MnFab("К следующему упоминанию", glass = false, badge = "${leftAt.size}", badgeBg = Kx.text, badgeInk = MoInk, badgeKey = leftAt.size,
@@ -93,7 +96,7 @@ fun MentionsScreen(ctx: KxScreenCtx) {
                     MnFab("Вниз к новым", glass = true, badge = if (!down) "12" else null, badgeBg = Kx.accentDeep, badgeInk = Color.White, badgeMin = 22.dp, pop = false,
                         onClick = { down = true; flash = -1 }) { Icon(Icons.Outlined.KeyboardArrowDown, null, Modifier.size(24.dp), tint = Kx.text) }
                 }
-                if (leftAt.size == MN_AT.size && !seenReact) Box(Modifier.align(Alignment.BottomStart).padding(start = 14.dp, bottom = 18.dp).widthIn(max = 220.dp).moIn(300, dy = 10.dp)
+                if (hint && leftAt.size == MN_AT.size && !seenReact) Box(Modifier.align(Alignment.BottomStart).padding(start = 14.dp, bottom = 18.dp).widthIn(max = 220.dp).moIn(300, dy = 10.dp)
                     .clip(RoundedCornerShape(16.dp)).background(Color(0xFF1A241F)) /* solid: accent .12 over bg, so messages behind do not show through */.border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(16.dp))
                     .padding(horizontal = 12.dp, vertical = 10.dp)) {
                     Text("Вас упомянули 3 раза. Нажмите @ — kiroX пролистает к каждому упоминанию по очереди", style = mts(12, color = Color(0xFFC9E8D5)))

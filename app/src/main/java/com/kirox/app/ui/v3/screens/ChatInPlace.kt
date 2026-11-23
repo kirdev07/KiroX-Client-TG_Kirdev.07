@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens
 
+import com.kirox.app.ui.v3.screens.media.mSheetDrag
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -68,7 +69,7 @@ internal fun InChatSheet(onDismiss: () -> Unit, title: String? = null, sub: Stri
     LaunchedEffect(Unit) { y.animateTo(0f, tween(280, easing = KxMotion.rise)) }
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(Color(0x99050706)).kxClick("Закрыть", onClick = onDismiss))
-        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
+        Column(Modifier.align(Alignment.BottomCenter).mSheetDrag(onDismiss).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
             .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(SheetBg)
             .drawBehind { drawLine(Kx.w(.12f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }
             .clickable(interactionSource = null, indication = null) {}.navigationBarsPadding().imePadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 16.dp)) {
@@ -78,7 +79,7 @@ internal fun InChatSheet(onDismiss: () -> Unit, title: String? = null, sub: Stri
                     Text(title, style = KxType.style(18.sp, FontWeight.ExtraBold), maxLines = 1)
                     if (sub != null) Text(sub, style = KxType.style(12.sp, color = Kx.text3), maxLines = 1)
                 }
-                Box(Modifier.size(36.dp).clip(CircleShape).background(Kx.fillHi).kxClick("Закрыть", onClick = onDismiss), contentAlignment = Alignment.Center) {
+                Box(Modifier.kxHitClick("Закрыть", onClick = onDismiss).size(36.dp).clip(CircleShape).background(Kx.fillHi), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.Close, null, Modifier.size(20.dp), tint = Kx.text)
                 }
             }
@@ -152,9 +153,10 @@ internal fun ChatForwardSheet(store: KxStore, fromChat: Long, ids: List<Long>, o
             if (shown.isEmpty()) Text("Чаты не найдены", style = KxType.style(14.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp))
         }
         if (sel.isNotEmpty()) {
-            Row(Modifier.padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                KxChip(if (hide) "Без автора" else "С автором", selected = hide) { hide = !hide }
-                if (hide) KxChip("Без подписи", selected = noCap) { noCap = !noCap }
+            // critique-C P2: fixed labels — switch rows whose text never changes with the state.
+            Column(Modifier.padding(bottom = 10.dp)) {
+                FwSwitchRow("Скрыть автора", hide) { hide = !hide }
+                if (hide) FwSwitchRow("Скрыть подпись", noCap) { noCap = !noCap }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SheetField(note, { note = it }, "Добавить комментарий", Modifier.weight(1f))
@@ -276,10 +278,10 @@ internal fun ChatTranslateSheet(on: Boolean, lang: Int, secret: Boolean, onSet: 
     InChatSheet(onDismiss, "Перевод чата", "Переводит Telegram, входящие сообщения на другом языке") {
         if (secret) Text("В секретных чатах Telegram не переводит сообщения.", style = KxType.style(14.sp, color = Kx.text3), modifier = Modifier.padding(vertical = 12.dp))
         else {
-            Row(Modifier.fillMaxWidth().heightIn(min = 54.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.05f)).kxClick(if (on) "Показать оригинал" else "Переводить чат") { onSet(!on, lang) }
+            Row(Modifier.fillMaxWidth().heightIn(min = 54.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.05f)).kxToggleState(on).kxClick("Переводить этот чат", androidx.compose.ui.semantics.Role.Switch) { onSet(!on, lang) }
                 .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Icon(Icons.Outlined.Translate, null, tint = Kx.accent)
-                Text(if (on) "Показать оригинал" else "Переводить сообщения", style = KxType.style(15.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
+                Text("Переводить этот чат", style = KxType.style(15.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
                 KxSwitchDot(on)
             }
             Text("Переводить на", style = KxType.style(12.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(top = 14.dp, bottom = 6.dp, start = 4.dp))
@@ -295,10 +297,14 @@ internal fun ChatTranslateSheet(on: Boolean, lang: Int, secret: Boolean, onSet: 
 }
 
 @Composable
-private fun KxSwitchDot(on: Boolean) {
-    Box(Modifier.size(46.dp, 28.dp).clip(RoundedCornerShape(14.dp)).background(if (on) Kx.accent else Kx.w(.15f)).padding(3.dp),
-        contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart) {
-        Box(Modifier.size(22.dp).clip(CircleShape).background(if (on) Kx.onAccent else Kx.text3))
+private fun KxSwitchDot(on: Boolean) = KxSwitch(on)
+
+@Composable
+private fun FwSwitchRow(title: String, on: Boolean, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).kxToggleState(on).kxClick(title, androidx.compose.ui.semantics.Role.Switch, onClick = onClick)
+        .padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, style = KxType.style(15.sp, FontWeight.SemiBold), modifier = Modifier.weight(1f))
+        KxSwitch(on)
     }
 }
 
@@ -429,7 +435,7 @@ internal fun ChatEmojiPanel(store: KxStore, chatId: Long, replyTo: Long?, height
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (mode) {
                 0 -> LazyVerticalGrid(GridCells.Fixed(8), Modifier.fillMaxSize().padding(horizontal = 6.dp)) {
-                    items(emojiSplitAll(EmojiCats[cat].chars)) { e ->
+                    items(emojiSplitAll(EmojiCats[cat].chars).kxRenderableEmoji()) { e -> // critique-A S: no tofu
                         Box(Modifier.height(42.dp).clip(RoundedCornerShape(10.dp)).kxClick(e) { onEmoji(e) }, contentAlignment = Alignment.Center) { Text(e, style = KxType.style(26.sp)) }
                     }
                 }

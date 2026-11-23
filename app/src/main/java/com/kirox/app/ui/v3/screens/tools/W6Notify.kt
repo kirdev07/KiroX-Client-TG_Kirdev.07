@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material3.Icon
@@ -235,22 +236,38 @@ fun NotifyExceptionsScreen(ctx: KxScreenCtx) {
             .onSuccess { l -> list = l.map { W6Exc(it.chatId, it.title, it.muted) } }
             .onFailure { failed = true; list = emptyList() }
     }
-    TScreen("Исключения", ctx.back, sub = list?.let { "${it.size} ${tPlural(it.size, "чат", "чата", "чатов")} со своими настройками" } ?: "Загрузка…") {
+    var adding by remember { mutableStateOf(false) }
+    TScreen("Исключения", ctx.back, sub = list?.let { "${it.size} ${tPlural(it.size, "чат", "чата", "чатов")} со своими настройками" } ?: "Загрузка…", overlay = {
+        // critique-B: «Добавить исключение» — pick a chat, then its own notification settings.
+        if (adding) TSheet({ adding = false }, "Добавить исключение") {
+            Text("Добавить исключение", style = KxType.style(18.sp, FontWeight.ExtraBold), modifier = Modifier.padding(bottom = 8.dp))
+            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                ctx.store.chats.filter { c -> list.orEmpty().none { it.chatId == c.id } }.take(40).forEach { c ->
+                    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(14.dp)).kxClick(c.title) { adding = false; ctx.open("ChatNotify:${c.id}") }
+                        .padding(horizontal = 6.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        KxAvatar(c.title, c.id, size = 40.dp)
+                        Text(c.title, style = KxType.style(15.sp), maxLines = 1, modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }) {
+        Row(Modifier.padding(bottom = 10.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(20.dp)).background(TTile).kxClick { adding = true }.padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(Icons.Rounded.Add, null, Modifier.size(22.dp), tint = Kx.accent)
+            Text("Добавить исключение", style = KxType.style(15.sp, FontWeight.SemiBold, Kx.accent))
+        }
         val l = list
         when {
             l == null -> THint("Загружаем исключения…", top = 16.dp)
-            l.isEmpty() -> Column(Modifier.fillMaxWidth().padding(top = 60.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Outlined.NotificationsNone, null, Modifier.size(44.dp), tint = Kx.text4)
-                Text(if (failed) "Не удалось загрузить исключения" else "Исключений нет", style = KxType.style(15.sp, FontWeight.Bold, Kx.text2), modifier = Modifier.padding(top = 8.dp))
-                Text(if (failed) "Проверьте соединение и откройте экран снова" else "Все чаты следуют общим настройкам", style = KxType.style(13.sp, color = Kx.text3),
-                    textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
-            }
+            l.isEmpty() -> KxEmpty(Icons.Outlined.NotificationsNone, if (failed) "Не удалось загрузить исключения" else "Исключений нет",
+                if (failed) "Проверьте соединение и откройте экран снова" else "Все чаты следуют общим настройкам", Modifier.padding(top = 36.dp))
             else -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 l.forEachIndexed { i, e ->
-                    Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(groupShape(i, l.size, 20.dp)).background(TTile).kxClick(e.title) { ctx.open("ChatNotify:${e.chatId}") }
+                    Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).kxGroupItem(groupShape(i, l.size, 20.dp), TTile, 68.dp).kxClick(e.title) { ctx.open("ChatNotify:${e.chatId}") }
                         .padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         val h = runCatching { ctx.store.header(e.chatId) }.getOrNull() // fixer-misc4: real photo like the chat list
-                        KxAvatar(e.title, e.chatId, size = 44.dp, colorIndex = h?.colorIndex ?: -1, photo = if (services != null) h?.avatar else null)
+                        KxAvatar(e.title, e.chatId, size = 44.dp, colorIndex = if (services != null) h?.colorIndex ?: -1 else -1, photo = if (services != null) h?.avatar else null) // critique-B: demo colours by id
                         Column(Modifier.weight(1f)) {
                             Text(e.title, style = KxType.style(15.sp, FontWeight.SemiBold), maxLines = 1)
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -261,7 +278,7 @@ fun NotifyExceptionsScreen(ctx: KxScreenCtx) {
                         Icon(Icons.Rounded.ChevronRight, null, Modifier.size(20.dp), tint = Kx.text4)
                     }
                 }
-                THint("Нажмите на чат, чтобы изменить или сбросить его настройки.")
+                THint("Нажмите на чат, чтобы изменить или сбросить его настройки. Сбросить все исключения сразу — в «Уведомлениях», внизу.")
             }
         }
     }

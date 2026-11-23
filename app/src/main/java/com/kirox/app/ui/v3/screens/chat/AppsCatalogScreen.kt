@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
@@ -92,7 +93,7 @@ fun AppsCatalogScreen(ctx: KxScreenCtx) {
                             val a = MApps[i]
                             Column(Modifier.width(64.dp).kxClick(a.name) { launch(i) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(Modifier.size(58.dp).clip(RoundedCornerShape(18.dp)).background(a.c), contentAlignment = Alignment.Center) { Icon(a.icon, null, Modifier.size(28.dp), tint = Color.White) }
-                                Text(a.name, style = ts(11, color = Kx.text2), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(a.name, style = ts(11, color = Kx.text2), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                             }
                         }
                     }

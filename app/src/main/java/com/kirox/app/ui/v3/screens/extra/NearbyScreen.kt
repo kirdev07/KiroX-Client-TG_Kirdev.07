@@ -55,7 +55,8 @@ fun NearbyScreen(ctx: KxScreenCtx) {
                 ExRoundBtn(Icons.AutoMirrored.Outlined.ArrowBack, "Назад") { ctx.back() }
                 Column(Modifier.weight(1f)) { Text("Группа рядом", style = ts(20.sp, FontWeight.ExtraBold)); Text("Для тех, кто сейчас в одной комнате", style = ts(12.sp, color = Kx.text3)) }
             }
-            Row(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 6.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.warning.copy(alpha = .1f))
+            // critique-B: the «idea» banner only on the demo store (a real account never reaches this board, see ExtraDevOnly).
+            if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) Row(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 6.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.warning.copy(alpha = .1f))
                 .border(1.dp, Kx.warning.copy(alpha = .35f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Outlined.Construction, null, Modifier.size(18.dp), tint = Kx.warning)
                 Text("Идея, не решено. Telegram убрал «Людей рядом», поэтому для этого экрана нужен свой сервер kiroX. Без него экран не делаем.", style = ts(12.sp, color = Color(0xFFF2D9A6), lh = 17.sp))
@@ -82,7 +83,7 @@ fun NearbyScreen(ctx: KxScreenCtx) {
                             Column(Modifier.layout { m, c ->
                                 val pl = m.measure(c.copy(minWidth = 0, minHeight = 0))
                                 layout(c.maxWidth, c.maxHeight) { pl.place((c.maxWidth * d.x - pl.width / 2f).toInt(), (c.maxHeight * d.y - pl.height / 2f).toInt()) }
-                            }.graphicsLayer { scaleX = p; scaleY = p }.kxClick(d.name + if (on) ", выбран(а)" else "") { if (!done) pick[i] = !on },
+                            }.graphicsLayer { scaleX = p; scaleY = p }.kxClick(d.name + if (on) ", выбрано" else "") { if (!done) pick[i] = !on },
                                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Box(Modifier.size(54.dp).then(if (on) Modifier.border(2.dp, Kx.accent, CircleShape) else Modifier).padding(3.dp)) { ExLetter(d.l, 48.dp, d.c, font = 18.sp, ink = Kx.text) }
                                 Text(d.name, style = ts(11.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text2))

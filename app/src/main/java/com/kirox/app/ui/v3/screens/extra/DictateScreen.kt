@@ -98,7 +98,7 @@ fun DictateScreen(ctx: KxScreenCtx) {
                         Text(if (on) "Слушаю" else if (can) "Готово — можно отправить" else "Пауза", style = ts(12.sp, FontWeight.Bold, ink))
                     }
                     Spacer(Modifier.weight(1f))
-                    listOf("RU" to "ru", "KZ" to "kk").forEach { (label, k) ->
+                    listOf("Русский" to "ru", "Қазақша" to "kk").forEach { (label, k) ->
                         Box(Modifier.height(28.dp).clip(RoundedCornerShape(14.dp)).background(if (lang == k) Kx.accent.copy(alpha = .16f) else Kx.w(.05f))
                             .kxClick(label) { lang = k; n = 0; on = demo }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                             Text(label, style = ts(12.sp, FontWeight.Bold, if (lang == k) Kx.accent else Kx.text3))
@@ -118,7 +118,11 @@ fun DictateScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Row(Modifier.padding(top = 14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    ExRoundBtn(Icons.AutoMirrored.Outlined.Backspace, "Стереть", size = 52.dp, bg = Kx.w(.07f), border = null, tint = Kx.text2) { n = (n - 1).coerceAtLeast(0) }
+                    // critique-B: labelled controls — erase the last word, cancel the whole dictation.
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        ExRoundBtn(Icons.AutoMirrored.Outlined.Backspace, "Стереть слово", size = 52.dp, bg = Kx.w(.07f), border = null, tint = Kx.text2) { n = (n - 1).coerceAtLeast(0) }
+                        Text("Стереть слово", style = ts(11.sp, color = Kx.text3))
+                    }
                     Box(Modifier.size(84.dp), contentAlignment = Alignment.Center) {
                         if (on) {
                             val r = kfLoop(1400, label = "ring")
@@ -141,10 +145,12 @@ fun DictateScreen(ctx: KxScreenCtx) {
                     Box(Modifier.size(52.dp).clip(CircleShape).background(Kx.w(.07f)).drawBehind {
                         drawRect(Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep), cssAngleStart(135f, size), cssAngleEnd(135f, size)), alpha = sa)
                     }.kxClick("Отправить текстом") { if (can) { sent.add(words.joinToString(" ")); n = 0; on = false } }, contentAlignment = Alignment.Center) {
-                        Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(24.dp), tint = if (can) Kx.onAccent else Color(0xFF5C6661))
+                        Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(24.dp), tint = if (can) Kx.onAccent else Kx.text4)
                     }
                 }
                 Text("Распознаётся на телефоне · скажите «точка» или «вопрос»", style = ts(11.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 10.dp))
+                Text("Отмена", style = ts(14.sp, FontWeight.Bold, Kx.text2), modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 6.dp).clip(RoundedCornerShape(14.dp))
+                    .kxClick("Отменить диктовку") { n = 0; on = false; ctx.back() }.padding(horizontal = 16.dp, vertical = 10.dp))
             }
         }
     }

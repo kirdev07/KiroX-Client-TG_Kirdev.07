@@ -37,7 +37,7 @@ private const val VTotal = 760f
 private val Chapters = listOf(Triple(0f, "Вступление", "👋"), Triple(95f, "Зачем нужны корутины", "🤔"), Triple(240f, "launch и async", "🚀"),
     Triple(430f, "Отмена и таймауты", "⏱"), Triple(610f, "Тесты и итоги", "✅"))
 private val Speeds = listOf(.5f, 1f, 1.25f, 1.5f, 2f)
-private fun mm2(n: Float) = "${(n / 60).toInt().toString().padStart(2, '0')}:${(n % 60).toInt().toString().padStart(2, '0')}"
+private fun mm2(n: Float) = com.kirox.app.ui.v3.model.kxDuration(n.toInt()) // critique-C P2: m:ss everywhere
 
 /** Board «Видеоплеер»: video placeholder (slow pan), double-tap skip zones, chapter segments, speed, chapter list. */
 @Composable
@@ -51,6 +51,7 @@ private fun DemoVideoPlayerScreen(ctx: KxScreenCtx) {
     var t by remember { mutableFloatStateOf(262f) }
     var play by remember { mutableStateOf(true) }
     var sp by remember { mutableIntStateOf(1) }
+    var full by remember { mutableStateOf(false) }
     var bk by remember { mutableIntStateOf(0) }
     var fk by remember { mutableIntStateOf(0) }
     LaunchedEffect(play, sp) { while (play) { delay(250); t = minOf(VTotal, t + Speeds[sp] * .25f) } }
@@ -116,16 +117,19 @@ private fun DemoVideoPlayerScreen(ctx: KxScreenCtx) {
                 PBtn(Icons.Outlined.Forward10, "Вперёд на 10 секунд") { seek(t + 10); fk++ }
                 PBtn(Icons.Rounded.SkipNext, "Следующая глава") { seek(if (ci < Chapters.lastIndex) Chapters[ci + 1].first else VTotal) }
             }
-            Row(Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kx.w(.06f)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Speeds.forEachIndexed { i, v ->
-                    val on = sp == i
-                    Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(12.dp)).background(if (on) Kx.accent.copy(alpha = .2f) else Color.Transparent).kxClick { sp = i }, contentAlignment = Alignment.Center) {
-                        T((if (v == v.toInt().toFloat()) v.toInt().toString() else v.toString()).replace('.', ',') + "×", 13.sp, FontWeight.ExtraBold, if (on) Kx.accent else Kx.text3)
-                    }
+            // critique-C P3: speed is one chip (tap = next speed), like the music player; plus a fullscreen toggle.
+            Row(Modifier.padding(top = 10.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
+                val v = Speeds[sp]
+                val label = (if (v == v.toInt().toFloat()) v.toInt().toString() else v.toString()).replace('.', ',') + "×"
+                Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(if (v != 1f) Kx.accent.copy(alpha = .2f) else Kx.w(.08f))
+                    .kxClick("Скорость $label") { sp = (sp + 1) % Speeds.size }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
+                    T(label, 13.sp, FontWeight.ExtraBold, if (v != 1f) Kx.accent else Kx.text)
                 }
+                MRoundBtn(if (full) Icons.Outlined.FullscreenExit else Icons.Outlined.Fullscreen, if (full) "Выйти из полноэкранного режима" else "Во весь экран", size = 36.dp, iconSize = 20.dp,
+                    bg = Kx.w(.08f), border = null) { full = !full }
             }
         }
-        Column(Modifier.padding(top = 14.dp).weight(1f).fillMaxWidth().background(Kx.bg)) {
+        if (!full) Column(Modifier.padding(top = 14.dp).weight(1f).fillMaxWidth().background(Kx.bg)) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.08f)))
             Column(Modifier.verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 18.dp)) {
                 Text("Разбираем корутины на живом проекте. Главы:", style = ts(14.sp, color = Color(0xFFDDE5E0)).copy(lineHeight = 20.3.sp))
@@ -134,7 +138,7 @@ private fun DemoVideoPlayerScreen(ctx: KxScreenCtx) {
                         val on = i == ci
                         Row(Modifier.fillMaxWidth().heightIn(min = 40.dp).clip(RoundedCornerShape(12.dp)).background(if (on) Kx.accent.copy(alpha = .08f) else Color.Transparent)
                             .kxClick { seek(c.first) }.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(mm2(c.first), style = ts(13.sp, FontWeight.ExtraBold, Kx.accent).copy(textDecoration = TextDecoration.Underline))
+                            Text(mm2(c.first), style = ts(13.sp, FontWeight.ExtraBold, Kx.accent)) // critique-C P3: accent, no web-link underline
                             T(c.second, 14.sp, if (on) FontWeight.ExtraBold else FontWeight.Medium, if (on) Kx.text else Kx.text2, modifier = Modifier.weight(1f))
                             if (on) Icon(Icons.Rounded.GraphicEq, null, Modifier.size(16.dp), tint = Kx.accent)
                         }

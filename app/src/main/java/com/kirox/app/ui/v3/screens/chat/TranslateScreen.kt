@@ -156,7 +156,8 @@ fun TranslateScreen(ctx: KxScreenCtx) {
                                     Text(m.time, style = ts(11, color = meta))
                                 }
                             }
-                            if (m.src != null && !isLoading) Box(Modifier.padding(top = 3.dp).height(26.dp).clip(RoundedCornerShape(13.dp))
+                            // critique-A: with the «Перевести чат» banner shown, no per-message «Перевести» link (only «Показать оригинал» on translated ones).
+                            if (m.src != null && !isLoading && (isTr || !bar || (live && foreign.isEmpty()))) Box(Modifier.padding(top = 3.dp).height(26.dp).clip(RoundedCornerShape(13.dp))
                                 .kxClick { if (isTr) tr.remove(m.id) else translate(listOf(m.id)) }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
                                 Text(if (isTr) "Показать оригинал" else "Перевести", style = ts(12, W700, Kx.accent))
                             }
@@ -168,10 +169,11 @@ fun TranslateScreen(ctx: KxScreenCtx) {
                 Row(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.07f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(23.dp)).padding(start = 14.dp, end = 6.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Text("Сообщение", style = ts(15, color = Kx.text4), modifier = Modifier.weight(1f))
-                    Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (out) Kx.accent.copy(alpha = .16f) else Kx.w(.06f)).kxClick("Переводить мои сообщения") { if (live) ctx.toast("Перевод своих сообщений пока недоступен") else out = !out }
-                        .padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        val ink = if (out) Kx.accent else Kx.text4
-                        Icon(Icons.Outlined.Translate, null, Modifier.size(16.dp), tint = ink); Text(if (out) "RU → ES" else "Без перевода", style = ts(12, W800, ink))
+                    // critique-A: an icon-only toggle (state = colour) instead of a chip that ate the field.
+                    Box(Modifier.size(34.dp).clip(CircleShape).background(if (out) Kx.accent.copy(alpha = .16f) else Color.Transparent)
+                        .kxClick(if (out) "Не переводить мои сообщения" else "Переводить мои сообщения") { if (live) ctx.toast("Перевод своих сообщений пока недоступен") else out = !out }
+                        .kxToggleState(out), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.Translate, null, Modifier.size(20.dp), tint = if (out) Kx.accent else Kx.text4)
                     }
                 }
                 Box(Modifier.size(46.dp).clip(CircleShape).cssGradient(140f, Kx.accentMid, Kx.accentDeep).kxClick("Голосовое") {}, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Mic, null, tint = Kx.onAccent) }

@@ -99,7 +99,7 @@ private fun DemoVideoCallScreen(ctx: KxScreenCtx) {
             }
             Column(Modifier.padding(top = 368.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 T("Анна", 28.sp, FontWeight.ExtraBold)
-                T("Видеозвонок" + ".".repeat(dots), 14.sp, color = Kx.text3, modifier = Modifier.padding(top = 8.dp))
+                Box(Modifier.padding(top = 8.dp)) { KxTypingDots(Kx.text3, "Видеозвонок", 14.sp) } // critique-C P2: no trailing period
             }
         }
 
@@ -115,7 +115,10 @@ private fun DemoVideoCallScreen(ctx: KxScreenCtx) {
                 .kxClick("Переместить своё видео") { pipLow = !pipLow }) {
                 Box(Modifier.matchParentSize().graphicsLayer { scaleX = mirror }
                     .personPlaceholder(Color(0xFF7C8496), Color(0xFF3E4452), Color(0xFF353B48), Color(0xFF353B48), 34f, 50f, 56f, 92f, 92f, 80f))
-                if (!cam) Box(Modifier.matchParentSize().background(Color(0xFF121614)), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.VideocamOff, null, tint = Kx.text4) }
+                if (!cam) Column(Modifier.matchParentSize().background(Color(0xFF121614)), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)) {
+                    Icon(Icons.Outlined.VideocamOff, null, tint = Kx.text3)
+                    T("Камера\nвыключена", 11.sp, color = Kx.text3) // critique-C P2: the same wording as the peer's camera-off state
+                }
                 if (muted) Box(Modifier.align(Alignment.BottomStart).padding(6.dp).size(24.dp).clip(CircleShape).background(Color.Black.copy(alpha = .55f)), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.MicOff, null, Modifier.size(15.dp), tint = Kx.danger)
                 }
@@ -169,19 +172,18 @@ private fun DemoVideoCallScreen(ctx: KxScreenCtx) {
                 CallChip(Icons.Outlined.PersonAdd, "Добавить") { }
                 CallChip(if (share) Icons.Outlined.StopScreenShare else Icons.Outlined.ScreenShare, if (share) "Остановить показ" else "Показать экран") { share = !share }
             }
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(34.dp)).background(Kx.surface.copy(alpha = .7f)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
-                .border(1.dp, Kx.w(.16f), RoundedCornerShape(34.dp)).topHighlight(Kx.w(.18f)).padding(horizontal = 10.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.Top) {
-                CallBtn(out.icon, out.label, if (out == AudioOut.Speaker) OnBtn else GlassBtn, if (out == AudioOut.Speaker) Kx.bg else OnBtn) { outSheet = true }
-                CallBtn(if (cam) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff, if (cam) "Камера" else "Камера выкл.", if (cam) GlassBtn else OnBtn, if (cam) OnBtn else Kx.bg) { cam = !cam }
-                val rot by animateFloatAsState(if (front) 0f else 180f, tween(300), label = "rot")
-                CallBtn(Icons.Rounded.Cameraswitch, "Повернуть", GlassBtn, if (cam) OnBtn else Color(0xFF5C6661), rot) { if (cam) front = !front }
-                CallBtn(if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic, if (muted) "Без звука" else "Микрофон", if (muted) OnBtn else GlassBtn, if (muted) Kx.bg else OnBtn) { muted = !muted }
-                CallBtn(Icons.Rounded.CallEnd, "Завершить", EndRed, Color.White) { phase = "ended"; outSheet = false; key = false }
-            }
+            // critique-C P1: the one call control row — white = on, glass + slashed icon = off, red end last.
+            KxCallControls(listOf(
+                KxCallButton(out.icon, out.label, out == AudioOut.Speaker) { outSheet = true },
+                KxCallButton(if (cam) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff, "Камера", cam) { cam = !cam },
+                KxCallButton(Icons.Rounded.Cameraswitch, "Сменить") { if (cam) front = !front },
+                KxCallButton(if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic, "Микрофон", !muted) { muted = !muted },
+                KxCallButton(Icons.Rounded.CallEnd, "Завершить", end = true) { phase = "ended"; outSheet = false; key = false },
+            ), Modifier.clip(RoundedCornerShape(34.dp)).background(Kx.surface.copy(alpha = .7f)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
+                .border(1.dp, Kx.w(.16f), RoundedCornerShape(34.dp)).topHighlight(Kx.w(.18f)).padding(horizontal = 4.dp, vertical = 14.dp))
         }
 
-        MSheet(outSheet, { outSheet = false }, dim = .45f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
+        MSheet(outSheet, { outSheet = false }, dim = .6f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
             handleColor = Color(0xFF3A4540), handleWidth = 36.dp, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 28.dp)) {
             T("Вывод звука", 17.sp, FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp))
             AudioOut.entries.forEach { o ->

@@ -80,13 +80,16 @@ private fun DemoCallWaitingScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Rounded.SwapCalls, null, Modifier.size(16.dp), tint = Kx.warning); Text("Переключить", style = ts(12.sp, FontWeight.ExtraBold, Kx.warning))
                 }
             }
+            // critique-B: while the incoming card is shown the current caller moves below it (the name was half hidden).
+            val topPad by animateDpAsState(if (incoming) 236.dp else 50.dp, tween(350), label = "cwTop")
+            val ava by animateDpAsState(if (incoming) 96.dp else 130.dp, tween(350), label = "cwAva")
             key(active) {
                 val sw = enter(350)
-                Column(Modifier.weight(1f).fillMaxWidth().graphicsLayer { alpha = sw; val s = .92f + .08f * sw; scaleX = s; scaleY = s }.padding(top = 50.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.size(130.dp)) {
+                Column(Modifier.weight(1f).fillMaxWidth().graphicsLayer { alpha = sw; val s = .92f + .08f * sw; scaleX = s; scaleY = s }.padding(top = topPad), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.size(ava)) {
                         val r = kfLoop(2400, label = "ring")
                         Box(Modifier.matchParentSize().graphicsLayer { val s = 1f + .7f * EaseOutCss.transform(r); scaleX = s; scaleY = s; alpha = .6f * (1f - r) }.border(2.dp, Kx.accent.copy(alpha = .45f), CircleShape))
-                        ExLetter(if (merged) "2" else a.l, 130.dp, a.a, a.b, 135f, Kx.text, 50.sp)
+                        ExLetter(if (merged) "2" else a.l, ava, a.a, a.b, 135f, Kx.text, if (incoming) 38.sp else 50.sp)
                     }
                     Text(if (merged) "Анна и Мама" else a.name, style = ts(26.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 16.dp))
                     Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -101,26 +104,18 @@ private fun DemoCallWaitingScreen(ctx: KxScreenCtx) {
                 }
             }
             Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 34.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    data class C(val icon: ImageVector, val label: String, val on: Boolean, val op: Float, val tap: () -> Unit)
-                    listOf(
-                        C(if (mute) Icons.Rounded.MicOff else Icons.Rounded.Mic, if (mute) "Звук выкл" else "Микрофон", mute, 1f) { mute = !mute },
-                        C(Icons.Rounded.VolumeUp, "Динамик", false, 1f) {},
-                        C(Icons.Rounded.CallMerge, "Объединить", merged, if (hold.isNotEmpty()) 1f else .35f) { if (hold.isNotEmpty()) { merged = true; hold = ""; flash("Теперь это общий звонок на троих") } },
-                        C(Icons.Rounded.AddIcCall, "Добавить", false, 1f) { if (demo) incoming = true else ctx.toast("Добавить участника пока нельзя") },
-                    ).forEach { c ->
-                        Column(Modifier.weight(1f).graphicsLayer { alpha = c.op }.kxClick(c.label, onClick = c.tap), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            val bg by animateColorAsState(if (c.on) Kx.text else Kx.w(.1f), tween(200), label = "cb")
-                            Box(Modifier.size(58.dp).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) { Icon(c.icon, null, Modifier.size(24.dp), tint = if (c.on) Kx.onAccent else Kx.text) }
-                            Text(c.label, style = ts(11.sp, color = Kx.text2), maxLines = 1)
-                        }
-                    }
-                }
-                Box(Modifier.padding(top = 22.dp).align(Alignment.CenterHorizontally).size(72.dp).boxShadow(Kx.dangerSolid.copy(alpha = .4f), 30.dp, 10.dp, 36.dp).clip(CircleShape).background(Kx.dangerSolid)
-                    .kxClick("Завершить звонок") {
+                // critique-C P1: the shared call control row (white = on, red end last, no separate big button).
+                var speaker by remember { mutableStateOf(false) }
+                KxCallControls(listOf(
+                    KxCallButton(if (mute) Icons.Rounded.MicOff else Icons.Rounded.Mic, "Микрофон", !mute) { mute = !mute },
+                    KxCallButton(Icons.Rounded.VolumeUp, "Динамик", speaker) { speaker = !speaker },
+                    KxCallButton(Icons.Rounded.CallMerge, "Объединить", merged) { if (hold.isNotEmpty()) { merged = true; hold = ""; flash("Теперь это общий звонок на троих") } else flash("Объединить можно, когда второй звонок на удержании") },
+                    KxCallButton(Icons.Rounded.AddIcCall, "Добавить") { if (demo) incoming = true else ctx.toast("Добавить участника пока нельзя") },
+                    KxCallButton(Icons.Rounded.CallEnd, "Завершить", end = true) {
                         if (hold.isNotEmpty()) { val back = hold; active = back; hold = ""; merged = false; flash("Вернулись к звонку с " + if (back == "a") "Анной" else "Мамой") }
                         else { active = "a"; hold = ""; incoming = demo; merged = false; t["a"] = 312; t["m"] = 0 }
-                    }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.CallEnd, null, Modifier.size(34.dp), tint = Color.White) }
+                    },
+                ))
             }
         }
         if (incoming) Column(Modifier.statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 14.dp).exIn(400, dy = (-20).dp, easing = KxMotion.rise).fillMaxWidth()

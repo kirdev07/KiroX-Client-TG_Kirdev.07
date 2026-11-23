@@ -102,7 +102,7 @@ fun LockScreen(ctx: KxScreenCtx) {
                     }
                     Column(Modifier.sRise(100), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         GroupLabel("Вход")
-                        SSwitchRow(Icons.Outlined.Fingerprint, "Вход по отпечатку", store.passcodeBiometric && (canBio || demo), groupShape(0, 2, 20.dp),
+                        SSwitchRow(Icons.Outlined.Fingerprint, "Разблокировка отпечатком или лицом", store.passcodeBiometric && (canBio || demo), groupShape(0, 2, 20.dp),
                             sub = if (canBio || demo) "Вместо кода; код тоже всегда подходит" else "На телефоне не настроен отпечаток или лицо") {
                             if (canBio || demo) store.setPasscodeBiometric(!store.passcodeBiometric) else ctx.toast("Сначала добавьте отпечаток в настройках телефона")
                         }

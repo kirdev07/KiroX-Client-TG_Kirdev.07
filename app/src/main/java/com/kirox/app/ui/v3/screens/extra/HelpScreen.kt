@@ -39,7 +39,7 @@ import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
 private val HelpFaq = listOf(
-    Triple(Icons.Outlined.NotificationsOff, "Не приходят уведомления", "Проверьте «Уведомления и звуки» в kiroX и разрешите kiroX работать в фоне в настройках батареи Android. На Xiaomi включите «Автозапуск»."),
+    Triple(Icons.Outlined.NotificationsOff, "Не приходят уведомления", "Проверьте «Настройки → Уведомления» в kiroX и разрешите kiroX работать в фоне в настройках батареи Android. На Xiaomi включите «Автозапуск»."),
     Triple(Icons.Outlined.LockReset, "Забыли облачный пароль?", "На экране ввода пароля нажмите «Забыли пароль?». Код придёт на почту восстановления, если вы её указывали."),
     Triple(Icons.Outlined.SdStorage, "kiroX занимает много места", "Откройте «Данные и память» и очистите кэш. Сообщения останутся в облаке и скачаются снова, когда понадобятся."),
     Triple(Icons.Outlined.Devices, "Как войти на компьютере", "В «Устройствах» нажмите «Подключить устройство» и наведите камеру на QR-код на экране компьютера."),
@@ -135,7 +135,7 @@ fun HelpScreen(ctx: KxScreenCtx) {
                             Text("kX", style = ts(26.sp, FontWeight.Black, Kx.onAccent))
                         }
                         Text("kiroX", style = ts(18.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 10.dp))
-                        Text("Версия $version · TDLib", style = ts(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
+                        Text("Версия $version", style = ts(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
                         if (taps >= 5) Text("Режим разработчика уже включён", style = ts(12.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(top = 8.dp).exIn(250, dy = 8.dp)
                             .clip(RoundedCornerShape(12.dp)).background(Kx.accent.copy(alpha = .12f)).padding(horizontal = 12.dp, vertical = 6.dp))
                         ExPill(when (upd) { "checking" -> "Проверяем…"; "ok" -> "Установлена последняя версия"; else -> "Проверить обновления" }, Modifier.padding(top = 12.dp),
@@ -153,7 +153,7 @@ fun HelpScreen(ctx: KxScreenCtx) {
                             Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.05f)))
                         }
                     }
-                    Text("Неофициальный клиент Telegram. Работает на TDLib.", style = ts(11.sp, color = Kx.text4, lh = 16.sp), textAlign = TextAlign.Center,
+                    Text("Неофициальный клиент Telegram. Работает на официальной библиотеке Telegram.", style = ts(11.sp, color = Kx.text4, lh = 16.sp), textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 12.dp))
                 }
             }

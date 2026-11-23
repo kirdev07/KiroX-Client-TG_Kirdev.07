@@ -60,8 +60,9 @@ fun QuoteScreen(ctx: KxScreenCtx) {
     val srcHeader = srcChat?.let { store.header(it) }
     val Words = (srcMsg?.text?.ifBlank { null } ?: QText).split(' ').filter { it.isNotEmpty() }
     val canSend = srcMsg != null || store is com.kirox.app.ui.v3.demo.KxDemoStore
-    var a by remember { mutableIntStateOf(-1) }
-    var b by remember { mutableIntStateOf(-1) }
+    // critique-A S: the board opens with a quote already selected (selection handles visible); a real message starts unselected.
+    var a by remember { mutableIntStateOf(if (srcMsg == null) 0 else -1) }
+    var b by remember { mutableIntStateOf(if (srcMsg == null) minOf(3, Words.lastIndex) else -1) }
     var draft by remember { mutableStateOf("") }
     val sent = remember { mutableStateListOf<Pair<String, String>>() }
     var other by remember { mutableStateOf(false) }

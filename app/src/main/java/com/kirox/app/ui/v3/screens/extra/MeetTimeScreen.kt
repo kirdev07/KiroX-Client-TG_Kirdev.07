@@ -64,7 +64,7 @@ fun MeetTimeScreen(ctx: KxScreenCtx) {
                         Icon(Icons.Rounded.EventAvailable, null, Modifier.size(24.dp), tint = Kx.accent)
                         Text("Встреча выпускников", style = ts(16.sp, FontWeight.ExtraBold), modifier = Modifier.weight(1f))
                     }
-                    Text("Опрос Telegram · Олег · отметьте все удобные дни", style = ts(12.sp, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
+                    Text("Опрос kiroX · Олег · отметьте все удобные дни", style = ts(12.sp, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
                     Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Spacer(Modifier.width(52.dp))
@@ -80,12 +80,13 @@ fun MeetTimeScreen(ctx: KxScreenCtx) {
                                 MtDays.indices.forEach { d ->
                                     val k = "$t-$d"; val v = cnt(t, d); val my = mine[k] == true
                                     val a = if (v == 0) 0f else minOf(.85f, .12f + v * .08f)
-                                    val bg by animateColorAsState(if (v > 0) Kx.accent.copy(alpha = a) else Kx.w(.04f), tween(200), label = "c")
-                                    val bd by animateColorAsState(if (my) Kx.accent else Color.Transparent, tween(200), label = "b")
+                                    val bg by animateColorAsState(if (v > 0) Kx.accent.copy(alpha = a) else Color.Transparent, tween(200), label = "c")
+                                    // critique-B: an empty cell is outlined (looked disabled when it was a flat grey fill).
+                                    val bd by animateColorAsState(if (my) Kx.accent else if (v == 0) Kx.w(.14f) else Color.Transparent, tween(200), label = "b")
                                     key(if (pop == k) popN else 0) {
                                         val p = if (pop == k && popN > 0) enter(250) else 1f
                                         Box(Modifier.weight(1f).height(46.dp).graphicsLayer { val s = if (p < .6f) .6f + .52f * (p / .6f) else 1.12f - .12f * ((p - .6f) / .4f); scaleX = s; scaleY = s }) {
-                                            Box(Modifier.matchParentSize().clip(RoundedCornerShape(12.dp)).background(bg).border(2.dp, bd, RoundedCornerShape(12.dp))
+                                            Box(Modifier.matchParentSize().clip(RoundedCornerShape(12.dp)).background(bg).border(if (my) 2.dp else 1.dp, bd, RoundedCornerShape(12.dp))
                                                 .kxClick("${MtDays[d].first} ${MtDays[d].second}, $time: $v" + if (my) ", вы отметили" else "") { mine[k] = !my; pop = k; popN++; fixed = false },
                                                 contentAlignment = Alignment.Center) { if (v > 0) Text("$v", style = ts(12.sp, FontWeight.ExtraBold, if (a > .5f) Kx.onAccent else Kx.text)) }
                                             if (t == best.first && d == best.second && bv > 0) {
@@ -124,7 +125,7 @@ fun MeetTimeScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ExPill("Сбросить", height = 52.dp, bg = Kx.w(.07f), padH = 16.dp) { mine.clear(); fixed = false }
+                ExPill("Сбросить мои отметки", height = 52.dp, bg = Kx.w(.07f), padH = 16.dp) { mine.clear(); fixed = false }
                 Row(Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(26.dp)).lin2(135f, Kx.accentMid, Kx.accentDeep).kxClick("Назначить") { fixed = true },
                     horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Event, null, Modifier.size(20.dp), tint = Kx.onAccent)

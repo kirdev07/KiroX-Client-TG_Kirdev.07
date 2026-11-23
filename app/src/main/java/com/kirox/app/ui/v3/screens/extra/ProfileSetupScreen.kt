@@ -134,7 +134,7 @@ fun ProfileSetupScreen(ctx: KxScreenCtx) {
                 }
             }
             Column(Modifier.padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f))) {
-                listOf(Icons.Outlined.Notifications to "Уведомления", Icons.Outlined.Lock to "Конфиденциальность", Icons.Outlined.Palette to "Кастомизация").forEachIndexed { k, (ic, t) ->
+                listOf(Icons.Outlined.Notifications to "Уведомления", Icons.Outlined.Lock to "Конфиденциальность", Icons.Outlined.Palette to "Оформление").forEachIndexed { k, (ic, t) ->
                     if (k > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.05f)))
                     Row(Modifier.heightIn(min = 52.dp).padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(ic, null, Modifier.size(24.dp), tint = Kx.text3)

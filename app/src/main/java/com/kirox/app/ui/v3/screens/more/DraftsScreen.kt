@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EditOff
 import androidx.compose.material.icons.outlined.Image
@@ -30,6 +31,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.withStyle
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -71,7 +73,8 @@ fun DraftsScreen(ctx: KxScreenCtx) {
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             MoTitleHeader("Черновики", ctx.back, sub = if (n > 0) "$n ${moPlural(n, "черновик", "черновика", "черновиков")}" else "Пусто") {
-                if (n > 0) MoPill("Удалить все", bg = MoRed.copy(alpha = .1f), ink = MoRedInk) {
+                // critique-A: a neutral header action (with confirm), not a red «Удалить все» pill.
+                if (n > 0) com.kirox.app.ui.v3.components.KxHeaderAction(Icons.Outlined.DeleteSweep, "Удалить все черновики") {
                     cf = KxConfirm("Удалить все черновики?", "Недописанные сообщения пропадут во всех чатах и на других устройствах.", "Удалить все") {
                         if (live) left.forEach { i -> realId(i)?.let { ctx.store.setDraft(it, "") } }
                         remove(left, "del"); toast.show("Черновики удалены", Icons.Rounded.Delete)
@@ -88,12 +91,13 @@ fun DraftsScreen(ctx: KxScreenCtx) {
                     }, tint = Kx.accent)
                     Text("Недописанные сообщения из всех чатов. Они синхронизируются с другими вашими устройствами.", style = mts(12, color = Kx.text2, lh = 1.4f))
                 }
-                left.forEach { i -> key(i) { DraftCard(DR[i], leaving[i],
-                    onDel = { realId(i)?.let { ctx.store.setDraft(it, "") }; remove(listOf(i), "del"); toast.show("Черновик удалён", Icons.Rounded.Delete) },
-                    onOpen = { val id = realId(i); if (id != null) ctx.openChat(id) else toast.show("Откроется чат «${DR[i].chat}»", Icons.Rounded.Edit) },
-                    onSend = { cf = KxConfirm("Отправить черновик?", "Текст уйдёт как есть, даже если он не дописан.", "Отправить") {
-                        realId(i)?.let { ctx.store.send(it, DR[i].text); ctx.store.setDraft(it, "") }
-                        remove(listOf(i), "send"); toast.show("Отправлено в «${DR[i].chat}»", Icons.AutoMirrored.Rounded.Send) } }) } }
+                // critique-A: compact rows like the chat list — tap opens the chat to finish the text (no one-tap «Отправить»).
+                if (left.isNotEmpty()) Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.045f))) {
+                    left.forEachIndexed { k, i -> key(i) { DraftCard(DR[i], leaving[i], divider = k > 0,
+                        onDel = { cf = KxConfirm("Удалить черновик?", "Недописанный текст в «${DR[i].chat}» пропадёт.", "Удалить") {
+                            realId(i)?.let { ctx.store.setDraft(it, "") }; remove(listOf(i), "del"); toast.show("Черновик удалён", Icons.Rounded.Delete) } },
+                        onOpen = { val id = realId(i); if (id != null) ctx.openChat(id) else toast.show("Откроется чат «${DR[i].chat}»", Icons.Rounded.Edit) }) } }
+                }
                 if (n == 0) Column(Modifier.fillMaxWidth().moIn(300, dy = 10.dp).padding(start = 30.dp, end = 30.dp, top = 70.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Outlined.EditOff, null, Modifier.size(56.dp), tint = Kx.dashed)
                     Text("Черновиков нет", style = mts(17, W8), modifier = Modifier.padding(top = 10.dp))
@@ -108,59 +112,31 @@ fun DraftsScreen(ctx: KxScreenCtx) {
 }
 
 @Composable
-private fun DraftCard(d: Draft, leaving: String?, onDel: () -> Unit, onOpen: () -> Unit, onSend: () -> Unit) {
+private fun DraftCard(d: Draft, leaving: String?, divider: Boolean, onDel: () -> Unit, onOpen: () -> Unit) {
     val inP = moEnter(300)
     val out = remember { Animatable(0f) }
     LaunchedEffect(leaving) { if (leaving != null) out.animateTo(1f, tween(450, easing = MoEase)) }
     val o = out.value; val h = (o / .5f).coerceIn(0f, 1f)
-    Column(Modifier.moCollapse(if (o <= .5f) 1f else 1f - (o - .5f) / .5f).graphicsLayer {
-        alpha = inP * (1f - h); translationY = (1f - inP) * 10.dp.toPx()
-        if (leaving == "send") { translationX = 60.dp.toPx() * h; translationY += -30.dp.toPx() * h; rotationZ = -6f * h }
-        else if (leaving == "del") { val s = 1f - .1f * h; scaleX = s; scaleY = s }
-    }.padding(bottom = 10.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp)).padding(14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MoLetter(d.l, d.c, size = 36.dp, fontSize = 14)
+    Column(Modifier.moCollapse(if (o <= .5f) 1f else 1f - (o - .5f) / .5f).graphicsLayer { alpha = inP * (1f - h) }) {
+        if (divider) Box(Modifier.padding(start = 64.dp).fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
+        Row(Modifier.fillMaxWidth().heightIn(min = 68.dp).kxClick("Дописать: ${d.chat}", onClick = onOpen).padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            MoLetter(d.l, d.c, size = 40.dp, fontSize = 15)
             Column(Modifier.weight(1f)) {
-                Text(d.chat, style = mts(15, W8), maxLines = 1)
-                Text(d.time, style = mts(11, color = MoMuted))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(d.chat, style = mts(15, W8), maxLines = 1, modifier = Modifier.weight(1f, false))
+                    if (d.reply.isNotEmpty()) Icon(Icons.AutoMirrored.Outlined.Reply, "ответ", Modifier.size(14.dp), tint = MoSub)
+                    Spacer(Modifier.weight(1f))
+                    if (d.time.isNotEmpty()) Text(d.time, style = mts(11, color = MoMuted))
+                }
+                Text(androidx.compose.ui.text.buildAnnotatedString {
+                    withStyle(SpanStyle(color = MoRedInk)) { append("Черновик: ") }
+                    if (d.file.isNotEmpty()) append("🖼 ")
+                    append(d.text)
+                }, style = mts(13, color = MoSub, lh = 1.35f), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
-            if (d.reply.isNotEmpty()) Row(Modifier.height(24.dp).clip(RoundedCornerShape(12.dp)).background(Kx.w(.06f)).padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Icon(Icons.AutoMirrored.Outlined.Reply, null, Modifier.size(14.dp), tint = MoSub)
-                Text("ответ", style = mts(11, color = MoSub))
-            }
-        }
-        if (d.reply.isNotEmpty()) Box(Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Kx.accent.copy(alpha = .06f))
-            .drawBehind { drawRect(Kx.accent, size = Size(3.dp.toPx(), size.height)) }.padding(start = 13.dp, end = 10.dp, top = 6.dp, bottom = 6.dp)) {
-            Text(d.reply, style = mts(12, color = MoSub))
-        }
-        Box(Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.Black.copy(alpha = .25f)).padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text(androidx.compose.ui.text.buildAnnotatedString {
-                append(d.text); append(" ")
-                appendInlineContent("caret", "|")
-            }, style = mts(15, color = Color(0xFFE2E9E4), lh = 1.4f), inlineContent = mapOf("caret" to androidx.compose.foundation.text.InlineTextContent(
-                androidx.compose.ui.text.Placeholder(androidx.compose.ui.unit.TextUnit(4f, androidx.compose.ui.unit.TextUnitType.Sp), androidx.compose.ui.unit.TextUnit(16f, androidx.compose.ui.unit.TextUnitType.Sp),
-                    androidx.compose.ui.text.PlaceholderVerticalAlign.TextCenter)) {
-                Box(Modifier.width(2.dp).fillMaxHeight().graphicsLayer { alpha = .7f }.background(Kx.accent))
-            }))
-        }
-        if (d.file.isNotEmpty()) Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Image, null, Modifier.size(18.dp), tint = Color(0xFF6FA9D8))
-            Text(d.file, style = mts(12, color = MoSub))
-        }
-        Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(Modifier.size(38.dp).clip(CircleShape).background(MoRed.copy(alpha = .1f)).kxClick("Удалить черновик", onClick = onDel), contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.Delete, null, Modifier.size(19.dp), tint = MoRedInk)
-            }
-            Row(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(19.dp)).background(Kx.w(.07f)).kxClick(onClick = onOpen),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
-                Icon(Icons.Outlined.Edit, null, Modifier.size(18.dp), tint = Kx.text)
-                Text("Дописать", style = mts(13, W7))
-            }
-            Row(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(19.dp)).moAccent().kxClick(onClick = onSend),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
-                Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(18.dp), tint = MoInk)
-                Text("Отправить", style = mts(13, W8, MoInk))
+            Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Удалить черновик", onClick = onDel), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Delete, null, Modifier.size(20.dp), tint = MoMuted)
             }
         }
     }

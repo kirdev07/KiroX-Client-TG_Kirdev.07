@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.outlined.PersonSearch
+import androidx.compose.material.icons.outlined.VisibilityOff
 import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.KxAvatar
 import com.kirox.app.ui.v3.components.KxImage
@@ -54,11 +56,35 @@ private fun W4ChatRow(c: KxPublicChat, onClick: () -> Unit) {
     }
 }
 
+private fun W4FirstContact(ctx: KxScreenCtx): Long? = ctx.store.chats.firstOrNull { it.kind == com.kirox.app.ui.v3.model.KxChatKind.Private }?.id
+
+/** Opened without a contact: pick one from the private chats (then the same board opens for it). */
+@Composable
+private fun W4PickContact(ctx: KxScreenCtx, title: String, route: String) {
+    val people = ctx.store.chats.filter { it.kind == com.kirox.app.ui.v3.model.KxChatKind.Private }
+    W4Frame(ctx, title, "Выберите контакт") {
+        if (people.isEmpty()) com.kirox.app.ui.v3.components.KxEmpty(androidx.compose.material.icons.Icons.Outlined.PersonSearch, "Нет контактов",
+            "Начните личный чат — и он появится здесь", Modifier.weight(1f).fillMaxWidth(),
+            action = "Контакты") { ctx.open("Contacts") }
+        else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(people, key = { it.id }) { c ->
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.045f)).kxClick(c.title) { ctx.open("$route:${c.id}") }.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    KxAvatar(c.title, c.id, size = 44.dp, photo = c.avatar)
+                    Text(c.title, style = mts(15, W7), maxLines = 1, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
 /** «Изменить контакт» (arg = chat id of the private chat): first / last name saved with store.addContactById (TDLib AddContact renames). */
 @Composable
 fun EditContactScreen(ctx: KxScreenCtx) {
-    val chatId = ctx.arg?.substringBefore(':')?.toLongOrNull()
-    if (chatId == null) { C3NeedChat(ctx, "Изменить контакт", "Откройте это из профиля контакта."); return }
+    val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    // critique-A P1: no dead end — demo shows the first contact, the real store asks which contact.
+    val chatId = ctx.arg?.substringBefore(':')?.toLongOrNull() ?: if (demo) W4FirstContact(ctx) else null
+    if (chatId == null) { W4PickContact(ctx, "Изменить контакт", "EditContact"); return }
     val p = ctx.store.peer(chatId)
     var first by remember(chatId) { mutableStateOf(p.name.substringBefore(' ')) }
     var last by remember(chatId) { mutableStateOf(p.name.substringAfter(' ', "")) }
@@ -86,8 +112,9 @@ fun EditContactScreen(ctx: KxScreenCtx) {
 /** «Общие группы» (arg = user id): groups you share with that user; a tap opens the chat. */
 @Composable
 fun CommonGroupsScreen(ctx: KxScreenCtx) {
-    val userId = ctx.arg?.substringBefore(':')?.toLongOrNull()
-    if (userId == null) { C3NeedChat(ctx, "Общие группы", "Откройте это из профиля пользователя."); return }
+    val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val userId = ctx.arg?.substringBefore(':')?.toLongOrNull() ?: if (demo) W4FirstContact(ctx) else null
+    if (userId == null) { W4PickContact(ctx, "Общие группы", "CommonGroups"); return }
     val list = c3Load(userId) { ctx.store.commonGroups(userId) }
     W4Frame(ctx, "Общие группы", ctx.store.peer(userId).name) {
         when {
@@ -140,7 +167,8 @@ fun HiddenStoriesScreen(ctx: KxScreenCtx) {
     W4Frame(ctx, "Скрытые истории", "Их истории не показываются во вкладке «Истории»") {
         when {
             list == null -> C3Empty("Загрузка…", Modifier.weight(1f))
-            list.isEmpty() -> C3Empty(if (demo) "В демо скрытых историй нет" else "Скрытых историй нет", Modifier.weight(1f))
+            list.isEmpty() -> com.kirox.app.ui.v3.components.KxEmpty(androidx.compose.material.icons.Icons.Outlined.VisibilityOff, "Скрытых историй нет",
+                "Скройте автора долгим нажатием на его историю", Modifier.weight(1f).fillMaxWidth())
             else -> LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(list, key = { it.id }) { c ->
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

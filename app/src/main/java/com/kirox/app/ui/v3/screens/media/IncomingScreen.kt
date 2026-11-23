@@ -112,8 +112,9 @@ private fun DemoIncomingScreen(ctx: KxScreenCtx) {
                     Icon(if (video) Icons.Rounded.Videocam else Icons.Rounded.Call, null, Modifier.size(30.dp).graphicsLayer { rotationZ = rot }, tint = Kx.onAccent)
                 }
             }
-            Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 36.dp).size(160.dp, 48.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xFFE5534B).copy(alpha = .16f))
-                .border(1.dp, Color(0xFFE5534B).copy(alpha = .4f), RoundedCornerShape(24.dp)).kxClick { finish("declined") },
+            // critique-C P3: Decline has the slider's 76dp height and full width, so the two read as a pair.
+            Row(Modifier.align(Alignment.BottomCenter).padding(start = 24.dp, end = 24.dp, bottom = 30.dp).fillMaxWidth().height(64.dp).clip(RoundedCornerShape(32.dp)).background(Color(0xFFE5534B).copy(alpha = .16f))
+                .border(1.dp, Color(0xFFE5534B).copy(alpha = .4f), RoundedCornerShape(32.dp)).kxClick("Отклонить") { finish("declined") },
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.CallEnd, null, tint = Kx.danger)
                 T("Отклонить", 15.sp, FontWeight.Bold, Kx.danger)
@@ -147,7 +148,7 @@ private fun DemoIncomingScreen(ctx: KxScreenCtx) {
             }
         }
 
-        MSheet(reply, { reply = false }, dim = .5f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
+        MSheet(reply, { reply = false }, dim = .6f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
             handleColor = Color(0xFF3A4540), handleWidth = 36.dp, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 26.dp)) {
             T("Отклонить и написать", 18.sp, FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp))
             listOf("Не могу говорить, напишу позже", "Перезвоню через 10 минут", "Я за рулём", "Что случилось?").forEach { t ->

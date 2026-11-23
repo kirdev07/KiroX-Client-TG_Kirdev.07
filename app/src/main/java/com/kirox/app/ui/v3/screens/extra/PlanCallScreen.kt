@@ -128,17 +128,17 @@ private fun DemoPlanCallScreen(ctx: KxScreenCtx) {
                 Column(Modifier.weight(1f).exIn(300, dy = 8.dp).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 110.dp)) {
                     Row(Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(20.dp)).padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Icon(Icons.Outlined.Title, null, Modifier.size(24.dp), tint = Kx.text3)
+                        Icon(Icons.Outlined.Edit, null, Modifier.size(24.dp), tint = Kx.text3)
                         ExField(title, { title = it }, "Тема звонка", Modifier.weight(1f), ts(16.sp))
                     }
                     PcLabel("День")
                     Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         repeat(7) { d ->
                             val on = day == d
-                            Column(Modifier.width(50.dp).clip(RoundedCornerShape(18.dp)).then(if (on) Modifier.lin2(160f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(18.dp)))
-                                .kxClick("День $d") { day = d }.padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(Modifier.widthIn(min = 50.dp).clip(RoundedCornerShape(18.dp)).then(if (on) Modifier.lin2(160f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(18.dp)))
+                                .kxClick(dayName(d)) { day = d }.padding(horizontal = 6.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 val ink = if (on) Kx.onAccent else Kx.text
-                                Text(if (d == 0) "Сег" else PcWd[d % 7], style = ts(11.sp, FontWeight.SemiBold, ink.copy(alpha = .8f)))
+                                Text(if (d == 0) "Сегодня" else PcWd[d % 7], style = ts(11.sp, FontWeight.SemiBold, ink.copy(alpha = .8f)))
                                 Text("${if (22 + d > 30) 22 + d - 30 else 22 + d}", style = ts(18.sp, FontWeight.ExtraBold, ink), modifier = Modifier.padding(top = 2.dp))
                             }
                         }

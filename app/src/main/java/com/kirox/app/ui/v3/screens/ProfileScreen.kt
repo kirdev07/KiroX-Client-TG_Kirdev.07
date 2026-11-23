@@ -88,7 +88,7 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
                 Action(if (p.muted) Icons.Rounded.NotificationsOff else Icons.Rounded.Notifications, if (p.muted) "Вкл. звук" else "Без звука", Modifier.weight(1f),
                     tint = if (p.muted) Kx.danger else Kx.accent, bg = bg) { store.setMuted(p.chatId, !p.muted) }
                 Action(Icons.Outlined.Search, "Поиск", Modifier.weight(1f), onClick = onSearch)
-                Action(Icons.Rounded.Redeem, "Подарок", Modifier.weight(1f), tint = Color(0xFFF2A6C0)) { toast("Отправка подарков пока не поддерживается в kiroX") }
+                // critique-A: no «Подарок» upsell in the primary actions (gifts stay in the «Подарки» card below).
             }
             Column(Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.045f)).padding(horizontal = 14.dp, vertical = 4.dp).kxRise(200, 500)) {
                 if (p.bio.isNotEmpty()) InfoLine(p.bio, "О себе", divider = true)
@@ -98,7 +98,8 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
                     Icon(Icons.Rounded.QrCode2, null, Modifier.size(20.dp), tint = Kx.text4)
                 }
                 Row(Modifier.padding(vertical = 9.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    if (p.phone.isNotEmpty()) Column(Modifier.weight(1f)) { Text(p.phone, style = KxType.style(15.sp)); Text("Телефон", style = KxType.caption) }
+                    if (p.phone.isNotEmpty()) Column(Modifier.weight(1f)) { Text(p.phone, style = KxType.style(15.sp))
+                        Text(if (p.phone.contains('·')) "Телефон скрыт настройками конфиденциальности" else "Телефон", style = KxType.caption) }
                     if (p.birthday.isNotEmpty()) Column(Modifier.weight(1f)) { Text(p.birthday, style = KxType.style(15.sp)); Text("День рождения", style = KxType.caption) }
                 }
             }
@@ -111,7 +112,7 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
                 }
                 if (p.commonGroups > 0) Row(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.045f)).kxClick { onOpen("CommonGroups:${p.id}") }.padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Rounded.Groups, null, Modifier.size(20.dp), tint = Kx.link); Text("Общие группы: ${p.commonGroups}", style = KxType.style(13.sp, FontWeight.SemiBold), maxLines = 1,
+                    Icon(Icons.Rounded.Groups, null, Modifier.size(20.dp), tint = Kx.link); Text("Общие группы · ${p.commonGroups}", style = KxType.style(13.sp, FontWeight.SemiBold), maxLines = 1,
                         autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 13.sp))
                 }
             }

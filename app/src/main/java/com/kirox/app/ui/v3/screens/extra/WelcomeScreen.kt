@@ -146,7 +146,8 @@ private fun BoxScope.WelcomeArt() {
         .graphicsLayer { val s = 1f + .12f * g; scaleX = s; scaleY = s; alpha = if (gRaw < 0f) 1f else .6f + .4f * g }.circleGlow(Color(0x4D46A06E)))
     Box(Modifier.align(Alignment.TopCenter).offset(y = 200.dp).size(132.dp).graphicsLayer { translationY = -10.dp.toPx() * f }
         .boxShadow(Color(0x663F9A6C), 60.dp, 24.dp, 42.dp).clip(RoundedCornerShape(42.dp)).lin2(140f, Kx.accentMid, Kx.accentDeep), contentAlignment = Alignment.Center) {
-        Icon(Icons.Rounded.ChatBubble, null, Modifier.size(68.dp), tint = Kx.onAccent)
+        // critique-B P3: the same «X» tile as the splash (was a generic chat bubble).
+        Text("X", style = ts(64.sp, FontWeight.ExtraBold, Kx.onAccent, ls = (-2).sp))
     }
     // Three icons orbit the tile (kxOrbit 12s, two turns, start offsets 0 / -4s / -8s) and stay where they stop.
     val reduced = LocalKxReducedMotion.current

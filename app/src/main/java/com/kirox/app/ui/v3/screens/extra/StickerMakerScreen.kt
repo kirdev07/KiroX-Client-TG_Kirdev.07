@@ -89,7 +89,8 @@ fun StickerMakerScreen(ctx: KxScreenCtx) {
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             ExBar("Стикер из фото", { ctx.back() }, icon = Icons.Outlined.Close, label = "Закрыть") {
-                ExRoundBtn(Icons.AutoMirrored.Outlined.Undo, "Начать заново", border = null) { phase = "photo"; text = 0; fly = false }
+                // critique-B P3: «Начать заново» appears only after an edit.
+                if (phase != "photo" || text != 0) ExRoundBtn(Icons.AutoMirrored.Outlined.Undo, "Начать заново", border = null) { phase = "photo"; text = 0; fly = false }
             }
             Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp).fillMaxWidth().height(330.dp).clip(RoundedCornerShape(28.dp)).background(Color(0xFF121614))) {
                 val ph by animateFloatAsState(if (cut) 0f else 1f, tween(600), label = "ph")

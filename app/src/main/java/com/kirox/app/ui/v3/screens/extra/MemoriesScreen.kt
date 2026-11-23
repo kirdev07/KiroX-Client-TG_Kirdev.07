@@ -61,7 +61,7 @@ fun MemoriesScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExRoundBtn(Icons.AutoMirrored.Outlined.ArrowBack, "Назад") { ctx.back() }
-                Column(Modifier.weight(1f)) { Text("В этот день", style = ts(20.sp, FontWeight.ExtraBold)); Text("22 ноября", style = ts(12.sp, color = Kx.text3)) }
+                Column(Modifier.weight(1f)) { Text("В этот день", style = ts(20.sp, FontWeight.ExtraBold)); Text(java.text.SimpleDateFormat("d MMMM", java.util.Locale("ru")).format(java.util.Date()), style = ts(12.sp, color = Kx.text3)) }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("Всё" to 0, "Год назад" to 2025, "2 года" to 2024).forEach { (label, y) ->
@@ -106,12 +106,15 @@ fun MemoriesScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ExRoundBtn(Icons.Outlined.VisibilityOff, "Не показывать такое", size = 54.dp, bg = Kx.w(.07f), border = null, tint = Kx.text3) {
-                    if (list.size <= 1) return@ExRoundBtn
+                // critique-B P3: the eye-off button is labelled «Скрыть».
+                Row(Modifier.height(54.dp).clip(RoundedCornerShape(27.dp)).background(Kx.w(.07f)).kxClick("Скрыть это воспоминание") {
+                    if (list.size <= 1) return@kxClick
                     hidden.add(cur); i = (pos - if (pos == list.size - 1) 1 else 0).coerceAtLeast(0); k++
                     toast.show("Больше не покажем", Icons.Rounded.VisibilityOff)
+                }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Outlined.VisibilityOff, null, Modifier.size(20.dp), tint = Kx.text3); Text("Скрыть", style = ts(14.sp, FontWeight.Bold, Kx.text2))
                 }
-                Row(Modifier.weight(1f).height(54.dp).clip(RoundedCornerShape(27.dp)).background(Kx.w(.08f)).kxClick("К переписке") { toast.show("Откроется переписка за 22 ноября ${m.year}", Icons.AutoMirrored.Rounded.Chat) },
+                Row(Modifier.weight(1f).height(54.dp).clip(RoundedCornerShape(27.dp)).background(Kx.w(.08f)).kxClick("К переписке") { toast.show("Откроется переписка за " + java.text.SimpleDateFormat("d MMMM", java.util.Locale("ru")).format(java.util.Date()) + " ${m.year}", Icons.AutoMirrored.Rounded.Chat) },
                     horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.AutoMirrored.Outlined.Chat, null, Modifier.size(20.dp), tint = Kx.text); Text("К переписке", style = ts(14.sp, FontWeight.Bold))
                 }

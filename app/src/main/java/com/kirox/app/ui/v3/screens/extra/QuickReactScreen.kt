@@ -35,7 +35,7 @@ import com.kirox.app.ui.v3.theme.*
 
 private val QrEm = listOf("❤️" to "Сердце", "👍" to "Класс", "🔥" to "Огонь", "😂" to "Смех", "🥰" to "Нежность", "👏" to "Аплодисменты", "🎉" to "Праздник",
     "🤯" to "Взрыв мозга", "😮" to "Удивление", "😢" to "Грусть", "🙏" to "Спасибо", "💯" to "Сто", "⚡" to "Молния", "🤝" to "Рукопожатие", "👀" to "Глаза",
-    "💚" to "Зелёное сердце", "🌚" to "Луна", "🫡" to "Есть")
+    "💚" to "Зелёное сердце", "🌚" to "Луна", "🤗" to "Обнимаю")
 
 /** Board «Быстрая реакция»: double-tap playground with the burst, 6×3 emoji grid for the default reaction, three switches. */
 @Composable

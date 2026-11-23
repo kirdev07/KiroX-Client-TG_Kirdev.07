@@ -67,7 +67,7 @@ private fun DemoCallEndScreen(ctx: KxScreenCtx) {
                     T("Анна", 24.sp, FontWeight.ExtraBold, modifier = Modifier.padding(top = 14.dp))
                     Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Icon(Icons.Outlined.CallEnd, null, Modifier.size(18.dp), tint = Kx.danger)
-                        T("Звонок завершён · 12:47", 14.sp, color = Kx.text2)
+                        T("Звонок завершён · длительность 12:47", 14.sp, color = Kx.text2)
                     }
                     Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         InfoChip(Icons.Outlined.Lock, "Защищён", Kx.accent); InfoChip(Icons.Outlined.SwapVert, "14,2 МБ", Kx.text2); InfoChip(Icons.Outlined.Wifi, "Wi-Fi", Kx.text2)
@@ -75,7 +75,7 @@ private fun DemoCallEndScreen(ctx: KxScreenCtx) {
                 }
                 Row(Modifier.padding(top = 22.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     EndAct(Icons.Rounded.Call, if (hit == "call") "Звоним…" else "Перезвонить", true, Modifier.weight(1f)) { hit = "call"; ctx.open("VideoCall") }
-                    EndAct(Icons.Rounded.Videocam, if (hit == "video") "Звоним…" else "Видео", false, Modifier.weight(1f)) { hit = "video"; ctx.open("VideoCall") }
+                    EndAct(Icons.Rounded.Videocam, if (hit == "video") "Звоним…" else "Видеозвонок", false, Modifier.weight(1f)) { hit = "video"; ctx.open("VideoCall") }
                     EndAct(Icons.AutoMirrored.Rounded.Chat, "Написать", false, Modifier.weight(1f)) { hit = "chat"; ctx.back() }
                 }
                 Column(Modifier.padding(top = 18.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(Kx.surface.copy(alpha = .5f)).background(Brush.verticalGradient(listOf(Kx.w(.12f), Kx.w(.04f))))
@@ -130,7 +130,7 @@ private fun DemoCallEndScreen(ctx: KxScreenCtx) {
                         T("Изменить оценку", 13.sp, FontWeight.Bold, Kx.accent, modifier = Modifier.padding(top = 10.dp).kxClick { done = false })
                     }
                 }
-                T("Не спрашивать после звонков", 13.sp, color = Kx.text4, modifier = Modifier.padding(top = 14.dp).align(Alignment.CenterHorizontally).kxClick { ctx.back() })
+                T("Не спрашивать после звонков", 14.sp, FontWeight.SemiBold, Kx.text3, modifier = Modifier.padding(top = 10.dp).align(Alignment.CenterHorizontally).heightIn(min = 44.dp).clip(RoundedCornerShape(22.dp)).kxClick { ctx.back() }.padding(horizontal = 16.dp, vertical = 12.dp))
             }
         }
     }

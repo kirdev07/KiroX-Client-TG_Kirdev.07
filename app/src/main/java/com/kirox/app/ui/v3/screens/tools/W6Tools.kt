@@ -45,7 +45,7 @@ private fun w6Tweaks(ctx: KxScreenCtx): Pair<Tweaks, (Tweaks) -> Unit> {
 /** Nav row of these pages: plain 20dp icon, label 15 + sub 12, chevron. */
 @Composable
 private fun W6Nav(icon: ImageVector, label: String, sub: String?, shape: androidx.compose.ui.graphics.Shape, tint: Color = Kx.text4, ink: Color = Kx.text, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 54.dp).clip(shape).background(TTile).kxClick(label, onClick = onClick).padding(horizontal = 14.dp),
+    Row(Modifier.kxDividerInset(46.dp).fillMaxWidth().heightIn(min = 54.dp).kxGroupItem(shape, TTile, 46.dp).kxClick(label, onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Icon(icon, null, Modifier.size(20.dp), tint = tint)
         Column(Modifier.weight(1f).padding(vertical = if (sub != null) 8.dp else 0.dp)) {
@@ -73,13 +73,13 @@ fun BrowserSettingsScreen(ctx: KxScreenCtx) {
                 SSwitchRow(Icons.Outlined.DataSaverOn, "Экономия трафика", t.browserSaveTraffic, groupShape(0, 4, 20.dp), sub = "По мобильной сети картинки на сайтах не загружаются") {
                     set(t.copy(browserSaveTraffic = !t.browserSaveTraffic))
                 }
-                SSwitchRow(Icons.Outlined.VisibilityOff, "Приватный режим", t.browserPrivate, groupShape(1, 4, 20.dp), sub = "Cookies и данные сайтов стираются, когда браузер закрывается") {
+                SSwitchRow(Icons.Outlined.VisibilityOff, "Приватный режим", t.browserPrivate, groupShape(1, 4, 20.dp), sub = "Данные сайтов стираются, когда браузер закрывается") {
                     set(t.copy(browserPrivate = !t.browserPrivate))
                 }
-                SSwitchRow(Icons.Outlined.Cookie, "Сторонние cookies", t.browserThirdPartyCookies, groupShape(2, 4, 20.dp), sub = "Обычно это реклама и счётчики. Выключено — меньше слежки") {
+                SSwitchRow(Icons.Outlined.Cookie, "Данные сайтов для рекламы", t.browserThirdPartyCookies, groupShape(2, 4, 20.dp), sub = "Обычно это реклама и счётчики. Выключено — меньше слежки") {
                     set(t.copy(browserThirdPartyCookies = !t.browserThirdPartyCookies))
                 }
-                SSwitchRow(Icons.Outlined.Code, "JavaScript", t.browserJs, groupShape(3, 4, 20.dp), sub = "Без него сайты легче, но многие перестают работать") {
+                SSwitchRow(Icons.Outlined.Code, "Скрипты на сайтах", t.browserJs, groupShape(3, 4, 20.dp), sub = "Без него сайты легче, но многие перестают работать") {
                     set(t.copy(browserJs = !t.browserJs))
                 }
                 Spacer(Modifier.height(12.dp))
@@ -128,8 +128,8 @@ fun MoreToolsScreen(ctx: KxScreenCtx) {
                 TCap("Сохранённые сообщения")
                 val k = kept ?: 0
                 W6ValueRow("Удалённые и изменённые", if (k > 0) "$k ${tPlural(k, "сообщение", "сообщения", "сообщений")}" else "Пусто", groupShape(0, 1, 20.dp),
-                    sub = if (t.keepDeleted || t.keepEdits) "Копии хранятся только на этом телефоне 30 дней" else "Сохранение выключено на «Функции kiroX»",
-                    icon = Icons.Outlined.Inventory2, valueColor = if (k > 0) Kx.danger else Kx.text4, enabled = k > 0) {
+                    sub = if (t.keepDeleted || t.keepEdits) "Копии хранятся только на этом телефоне 30 дней" else "Сохранение выключено в «Режиме призрака и другом»",
+                    icon = Icons.Outlined.Inventory2, valueColor = if (k > 0) Kx.text2 else Kx.text4, enabled = k > 0) { // critique-B: a count, not an alarm
                     confirm = KxConfirm("Очистить сохранённое?", "Копии удалённых сообщений и прежние версии текста ($k) удалятся с этого телефона.", "Очистить") {
                         co.launch {
                             if (app != null) withContext(Dispatchers.IO) { runCatching { app.telegram.archive.clear() } } else kept = 0

@@ -107,7 +107,7 @@ fun ViewOnceScreen(ctx: KxScreenCtx) {
                     Column(Modifier.matchParentSize().background(Color(0xFF121816)).drawBehind {
                         val step = 10.dp.toPx(); val off = 30.dp.toPx() * sp
                         var y = -step + (off % step); while (y < size.height + step) { var x = -step + (off % step); while (x < size.width + step) {
-                            drawCircle(Kx.w(.35f), 1.25.dp.toPx(), Offset(x + step / 2, y + step / 2)); x += step }; y += step }
+                            drawCircle(Kx.w(.08f), 1.25.dp.toPx(), Offset(x + step / 2, y + step / 2)); x += step }; y += step } // critique-B: faint, so the text reads
                     }.padding(30.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically)) {
                         val p = enter(300)
                         Box(Modifier.graphicsLayer { alpha = p; val s = .9f + .1f * p; scaleX = s; scaleY = s }.size(74.dp).clip(CircleShape).background(Kx.accent.copy(alpha = .14f))
@@ -132,7 +132,10 @@ fun ViewOnceScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ExRoundBtn(Icons.Outlined.Screenshot, "Сделать скриншот", Modifier.graphicsLayer { alpha = if (view) 1f else .35f }, size = 54.dp, bg = Kx.w(.07f), border = null) { if (view) warn++ }
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    ExRoundBtn(Icons.Outlined.Screenshot, "Сделать скриншот", Modifier.graphicsLayer { alpha = if (view) 1f else .35f }, size = 54.dp, bg = Kx.w(.07f), border = null) { if (view) warn++ }
+                    Text("Скриншот", style = ts(11.sp, color = Kx.text3))
+                }
                 val gone = phase == "gone"
                 val a by animateFloatAsState(if (view || gone) 0f else 1f, tween(200), label = "mb")
                 val bg by animateColorAsState(if (view) Kx.accent.copy(alpha = .18f) else Kx.w(.07f), tween(200), label = "mbg")

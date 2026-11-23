@@ -53,7 +53,14 @@ fun LimitedScreen(ctx: KxScreenCtx) {
     Column(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 44.dp, border = Color.Transparent, onClick = back)
-            Text(listOf("Новый чат", "Ограничение", "Апелляция", "Готово")[st], style = ts(20, W800), modifier = Modifier.weight(1f))
+            // critique-A: on the chat step the header is the person, like every chat header.
+            if (st == 0) {
+                LetterAv("М", hex("#5C6661"), 40.dp, 16)
+                Column(Modifier.weight(1f)) {
+                    Text("Мария", style = ts(16, W800), maxLines = 1)
+                    Text("писать можно только взаимным контактам", style = ts(12, color = Kx.warning), maxLines = 1)
+                }
+            } else Text(listOf("Новый чат", "Ограничение", "Апелляция", "Готово")[st], style = ts(20, W800), modifier = Modifier.weight(1f))
         }
         key(k) {
             val anim = Modifier.chIn(dy = 10.dp, durationMs = 300, easing = FastOutSlowInEasing)

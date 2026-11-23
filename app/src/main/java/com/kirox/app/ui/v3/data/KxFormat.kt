@@ -137,25 +137,25 @@ internal object KxFormat {
         else -> "$bytes Б"
     }
 
-    /** Official Telegram wording: «в сети», «был(а) 5 минут назад», «был(а) в 21:14», «был(а) вчера в 21:14», «был(а) 12.11.25». */
+    /** Official Telegram wording: «в сети», «в сети 5 минут назад», «в сети в 21:14», «в сети вчера в 21:14», «в сети 12.11.25». */
     fun status(status: TelegramUserStatus?, now: Long = System.currentTimeMillis(), zone: TimeZone = TimeZone.getDefault()): String = when (status) {
         null -> ""
         TelegramUserStatus.Online -> "в сети"
-        TelegramUserStatus.Recently -> "был(а) недавно"
-        TelegramUserStatus.LastWeek -> "был(а) на этой неделе"
-        TelegramUserStatus.LastMonth -> "был(а) в этом месяце"
-        TelegramUserStatus.LongAgo -> "был(а) давно"
+        TelegramUserStatus.Recently -> "в сети недавно"
+        TelegramUserStatus.LastWeek -> "в сети на этой неделе"
+        TelegramUserStatus.LastMonth -> "в сети в этом месяце"
+        TelegramUserStatus.LongAgo -> "давно не в сети"
         is TelegramUserStatus.Offline -> {
             val ms = status.wasOnline * 1000L
             val minutes = ((now - ms) / 60_000).toInt()
             val at = cal(ms, zone)
             when {
-                minutes < 1 -> "был(а) только что"
-                minutes < 60 -> "был(а) $minutes ${plural(minutes, "минуту", "минуты", "минут")} назад"
-                daysBetween(ms, now, zone) == 0 -> "был(а) в ${hhmm(at)}"
-                daysBetween(ms, now, zone) == 1 -> "был(а) вчера в ${hhmm(at)}"
-                at.get(Calendar.YEAR) == cal(now, zone).get(Calendar.YEAR) -> "был(а) ${at.get(Calendar.DAY_OF_MONTH)} ${shortMonths[at.get(Calendar.MONTH)]} в ${hhmm(at)}"
-                else -> "был(а) %02d.%02d.%02d".format(Locale.ROOT, at.get(Calendar.DAY_OF_MONTH), at.get(Calendar.MONTH) + 1, at.get(Calendar.YEAR) % 100)
+                minutes < 1 -> "в сети только что"
+                minutes < 60 -> "в сети $minutes ${plural(minutes, "минуту", "минуты", "минут")} назад"
+                daysBetween(ms, now, zone) == 0 -> "в сети в ${hhmm(at)}"
+                daysBetween(ms, now, zone) == 1 -> "в сети вчера в ${hhmm(at)}"
+                at.get(Calendar.YEAR) == cal(now, zone).get(Calendar.YEAR) -> "в сети ${at.get(Calendar.DAY_OF_MONTH)} ${shortMonths[at.get(Calendar.MONTH)]} в ${hhmm(at)}"
+                else -> "в сети %02d.%02d.%02d".format(Locale.ROOT, at.get(Calendar.DAY_OF_MONTH), at.get(Calendar.MONTH) + 1, at.get(Calendar.YEAR) % 100)
             }
         }
     }

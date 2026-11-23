@@ -59,9 +59,8 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
     var ready by remember { mutableStateOf(demo || folderId == 0) }
     var saving by remember { mutableStateOf(false) }
     val co = rememberCoroutineScope()
-    var name by remember { mutableIntStateOf(0) }
-    /** Real store: the folder's own title as an extra first chip (index -1). */
-    var ownTitle by remember { mutableStateOf("") }
+    /** P1 (critique-A): a free folder name; presets are only suggestions under the field. */
+    var title by remember { mutableStateOf(if (demo) FeNames[0] else "") }
     var icon by remember { mutableIntStateOf(0) }
     var color by remember { mutableIntStateOf(1) }
     val inc = remember { mutableStateMapOf("groups" to true, "channels" to true, "contacts" to false, "bots" to true) }
@@ -79,15 +78,16 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
         val f = ctx.store.folderInfo(folderId)
         loaded = f; ready = true
         if (f != null) {
-            val ni = FeNames.indexOf(f.title); if (ni >= 0) name = ni else { ownTitle = f.title; name = -1 }
+            title = f.title
             icon = FeIconNames.indexOf(f.icon).coerceAtLeast(0)
             color = FeColorIds.indexOf(f.colorId).coerceAtLeast(0)
             inc["groups"] = f.groups; inc["channels"] = f.channels; inc["contacts"] = f.contacts; inc["bots"] = f.bots
             exc["muted"] = f.excludeMuted; exc["read"] = f.excludeRead; exc["arch"] = f.excludeArchived
         }
     }
-    val title = if (name < 0) ownTitle else FeNames[name]
     fun save() {
+        title = title.trim()
+        if (title.isEmpty()) { toast = "Введите название папки"; tk++; return }
         if (demo) { toast = "Папка «$title» сохранена"; tk++; return }
         if (!ready || saving) return
         val base = loaded ?: KxFolderInfo(title)
@@ -118,7 +118,7 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
                         Row(Modifier.then(if (pk > 0) Modifier.popScale() else Modifier).height(34.dp).clip(RoundedCornerShape(17.dp)).background(tagBg).padding(start = 8.dp, end = 12.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(FeIcons[icon].second, null, Modifier.size(18.dp), tint = tagInk)
-                            Text(title, style = ts(13, W800, tagInk))
+                            Text(title.ifBlank { "Папка" }, style = ts(13, W800, tagInk), maxLines = 1)
                             Box(Modifier.heightIn(min = 18.dp).widthIn(min = 18.dp).clip(RoundedCornerShape(9.dp)).background(tagInk).padding(horizontal = 5.dp), contentAlignment = Alignment.Center) {
                                 Text("$count", style = ts(11, W800, Kx.bg))
                             }
@@ -135,7 +135,7 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(sample?.title ?: if (demo) "Kotlin-клуб" else "Чат", style = ts(14, W700), maxLines = 1, modifier = Modifier.weight(1f, false))
                             if (color != 0) Box(Modifier.height(18.dp).clip(RoundedCornerShape(9.dp)).background(tagBg).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
-                                Text(title, style = ts(11, W800, tagInk))
+                                Text(title.ifBlank { "Папка" }, style = ts(11, W800, tagInk), maxLines = 1)
                             }
                         }
                         Text(if (sample != null) listOfNotNull(sample.previewSender, sample.preview).joinToString(": ") else if (demo) "Дмитрий: PR готов" else "",
@@ -145,11 +145,15 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 20.dp)) {
                 Text("Название", style = ts(13, W700, Kx.accent))
-                FlowRow(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    (if (ownTitle.isNotEmpty()) listOf(-1 to ownTitle) else emptyList()).plus(FeNames.withIndex().map { it.index to it.value }).forEach { (i, t) ->
-                        val on = name == i
+                Box(Modifier.padding(top = 6.dp).fillMaxWidth().height(48.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.05f))
+                    .border(1.dp, Kx.w(.10f), RoundedCornerShape(14.dp)).padding(horizontal = 14.dp), contentAlignment = Alignment.CenterStart) {
+                    ChInput(title, { if (it.length <= 12) title = it }, "Название папки", Modifier.fillMaxWidth())
+                }
+                FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FeNames.forEach { t ->
+                        val on = title == t
                         Box(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (on) Kx.accent.copy(alpha = .16f) else Kx.w(.05f))
-                            .border(1.dp, if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), RoundedCornerShape(17.dp)).kxClick(t) { name = i; pk++ }.padding(horizontal = 12.dp),
+                            .border(1.dp, if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), RoundedCornerShape(17.dp)).kxClick(t) { title = t; pk++ }.padding(horizontal = 12.dp),
                             contentAlignment = Alignment.Center) { Text(t, style = ts(13, W700, if (on) Kx.accent else Kx.text2)) }
                     }
                 }

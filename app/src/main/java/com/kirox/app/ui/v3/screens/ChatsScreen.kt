@@ -58,7 +58,7 @@ fun ChatsScreen(
     onSearch: () -> Unit,
     onNewMessage: () -> Unit,
     onSelectionChange: (Boolean) -> Unit = {},
-    bottomPadding: androidx.compose.ui.unit.Dp = 110.dp,
+    bottomPadding: androidx.compose.ui.unit.Dp = kxBottomContentPadding(),
     /** wave5: opens a board by name («+ Папка» → FolderEdit for a new folder). */
     onOpen: (String) -> Unit = {},
     /** port-nav: false while the Chats tab is not the dock's current page (its Back handler stays off). */
@@ -111,7 +111,7 @@ fun ChatsScreen(
         val chipScroll = rememberScrollState()
         LaunchedEffect(showArchive) { if (showArchive) chipScroll.animateScrollTo(0) }
         Row(
-            Modifier.fillMaxWidth().horizontalScroll(chipScroll).padding(start = 16.dp, end = 16.dp, top = 8.dp).kxRise(140),
+            Modifier.fillMaxWidth().kxEdgeFade(chipScroll).horizontalScroll(chipScroll).padding(start = 16.dp, end = 16.dp, top = 8.dp).kxRise(140), // A9
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val archiveUnread = archived.count { it.unread > 0 || it.markedUnread }
@@ -149,6 +149,10 @@ fun ChatsScreen(
     }
     if (selected.isNotEmpty()) SelectionBar(store, pageChats.filter { it.id in selected }, onDone = { selected.clear() }, toast = toast, ask = { confirm = it }, onDelete = deleteWithUndo,
         folder = if (onArchivePage) 0 else folder, archive = onArchivePage)
+    // critique-A S: the create action is a bottom-right FAB above the dock.
+    if (selected.isEmpty() && undoDel == null && !onArchivePage) Box(Modifier.fillMaxSize()) {
+        KxFab(Icons.Rounded.Edit, "Новое сообщение", Modifier.align(Alignment.BottomEnd), onClick = onNewMessage)
+    }
     undoDel?.let { u -> ChatUndoBar(u.first.size, u.second, bottomPadding) { undoDel = null } }
     if (archiveSettings) ArchiveSettingsSheet(store) { archiveSettings = false }
     confirm?.let { KxConfirmDialog(it) { confirm = null } }
@@ -180,7 +184,7 @@ private fun ArchivePage(store: KxStore, chats: List<KxChat>, selected: List<Long
                 ChatRow(chat, onClick = { onRow(chat) }, onLongClick = { onLong(chat) }, selected = chat.id in selected, showBadge = !hideBadge)
             }
         }
-        if (chats.isEmpty()) item("empty") { KxEmpty("Архив пуст") }
+        if (chats.isEmpty()) item("empty") { KxEmpty(androidx.compose.material.icons.Icons.Rounded.Archive, "Архив пуст", "Чаты, убранные в архив, появятся здесь", Modifier.padding(top = 40.dp)) }
     }
 }
 
@@ -254,8 +258,8 @@ private fun ChatsHeader(store: KxStore, onOpenStories: () -> Unit, onSearch: () 
             Text("${unseen.size} ${plural(unseen.size, "история", "истории", "историй")}", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent))
         }
         Spacer(Modifier.weight(1f))
-        KxIconButton(Icons.Rounded.Search, "Поиск", onClick = onSearch)
-        KxIconButton(Icons.Rounded.Edit, "Новое сообщение", accent = true, onClick = onNewMessage)
+        KxHeaderAction(Icons.Rounded.Search, "Поиск", onClick = onSearch)
+        // critique-A S: «Новое сообщение» moved to the bottom-right FAB (thumb reach), see ChatsScreen.
     }
 }
 
@@ -328,8 +332,9 @@ fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected
                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
-                if (chat.unreadMention) Box(Modifier.size(22.dp).clip(CircleShape).background(Kx.warning), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.AlternateEmail, null, Modifier.size(15.dp), tint = Kx.warningInk)
+                // critique-A S: one badge style; the mention is the accent outline (was amber fill).
+                if (chat.unreadMention) Box(Modifier.size(22.dp).clip(CircleShape).border(1.5.dp, Kx.accent, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.AlternateEmail, null, Modifier.size(15.dp), tint = Kx.accent)
                 }
                 if (!showBadge) {}
                 else if (chat.unread > 0) KxBadge(if (chat.unread > 999) "999+" else chat.unread.toString(), muted = chat.muted)

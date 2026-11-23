@@ -112,16 +112,17 @@ fun SendMediaScreen(ctx: KxScreenCtx) {
             }
             val hbg by animateColorAsState(if (hd) Kx.accent.copy(alpha = .22f) else Kx.w(.1f), tween(200), label = "hd")
             Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(hbg).border(1.dp, if (hd) Kx.accent.copy(alpha = .5f) else Kx.w(.14f), RoundedCornerShape(18.dp))
-                .kxClick("Качество") { hd = !hd }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text(if (hd) "HD" else "SD", style = ts(13, W800, if (hd) Kx.accent else Kx.text)) }
-        }
-        Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(end = 12.dp, top = 74.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Tool(Icons.Outlined.Tune, Icons.Outlined.Tune, "Редактировать", false) { say("Откроется редактор фото", Icons.Outlined.Tune) }
-            Tool(Icons.Outlined.CropRotate, Icons.Outlined.CropRotate, "Обрезать", false) { say("Откроется обрезка", Icons.Outlined.CropRotate) }
-            Tool(Icons.Outlined.BlurOn, Icons.Rounded.BlurOn, "Скрыть под спойлер", spoil[cur] == true) { spoil[cur] = spoil[cur] != true }
-            Tool(Icons.Outlined.LooksOne, Icons.Rounded.LooksOne, "Одноразовое фото", once[cur] == true) { once[cur] = once[cur] != true }
+                .kxClick("Качество") { hd = !hd }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text(if (hd) "Качество: HD" else "Качество: обычное", style = ts(12, W800, if (hd) Kx.accent else Kx.text), maxLines = 1) }
         }
         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(0f to Color.Transparent, .35f to Color.Black.copy(alpha = .85f)))
             .navigationBarsPadding().padding(start = 12.dp, end = 12.dp, top = 30.dp, bottom = 18.dp)) {
+            // critique-A: a labelled tools row under the photo (no unlabelled column straddling the photo edge).
+            Row(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                Tool(Icons.Outlined.Tune, Icons.Outlined.Tune, "Изменить", false) { say("Откроется редактор фото", Icons.Outlined.Tune) }
+                Tool(Icons.Outlined.CropRotate, Icons.Outlined.CropRotate, "Обрезать", false) { say("Откроется обрезка", Icons.Outlined.CropRotate) }
+                Tool(Icons.Outlined.BlurOn, Icons.Rounded.BlurOn, "Спойлер", spoil[cur] == true) { spoil[cur] = spoil[cur] != true }
+                Tool(Icons.Outlined.LooksOne, Icons.Rounded.LooksOne, "Один раз", once[cur] == true) { once[cur] = once[cur] != true }
+            }
             Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
                 Pics.forEachIndexed { i, q ->
                     val on = sel[i]; val isCur = cur == i; val k = order.indexOf(i)
@@ -173,10 +174,13 @@ fun SendMediaScreen(ctx: KxScreenCtx) {
 private fun Crossfade(target: Int, content: @Composable (Int) -> Unit) = androidx.compose.animation.Crossfade(target, animationSpec = tween(400), label = "pic", content = content)
 
 @Composable
-private fun Tool(icon: ImageVector, onIcon: ImageVector, label: String, on: Boolean, tap: () -> Unit) {
+private fun RowScope.Tool(icon: ImageVector, onIcon: ImageVector, label: String, on: Boolean, tap: () -> Unit) {
     val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .28f) else Color.Black.copy(alpha = .35f), tween(200), label = "tb")
-    Box(Modifier.size(44.dp).clip(CircleShape).background(bg).border(1.dp, Kx.w(.14f), CircleShape).kxClick(label, onClick = tap), contentAlignment = Alignment.Center) {
-        Icon(if (on) onIcon else icon, null, Modifier.size(22.dp), tint = if (on) Kx.accent else Kx.text)
+    Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).kxClick(label, onClick = tap).padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(40.dp).clip(CircleShape).background(bg).border(1.dp, Kx.w(.14f), CircleShape), contentAlignment = Alignment.Center) {
+            Icon(if (on) onIcon else icon, null, Modifier.size(22.dp), tint = if (on) Kx.accent else Kx.text)
+        }
+        Text(label, style = ts(11, W700, if (on) Kx.accent else Kx.text2), maxLines = 1, modifier = Modifier.padding(top = 3.dp))
     }
 }
 

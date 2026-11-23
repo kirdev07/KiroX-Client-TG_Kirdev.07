@@ -72,7 +72,7 @@ fun VideoTrimScreen(ctx: KxScreenCtx) {
                 MRoundBtn(Icons.Outlined.Close, "Закрыть", bg = Kx.w(.08f), border = null) { ctx.back() }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     T("Обрезка видео", 15.sp, FontWeight.ExtraBold)
-                    T("${mmss(len)} из ${mmss(TrimDur)}", 11.sp, color = Kx.text3)
+                    T("Перетащите края полосы", 11.sp, color = Kx.text3) // critique-C P3: the cut length is shown once, in the centre
                 }
                 val mbg by animateColorAsState(if (mute) Color(0xFFE5534B).copy(alpha = .18f) else Kx.w(.08f), tween(200), label = "mbg")
                 MRoundBtn(if (mute) Icons.AutoMirrored.Outlined.VolumeOff else Icons.AutoMirrored.Outlined.VolumeUp, if (mute) "Включить звук в видео" else "Отправить без звука",
@@ -137,11 +137,13 @@ fun VideoTrimScreen(ctx: KxScreenCtx) {
                         T(label, 13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text2)
                     }
                 }
-                Row(Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).background(Kx.w(.06f)).kxClick { cover = pos; toast("Обложка — кадр ${mmss(pos)}", Icons.Rounded.Image) }.padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Outlined.Image, null, Modifier.size(17.dp), tint = Kx.text)
-                    T("Обложка", 13.sp, FontWeight.Bold)
-                }
+            }
+            // critique-C P3: «Обложка» on its own line, apart from the quality choice.
+            Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.06f))
+                .kxClick("Сделать обложкой текущий кадр") { cover = pos; toast("Обложка — кадр ${mmss(pos)}", Icons.Rounded.Image) }.padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Outlined.Image, null, Modifier.size(17.dp), tint = Kx.text)
+                T("Обложка — текущий кадр", 13.sp, FontWeight.Bold)
             }
             Spacer(Modifier.weight(1f))
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

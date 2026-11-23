@@ -176,7 +176,8 @@ internal fun RealMusicLibrary(ctx: KxScreenCtx) {
                     else PlaylistPage(music, pl, bottomSpace, trackActions, exporter) { i, sh -> play(pl.tracks, i, pl.name, sh) }
                 }
                 else -> {
-                    Row(Modifier.padding(top = 10.dp, bottom = 4.dp).horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val chipScroll = androidx.compose.foundation.rememberScrollState() // A9: edge fade while more chips are off screen
+                    Row(Modifier.padding(top = 10.dp, bottom = 4.dp).kxEdgeFade(chipScroll).horizontalScroll(chipScroll).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("Каналы", "Моя музыка", "Плейлисты", "Скачанные").forEachIndexed { i, s ->
                             val on = i == section
                             Box(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (on) Kx.accent else Kx.w(.06f))
@@ -260,25 +261,19 @@ private fun TrackRow(t: KxTrack, a: TrackActions, playlistId: Long? = null, subt
 }
 
 @Composable
-private fun MusicEmpty(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, text: String, action: String? = null, onAction: () -> Unit = {}) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 40.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Icon(icon, null, Modifier.size(44.dp), tint = Kx.text4)
-        T(title, 16.sp, FontWeight.Bold)
-        androidx.compose.material3.Text(text, style = ts(13.sp, color = Kx.text4), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-        if (action != null) KxButton(action, Modifier.padding(top = 12.dp), height = 44.dp, onClick = onAction)
-    }
-}
+private fun MusicEmpty(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, text: String, action: String? = null, onAction: () -> Unit = {}) =
+    KxEmpty(icon, title, text, Modifier.padding(top = 16.dp), action = action, onAction = if (action != null) onAction else null) // A4
 
 /** «Слушать» + «Перемешать» over a list. */
 @Composable
 private fun PlayButtons(count: Int, seconds: Int, onPlay: () -> Unit, onShuffle: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         T("$count ${musicPlural(count)}${if (seconds > 0) " · " + durationText(seconds) else ""}", 13.sp, color = Kx.text4, modifier = Modifier.weight(1f))
-        Row(Modifier.height(38.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("Перемешать", onClick = onShuffle).padding(horizontal = 14.dp),
+        Row(Modifier.height(44.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("Перемешать", onClick = onShuffle).padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(Icons.Rounded.Shuffle, null, Modifier.size(18.dp), tint = Kx.text); T("Перемешать", 13.sp, FontWeight.Bold)
         }
-        Row(Modifier.height(38.dp).clip(CircleShape).background(Kx.accent).kxClick("Слушать", onClick = onPlay).padding(horizontal = 14.dp),
+        Row(Modifier.height(44.dp).clip(CircleShape).background(Kx.accent).kxClick("Слушать", onClick = onPlay).padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(Icons.Rounded.PlayArrow, null, Modifier.size(18.dp), tint = Kx.onAccent); T("Слушать", 13.sp, FontWeight.ExtraBold, Kx.onAccent)
         }
@@ -411,9 +406,10 @@ private fun ColumnScope.PlaylistPage(music: KxMusic, pl: KxPlaylist, bottom: Dp,
             if (editing) Row(Modifier.fillMaxWidth().height(58.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TrackCover(t, 40.dp, 10.dp)
                 Column(Modifier.weight(1f)) { T(t.title, 14.sp, FontWeight.SemiBold, maxLines = 1); T(t.performer, 12.sp, color = Kx.text4, maxLines = 1) }
-                MRoundBtn(Icons.Rounded.KeyboardArrowUp, "Выше", size = 36.dp, iconSize = 20.dp, border = null, tint = if (i > 0) Kx.text else Kx.text4) { if (i > 0) music.movePlaylistItem(pl.id, i, i - 1) }
-                MRoundBtn(Icons.Rounded.KeyboardArrowDown, "Ниже", size = 36.dp, iconSize = 20.dp, border = null, tint = if (i < pl.tracks.lastIndex) Kx.text else Kx.text4) { if (i < pl.tracks.lastIndex) music.movePlaylistItem(pl.id, i, i + 1) }
-                MRoundBtn(Icons.Rounded.Close, "Убрать", size = 36.dp, iconSize = 20.dp, border = null, tint = Kx.danger) { music.removeFromPlaylist(pl.id, t.chatId, t.messageId) }
+                MusicDragHandle(i, pl.tracks.lastIndex) { from, to -> music.movePlaylistItem(pl.id, from, to) }
+                Box(Modifier.kxHitClick("Убрать из плейлиста") { music.removeFromPlaylist(pl.id, t.chatId, t.messageId) }.size(36.dp), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Close, null, Modifier.size(20.dp), tint = Kx.danger)
+                }
             } else TrackRow(t, a, playlistId = pl.id) { onPlay(i, false) }
         }
     }
@@ -463,11 +459,18 @@ private fun TrackMenu(music: KxMusic, t: KxTrack, playlistId: Long?, exporter: E
     SheetRow(Icons.AutoMirrored.Outlined.PlaylistAdd, "В плейлист…") { onPickPlaylist(t) }
     if (t.fileId != 0) SheetRow(Icons.AutoMirrored.Outlined.QueueMusic, "Играть следующим") { music.playNext(t); onClose(); toast("Будет следующим") }
     when (music.offlineState(t.chatId, t.messageId)) {
-        0, 5 -> SheetRow(Icons.Outlined.DownloadForOffline, "Скачать для офлайна") { music.downloadOffline(listOf(t)); onClose(); toast("Скачиваем для офлайна") }
-        4 -> SheetRow(Icons.Outlined.DeleteOutline, "Удалить с телефона") { music.removeOffline(t.chatId, t.messageId); onClose(); toast("Удалено из «Скачанные»") }
+        0, 5 -> SheetRow(Icons.Outlined.DownloadForOffline, "Слушать без интернета") { music.downloadOffline(listOf(t)); onClose(); toast("Скачиваем для офлайна") }
+        4 -> {
+            val toastEx = com.kirox.app.ui.v3.components.LocalKxToastEx.current
+            // critique-C P2: red, with «Отменить» (downloads the file again).
+            SheetRow(Icons.Outlined.DeleteOutline, "Удалить с телефона", Kx.danger) {
+                music.removeOffline(t.chatId, t.messageId); onClose()
+                toastEx("Удалено с телефона — в Telegram трек остался", com.kirox.app.ui.v3.components.KxToastKind.Info, "Отменить") { music.downloadOffline(listOf(t)) }
+            }
+        }
         else -> SheetRow(Icons.Outlined.Close, "Отменить загрузку") { music.cancelOffline(t.chatId, t.messageId); onClose() }
     }
-    SheetRow(Icons.Outlined.LibraryMusic, "Сохранить в Музыку телефона") { onClose(); exporter.run(listOf(t), null) }
+    SheetRow(Icons.Outlined.LibraryMusic, "Сохранить файл в Музыку телефона") { onClose(); exporter.run(listOf(t), null) }
     if (playlistId != null && playlistId != KxPlaylist.MY_MUSIC) SheetRow(Icons.Outlined.RemoveCircleOutline, "Убрать из плейлиста", Kx.danger) {
         music.removeFromPlaylist(playlistId, t.chatId, t.messageId); onClose()
     }
@@ -548,11 +551,9 @@ private fun NameDialog(state: Pair<Long?, String>?, onDismiss: () -> Unit, onSav
                 singleLine = true, textStyle = ts(15.sp), cursorBrush = SolidColor(Kx.accent),
                 decorationBox = { inner -> if (name.isEmpty()) T("Название", 15.sp, color = Kx.text4); inner() })
             Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f).height(48.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick(onClick = onDismiss), contentAlignment = Alignment.Center) { T("Отмена", 15.sp, FontWeight.Bold) }
-                Box(Modifier.weight(1f).height(48.dp).clip(CircleShape).background(if (name.isNotBlank()) Kx.accent else Kx.w(.08f))
-                    .kxClick(enabled = name.isNotBlank()) { onSave(name.trim()) }, contentAlignment = Alignment.Center) {
-                    T("Сохранить", 15.sp, FontWeight.ExtraBold, if (name.isNotBlank()) Kx.onAccent else Kx.text4)
-                }
+                // critique-C P2: the same buttons as KxConfirmDialog (a prompt = confirm dialog + one field).
+                KxButton("Отмена", Modifier.weight(1f), KxButtonKind.Quiet, height = 48.dp, onClick = onDismiss)
+                KxButton("Сохранить", Modifier.weight(1f), height = 48.dp, enabled = name.isNotBlank()) { onSave(name.trim()) }
             }
         }
     }
@@ -576,9 +577,9 @@ internal fun MusicMiniPlayer(store: KxStore, clock: Long, modifier: Modifier, on
                 T(t.title, 14.sp, FontWeight.Bold, maxLines = 1)
                 T(t.performer.ifBlank { t.chatTitle }, 12.sp, color = Color(0xFFA6B5AC), maxLines = 1)
             }
-            Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.accent).kxClick(if (p.playing) "Пауза" else "Играть") { store.playerToggle() }, contentAlignment = Alignment.Center) {
-                if (p.loading) CircularProgressIndicator(Modifier.size(22.dp), color = Kx.onAccent, strokeWidth = 2.dp)
-                else Icon(if (p.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, Modifier.size(24.dp), tint = Kx.onAccent)
+            Box(Modifier.size(44.dp).clip(CircleShape).background(Color.White).kxClick(if (p.playing) "Пауза" else "Играть") { store.playerToggle() }, contentAlignment = Alignment.Center) {
+                if (p.loading) CircularProgressIndicator(Modifier.size(22.dp), color = Kx.bg, strokeWidth = 2.dp)
+                else Icon(if (p.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, Modifier.size(24.dp), tint = Kx.bg)
             }
             Box(Modifier.size(40.dp, 44.dp).kxClick("Следующий трек") { store.playerNext() }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.SkipNext, null, Modifier.size(24.dp), tint = Kx.text2)
@@ -590,12 +591,7 @@ internal fun MusicMiniPlayer(store: KxStore, clock: Long, modifier: Modifier, on
 
 // ---- Offline and «Сохранить в Музыку телефона» ----
 
-internal fun fmtBytes(b: Long): String = when {
-    b >= 1L shl 30 -> String.format(java.util.Locale.ROOT, "%.1f ГБ", b / (1L shl 30).toDouble()).replace('.', ',')
-    b >= 1L shl 20 -> "${b / (1L shl 20)} МБ"
-    b >= 1L shl 10 -> "${b / (1L shl 10)} КБ"
-    else -> "$b Б"
-}
+internal fun fmtBytes(b: Long): String = com.kirox.app.ui.v3.model.kxBytes(b) // critique-C P2: shared size format
 
 /** Small mark before a track's subtitle: offline ✓, downloading (ring), waiting / paused / failed. */
 @Composable
@@ -651,13 +647,13 @@ private fun OfflineBar(music: KxMusic, tracks: List<KxTrack>, exporter: Exporter
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val all = offlineCount == tracks.size && tracks.isNotEmpty()
         val label = when { all -> "Всё скачано"; pending > 0 -> "Скачано $offlineCount из ${tracks.size}"; else -> "Скачать всё" }
-        Row(Modifier.weight(1f).height(38.dp).clip(CircleShape).background(if (all) Kx.accent.copy(alpha = .15f) else Kx.w(.08f))
+        Row(Modifier.weight(1f).height(44.dp).clip(CircleShape).background(if (all) Kx.accent.copy(alpha = .15f) else Kx.w(.08f))
             .kxClick(label, enabled = !all && pending == 0) { music.downloadOffline(tracks) }.padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(if (all) Icons.Rounded.DownloadDone else Icons.Outlined.DownloadForOffline, null, Modifier.size(18.dp), tint = if (all) Kx.accent else Kx.text)
             T(label, 13.sp, FontWeight.Bold, if (all) Kx.accent else Kx.text, maxLines = 1)
         }
-        Row(Modifier.weight(1f).height(38.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("Сохранить в Музыку телефона") { exporter.run(tracks, folder) }.padding(horizontal = 12.dp),
+        Row(Modifier.weight(1f).height(44.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("Сохранить в Музыку телефона") { exporter.run(tracks, folder) }.padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(Icons.Outlined.LibraryMusic, null, Modifier.size(18.dp), tint = Kx.text)
             T("В Музыку телефона", 13.sp, FontWeight.Bold, maxLines = 1)
@@ -707,11 +703,11 @@ private fun ColumnScope.DownloadedSection(music: KxMusic, bottom: Dp, a: TrackAc
             if (list.isNotEmpty()) {
                 PlayButtons(list.size, list.sumOf { it.duration }, onPlay = { onPlay(list, 0) }, onShuffle = { music.play(list, -1, "Скачанные", true) })
                 Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(Modifier.weight(1f).height(38.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("Сохранить все в Музыку телефона") { exporter.run(list, null) }.padding(horizontal = 12.dp),
+                    Row(Modifier.weight(1f).height(44.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("Сохранить все в Музыку телефона") { exporter.run(list, null) }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Icon(Icons.Outlined.LibraryMusic, null, Modifier.size(18.dp), tint = Kx.text); T("В Музыку телефона", 13.sp, FontWeight.Bold, maxLines = 1)
                     }
-                    Row(Modifier.weight(1f).height(38.dp).clip(CircleShape).background(Kx.danger.copy(alpha = .14f)).kxClick("Удалить скачанное") {
+                    Row(Modifier.weight(1f).height(44.dp).clip(CircleShape).background(Kx.danger.copy(alpha = .14f)).kxClick("Удалить скачанное") {
                         confirm.ask("Удалить скачанное?", "${list.size} ${musicPlural(list.size)} (${fmtBytes(music.offlineBytes)}) пропадут с телефона. В Telegram они останутся.", "Удалить") { music.removeAllOffline() }
                     }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Icon(Icons.Outlined.DeleteOutline, null, Modifier.size(18.dp), tint = Kx.danger); T("Удалить скачанное", 13.sp, FontWeight.Bold, Kx.danger, maxLines = 1)
@@ -719,7 +715,7 @@ private fun ColumnScope.DownloadedSection(music: KxMusic, bottom: Dp, a: TrackAc
                 }
             }
         }
-        if (list.isEmpty()) item { MusicEmpty(Icons.Outlined.DownloadForOffline, "Пока ничего не скачано", "«Скачать для офлайна» в меню ⋮ у трека или «Скачать всё» в плейлисте") }
+        if (list.isEmpty()) item { MusicEmpty(Icons.Outlined.DownloadForOffline, "Пока ничего не скачано", "«Слушать без интернета» в меню ⋮ у трека или «Скачать всё» в плейлисте") }
         items(list.size, key = { "o:${list[it].chatId}:${list[it].messageId}" }) { i ->
             TrackRow(list[i], a, subtitle = listOf(list[i].performer, fmtBytes(list[i].size)).filter { it.isNotBlank() }.joinToString(" · ")) { onPlay(list, i) }
         }

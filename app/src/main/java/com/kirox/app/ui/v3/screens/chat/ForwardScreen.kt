@@ -75,6 +75,8 @@ fun ForwardScreen(ctx: KxScreenCtx) {
     val targets = store.chats.filter { it.kind != KxChatKind.Channel || it.id in postable }
     val shown = targets.filter { q.isBlank() || it.title.lowercase().contains(q.trim().lowercase()) }
     fun close() { sheet = false; sel.clear(); q = ""; note = "" }
+    // critique-A: the demo board opens with a target picked, so the comment field + «Отправить» bar is visible.
+    LaunchedEffect(demoStore) { if (demoStore && sel.isEmpty()) targets.firstOrNull()?.let { sel.add(it.id) } }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {

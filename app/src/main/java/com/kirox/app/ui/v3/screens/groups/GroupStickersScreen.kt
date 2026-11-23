@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.Icon
@@ -69,6 +70,7 @@ fun GroupStickersScreen(ctx: KxScreenCtx) {
     StoreErrorToasts(ctx)
     val set = sets.getOrNull(sel) ?: SSet("", "🗂", false, emptyList())
     val isCur = cur == sel
+    val none = sel < 0
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -92,6 +94,22 @@ fun GroupStickersScreen(ctx: KxScreenCtx) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 12.dp)) {
                 Text("Ваши наборы", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
                 Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // critique-C P2: «Без набора» is the first choice (the only way to remove the group set was hidden).
+                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (none) Color(0x1A8FD3AC) else Kx.w(.04f))
+                        .border(1.5.dp, if (none) Color(0x8C8FD3AC) else Color.Transparent, RoundedCornerShape(18.dp)).kxSelectedState(none)
+                        .kxClick("Без набора", Role.RadioButton) { sel = -1 }.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.06f)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Outlined.Block, null, Modifier.size(24.dp), tint = Kx.text3)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text("Без набора" + if (cur < 0) " · сейчас" else "", style = KxType.style(15.sp, FontWeight.ExtraBold))
+                            Text("У группы не будет своих стикеров", style = KxType.style(12.sp, color = Kx.text3))
+                        }
+                        Box(Modifier.size(22.dp).clip(CircleShape).border(2.dp, if (none) Kx.accent else Kx.w(.3f), CircleShape), contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(10.dp).clip(CircleShape).background(if (none) Kx.accent else Color.Transparent))
+                        }
+                    }
                     sets.forEachIndexed { i, p ->
                         if (q.isNotBlank() && !p.name.contains(q.trim(), ignoreCase = true)) return@forEachIndexed
                         val on = sel == i
@@ -113,12 +131,12 @@ fun GroupStickersScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Row(Modifier.padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (!none) Row(Modifier.padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Внутри «${set.name}»", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.weight(1f))
                     Text("${set.st.size} шт.", style = KxType.style(12.sp, color = Kx.text3))
                 }
                 Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    set.st.chunked(5).forEachIndexed { r, row ->
+                    if (!none) set.st.kxRenderableEmoji().chunked(5).forEachIndexed { r, row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             row.forEachIndexed { c, e ->
                                 key(k, r, c) {
@@ -135,15 +153,17 @@ fun GroupStickersScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Outlined.Brush, null, Modifier.size(18.dp), tint = Kx.text3)
                     Text("Своего набора нет? Сделайте его в «Стикер из фото» — он появится в этом списке.", style = KxType.style(12.sp, color = Kx.text3, lineHeight = 16.8.sp))
                 }
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(24.dp)) // critique-C P2: the CTA never covers the last preview row
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (cur >= 0) Box(Modifier.size(54.dp).clip(CircleShape).background(Color(0x1AE5534B)).kxClick("Убрать набор группы") { confirm = true }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Outlined.Delete, null, Modifier.size(24.dp), tint = Kx.danger)
+                val idle = isCur || (none && cur < 0)
+                GxPillButton(when { none && cur < 0 -> "У группы нет набора"; none -> "Убрать набор группы"; isCur -> "Этот набор уже в группе"; else -> "Сделать набором группы" },
+                    Modifier.weight(1f), height = 54.dp,
+                    brush = if (idle) SolidColor(Kx.w(.07f)) else Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = if (idle) Kx.text4 else Kx.onAccent,
+                    size = 16, weight = FontWeight.ExtraBold) {
+                    if (none) { if (cur >= 0) confirm = true }
+                    else if (!isCur && set.name.isNotEmpty()) { cur = sel; if (chatId != null && selId != null) store.setGroupStickerSet(chatId, selId); tip.say("«${set.name}» — набор группы") }
                 }
-                GxPillButton(if (isCur) "Этот набор уже в группе" else "Сделать набором группы", Modifier.weight(1f), height = 54.dp,
-                    brush = if (isCur) SolidColor(Kx.w(.07f)) else Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = if (isCur) Kx.text4 else Kx.onAccent,
-                    size = 16, weight = FontWeight.ExtraBold) { if (!isCur && set.name.isNotEmpty()) { cur = sel; if (chatId != null && selId != null) store.setGroupStickerSet(chatId, selId); tip.say("«${set.name}» — набор группы") } }
             }
         }
         GxTip(tip, bottom = 92.dp, icon = Icons.Rounded.CheckCircle, bg = Color(0xF528302C), textSize = 13)

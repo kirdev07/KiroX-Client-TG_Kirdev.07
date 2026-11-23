@@ -87,7 +87,7 @@ fun SwipeScreen(ctx: KxScreenCtx) {
     }
     val L = SW_ACT.getValue(left); val R = SW_ACT.getValue(right)
 
-    TScreen("Жесты", ctx.back, overlay = {
+    TScreen("Жесты в списке чатов", ctx.back, overlay = {
         val p = remember { Animatable(1f) }
         LaunchedEffect(toastId) { if (toastId != 0L) { p.snapTo(0f); p.animateTo(1f, tween(2600, easing = LinearEasing)) } }
         if (toastId != 0L && p.value < 1f) {
@@ -154,10 +154,10 @@ fun SwipeScreen(ctx: KxScreenCtx) {
             }
         }
         Row(Modifier.padding(start = 6.dp, end = 6.dp, top = 8.dp)) {
-            Text("← левая половина: свайп вправо", style = KxType.style(12.sp, color = Kx.text4)); Spacer(Modifier.weight(1f))
-            Text("правая: свайп влево →", style = KxType.style(12.sp, color = Kx.text4))
+            Text("← левая половина: смахнуть вправо", style = KxType.style(12.sp, color = Kx.text4)); Spacer(Modifier.weight(1f))
+            Text("правая: смахнуть влево →", style = KxType.style(12.sp, color = Kx.text4))
         }
-        listOf("Свайп вправо" to true, "Свайп влево" to false).forEach { (t, isLeft) ->
+        listOf("Смахнуть вправо" to true, "Смахнуть влево" to false).forEach { (t, isLeft) ->
             Text(t, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 18.dp, bottom = 6.dp))
             val cur = if (isLeft) left else right
             SW_ACT.entries.chunked(3).forEachIndexed { r, row ->

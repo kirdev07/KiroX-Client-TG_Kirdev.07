@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -89,16 +90,22 @@ fun SlowModeScreen(ctx: KxScreenCtx) {
             Box(Modifier.size(40.dp).clip(CircleShape).background(Kx.accentDeep), contentAlignment = Alignment.Center) { Text((header?.title ?: "K").take(1).uppercase(), style = KxType.style(16.sp, FontWeight.ExtraBold)) }
             Column(Modifier.weight(1f)) {
                 Text(header?.title ?: "Kotlin-клуб", style = KxType.style(16.sp, FontWeight.ExtraBold))
-                Text(header?.status ?: "1 284 участника, 96 в сети", style = KxType.style(12.sp, color = Kx.text3))
+                Text(header?.status ?: "1 284 участника · 96 в сети", style = KxType.style(12.sp, color = Kx.text3))
             }
         }
-        Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0x14E8B04A))
-            .border(1.dp, Color(0x40E8B04A), RoundedCornerShape(16.dp)).padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
+        // critique-C P2: a one-line hint that can be dismissed (the countdown lives on the send button).
+        var hint by remember { mutableStateOf(true) }
+        if (hint) Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0x14E8B04A))
+            .border(1.dp, Color(0x40E8B04A), RoundedCornerShape(16.dp)).padding(start = 12.dp, end = 2.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             val snail = remember { Animatable(0f) }
             LaunchedEffect(Unit) { if (!reduced) repeat(2) { snail.animateTo(1f, tween(1000, easing = FastOutSlowInEasing)); snail.animateTo(0f, tween(1000, easing = FastOutSlowInEasing)) } }
             Text("🐌", style = KxType.style(20.sp), modifier = Modifier.graphicsLayer { translationX = snail.value * 3.dp.toPx() })
-            Text("Медленный режим: одно сообщение раз в " + slowWord(interval) + ". Так в чате спокойнее.", style = KxType.style(12.sp, color = Color(0xFFE8D2A0), lineHeight = 16.2.sp), modifier = Modifier.weight(1f))
+            Text("Медленный режим: раз в " + slowWord(interval), style = KxType.style(13.sp, color = Color(0xFFE8D2A0)), maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Box(Modifier.size(44.dp).kxClick("Скрыть подсказку") { hint = false }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Close, null, Modifier.size(18.dp), tint = Color(0xFFE8D2A0))
+            }
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -150,7 +157,7 @@ fun SlowModeScreen(ctx: KxScreenCtx) {
                         drawCircle(Color(0x2EE8B04A), r, style = Stroke(sw))
                         drawArc(Kx.warning, -90f, 360f * ring, false, tl, sz, style = Stroke(sw, cap = StrokeCap.Round))
                     }
-                    Text("$left", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.warning).copy(fontFeatureSettings = "tnum"))
+                    Text(mmss(left), style = KxType.style(12.sp, FontWeight.ExtraBold, Kx.warning).copy(fontFeatureSettings = "tnum"))
                 } else Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(24.dp), tint = Kx.onAccent)
             }
         }

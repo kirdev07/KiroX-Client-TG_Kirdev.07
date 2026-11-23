@@ -42,7 +42,9 @@ fun DeleteChatScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val chats = store.chats.filter { it.kind != KxChatKind.Saved }
     // Opened from a chat's menu ("DeleteChat:<chatId>"): that chat is chosen already.
-    var sel by remember { mutableStateOf<KxChat?>(ctx.arg?.substringBefore(':')?.toLongOrNull()?.let { id -> chats.firstOrNull { it.id == id } }) }
+    // critique-A: the demo board opens in its key state (the delete sheet for the first chat).
+    var sel by remember { mutableStateOf<KxChat?>(ctx.arg?.substringBefore(':')?.toLongOrNull()?.let { id -> chats.firstOrNull { it.id == id } }
+        ?: if (store is com.kirox.app.ui.v3.demo.KxDemoStore && ctx.arg == null) chats.firstOrNull() else null) }
     var opt by remember { mutableIntStateOf(0) }
     val gone = remember { mutableStateMapOf<Long, Boolean>() }
     var pend by remember { mutableStateOf<Pair<KxChat, Int>?>(null) }
@@ -79,7 +81,7 @@ fun DeleteChatScreen(ctx: KxScreenCtx) {
                 Text("Чаты", style = ts(26, W800), modifier = Modifier.weight(1f))
                 Icon(Icons.Outlined.Search, null, tint = Color(0xFF9AA59F))
             }
-            Text("Нажмите на чат, чтобы открыть меню удаления", style = ts(12, color = Color(0xFF8A958F)),
+            Text("Нажмите на чат, чтобы открыть меню удаления", style = ts(12, color = Kx.text3),
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 90.dp)) {
                 items(chats, key = { it.id }) { c ->
@@ -96,7 +98,7 @@ fun DeleteChatScreen(ctx: KxScreenCtx) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     if (c.kind == KxChatKind.Group) Icon(Icons.Rounded.Group, null, Modifier.size(16.dp), tint = Kx.accent)
                                     Text(c.title, style = ts(15, W700), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(c.time, style = ts(12, color = Color(0xFF8A958F)))
+                                    Text(c.time, style = ts(12, color = Kx.text3))
                                 }
                                 val msg = c.previewSender?.let { "$it: ${c.preview}" } ?: c.preview
                                 Text(msg, style = ts(13, color = Color(0xFF9AA59F)), maxLines = 1, overflow = TextOverflow.Ellipsis)

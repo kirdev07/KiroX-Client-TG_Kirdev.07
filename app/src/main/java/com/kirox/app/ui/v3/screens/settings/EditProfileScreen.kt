@@ -124,7 +124,7 @@ fun EditProfileScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }.padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.Center) { Text("Готово", style = KxType.style(14.sp, FontWeight.Bold, if (canSave) Kx.onAccent else Color(0xFF5C6661))) }
+                    contentAlignment = Alignment.Center) { Text("Готово", style = KxType.style(14.sp, FontWeight.Bold, if (canSave) Kx.onAccent else Kx.text3)) }
             }
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 30.dp)) {
                 Box(Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 18.dp), contentAlignment = Alignment.TopCenter) {
@@ -185,7 +185,7 @@ fun EditProfileScreen(ctx: KxScreenCtx) {
                 }
                 val (note, noteInk) = when (userState) {
                     // qa-real: my current username is mine, not «Свободно».
-                    "ok" -> (if (user.equals(me.username, ignoreCase = true)) "Это ваше имя. Вас найдут по ссылке t.me/$user" else "Свободно. Вас найдут по ссылке t.me/$user") to Kx.accent
+                    "ok" -> (if (user.equals(me.username, ignoreCase = true)) "Это ваше имя пользователя. Вас найдут по ссылке t.me/$user" else "Свободно. Вас найдут по ссылке t.me/$user") to Kx.accent
                     "checking" -> "Проверяем…" to Kx.text3
                     "taken" -> "Это имя уже занято" to Kx.danger
                     "short" -> "Минимум 5 символов" to Kx.warning
@@ -267,8 +267,10 @@ private fun Label6(text: String, top: Int = 16) =
 private fun PField(hint: String, value: String, line: Boolean, onChange: (String) -> Unit) {
     Box(Modifier.fillMaxWidth().height(54.dp).drawBehind { if (line) drawLine(Kx.w(.06f), Offset(0f, size.height - .5f), Offset(size.width, size.height - .5f), 1f) }.padding(horizontal = 16.dp),
         contentAlignment = Alignment.CenterStart) {
+        // critique-B: a floating label — once the field is filled its name stays above the text.
         if (value.isEmpty()) Text(hint, style = KxType.style(16.sp, color = Kx.text4))
-        BasicTextField(value, onChange, Modifier.fillMaxWidth(), singleLine = true, textStyle = KxType.style(16.sp), cursorBrush = SolidColor(Kx.accent))
+        else Text(hint.substringBefore(" ("), style = KxType.style(11.sp, color = Kx.text4), modifier = Modifier.align(Alignment.TopStart).padding(top = 6.dp))
+        BasicTextField(value, onChange, Modifier.fillMaxWidth().padding(top = if (value.isEmpty()) 0.dp else 12.dp), singleLine = true, textStyle = KxType.style(16.sp), cursorBrush = SolidColor(Kx.accent))
     }
 }
 

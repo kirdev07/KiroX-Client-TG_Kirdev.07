@@ -51,7 +51,9 @@ fun ContactBarScreen(ctx: KxScreenCtx) {
         st == "stranger" -> listOf(
             CbBtn(Icons.Outlined.PersonAdd, "Добавить в контакты", 1.4f, Kx.accent.copy(alpha = .14f), Kx.accent) { sheet = true },
             CbBtn(Icons.Outlined.Block, "Заблокировать", 1f, Kx.dangerSolid.copy(alpha = .1f), Kx.danger) {
-                chatId?.let { store.block(it, true) }; st = "blocked"; sys += "$first в чёрном списке"; bk++ })
+                chatId?.let { store.block(it, true) }; st = "blocked"; sys += "$first в чёрном списке"; bk++ },
+            // critique-A: Telegram's third action — report spam (opens the report flow for this chat).
+            CbBtn(Icons.Outlined.Report, "Спам", .8f, Kx.w(.08f), Kx.text2) { ctx.open(if (chatId != null) "Report:$chatId" else "Report") })
         added && !share -> listOf(CbBtn(Icons.Outlined.ContactPhone, "Поделиться моим номером", 1f, Kx.accent.copy(alpha = .14f), Kx.accent) {
             if (!demo && chatId != null) scope.launch { val e = store.sharePhone(chatId); if (e != null) ctx.toast(e) else { share = true; sys += "Номер отправлен · $first"; bk++ } }
             else { share = true; sys += "Номер отправлен · $first"; bk++ } })

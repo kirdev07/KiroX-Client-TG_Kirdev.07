@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.Icon
@@ -94,17 +95,17 @@ fun TypeTranslateScreen(ctx: KxScreenCtx) {
                 val p = moEnter(250)
                 Column(Modifier.padding(horizontal = 10.dp).fillMaxWidth().graphicsLayer { alpha = p; translationY = (1f - p) * 12.dp.toPx() }
                     .clip(RoundedCornerShape(20.dp, 20.dp, 6.dp, 6.dp)).background(Color(0xFF181D1B)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.06f))))
-                    .drawBehind {
-                        val c = Kx.w(.14f); val s = 1.dp.toPx()
-                        drawLine(c, Offset(20.dp.toPx(), s / 2), Offset(size.width - 20.dp.toPx(), s / 2), s)
-                        drawLine(c, Offset(s / 2, 20.dp.toPx()), Offset(s / 2, size.height), s)
-                        drawLine(c, Offset(size.width - s / 2, 20.dp.toPx()), Offset(size.width - s / 2, size.height), s)
-                    }.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    .border(1.dp, Kx.w(.14f), RoundedCornerShape(20.dp, 20.dp, 6.dp, 6.dp)).padding(horizontal = 12.dp, vertical = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Icon(Icons.Outlined.Translate, null, Modifier.size(18.dp), tint = Kx.accent)
                         Text("Русский", style = mts(12, W8, Kx.accent))
                         Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(16.dp), tint = MoMuted)
-                        Text(l.second, style = mts(12, W8))
+                        // critique-A: the target language is picked here («Итальянский ▾»), not by chip rows under the composer.
+                        Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.06f)).kxClick("Язык перевода: ${l.second}") {
+                            lang = TT_L[(TT_L.indexOfFirst { it.first == lang } + 1) % TT_L.size].first
+                        }.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(l.second, style = mts(12, W8)); Icon(Icons.Outlined.ExpandMore, null, Modifier.size(16.dp), tint = MoSub)
+                        }
                         Spacer(Modifier.weight(1f))
                         Box(Modifier.size(28.dp).clip(CircleShape).kxClick("Выключить перевод") { on = false }, contentAlignment = Alignment.Center) {
                             Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = MoSub)
@@ -130,7 +131,7 @@ fun TypeTranslateScreen(ctx: KxScreenCtx) {
                 Row(Modifier.weight(1f).heightIn(min = 46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.07f)).padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Text(txt.ifEmpty { "Сообщение" }, style = mts(15, color = if (txt.isNotEmpty()) Kx.text else MoMuted), modifier = Modifier.weight(1f, fill = false))
-                    MoCaret()
+                    if (txt.isNotEmpty() && !full) MoCaret() // critique-A S: caret only while the text is being typed
                 }
                 val ready = full && txt.isNotEmpty()
                 Box(Modifier.size(46.dp).clip(CircleShape).then(if (ready) Modifier.moAccent() else Modifier.background(Kx.w(.07f))).kxClick("Отправить") {
@@ -139,14 +140,7 @@ fun TypeTranslateScreen(ctx: KxScreenCtx) {
                     }
                 }, contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(24.dp), tint = if (ready) MoInk else MoMuted) }
             }
-            FlowRow(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                TT_L.forEach { (k, t) ->
-                    val sel = lang == k
-                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(if (sel) Kx.accent.copy(alpha = .16f) else Kx.w(.05f))
-                        .border(1.dp, if (sel) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), RoundedCornerShape(15.dp)).kxClick { lang = k }.padding(horizontal = 10.dp),
-                        contentAlignment = Alignment.Center) { Text(t, style = mts(12, W7, if (sel) Kx.accent else Kx.text2)) }
-                }
+            com.kirox.app.ui.v3.components.KxDemoControls(ctx.store, Modifier.padding(bottom = 8.dp)) {
                 Row(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(15.dp))
                     .kxClick { typeK++ }.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(Icons.Outlined.Keyboard, null, Modifier.size(15.dp), tint = Kx.text2)

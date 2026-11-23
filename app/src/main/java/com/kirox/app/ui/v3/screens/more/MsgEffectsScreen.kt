@@ -25,7 +25,7 @@ import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
 // Demo effects. Real private chat (arg = chat id): store.messageEffects (Telegram's list, Premium marked) and store.sendWith(effectId).
-private data class Fx(val e: String, val name: String, val up: Boolean, val parts: List<String>)
+private data class Fx(val e: String, val name: String, val up: Boolean, val parts: List<String>, val prem: Boolean = false)
 
 private val FX = listOf(
     Fx("🎉", "Конфетти", false, listOf("🎊", "🎉", "✨", "🟩", "🟨")),
@@ -33,8 +33,8 @@ private val FX = listOf(
     Fx("🔥", "Огонь", true, listOf("🔥", "🔥", "✨")),
     Fx("👍", "Класс", true, listOf("👍", "👍", "✨")),
     Fx("🎈", "Шарики", true, listOf("🎈", "🎈", "🎈")),
-    Fx("❄️", "Снегопад", false, listOf("❄️", "❄️", "✨")),
-    Fx("⭐", "Звездопад", false, listOf("⭐", "🌟", "✨")),
+    Fx("❄️", "Снегопад", false, listOf("❄️", "❄️", "✨"), prem = true),
+    Fx("⭐", "Звездопад", false, listOf("⭐", "🌟", "✨"), prem = true),
     Fx("😂", "Смех", true, listOf("😂", "🤣", "😆")),
 )
 private data class FxSent(val id: Int, val text: String, val e: String)
@@ -49,7 +49,7 @@ fun MsgEffectsScreen(ctx: KxScreenCtx) {
     if (live && header?.kind != com.kirox.app.ui.v3.model.KxChatKind.Private) { C3NeedChat(ctx, "Эффекты", "Telegram отправляет сообщения с эффектом только в личных чатах."); return }
     val peek = c3Peek(ctx.store, chatId)
     val effects = if (live) c3Load(chatId) { ctx.store.messageEffects() } else null
-    val list = if (!live) FX else effects.orEmpty().map { Fx(it.emoji, if (it.premium) "Эффект · Premium" else "Эффект", false, listOf(it.emoji, "✨", it.emoji)) }
+    val list = if (!live) FX else effects.orEmpty().map { Fx(it.emoji, if (it.premium) "Эффект · Premium" else "Эффект", false, listOf(it.emoji, "✨", it.emoji), prem = it.premium) }
     if (live && effects != null && list.isEmpty()) { C3NeedChat(ctx, "Эффекты", "Telegram пока не прислал список эффектов. Откройте позже."); return }
     if (live && effects == null) { C3NeedChat(ctx, "Эффекты", "Загрузка…"); return }
     var menu by remember { mutableStateOf(true) }
@@ -112,7 +112,7 @@ fun MsgEffectsScreen(ctx: KxScreenCtx) {
             // Title and the Premium note on two lines: side by side they wrapped into a 3-line column at 250dp.
             Column(Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp)) {
                 Text("Отправить с эффектом", style = mts(13, W8, Kx.text2))
-                Text("часть эффектов — с Premium", style = mts(11, W6, MoMuted))
+                Text("★ — эффекты с Premium", style = mts(11, W6, MoMuted))
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 list.indices.take(24).chunked(4).forEach { row ->
@@ -125,6 +125,10 @@ fun MsgEffectsScreen(ctx: KxScreenCtx) {
                                 val t = if (on) moRun(600, 2, key = i) else -1f
                                 val rot = when { t < 0f -> 0f; t < .25f -> -10f * t / .25f; t < .75f -> -10f + 20f * (t - .25f) / .5f; else -> 10f - 10f * (t - .75f) / .25f }
                                 Text(x.e, style = mts(26), modifier = Modifier.graphicsLayer { rotationZ = rot })
+                                // critique-A: Premium effects carry a small ★ so the «часть — с Premium» note is explained.
+                                if (x.prem) Box(Modifier.align(Alignment.TopEnd).padding(3.dp).size(16.dp).clip(CircleShape).background(Kx.premium), contentAlignment = Alignment.Center) {
+                                    Text("★", style = mts(10, W8, Color.White))
+                                }
                             }
                         }
                     }

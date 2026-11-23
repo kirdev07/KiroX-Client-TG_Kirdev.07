@@ -24,6 +24,7 @@ import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.HowToReg
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Timer
@@ -62,7 +63,7 @@ private val ProfileRules = listOf(
 private val MessageRules = listOf(
     RuleDef("ForwardLink", Icons.AutoMirrored.Outlined.Forward, "Будет ли ссылка на вас в пересланных сообщениях"),
     RuleDef("Calls", Icons.Outlined.PhoneInTalk, "Кто может вам звонить"),
-    RuleDef("PeerToPeer", Icons.Outlined.SwapHoriz, "С кем звонки идут напрямую: собеседник может узнать ваш IP-адрес"),
+    RuleDef("PeerToPeer", Icons.Outlined.SwapHoriz, "С кем звонки идут напрямую: собеседник может узнать ваш адрес в сети"),
     RuleDef("VoiceNotes", Icons.Outlined.Mic, "Кто может присылать голосовые и видеосообщения (ограничение — с Telegram Premium)"),
     RuleDef("ChatInvites", Icons.Outlined.GroupAdd, "Кто может добавлять вас в группы и каналы"),
 )
@@ -90,7 +91,7 @@ fun PrivacyAllScreen(ctx: KxScreenCtx) {
                         val present = defs.mapNotNull { d -> rules.firstOrNull { it.key == d.key }?.let { d to it } }
                         if (present.isEmpty()) SHint("Загружаем правила…")
                         present.forEachIndexed { i, (d, r) ->
-                            RuleRow(d.icon, r.title, LevelNames.getOrElse(r.level) { "" } + if (r.exceptions > 0) " (+${r.exceptions})" else "", groupShape(i, present.size, 20.dp)) {
+                            RuleRow(d.icon, r.title, LevelNames.getOrElse(r.level) { "" } + if (r.exceptions > 0) ", +${r.exceptions} " + plural(r.exceptions, "исключение", "исключения", "исключений") else "", groupShape(i, present.size, 20.dp)) {
                                 ctx.open("PrivacyRule:${d.key}")
                             }
                         }
@@ -134,11 +135,10 @@ fun PrivacyAllScreen(ctx: KxScreenCtx) {
 
 @Composable
 private fun RuleRow(icon: ImageVector, title: String, value: String, shape: androidx.compose.ui.graphics.Shape, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(shape).background(TileBg).kxClick(onClick = onClick).padding(horizontal = 14.dp),
+    Row(Modifier.kxDividerInset(46.dp).fillMaxWidth().heightIn(min = 52.dp).kxGroupItem(shape, TileBg, 46.dp).kxClick(onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Icon(icon, null, Modifier.size(20.dp), tint = Kx.text4)
-        Text(title, style = KxType.style(15.sp), modifier = Modifier.weight(1f), maxLines = 1)
-        Text(value, style = KxType.style(13.sp, FontWeight.SemiBold, Kx.text2), maxLines = 1)
+        KxTitleValue(title, value, Modifier.weight(1f).padding(vertical = 8.dp), valueStyle = KxType.style(13.sp, FontWeight.SemiBold, Kx.text2))
         Icon(Icons.Rounded.ChevronRight, null, Modifier.size(18.dp), tint = Kx.text4)
     }
 }
@@ -170,7 +170,19 @@ fun PrivacyRuleScreen(ctx: KxScreenCtx) {
             SHeader(rule?.title ?: "Правило", ctx.back, bottom = 2.dp)
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp).navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                if (rule == null) { SHint("Загружаем правило…"); return@Column }
+                // critique-B: a skeleton of the choice group while loading; after a while an honest error with «Повторить».
+                if (rule == null) {
+                    var waited by remember { mutableIntStateOf(0) }
+                    var tries by remember { mutableIntStateOf(0) }
+                    LaunchedEffect(tries) { waited = 0; while (waited < 8) { kotlinx.coroutines.delay(1000); waited++ } }
+                    GroupLabel("Кто может")
+                    if (waited < 8) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        repeat(3) { Box(Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f))) }
+                    } else Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        SNavRow(Icons.Rounded.Refresh, "Не удалось загрузить", "Повторить", groupShape(0, 1, 20.dp), tint = Kx.warning) { tries++ }
+                    }
+                    return@Column
+                }
                 Column(Modifier.sRise(0)) {
                     GroupLabel("Кто может")
                     if (def != null) SHint(def.hint, Modifier.padding(bottom = 8.dp))

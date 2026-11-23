@@ -81,7 +81,7 @@ fun KxDock(current: KxTab, onPick: (KxTab) -> Unit, modifier: Modifier = Modifie
                         Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 3.dp).heightIn(min = 18.dp).widthIn(min = 18.dp)
                             .clip(RoundedCornerShape(9.dp)).background(if (tab == KxTab.Calls) Kx.danger else Kx.accent).padding(horizontal = 5.dp),
                         contentAlignment = Alignment.Center
-                    ) { Text(if (badge > 99) "99+" else badge.toString(), style = KxType.style(11.sp, FontWeight.ExtraBold, Kx.onAccent)) }
+                    ) { Text(if (badge > 99) "99+" else badge.toString(), style = KxType.style(11.sp, FontWeight.ExtraBold, if (tab == KxTab.Calls) Color.White else Kx.onAccent)) } // critique-C: white on red
                 }
             }
         }

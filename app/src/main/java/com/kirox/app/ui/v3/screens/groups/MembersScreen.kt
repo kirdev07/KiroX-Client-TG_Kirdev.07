@@ -49,7 +49,7 @@ private val MPeople = listOf(
     MP(8, "Олег", "О", solid(0xFF9AA59F), "restricted", false, "без медиа до завтра"),
     MP(9, "Лиза", "Л", solid(0xFFC9A0E0), "member", true, "в сети", recent = true),
 )
-private val MFilters = listOf("all" to "Все · 1 284", "admins" to "Админы · 3", "recent" to "Новые", "bots" to "Боты · 1", "restricted" to "Ограничены · 1")
+private val MFilters = listOf("all" to "Все · 1 284", "admins" to "Админы · 3", "recent" to "Новые · 3", "bots" to "Боты · 1", "restricted" to "Ограничены · 1")
 
 /** Board «Участники группы»: search, filter chips, members with role tags, action sheet with confirms for promote/kick. */
 @Composable
@@ -73,13 +73,13 @@ fun MembersScreen(ctx: KxScreenCtx) {
     }
     fun uid(p: MP): Long? = if (chatId == null) null else real?.getOrNull(p.id - 1)?.userId
     val filters = if (chatId == null) MFilters else listOf(
-        "all" to "Все · ${people.size}", "admins" to "Админы · ${people.count { it.role == "admin" || it.role == "owner" }}", "recent" to "Новые",
+        "all" to "Все · ${people.size}", "admins" to "Админы · ${people.count { it.role == "admin" || it.role == "owner" }}", "recent" to "Новые · ${people.count { it.recent }}",
         "bots" to "Боты", "restricted" to "Ограничены · ${people.count { it.role == "restricted" }}")
     StoreErrorToasts(ctx)
     fun role(p: MP) = roles[p.id] ?: p.role
     fun tag(r: String, p: MP): Triple<String, Color, Color>? = when (r) {
-        "owner" -> Triple("Владелец", Color(0x29E8B04A), Kx.warning)
-        "admin" -> Triple(p.title ?: "админ", Color(0x298FD3AC), Kx.accent)
+        "owner" -> Triple("владелец", Color(0x29E8B04A), Kx.warning) // critique-C P3: lowercase role badges
+        "admin" -> Triple("админ", Color(0x298FD3AC), Kx.accent)
         "restricted" -> Triple("ограничен", Color(0x24FF8A80), Kx.danger)
         else -> null
     }
@@ -132,7 +132,9 @@ fun MembersScreen(ctx: KxScreenCtx) {
                                 KxLine(x.n, KxType.style(15.sp, FontWeight.Bold), Modifier.weight(1f, false))
                                 if (x.bot) Icon(Icons.Rounded.SmartToy, "Бот", Modifier.size(15.dp), tint = Color(0xFF7FB8E0))
                             }
-                            Text(sub, style = KxType.style(12.sp, color = if (x.on) Kx.accent else if (r == "restricted") Color(0xFFC9A06A) else Kx.text3), maxLines = 1)
+                            // critique-C P3: a custom title is grey text under the name, not a role pill.
+                            Text(if (x.title != null && r == "admin") "${x.title} · $sub" else sub,
+                                style = KxType.style(12.sp, color = if (x.on) Kx.accent else if (r == "restricted") Color(0xFFC9A06A) else Kx.text3), maxLines = 1)
                         }
                         if (tg != null) Box(Modifier.height(22.dp).clip(RoundedCornerShape(11.dp)).background(tg.second).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
                             Text(tg.first, style = KxType.style(11.sp, FontWeight.ExtraBold, tg.third), maxLines = 1)

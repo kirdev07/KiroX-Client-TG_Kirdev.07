@@ -44,9 +44,9 @@ private val PK_CH = listOf(
     PkChat("Анна", "А", Color(0xFFC0443C), "19:40", "в сети", listOf(Triple("Новый трейлер вышел, смотрим?", false, "19:31"), Triple("Ещё нет, скинь", true, "19:33"), Triple("Вот, смотри 🍿", false, "19:38"), Triple("Завтра вместе в кино?", false, "19:40"))),
     PkChat("Семья", "С", Color(0xFF2F6E9E), "18:20", "5 участников", listOf(Triple("Мама: Все приедут в субботу?", false, "18:02"), Triple("Папа: Я буду к обеду", false, "18:10"), Triple("Мама: Фото с дачи 🌻", false, "18:20"))),
     PkChat("Kotlin-клуб", "K", Color(0xFF3F9A6C), "17:40", "1 284 участника", listOf(Triple("Дмитрий: PR готов, гляньте", false, "17:31"), Triple("Сергей: Смотрю", false, "17:35"), Triple("Айгерим: Пара замечаний в ревью", false, "17:40"))),
-    PkChat("Лиза", "Л", Color(0xFF6A4C9C), "15:30", "в сети час назад", listOf(Triple("Сюрприз готов 🎁", false, "15:30"))),
+    PkChat("Лиза", "Л", Color(0xFF6A4C9C), "15:30", "была час назад", listOf(Triple("Сюрприз готов 🎁", false, "15:30"))),
     PkChat("Работа", "Р", Color(0xFF5C6661), "вчера", "12 участников", listOf(Triple("Созвон в понедельник в 10:00", false, "вчера"))),
-    PkChat("Олег", "О", Color(0xFF9AA59F), "вчера", "в сети недавно", listOf(Triple("Ок", true, "вчера"))),
+    PkChat("Олег", "О", Color(0xFF9AA59F), "вчера", "был недавно", listOf(Triple("Ок", true, "вчера"))),
 )
 private data class PkAct(val icon: @Composable () -> Unit, val t: String, val ink: Color, val tap: () -> Unit)
 
@@ -54,7 +54,8 @@ private data class PkAct(val icon: @Composable () -> Unit, val t: String, val in
 @Composable
 fun ChatPeekScreen(ctx: KxScreenCtx) {
     if (ctx.c3Live) { ChatPeekLive(ctx); return }
-    var open by remember { mutableIntStateOf(-1) }
+    // critique-A S: the board opens in its key state — the first chat already peeked.
+    var open by remember { mutableIntStateOf(0) }
     val unread = remember { mutableStateMapOf(0 to 3, 1 to 2, 2 to 5, 3 to 1) }
     val muted = remember { mutableStateMapOf(4 to true) }
     val pinned = remember { mutableStateMapOf(0 to true) }

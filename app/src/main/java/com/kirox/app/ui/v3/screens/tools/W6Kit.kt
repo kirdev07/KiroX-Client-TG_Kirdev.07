@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
@@ -16,7 +17,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
-import com.kirox.app.ui.v3.components.kxClick
+import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
 /**
@@ -64,15 +65,16 @@ internal fun BoxScope.W6ChoiceSheet(title: String, options: List<String>, select
 /** Grouped tile row with a value on the right (no chevron): label 15, sub 12, value 13 accent. */
 @Composable
 internal fun W6ValueRow(label: String, value: String, shape: androidx.compose.ui.graphics.Shape, sub: String? = null, enabled: Boolean = true,
-                        icon: androidx.compose.ui.graphics.vector.ImageVector? = null, valueColor: androidx.compose.ui.graphics.Color = Kx.accent, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 54.dp).clip(shape).background(TTile).kxClick(enabled = enabled, onClick = onClick).padding(horizontal = 14.dp),
+                        icon: androidx.compose.ui.graphics.vector.ImageVector? = null, valueColor: androidx.compose.ui.graphics.Color = Kx.accent,
+                        /** Rows that open something (screen, picker, Android page) show the chevron like SNavRow. */ chevron: Boolean = true, onClick: () -> Unit) {
+    Row(Modifier.kxDividerInset(if (icon != null) 46.dp else 14.dp).fillMaxWidth().heightIn(min = 54.dp).kxGroupItem(shape, TTile, if (icon != null) 46.dp else 14.dp)
+        .kxClick(enabled = enabled, onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         if (icon != null) androidx.compose.material3.Icon(icon, null, Modifier.size(20.dp), tint = Kx.text4)
-        Column(Modifier.weight(1f).padding(vertical = if (sub != null) 8.dp else 0.dp)) {
-            Text(label, style = KxType.style(15.sp, color = if (enabled) Kx.text else Kx.text4))
-            if (sub != null) Text(sub, style = KxType.style(12.sp, color = Kx.text4, lineHeight = 16.sp))
-        }
-        Text(value, style = KxType.style(13.sp, FontWeight.Bold, if (enabled) valueColor else Kx.text4), maxLines = 1)
+        // A8: title on one line; the value moves under it when the line is short.
+        KxTitleValue(label, value, Modifier.weight(1f).padding(vertical = 8.dp), titleStyle = KxType.style(15.sp, color = if (enabled) Kx.text else Kx.text4),
+            valueStyle = KxType.style(13.sp, FontWeight.Bold, if (enabled) valueColor else Kx.text4), sub = sub, subStyle = KxType.style(12.sp, color = Kx.text4, lineHeight = 16.sp))
+        if (chevron) androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ChevronRight, null, Modifier.size(20.dp), tint = Kx.text4)
     }
 }
 

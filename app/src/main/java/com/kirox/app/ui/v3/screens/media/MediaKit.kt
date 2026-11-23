@@ -1,5 +1,8 @@
 package com.kirox.app.ui.v3.screens.media
 
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.gestures.draggable
+import com.kirox.app.ui.v3.components.kxHitClick
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.background
@@ -64,13 +67,31 @@ fun Modifier.ellipseGlow(color: Color, cx: Float, cy: Float, rx: Float, ry: Floa
 fun MRoundBtn(icon: ImageVector, label: String, modifier: Modifier = Modifier, size: Dp = 44.dp, iconSize: Dp = 24.dp,
               bg: Color = Kx.w(.06f), border: Color? = Kx.w(.09f), highlight: Color? = null, tint: Color = Kx.text,
               shape: Shape = CircleShape, onClick: () -> Unit = {}) {
+    // critique-C P2: drawn at [size], but the touch / TalkBack box is always 48dp.
     Box(
-        modifier.size(size).clip(shape).background(bg)
+        modifier.kxHitClick(label, shape, onClick = onClick).size(size).clip(shape).background(bg)
             .then(if (border != null) Modifier.border(1.dp, border, shape) else Modifier)
-            .then(if (highlight != null) Modifier.topHighlight(highlight) else Modifier)
-            .kxClick(label, onClick = onClick),
+            .then(if (highlight != null) Modifier.topHighlight(highlight) else Modifier),
         contentAlignment = Alignment.Center
     ) { Icon(icon, null, Modifier.size(iconSize), tint = tint) }
+}
+
+/**
+ * critique-C P1: drag a bottom sheet down to close it (past 110dp or a fast fling); otherwise it springs back.
+ * Put it first on the sheet surface; lists inside still scroll first.
+ */
+@Composable
+fun Modifier.mSheetDrag(onClose: () -> Unit): Modifier {
+    val scope = rememberCoroutineScope()
+    val off = remember { androidx.compose.animation.core.Animatable(0f) }
+    val limit = with(androidx.compose.ui.platform.LocalDensity.current) { 110.dp.toPx() }
+    val close by rememberUpdatedState(onClose)
+    val st = androidx.compose.foundation.gestures.rememberDraggableState { d -> scope.launch { off.snapTo((off.value + d).coerceAtLeast(0f)) } }
+    return this.graphicsLayer { translationY = off.value }
+        .draggable(st, androidx.compose.foundation.gestures.Orientation.Vertical, onDragStopped = { v ->
+            if (off.value > limit || v > 1800f) { close(); kotlinx.coroutines.delay(320); off.snapTo(0f) }
+            else off.animateTo(0f, androidx.compose.animation.core.spring(stiffness = 600f))
+        })
 }
 
 /** Text style shortcut: size, weight, color. */
@@ -121,7 +142,7 @@ fun fmtSec(s: Int): String = "${s / 60}:${(s % 60).toString().padStart(2, '0')}"
 
 /** Dim backdrop + bottom sheet (radius 30 top, solid gradient, kxSheet .38s slide-up), closes on back/tap outside. */
 @Composable
-fun MSheet(visible: Boolean, onClose: () -> Unit, modifier: Modifier = Modifier, dim: Float = .55f,
+fun MSheet(visible: Boolean, onClose: () -> Unit, modifier: Modifier = Modifier, dim: Float = .6f,
            top: Color = Color(0xFF222C27), bottom: Color = Color(0xFF101412),
            padding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 22.dp),
            handle: Boolean = true, border: Color = Kx.w(.16f), highlight: Color? = Kx.w(.2f), handleColor: Color = Kx.w(.25f), handleWidth: Dp = 40.dp,
@@ -137,7 +158,7 @@ fun MSheet(visible: Boolean, onClose: () -> Unit, modifier: Modifier = Modifier,
             exit = androidx.compose.animation.slideOutVertically(androidx.compose.animation.core.tween(250)) { it }) {
             val shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
             androidx.compose.foundation.layout.Column(
-                modifier.fillMaxWidth().clip(shape).background(Color(0xFF101412)).background(Brush.verticalGradient(listOf(top, bottom)))
+                modifier.mSheetDrag(onClose).fillMaxWidth().clip(shape).background(Color(0xFF101412)).background(Brush.verticalGradient(listOf(top, bottom)))
                     .border(1.dp, border, shape).then(if (highlight != null) Modifier.topHighlight(highlight) else Modifier)
                     .kxClick { }.navigationBarsPadding().padding(padding)
             ) {

@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 
 private val DaTtl = listOf("1 месяц" to 1, "6 месяцев" to 6, "1 год" to 12, "2 года" to 24)
 private val DaDays = mapOf(1 to 30, 6 to 182, 12 to 365, 24 to 730)
-private val DaChecks = listOf("Я понимаю, что чаты не восстановить", "Я сохранил(а) нужные файлы", "Группы, где я единственный админ, останутся без админа")
+private val DaChecks = listOf("Я понимаю, что чаты не восстановить", "Нужные файлы сохранены", "Группы, где я единственный админ, останутся без админа")
 
 /** Board «Удаление аккаунта»: self-destruct period, danger zone → what you lose (export first) → checklist + final button. Nothing is deleted. */
 @Composable
@@ -63,7 +63,7 @@ fun DeleteAccountScreen(ctx: KxScreenCtx) {
     val all = DaChecks.indices.all { ch[it] == true }
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding().navigationBarsPadding()) {
-        ExBar("Аккаунт", { if (step > 0) { step--; armed = false } else ctx.back() })
+        ExBar("Удаление аккаунта", { if (step > 0) { step--; armed = false } else ctx.back() })
         key(step) {
             val p = enter(300)
             val inMod = Modifier.graphicsLayer { alpha = p; translationX = (1f - p) * 20.dp.toPx() }

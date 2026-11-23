@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
@@ -68,7 +69,16 @@ fun BubblesScreen(ctx: KxScreenCtx) {
             drawCircle(Kx.dangerSolid, 10 * u, Offset(300 * u, 140 * u))
         }
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
-            Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp).fillMaxWidth().height(50.dp).shadow(7.dp, RoundedCornerShape(25.dp)).clip(RoundedCornerShape(25.dp)).background(Color.White)
+            // critique-B: a kiroX header with back and one line of explanation over the other app's screen.
+            Row(Modifier.fillMaxWidth().background(Kx.bg.copy(alpha = .94f)).padding(start = 12.dp, end = 16.dp, top = 8.dp, bottom = 10.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                com.kirox.app.ui.v3.components.KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
+                Column(Modifier.weight(1f)) {
+                    Text("Чаты-пузыри", style = KxType.style(18.sp, FontWeight.ExtraBold, Kx.text))
+                    Text("Чат открывается поверх другого приложения — как здесь, над картой", style = KxType.style(12.sp, color = Kx.text3, lineHeight = 16.sp))
+                }
+            }
+            Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp).fillMaxWidth().height(50.dp).shadow(7.dp, RoundedCornerShape(25.dp)).clip(RoundedCornerShape(25.dp)).background(Color.White)
                 .padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(Icons.Outlined.Search, null, Modifier.size(24.dp), tint = Kx.text4); Text("Медеу", style = KxType.style(15.sp, color = Kx.text4))
             }

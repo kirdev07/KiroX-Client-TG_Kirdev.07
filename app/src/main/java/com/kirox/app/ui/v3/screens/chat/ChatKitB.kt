@@ -117,8 +117,7 @@ internal fun MixToast(text: String, icon: androidx.compose.ui.graphics.vector.Im
 
 /** Standard 46×28 switch of these boards (#3F9A6C / .14, knob 22 #EEF3EF / #9AA59F). */
 @Composable
-internal fun BSwitch(on: Boolean) = com.kirox.app.ui.v3.components.KxSwitch(on, width = 46.dp, height = 28.dp, knob = 22.dp,
-    trackOn = Kx.accentDeep, trackOff = Kx.w(.14f), knobOn = Kx.text, knobOff = Kx.text3)
+internal fun BSwitch(on: Boolean) = com.kirox.app.ui.v3.components.KxSwitch(on)
 
 /** 84 gradient circle with a filled icon: kxPop (.5 → 1.12 → 1, .5s) + an outline ring pulsing out twice. */
 @Composable

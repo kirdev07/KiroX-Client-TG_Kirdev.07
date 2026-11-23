@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.security.shield.ShieldContext
 import com.kirox.app.ui.v3.KxScreenCtx
+import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.screens.tools.*
 import com.kirox.app.ui.v3.theme.Kx
 import com.kirox.app.ui.v3.theme.KxType
@@ -71,6 +72,12 @@ fun ShieldTrainerScreen(ctx: KxScreenCtx) {
             return@TScreen
         }
         val card = cards[index]
+        // critique-B: progress dots for the 10 examples.
+        Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            repeat(cards.size) { i ->
+                Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(if (i < index) Kx.accent else if (i == index) Kx.accent.copy(alpha = .55f) else Kx.w(.1f)))
+            }
+        }
         THint("Это вымышленные примеры для тренировки. Ваши ответы модель не учит.", top = 0.dp)
         // The example as a chat bubble.
         Column(Modifier.padding(top = 14.dp).fillMaxWidth()) {
@@ -85,10 +92,13 @@ fun ShieldTrainerScreen(ctx: KxScreenCtx) {
         val a = answer
         if (a == null) {
             Text("Как думаете?", style = KxType.style(15.sp, FontWeight.Bold), modifier = Modifier.padding(top = 22.dp))
+            // critique-B: two equal neutral buttons (a red «Мошенник» primed the answer) and «Пропустить».
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TPill("Нормально", Modifier.weight(1f), h = 52.dp, bg = solid(Kx.w(.08f)), ink = Kx.text, weight = FontWeight.Bold) { answer = false; if (!card.scam) right++ }
-                TPill("Мошенник", Modifier.weight(1f), h = 52.dp, bg = solid(Kx.dangerSolid), ink = Color.White) { answer = true; if (card.scam) right++ }
+                TPill("Нормально", Modifier.weight(1f), h = 56.dp, bg = solid(Kx.w(.08f)), ink = Kx.text, weight = FontWeight.Bold) { answer = false; if (!card.scam) right++ }
+                TPill("Мошенник", Modifier.weight(1f), h = 56.dp, bg = solid(Kx.w(.08f)), ink = Kx.text, weight = FontWeight.Bold) { answer = true; if (card.scam) right++ }
             }
+            Text("Пропустить", style = KxType.style(14.sp, FontWeight.Bold, Kx.text3), modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 10.dp)
+                .clip(RoundedCornerShape(14.dp)).kxClick("Пропустить пример") { index++ }.padding(horizontal = 16.dp, vertical = 10.dp))
         } else {
             val ok = a == card.scam
             val verdict = remember(card, KxShield.ready) { KxShield.score(acc, card.text, ShieldContext(stranger = true)) }

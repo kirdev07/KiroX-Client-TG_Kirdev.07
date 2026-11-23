@@ -53,7 +53,7 @@ private val CU_FILTERS_REAL = listOf("100+ непрочитанных" to 100, "
 private val CU_INKS = listOf(Color(0xFFB07A2E), Color(0xFFC0443C), Color(0xFF5C6661), Color(0xFF2F6E9E), Color(0xFF3F9A6C), Color(0xFF6A4C9C))
 private fun cuAgo(d: Int) = if (d == 0) "сегодня" else if (d == 1) "вчера" else if (d < 30) "$d дн. назад" else if (d < 365) "${d / 30} мес. назад" else "больше года"
 private fun cuK(n: Int) = String.format(java.util.Locale.US, "%.1f", n / 1000f).replace('.', ',')
-private fun cuUn(n: Int) = if (n == 0) "всё прочитано" else (if (n > 999) cuK(n) + "K" else "$n") + " непрочитанных"
+private fun cuUn(n: Int) = if (n == 0) "всё прочитано" else (if (n > 999) cuK(n) + " тыс." else "$n") + " непрочитанных"
 
 /** Board «Чистка подписок»: idle hero with sweeping mop, filters, multi-select list, leave / archive with slide-out and undo toast. */
 @Composable
@@ -127,6 +127,16 @@ fun CleanupScreen(ctx: KxScreenCtx) {
                 filters.forEachIndexed { i, (l, _) -> TChip(l, f == i, h = 34.dp) { f = i } }
             }
             Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 110.dp)) {
+                // critique-B: select all / clear.
+                val ids = list.map { it.index }
+                if (ids.isNotEmpty()) {
+                    val allOn = ids.all { it in sel }
+                    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(14.dp)).kxClick(role = Role.Checkbox) { sel = if (allOn) sel - ids.toSet() else sel + ids }
+                        .padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Icon(if (allOn) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, null, Modifier.size(24.dp), tint = if (allOn) Kx.accent else Kx.text3)
+                        Text(if (allOn) "Снять выбор" else "Выбрать все · ${ids.size}", style = KxType.style(14.sp, FontWeight.Bold, Kx.accent))
+                    }
+                }
                 list.forEachIndexed { k, (i, x) ->
                     key(i) {
                         val on = i in sel
@@ -152,7 +162,7 @@ fun CleanupScreen(ctx: KxScreenCtx) {
                                     KxLine(x.name, KxType.style(15.sp, FontWeight.Bold), Modifier.weight(1f))
                                     Text(x.kind, style = KxType.style(11.sp, color = Kx.text4))
                                 }
-                                val lastInk = if (x.days >= 30 || (!demo && x.unread >= 100)) Kx.warning else Kx.text4
+                                val lastInk = Kx.text4 // critique-B: neutral (every row was orange)
                                 Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     if (x.days >= 0) {
                                         Icon(Icons.Outlined.Schedule, null, Modifier.size(14.dp), tint = lastInk)
@@ -175,7 +185,7 @@ fun CleanupScreen(ctx: KxScreenCtx) {
             .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TPill("В архив", Modifier.alpha(if (n > 0) 1f else .4f), Icons.Outlined.Archive, 54.dp, solid(Kx.w(.07f)), Kx.text, 14, FontWeight.Bold) { act(false) }
             val lbg by animateColorAsState(if (n > 0) Kx.dangerSolid else Kx.w(.07f), tween(250), label = "lb")
-            TPill(if (n > 0) "Выйти · $n" else "Выберите подписки", Modifier.weight(1f), Icons.AutoMirrored.Outlined.Logout, 54.dp, solid(lbg), if (n > 0) Color.White else Color(0xFF5C6661)) { act(true) }
+            TPill(if (n > 0) "Выйти · $n" else "Выберите подписки", Modifier.weight(1f), Icons.AutoMirrored.Outlined.Logout, 54.dp, solid(lbg), if (n > 0) Color.White else Kx.text3) { act(true) }
         }
         TToastHost(toast, 96.dp, 3000)
         confirm?.let { com.kirox.app.ui.v3.components.KxConfirmDialog(it) { confirm = null } }

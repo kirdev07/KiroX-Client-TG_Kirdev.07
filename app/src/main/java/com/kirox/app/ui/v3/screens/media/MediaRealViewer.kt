@@ -108,6 +108,7 @@ private fun RealViewerPages(ctx: KxScreenCtx, list: List<KxMediaItem>, start: In
     var ui by remember { mutableStateOf(true) }
     var menu by remember { mutableStateOf(false) }
     var confirm by remember { mutableStateOf<KxConfirm?>(null) }
+    var deleting by remember { mutableStateOf(false) }
     val toast = remember { MToastState() }
     val i = pager.currentPage.coerceIn(0, list.lastIndex)
     val m = list[i]
@@ -143,6 +144,13 @@ private fun RealViewerPages(ctx: KxScreenCtx, list: List<KxMediaItem>, start: In
                 T(m.time, 12.sp, color = Kx.text2)
             }
             T("${i + 1} из ${list.size}", 13.sp, color = Kx.text2, modifier = Modifier.padding(end = 4.dp))
+            // critique-C P2: the reaction sits in the top bar (the bottom bar keeps labelled actions).
+            MRoundBtn(Icons.Outlined.FavoriteBorder, "Реакция ❤", size = 42.dp, bg = Color.Transparent, border = null) {
+                // wave5: only a reaction the chat allows (❤ when it can); failures come back as the store error, not a fake «поставлена».
+                val allowed = ctx.store.availableReactions(m.chatId, m.messageId)
+                val emoji = if ("❤" in allowed || allowed.isEmpty() && ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) "❤" else allowed.firstOrNull()
+                if (emoji == null) toast.show("Реакции в этом чате выключены") else { ctx.store.react(m.chatId, m.messageId, emoji); toast.show(if (emoji.startsWith("ce:")) "Реакция поставлена" else "Реакция $emoji") }
+            }
             MRoundBtn(Icons.Outlined.MoreVert, "Ещё", size = 42.dp, bg = Color.Transparent, border = null) { menu = true }
         }
         if (ui) Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(0f to Color.Transparent, .35f to Color.Black.copy(alpha = .6f), 1f to Color.Black.copy(alpha = .9f)))
@@ -160,36 +168,29 @@ private fun RealViewerPages(ctx: KxScreenCtx, list: List<KxMediaItem>, start: In
                     }
                 }
             }
-            Row(Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(29.dp)).background(Kx.surface.copy(alpha = .6f)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
-                .border(1.dp, Kx.w(.16f), RoundedCornerShape(29.dp)).topHighlight(Kx.w(.18f)), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
-                RAct(Icons.Outlined.FavoriteBorder, "Реакция ❤") {
-                    // wave5: only a reaction the chat allows (❤ when it can); failures come back as the store error, not a fake «поставлена».
-                    val allowed = ctx.store.availableReactions(m.chatId, m.messageId)
-                    val emoji = if ("❤" in allowed || allowed.isEmpty() && ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) "❤" else allowed.firstOrNull()
-                    if (emoji == null) toast.show("Реакции в этом чате выключены") else { ctx.store.react(m.chatId, m.messageId, emoji); toast.show(if (emoji.startsWith("ce:")) "Реакция поставлена" else "Реакция $emoji") }
-                }
-                RAct(Icons.AutoMirrored.Outlined.Chat, "Показать в чате") { ctx.store.jumpTo(m.chatId, m.messageId); ctx.back() }
+            Row(Modifier.fillMaxWidth().height(66.dp).clip(RoundedCornerShape(33.dp)).background(Kx.surface.copy(alpha = .6f)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
+                .border(1.dp, Kx.w(.16f), RoundedCornerShape(33.dp)).topHighlight(Kx.w(.18f)), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
+                RAct(Icons.AutoMirrored.Outlined.Chat, "В чат") { ctx.store.jumpTo(m.chatId, m.messageId); ctx.back() }
                 RAct(Icons.AutoMirrored.Outlined.Forward, "Переслать", m.canForward) { ctx.open("Forward:${m.chatId}:${m.messageId}") }
                 RAct(Icons.Outlined.Download, "Сохранить", m.canSave) { save(m) }
                 RAct(Icons.Outlined.Share, "Поделиться", m.canSave) { scope.launch { if (ensureFile(ctx, m.fileId)) ctx.store.shareFile(m.fileId)?.let { say(it) } else say("Файл не скачался") } }
             }
         }
-        MSheet(menu, { menu = false }, dim = .5f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
+        MSheet(menu, { menu = false }, dim = .6f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
             handleColor = Color(0xFF3A4540), handleWidth = 36.dp, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 26.dp)) {
             MenuItem(Icons.AutoMirrored.Outlined.Chat, "Показать в чате", Kx.text) { menu = false; ctx.store.jumpTo(m.chatId, m.messageId); ctx.back() }
             // fixer-chat4: «Весь альбом» = this album; «Все медиа чата» = this chat's media grid (SharedMedia), not the phone's Медиатека.
             if (m.albumId != 0L) MenuItem(Icons.Outlined.PhotoLibrary, "Весь альбом", Kx.text) { menu = false; ctx.open("Album:${m.chatId}:${m.messageId}") }
             MenuItem(Icons.Outlined.GridView, "Все медиа чата", Kx.text) { menu = false; ctx.open("SharedMedia:${m.chatId}") }
-            fun askDelete(forAll: Boolean) {
-                menu = false
-                confirm = KxConfirm(if (m.video) "Удалить видео?" else "Удалить фото?",
-                    if (forAll) "Сообщение с этим медиа удалится из чата у всех." else "Сообщение удалится только у вас.", "Удалить") {
-                    ctx.store.delete(m.chatId, listOf(m.messageId), forAll)
-                    onDeleted(m.messageId)
-                }
-            }
-            if (m.canDelete) MenuItem(Icons.Outlined.Delete, if (m.canDeleteForAll) "Удалить у меня" else "Удалить", Kx.danger) { askDelete(false) }
-            if (m.canDeleteForAll) MenuItem(Icons.Outlined.DeleteForever, "Удалить у всех", Kx.danger) { askDelete(true) }
+            // critique-C P2: the same delete sheet as in the chat («Также удалить у …»).
+            if (m.canDelete || m.canDeleteForAll) MenuItem(Icons.Outlined.Delete, "Удалить…", Kx.danger) { menu = false; deleting = true }
+        }
+        if (deleting) Box(Modifier.fillMaxSize().background(KxScrim).kxClick("Отмена") { deleting = false }) {
+            val asMsg = com.kirox.app.ui.v3.model.KxMessage(m.messageId, out = m.canDeleteForAll, text = m.caption,
+                kind = if (m.video) com.kirox.app.ui.v3.model.KxMsgKind.Video else com.kirox.app.ui.v3.model.KxMsgKind.Photo)
+            com.kirox.app.ui.v3.screens.DeleteSheet(asMsg, ctx.store.header(m.chatId).title, m.canDeleteForAll, onCancel = { deleting = false },
+                onDelete = { forAll -> deleting = false; ctx.store.delete(m.chatId, listOf(m.messageId), forAll); onDeleted(m.messageId) },
+                modifier = Modifier.align(Alignment.BottomCenter), canDeleteForMe = m.canDelete)
         }
         MToastHost(toast, top = 80.dp)
         confirm?.let { KxConfirmDialog(it) { confirm = null } }
@@ -253,8 +254,11 @@ private fun VideoSeekRow(player: ExoPlayer) {
 
 @Composable
 private fun RAct(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, enabled: Boolean = true, onClick: () -> Unit) {
-    Box(Modifier.size(52.dp, 46.dp).clip(RoundedCornerShape(23.dp)).then(if (enabled) Modifier.kxClick(label, onClick = onClick) else Modifier), contentAlignment = Alignment.Center) {
-        Icon(icon, label, tint = if (enabled) Kx.text else Kx.text4)
+    // critique-C P2: icon + label, never a bare glyph.
+    Column(Modifier.widthIn(min = 64.dp).height(54.dp).clip(RoundedCornerShape(18.dp)).then(if (enabled) Modifier.kxClick(label, onClick = onClick) else Modifier),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
+        Icon(icon, null, Modifier.size(22.dp), tint = if (enabled) Kx.text else Kx.text4)
+        T(label, 11.sp, FontWeight.SemiBold, if (enabled) Kx.text2 else Kx.text4, maxLines = 1)
     }
 }
 

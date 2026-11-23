@@ -84,7 +84,7 @@ private fun pulse(periodMs: Int, times: Int = 2, delayMs: Int = 0): Float {
 fun LoginScreen(auth: KxAuth) {
     // «←» from the code step keeps the number that was sent.
     var digits by rememberSaveable { mutableStateOf(auth.typedPhone) }
-    var sync by rememberSaveable { mutableStateOf(true) }
+    var sync by rememberSaveable { mutableStateOf(false) } // privacy choice: off until the user opts in
     // With the keyboard up the board scrolls so the field, «Получить код» and «Войти по QR-коду» stay visible.
     val scroll = rememberScrollState()
     val qrInView = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
@@ -99,18 +99,18 @@ fun LoginScreen(auth: KxAuth) {
     val focusPulse = pulse(2200, times = 2, delayMs = 800)
     Box(Modifier.fillMaxSize().background(AuthBg)) {
         // Art (right side): glow, big green bubble, typing bubble, three twinkles.
-        Canvas(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((40).dp, 70.dp).size(260.dp).graphicsLayer { val s = 1f + .12f * glow; scaleX = s; scaleY = s; alpha = .7f + .3f * glow }) {
+        Canvas(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((40).dp, 40.dp).size(240.dp).graphicsLayer { val s = 1f + .12f * glow; scaleX = s; scaleY = s; alpha = .7f + .3f * glow }) {
             drawCircle(Brush.radialGradient(listOf(Color(0x4746A06E), Color.Transparent), radius = size.minDimension / 2 * 1.41f * .65f))
         }
         Box(Modifier.fillMaxSize().graphicsLayer { translationY = -10.dp.toPx() * float }) {
-            Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-26).dp, 104.dp).size(116.dp, 84.dp)
+            Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-26).dp, 78.dp).size(116.dp, 84.dp)
                 .clip(RoundedCornerShape(30.dp, 30.dp, 8.dp, 30.dp))
                 .drawBehind { drawRect(Brush.linearGradient(0f to Color(0xFFA6E3C1), .35f to Color(0xFF6FC497), 1f to Color(0xFF2E7A54), start = cssAngleStart(150f, size), end = cssAngleEnd(150f, size))) }
                 .padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
                 Box(Modifier.fillMaxWidth(.7f).height(9.dp).clip(RoundedCornerShape(5.dp)).background(Color(0x8C06150D)))
                 Box(Modifier.fillMaxWidth(.45f).height(9.dp).clip(RoundedCornerShape(5.dp)).background(Color(0x5906150D)))
             }
-            Row(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-118).dp, 166.dp).size(84.dp, 50.dp).clip(RoundedCornerShape(22.dp, 22.dp, 22.dp, 6.dp))
+            Row(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-118).dp, 134.dp).size(84.dp, 50.dp).clip(RoundedCornerShape(22.dp, 22.dp, 22.dp, 6.dp))
                 .background(Color(0xE61A241F)).border(1.dp, Color(0xFF2E4A3A), RoundedCornerShape(22.dp, 22.dp, 22.dp, 6.dp)),
                 horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                 val t = rememberInfiniteTransition(label = "dots")
@@ -120,7 +120,7 @@ fun LoginScreen(auth: KxAuth) {
                 }
             }
         }
-        listOf(Triple(168, 96, 6) to tw1, Triple(22, 250, 4) to tw2, Triple(120, 270, 3) to tw3).forEach { (p, a) ->
+        listOf(Triple(168, 76, 6) to tw1, Triple(22, 176, 4) to tw2, Triple(220, 150, 3) to tw3).forEach { (p, a) ->
             Box(Modifier.align(Alignment.TopEnd).statusBarsPadding().offset((-p.first).dp, p.second.dp).size(p.third.dp).graphicsLayer { alpha = .15f + .85f * a }.clip(CircleShape).background(Kx.accentLight))
         }
         BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
@@ -131,14 +131,16 @@ fun LoginScreen(auth: KxAuth) {
                 Text(buildAnnotatedString { append("kiro"); withStyle(SpanStyle(color = Kx.accent, fontWeight = FontWeight.Bold)) { append("X") } },
                     style = KxType.style(18.sp, FontWeight.Light).copy(letterSpacing = .3.sp))
             }
-            Column(Modifier.padding(top = 72.dp).kxRise(100, 700)) {
-                Text("С возвращением", style = KxType.style(34.sp, FontWeight.Bold, lineHeight = 40.sp).copy(letterSpacing = (-.4).sp))
-                Text("Войдите по номеру телефона, к которому привязан Telegram", style = KxType.style(15.sp, color = Kx.text3, lineHeight = 22.sp), modifier = Modifier.padding(top = 10.dp).widthIn(max = 220.dp))
+            // critique-A P1: the art sits in its own band above the headline (no text under the bubbles).
+            Column(Modifier.padding(top = 140.dp).kxRise(100, 700)) {
+                Text("Вход в Telegram", style = KxType.style(34.sp, FontWeight.Bold, lineHeight = 40.sp).copy(letterSpacing = (-.4).sp))
+                Text("Войдите по номеру телефона, к которому привязан Telegram", style = KxType.style(15.sp, color = Kx.text3, lineHeight = 22.sp), modifier = Modifier.padding(top = 10.dp).widthIn(max = 320.dp))
             }
             Column(Modifier.padding(top = 44.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.kxRise(250, 700).fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(Field).border(1.dp, FieldLine, RoundedCornerShape(16.dp))
                     .kxClick("Страна: ${auth.countryName}") { auth.openCountryPicker() }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Icon(Icons.Outlined.Public, null, Modifier.size(22.dp), tint = Kx.accent)
+                    val flag = countryFlag(auth.countryName)
+                    if (flag != null) Text(flag, style = KxType.style(20.sp)) else Icon(Icons.Outlined.Public, null, Modifier.size(22.dp), tint = Kx.accent)
                     Text(auth.countryName, style = KxType.style(15.sp), modifier = Modifier.weight(1f))
                     Icon(Icons.Outlined.ExpandMore, null, tint = Color(0xFF7C8781))
                 }
@@ -161,7 +163,10 @@ fun LoginScreen(auth: KxAuth) {
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(Modifier.size(18.dp).clip(RoundedCornerShape(4.dp)).background(if (sync) Kx.accentMid else Color.Transparent).border(2.dp, if (sync) Kx.accentMid else Kx.text4, RoundedCornerShape(4.dp)),
                         contentAlignment = Alignment.Center) { if (sync) Icon(Icons.Rounded.Check, null, Modifier.size(14.dp), tint = Kx.onAccent) }
-                    Text("Синхронизировать контакты", style = KxType.style(14.sp, color = Kx.text3))
+                    Column {
+                        Text("Синхронизировать контакты", style = KxType.style(14.sp, color = Kx.text3))
+                        Text("Найдём знакомых в Telegram. Можно включить позже в настройках.", style = KxType.style(12.sp, color = Kx.text4, lineHeight = 16.sp))
+                    }
                 }
                 auth.error?.let { Text(it, style = KxType.style(13.sp, color = Kx.danger)) }
                 ShineButton(if (auth.busy) "Отправляем код…" else "Получить код", Modifier.padding(top = 14.dp).kxRise(550, 700), enabled = !auth.busy) { auth.submitPhone(digits, sync) }
@@ -179,6 +184,14 @@ fun LoginScreen(auth: KxAuth) {
         }
         }
     }
+}
+
+/** Flag emoji for the common countries of our users (globe icon for the rest). */
+private fun countryFlag(name: String): String? = when (name.trim()) {
+    "Казахстан" -> "🇰🇿"; "Россия" -> "🇷🇺"; "Беларусь" -> "🇧🇾"; "Украина" -> "🇺🇦"; "Узбекистан" -> "🇺🇿"; "Кыргызстан", "Киргизия" -> "🇰🇬"
+    "Таджикистан" -> "🇹🇯"; "Армения" -> "🇦🇲"; "Азербайджан" -> "🇦🇿"; "Грузия" -> "🇬🇪"; "Молдова" -> "🇲🇩"; "Туркменистан" -> "🇹🇲"
+    "Турция" -> "🇹🇷"; "Германия" -> "🇩🇪"; "США" -> "🇺🇸"; "Великобритания" -> "🇬🇧"; "ОАЭ" -> "🇦🇪"; "Польша" -> "🇵🇱"; "Израиль" -> "🇮🇱"
+    else -> null
 }
 
 private fun formatPhone(d: String): String = buildString {
@@ -213,11 +226,13 @@ fun ShineButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = 
     val reduced = LocalKxReducedMotion.current
     LaunchedEffect(reduced) { if (!reduced) repeat(2) { shine.snapTo(-1.2f); shine.animateTo(4.2f, tween(1800, easing = LinearEasing)); delay(1200) } }
     Box(modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp))
-        .drawBehind { drawRect(Brush.linearGradient(listOf(Color(0xFF6FC497), Color(0xFF3F9A6C)), cssAngleStart(100f, size), cssAngleEnd(100f, size))) }
-        .graphicsLayer { alpha = if (enabled) 1f else .6f }.kxClick(text, enabled = enabled, onClick = onClick), contentAlignment = Alignment.Center) {
-        Box(Modifier.align(Alignment.CenterStart).width(60.dp).fillMaxHeight().graphicsLayer { translationX = shine.value * 60.dp.toPx(); rotationZ = 0f }
+        .drawBehind { if (enabled) drawRect(Brush.linearGradient(listOf(Color(0xFF6FC497), Color(0xFF3F9A6C)), cssAngleStart(100f, size), cssAngleEnd(100f, size))) else drawRect(Field) }
+        .then(if (enabled) Modifier else Modifier.border(1.dp, FieldLine, RoundedCornerShape(16.dp)))
+        .kxClick(text, enabled = enabled, onClick = onClick), contentAlignment = Alignment.Center) {
+        // Disabled = flat field colour without the shine, so it never looks tappable.
+        if (enabled) Box(Modifier.align(Alignment.CenterStart).width(60.dp).fillMaxHeight().graphicsLayer { translationX = shine.value * 60.dp.toPx(); rotationZ = 0f }
             .background(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = .35f), Color.Transparent))))
-        Text(text, style = KxType.style(16.sp, FontWeight.Bold, Kx.onAccent))
+        Text(text, style = KxType.style(16.sp, FontWeight.Bold, if (enabled) Kx.onAccent else Kx.text4))
     }
 }
 
@@ -252,8 +267,8 @@ fun CodeScreen(auth: KxAuth) {
             drawCircle(Brush.radialGradient(listOf(Color(0x3846A06E), Color.Transparent), radius = size.minDimension / 2 * 1.41f * .65f))
         }
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.fillMaxWidth().height(64.dp).offset(x = (-12).dp), contentAlignment = Alignment.CenterStart) {
-                Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).kxClick("Назад") { auth.back() }, contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = Kx.text) }
+            Box(Modifier.fillMaxWidth().height(64.dp), contentAlignment = Alignment.CenterStart) {
+                KxBackButton({ auth.back() }) // critique-A S: one circled back button
             }
             Box(Modifier.padding(top = 36.dp).size(96.dp), contentAlignment = Alignment.Center) {
                 Box(Modifier.matchParentSize().graphicsLayer { val s = 1f + .35f * r; scaleX = s; scaleY = s; alpha = 1f - r }.border(2.dp, Kx.accent.copy(alpha = .5f), RoundedCornerShape(30.dp)))
@@ -303,7 +318,8 @@ fun CodeScreen(auth: KxAuth) {
                 else withStyle(SpanStyle(color = Kx.accent, fontWeight = FontWeight.SemiBold)) { append("Отправить код снова") }
             }, style = KxType.style(14.sp, color = Kx.text3), modifier = Modifier.padding(top = 24.dp).clip(RoundedCornerShape(10.dp)).kxClick(enabled = left == 0) { auth.resend() }.padding(6.dp))
             if (auth.codeInApp) Box(Modifier.padding(top = 8.dp).height(40.dp).clip(RoundedCornerShape(12.dp)).kxClick(enabled = left == 0) { auth.resend() }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-                Text("Получить по СМС", style = KxType.style(14.sp, FontWeight.Medium, if (left == 0) Kx.accent else Kx.text4))
+                Text(if (left == 0) "Получить по СМС" else "Получить по СМС через ${left / 60}:${(left % 60).toString().padStart(2, '0')}",
+                    style = KxType.style(14.sp, FontWeight.Medium, if (left == 0) Kx.accent else Kx.text4))
             }
             Spacer(Modifier.weight(1f))
             val ready = if (textMode) code.isNotBlank() else code.length == auth.codeLength
@@ -330,8 +346,8 @@ fun EmailScreen(auth: KxAuth) {
             drawCircle(Brush.radialGradient(listOf(Color(0x3846A06E), Color.Transparent), radius = size.minDimension / 2 * 1.41f * .65f))
         }
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.fillMaxWidth().height(64.dp).offset(x = (-12).dp), contentAlignment = Alignment.CenterStart) {
-                Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).kxClick("Назад") { auth.back() }, contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = Kx.text) }
+            Box(Modifier.fillMaxWidth().height(64.dp), contentAlignment = Alignment.CenterStart) {
+                KxBackButton({ auth.back() }) // critique-A S: one circled back button
             }
             Box(Modifier.padding(top = 20.dp).size(88.dp).clip(RoundedCornerShape(30.dp)).background(Kx.accent.copy(alpha = .14f)), contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Mail, null, Modifier.size(46.dp), tint = Kx.accent)

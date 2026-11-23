@@ -41,7 +41,7 @@ import kotlinx.coroutines.delay
 // demo: needs store — reading the system clipboard (ClipboardManager, with the Android 13 paste notice) and sending image/link/text.
 private data class Clip(val kind: String, val text: String, val a: Color, val b: Color, val ic: Color, val icon: ImageVector, val att: String, val btn: String)
 private val CLIPS = linkedMapOf(
-    "shot" to Clip("Скопирован скриншот · только что", "Скриншот 19:51.png", Color(0xFF1B201E), Color(0xFF0F1311), Color(0xFFFF8A80), Icons.Rounded.Image, "Скриншот · 1,2 МБ", "Скриншот"),
+    "shot" to Clip("Скопирован скриншот", "Скриншот 19:51.png", Color(0xFF1B201E), Color(0xFF0F1311), Color(0xFFFF8A80), Icons.Rounded.Image, "Скриншот · 1,2 МБ", "Скриншот"),
     "link" to Clip("Скопирована ссылка", "developer.android.com/build/dependencies", Color(0x297FB8E0), Color(0x297FB8E0), Color(0xFF7FB8E0), Icons.Rounded.Link, "developer.android.com", "Ссылку"),
     "code" to Clip("Скопирован текст", "Duplicate class kotlin.collections…", Color(0x24E8B04A), Color(0x24E8B04A), MoAmber, Icons.Rounded.Code, "Фрагмент текста · 2 строки", "Текст"),
 )
@@ -116,7 +116,9 @@ fun ClipPasteScreen(ctx: KxScreenCtx) {
                     if (att) { sent.add(CpSent(nid++, clip, draft)); while (sent.size > 2) sent.removeAt(0); att = false; sug = false }
                 }, contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(24.dp), tint = if (att) MoInk else MoMuted) }
             }
-            Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
+            // critique-A S: demo state switchers live in the dashed «демо» tray, only on the demo store.
+            com.kirox.app.ui.v3.components.KxDemoControls(ctx.store, Modifier.padding(bottom = 6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
                 CLIPS.forEach { (k, x) ->
                     Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(16.dp))
                         .kxClick { clip = k; sug = true; att = false; sk++ }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically,
@@ -125,6 +127,7 @@ fun ClipPasteScreen(ctx: KxScreenCtx) {
                         Text(x.btn, style = mts(12, W7, Kx.text2))
                     }
                 }
+            }
             }
         }
 

@@ -118,7 +118,7 @@ internal object KxChat3Mapping {
      */
     fun linkWarning(text: String, url: String): String? {
         val real = host(url) ?: return null
-        if (real.split('.').any { it.startsWith("xn--") }) return "Адрес записан кодом (punycode): $real может подделываться под другой сайт"
+        if (real.split('.').any { it.startsWith("xn--") }) return "В адресе особые буквы: $real может подделываться под другой сайт"
         val letters = real.filter { it.isLetter() }
         if (letters.any { it in 'а'..'я' || it == 'ё' } && letters.any { it in 'a'..'z' }) return "В адресе смешаны русские и латинские буквы: $real"
         val shown = host(text)

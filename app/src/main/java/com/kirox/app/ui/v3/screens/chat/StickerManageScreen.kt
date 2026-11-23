@@ -55,6 +55,8 @@ fun StickerManageScreen(ctx: KxScreenCtx) {
     var tk by remember { mutableIntStateOf(0) }
     var last by remember { mutableStateOf<StLast?>(null) }
     var suggest by remember { mutableStateOf(true) }
+    /** critique-A: archive / delete live behind one ⋮ per row (no red delete next to archive). */
+    var menu by remember { mutableStateOf<Pair<String, Int>?>(null) }
     LaunchedEffect(tk) { if (toast != null) { delay(3000); toast = null; last = null } }
     fun say(t: String, l: StLast? = null) { toast = t; last = l; tk++ }
     val list = if (tab == 0) act else arch
@@ -103,13 +105,8 @@ fun StickerManageScreen(ctx: KxScreenCtx) {
                                 Text("${x.n} ${plural(x.n, "стикер", "стикера", "стикеров")}" + if (x.anim) " · анимированные" else "", style = ts(12, color = Kx.text3))
                                 Text(x.peek, style = ts(16).copy(letterSpacing = 2.sp), modifier = Modifier.padding(top = 3.dp), maxLines = 1)
                             }
-                            Box(Modifier.size(40.dp).clip(CircleShape).background(Kx.w(.06f)).kxClick(if (isAct) "В архив" else "Вернуть в панель") {
-                                if (isAct) { act.remove(k); arch.add(0, k); say("«${x.name}» в архиве", StLast(k, true, i)) }
-                                else { arch.remove(k); act.add(k); say("«${x.name}» снова в панели") }
-                            }, contentAlignment = Alignment.Center) { Icon(if (isAct) Icons.Outlined.Archive else Icons.Outlined.Unarchive, null, Modifier.size(20.dp), tint = Kx.text2) }
-                            if (!(isAct && edit)) Box(Modifier.size(40.dp).clip(CircleShape).background(Kx.dangerSolid.copy(alpha = .1f)).kxClick("Удалить набор") {
-                                if (isAct) act.remove(k) else arch.remove(k); say("«${x.name}» удалён", StLast(k, isAct, i))
-                            }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Delete, null, Modifier.size(20.dp), tint = Kx.danger) }
+                            if (!(isAct && edit)) Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Действия с набором «${x.name}»") { menu = k to i },
+                                contentAlignment = Alignment.Center) { Icon(Icons.Outlined.MoreVert, null, Modifier.size(22.dp), tint = Kx.text2) }
                         }
                     }
                 }
@@ -125,6 +122,29 @@ fun StickerManageScreen(ctx: KxScreenCtx) {
                 Icon(Icons.Outlined.AutoAwesome, null, tint = Kx.text3)
                 Text("Подсказывать стикеры по эмодзи", style = ts(14, W700), modifier = Modifier.weight(1f))
                 BSwitch(suggest)
+            }
+        }
+        val m = menu
+        ChSheet(m != null, { menu = null }) {
+            if (m != null) {
+                val (k, i) = m; val x = StSets.getValue(k); val isAct = k in act
+                Text(x.name, style = ts(16, W800), modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 6.dp))
+                Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).kxClick(if (isAct) "В архив" else "Вернуть в панель") {
+                    menu = null
+                    if (isAct) { act.remove(k); arch.add(0, k); say("«${x.name}» в архиве", StLast(k, true, i)) }
+                    else { arch.remove(k); act.add(k); say("«${x.name}» снова в панели") }
+                }.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Icon(if (isAct) Icons.Outlined.Archive else Icons.Outlined.Unarchive, null, tint = Kx.text2)
+                    Text(if (isAct) "В архив" else "Вернуть в панель", style = ts(15, W700))
+                }
+                Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).kxClick("Удалить набор") {
+                    menu = null
+                    if (isAct) act.remove(k) else arch.remove(k); say("«${x.name}» удалён", StLast(k, isAct, i))
+                }.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Icon(Icons.Outlined.Delete, null, tint = Kx.danger)
+                    Text("Удалить набор", style = ts(15, W700, Kx.danger))
+                }
+                Spacer(Modifier.height(12.dp))
             }
         }
         // toast with undo (kxToast 3s)

@@ -116,7 +116,11 @@ fun LoginEmailScreen(ctx: KxScreenCtx) {
                         BasicTextField(email, { email = it.trim() }, Modifier.weight(1f).semantics { contentDescription = "Почта" }, singleLine = true, textStyle = KxType.style(17.sp),
                             cursorBrush = SolidColor(Kx.accent), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
                     }
-                    Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // critique-B: say why «Прислать код» is not active yet.
+                    if (email.isNotEmpty() && !valid) Text(if (at < 0) "Добавьте @ и домен, например @gmail.com" else "Добавьте домен после @, например gmail.com",
+                        style = KxType.style(12.sp, color = Kx.warning), modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 6.dp))
+                    // P3: the domain chips line up with the field (were centred).
+                    Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("gmail.com", "mail.ru", "yandex.kz").forEach { d ->
                             Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(15.dp)).kxClick { email = "$user@$d" }
                                 .padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("@$d", style = KxType.style(12.sp, FontWeight.Bold, Kx.text2)) }

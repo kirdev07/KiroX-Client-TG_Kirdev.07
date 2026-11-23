@@ -223,6 +223,10 @@ private fun RealVoiceScreen(ctx: KxScreenCtx) {
         }
         store.playVoice(v.fileId)
     }
+    // critique-C P3: a one-time hint for the «→A» (transcribe) button.
+    LaunchedEffect(Unit) {
+        if ((store.prefs["hint.voice.transcribe"] ?: 0) == 0) { delay(800); toast.show("«→A» у голосового — расшифровать в текст", Icons.Rounded.Translate); store.putPref("hint.voice.transcribe", 1) }
+    }
     fun transcribe(v: com.kirox.app.ui.v3.model.KxVoiceItem) {
         if ((tr[v.messageId] ?: 0) == 2) { tr[v.messageId] = 0; return }
         if (v.transcript != null || texts[v.messageId] != null) { texts.putIfAbsent(v.messageId, v.transcript.orEmpty()); tr[v.messageId] = 2; return }

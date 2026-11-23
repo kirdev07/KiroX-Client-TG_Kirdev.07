@@ -4,6 +4,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -31,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
@@ -63,7 +65,14 @@ fun MusicPlayerScreen(ctx: KxScreenCtx) {
     val t = p.track
     // Nothing loaded (the queue ended with a voice note, the player was stopped): back to the library.
     LaunchedEffect(t == null) { if (t == null) { delay(300); if (store.player.track == null) ctx.back() } }
-    if (t == null) { Box(Modifier.fillMaxSize().background(Kx.bg)); return }
+    if (t == null) {
+        // critique-C P1: never a blank black screen — say so and offer the library.
+        Box(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding(), contentAlignment = Alignment.Center) {
+            KxEmpty(Icons.Outlined.MusicNote, "Ничего не играет", "Выберите трек в разделе «Музыка»", action = "Открыть музыку",
+                onAction = { ctx.back() })
+        }
+        return
+    }
     DisposableEffect(Unit) { music.watchOutput(true); onDispose { music.watchOutput(false) } }
 
     var sheet by remember { mutableStateOf("") }
@@ -81,7 +90,7 @@ fun MusicPlayerScreen(ctx: KxScreenCtx) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MRoundBtn(Icons.Rounded.KeyboardArrowDown, "Свернуть", bg = Kx.w(.08f), border = null) { ctx.back() }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    androidx.compose.material3.Text("ИГРАЕТ ИЗ", style = ts(11.sp, color = Color.White.copy(alpha = .65f)).copy(letterSpacing = 1.sp))
+                    androidx.compose.material3.Text("Играет из", style = ts(12.sp, color = Color.White.copy(alpha = .65f)))
                     T(p.source.ifBlank { t.chatTitle.ifBlank { "Музыка" } }, 14.sp, FontWeight.Bold, maxLines = 1)
                 }
                 MRoundBtn(Icons.Rounded.MoreHoriz, "Ещё", bg = Kx.w(.08f), border = null) { sheet = "more" }
@@ -104,7 +113,7 @@ fun MusicPlayerScreen(ctx: KxScreenCtx) {
                         music.toggleMine(t); ctx.toast(if (mine) "Убрано из «Моя музыка»" else "Добавлено в «Моя музыка»")
                     }, contentAlignment = Alignment.Center) {
                     Icon(if (mine) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder, null,
-                        Modifier.size(24.dp).graphicsLayer { scaleX = heart.value; scaleY = heart.value }, tint = if (mine) Color(0xFFFF8A9A) else Color.White)
+                        Modifier.size(24.dp).graphicsLayer { scaleX = heart.value; scaleY = heart.value }, tint = if (mine) Kx.accent else Color.White)
                 }
             }
             SeekBar(p.positionMs, p.durationMs, dim, onSeek = { music.seekMs(it) })
@@ -152,17 +161,14 @@ fun MusicPlayerScreen(ctx: KxScreenCtx) {
         MSheet(sheet == "more", onClose = { sheet = "" }) {
             MoreRow(Icons.AutoMirrored.Outlined.PlaylistAdd, "Добавить в плейлист") { sheet = "playlist" }
             when (music.offlineState(t.chatId, t.messageId)) {
-                0, 5 -> MoreRow(Icons.Outlined.DownloadForOffline, "Скачать для офлайна") { music.downloadOffline(listOf(t)); sheet = ""; ctx.toast("Скачиваем для офлайна") }
+                0, 5 -> MoreRow(Icons.Outlined.DownloadForOffline, "Слушать без интернета") { music.downloadOffline(listOf(t)); sheet = ""; ctx.toast("Скачиваем для офлайна") }
                 4 -> MoreRow(Icons.Rounded.DownloadDone, "Скачан — играет без интернета", Kx.accent) { sheet = "" }
                 else -> MoreRow(Icons.Outlined.Downloading, "Скачивается… (отменить)") { music.cancelOffline(t.chatId, t.messageId); sheet = "" }
             }
-            MoreRow(Icons.Outlined.LibraryMusic, "Сохранить в Музыку телефона") {
+            MoreRow(Icons.Outlined.LibraryMusic, "Сохранить файл в Музыку телефона") {
                 sheet = ""; ctx.toast("Сохраняем в Музыку телефона…")
                 scope.launch { ctx.toast(music.exportToPhone(listOf(t), null) { _, _ -> }) }
             }
-            MoreRow(Icons.Outlined.Speed, "Скорость: ${speedText(music.speed)}") { sheet = "speed" }
-            MoreRow(Icons.Outlined.Bedtime, if (music.sleepAt > 0) "Таймер сна: ${sleepLeft(music.sleepAt)}" else "Таймер сна") { sheet = "sleep" }
-            MoreRow(Icons.AutoMirrored.Outlined.QueueMusic, "Очередь") { sheet = "queue" }
             if (t.chatId != 0L) MoreRow(Icons.Outlined.ChatBubbleOutline, "Открыть чат") { sheet = ""; ctx.openChat(t.chatId) }
         }
         MSheet(sheet == "playlist", onClose = { sheet = "" }) {
@@ -271,7 +277,31 @@ private fun Modifier.seekSemantics(fraction: Float, durationMs: Long, onSeek: (L
 
 private fun fmtTime(s: Int): String = if (s >= 3600) "${s / 3600}:${(s / 60 % 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}" else fmtSec(s)
 
-/** «Очередь»: the play order, the current track marked; tap plays, ↑↓ move, × removes. */
+/** Drag handle of a queue row: every 58dp of vertical drag moves the track one place. */
+@Composable
+internal fun MusicDragHandle(index: Int, last: Int, onMove: (Int, Int) -> Unit) {
+    val stepPx = with(androidx.compose.ui.platform.LocalDensity.current) { 58.dp.toPx() }
+    var acc by remember { mutableFloatStateOf(0f) }
+    var at by remember { mutableIntStateOf(index) }
+    val cur by rememberUpdatedState(index); val lastNow by rememberUpdatedState(last)
+    Box(Modifier.size(44.dp)
+        .semantics {
+            customActions = listOfNotNull(
+                if (index > 0) androidx.compose.ui.semantics.CustomAccessibilityAction("Выше") { onMove(index, index - 1); true } else null,
+                if (index < last) androidx.compose.ui.semantics.CustomAccessibilityAction("Ниже") { onMove(index, index + 1); true } else null)
+        }
+        .pointerInput(Unit) {
+            detectVerticalDragGestures(onDragStart = { acc = 0f; at = cur }, onDragEnd = { acc = 0f }) { ch, dy ->
+                ch.consume(); acc += dy
+                if (acc > stepPx && at < lastNow) { onMove(at, at + 1); at++; acc -= stepPx }
+                else if (acc < -stepPx && at > 0) { onMove(at, at - 1); at--; acc += stepPx }
+            }
+        }, contentAlignment = Alignment.Center) {
+        Icon(Icons.Rounded.DragHandle, "Перетащите, чтобы изменить порядок", Modifier.size(22.dp), tint = Kx.text3)
+    }
+}
+
+/** «Очередь»: the play order, the current track marked; tap plays, drag the handle to move, × removes. */
 @Composable
 private fun QueueSheet(store: KxStore) {
     val music = store.music
@@ -281,7 +311,9 @@ private fun QueueSheet(store: KxStore) {
     T("${q.size} ${musicPlural(q.size)}${if (store.player.shuffle) " · перемешано" else ""}", 13.sp, color = Kx.text4, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
     val state = rememberLazyListState(initialFirstVisibleItemIndex = (cur - 1).coerceAtLeast(0))
     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp), state = state) {
-        items(q.size, key = { "q:$it:${q[it].chatId}:${q[it].messageId}" }) { i ->
+        // Keys follow the track (not the slot) so a drag survives the move; repeats get an occurrence number.
+        val keys = run { val seen = HashMap<String, Int>(); q.map { t -> val id = "${t.chatId}:${t.messageId}"; val n = seen.merge(id, 1, Int::plus)!!; "q:$id:$n" } }
+        items(q.size, key = { keys[it] }) { i ->
             val t = q[i]
             val on = i == cur
             Row(Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(14.dp)).background(if (on) Kx.accent.copy(alpha = .10f) else Color.Transparent)
@@ -292,9 +324,11 @@ private fun QueueSheet(store: KxStore) {
                     T(t.title, 14.sp, FontWeight.SemiBold, if (on) Kx.accent else if (i < cur) Kx.text3 else Kx.text, maxLines = 1)
                     T(t.performer.ifBlank { t.chatTitle }, 12.sp, color = Kx.text4, maxLines = 1)
                 }
-                MRoundBtn(Icons.Rounded.KeyboardArrowUp, "Выше", size = 34.dp, iconSize = 20.dp, bg = Color.Transparent, border = null, tint = if (i > 0) Kx.text2 else Kx.text4) { if (i > 0) music.moveInQueue(i, i - 1) }
-                MRoundBtn(Icons.Rounded.KeyboardArrowDown, "Ниже", size = 34.dp, iconSize = 20.dp, bg = Color.Transparent, border = null, tint = if (i < q.lastIndex) Kx.text2 else Kx.text4) { if (i < q.lastIndex) music.moveInQueue(i, i + 1) }
-                MRoundBtn(Icons.Rounded.Close, "Убрать из очереди", size = 34.dp, iconSize = 18.dp, bg = Color.Transparent, border = null, tint = Kx.text3) { music.removeFromQueue(i) }
+                // critique-C P2: reorder by dragging the handle (TalkBack: «Выше» / «Ниже» actions), remove with a 48dp ✕.
+                MusicDragHandle(i, q.lastIndex) { from, to -> music.moveInQueue(from, to) }
+                Box(Modifier.kxHitClick("Убрать из очереди") { music.removeFromQueue(i) }.size(36.dp), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Close, null, Modifier.size(18.dp), tint = Kx.text3)
+                }
             }
         }
     }
@@ -355,7 +389,7 @@ private fun OutputSheet(visible: Boolean, music: KxMusic, onClose: () -> Unit) {
                     androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(6.dp)
                         .background(Kx.w(.15f), androidx.compose.foundation.shape.RoundedCornerShape(3.dp))) {
                         androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth(f).fillMaxHeight()
-                            .background(Kx.accent, androidx.compose.foundation.shape.RoundedCornerShape(3.dp)))
+                            .background(Color.White, androidx.compose.foundation.shape.RoundedCornerShape(3.dp)))
                     }
                 })
             T("${if (out.maxVolume > 0) out.volume * 100 / out.maxVolume else 0}%", 12.sp, color = Kx.text3, modifier = Modifier.widthIn(min = 36.dp))

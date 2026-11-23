@@ -67,6 +67,7 @@ fun HiddenScreen(ctx: KxScreenCtx) {
     var fake by remember { mutableStateOf(true) }
     var search by remember { mutableStateOf(true) }
     var finger by remember { mutableStateOf(false) }
+    var forgot by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val store = ctx.store
     val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
@@ -175,7 +176,7 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                                         "del" -> Icon(Icons.AutoMirrored.Outlined.Backspace, null, Modifier.size(26.dp), tint = Kx.text)
                                         else -> {
                                             Text(k, style = ts(28.sp, FontWeight.Medium, lh = 28.sp))
-                                            if (HdSubs[k] != null) Text(HdSubs[k]!!, style = ts(11.sp, color = Kx.text4, ls = 1.6.sp), modifier = Modifier.padding(top = 2.dp))
+                                            // critique-B: digits only (no ABC letters on a PIN pad).
                                         }
                                     }
                                 }
@@ -183,10 +184,15 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                if (demo) Text("Для примера код 1 9 9 0", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 14.dp))
+                // critique-B: a way out when the code is forgotten (same rule as the kiroX lock screen).
+                if (demo || store.passcodeSet) Text("Забыли код?", style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(top = 10.dp).clip(RoundedCornerShape(12.dp))
+                    .kxClick("Забыли код?") { forgot = true }.padding(horizontal = 12.dp, vertical = 8.dp))
+                if (demo) com.kirox.app.ui.v3.components.KxDemoControls(store, Modifier.padding(top = 6.dp)) { Text("Код для примера: 1 9 9 0", style = ts(12.sp, color = Kx.text4)) }
                 else if (!store.passcodeSet) Text("Код-пароль закрывает и вход в kiroX", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 14.dp))
                 else Text("Код — тот же, что для входа в kiroX", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 14.dp))
             }
+            // critique-B: a visible way out of the locked vault (was system Back only).
+            Box(Modifier.statusBarsPadding().padding(start = 12.dp, top = 10.dp)) { ExRoundBtn(Icons.AutoMirrored.Outlined.ArrowBack, "Назад") { ctx.back() } }
         } else Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.exIn(300, dy = 10.dp).fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExRoundBtn(Icons.AutoMirrored.Outlined.ArrowBack, "Закрыть и заблокировать") { st = "locked"; code = ""; bad = 0 }
@@ -204,7 +210,7 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                     Text(if (demo) "Закроются сами через 1 минуту после выхода из kiroX" else "Закроются, как только вы уйдёте с этого экрана. В общем списке чатов их нет.", style = ts(12.sp, color = Kx.text2))
                 }
                 if (!demo) {
-                    if (realChats.isEmpty()) Text("Скрытых чатов нет", style = ts(14.sp, color = Kx.text3), modifier = Modifier.padding(10.dp))
+                    if (realChats.isEmpty()) KxEmpty(androidx.compose.material.icons.Icons.Outlined.VisibilityOff, "Скрытых чатов нет", "Скрыть чат: удерживайте его в списке → «Скрыть»")
                     realChats.forEach { c ->
                         key(c.id) {
                             Row(Modifier.padding(horizontal = 6.dp, vertical = 10.dp).kxClick(c.title) { ctx.openChat(c.id) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -260,6 +266,8 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                 }
             }
         }
+        if (forgot) com.kirox.app.ui.v3.components.KxConfirmDialog(com.kirox.app.ui.v3.components.KxConfirm("Забыли код-пароль?",
+            "Код хранится только на этом телефоне и не восстанавливается. Можно выйти из аккаунта: код сбросится, а войти снова получится по номеру телефона.", "Выйти из аккаунта") { ctx.open("Logout") }) { forgot = false }
     }
 }
 

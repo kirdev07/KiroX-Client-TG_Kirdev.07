@@ -103,6 +103,7 @@ private fun DemoViewerScreen(ctx: KxScreenCtx) {
     val pct by animateFloatAsState(vt / 24f, tween(500, easing = LinearEasing), label = "vt")
     val uiA by animateFloatAsState(if (ui) 1f else 0f, tween(300, easing = Ease), label = "ui")
     val isLiked = i in liked
+    var deleting by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -152,6 +153,11 @@ private fun DemoViewerScreen(ctx: KxScreenCtx) {
                 T(m.whenText, 12.sp, color = Kx.text2)
             }
             T("${i + 1} из ${M.size}", 13.sp, color = Kx.text2, modifier = Modifier.padding(end = 4.dp))
+            // critique-C P2: the reaction lives in the top bar; zoom is a pinch / double tap, not a button.
+            MRoundBtn(if (isLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder, if (isLiked) "Убрать реакцию" else "Реакция ❤", size = 42.dp, bg = Color.Transparent,
+                border = null, tint = if (isLiked) Color(0xFFFF6B81) else Kx.text) {
+                if (ui) { if (isLiked) { liked.remove(i); heart = 0L } else { liked.add(i); heart = System.nanoTime() } }
+            }
             MRoundBtn(Icons.Outlined.MoreVert, "Ещё", size = 42.dp, bg = Color.Transparent, border = null) { if (ui) menu = true }
         }
 
@@ -182,28 +188,27 @@ private fun DemoViewerScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
-            Row(Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(29.dp)).background(Kx.surface.copy(alpha = .6f)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
-                .border(1.dp, Kx.w(.16f), RoundedCornerShape(29.dp)).topHighlight(Kx.w(.18f)), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
-                Act(if (isLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder, "Нравится", if (isLiked) Color(0xFFFF6B81) else Kx.text) {
-                    if (isLiked) { liked.remove(i); heart = 0L } else { liked.add(i); heart = System.nanoTime() }
-                }
-                Act(Icons.AutoMirrored.Outlined.Reply, "Ответить", Kx.text) { }
+            Row(Modifier.fillMaxWidth().height(66.dp).clip(RoundedCornerShape(33.dp)).background(Kx.surface.copy(alpha = .6f)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
+                .border(1.dp, Kx.w(.16f), RoundedCornerShape(33.dp)).topHighlight(Kx.w(.18f)), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
+                Act(Icons.AutoMirrored.Outlined.Reply, "Ответить", Kx.text) { ctx.back() }
                 Act(Icons.AutoMirrored.Outlined.Forward, "Переслать", Kx.text) { say("Переслано в «Избранное»") }
                 Act(Icons.Outlined.Download, "Сохранить", Kx.text) { say("Сохранено в галерею") }
-                Act(if (zoom) Icons.Outlined.ZoomOut else Icons.Outlined.ZoomIn, "Приблизить", if (zoom) Kx.accent else Kx.text) { zoom = !zoom }
             }
         }
 
-        MSheet(menu, { menu = false }, dim = .5f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
+        MSheet(menu, { menu = false }, dim = .6f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
             handleColor = Color(0xFF3A4540), handleWidth = 36.dp, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 26.dp)) {
             MenuItem(Icons.AutoMirrored.Outlined.Chat, "Показать в чате", Kx.text) { menu = false; ctx.back() }
             MenuItem(Icons.Outlined.Share, "Поделиться", Kx.text) { menu = false }
             MenuItem(Icons.Outlined.Brush, "Редактировать", Kx.text) { menu = false; ctx.open("Editor") }
             MenuItem(Icons.Outlined.PhotoLibrary, "Все медиа чата", Kx.text) { menu = false; ctx.open("Gallery") }
-            MenuItem(Icons.Outlined.Delete, "Удалить", Kx.danger) {
-                menu = false
-                confirm.ask(if (m.video) "Удалить видео?" else "Удалить фото?", "Сообщение с этим медиа удалится из чата.", "Удалить") { toast.show("Удалено") }
-            }
+            MenuItem(Icons.Outlined.Delete, "Удалить…", Kx.danger) { menu = false; deleting = true }
+        }
+        // critique-C P2: the same delete sheet as the chat.
+        if (deleting) Box(Modifier.fillMaxSize().background(KxScrim).kxClick("Отмена") { deleting = false }) {
+            com.kirox.app.ui.v3.screens.DeleteSheet(com.kirox.app.ui.v3.model.KxMessage(i.toLong() + 1, out = true, text = m.caption,
+                kind = if (m.video) com.kirox.app.ui.v3.model.KxMsgKind.Video else com.kirox.app.ui.v3.model.KxMsgKind.Photo), "Анна", canDeleteForAll = true,
+                onCancel = { deleting = false }, onDelete = { deleting = false; toast.show("Удалено") }, modifier = Modifier.align(Alignment.BottomCenter))
         }
         MToastHost(toast, top = 80.dp)
         MConfirmHost(confirm)
@@ -212,7 +217,12 @@ private fun DemoViewerScreen(ctx: KxScreenCtx) {
 
 @Composable
 private fun Act(icon: ImageVector, label: String, ink: Color, onClick: () -> Unit) {
-    Box(Modifier.size(52.dp, 46.dp).clip(RoundedCornerShape(23.dp)).kxClick(label, onClick = onClick), contentAlignment = Alignment.Center) { Icon(icon, null, tint = ink) }
+    // critique-C P2: labelled actions.
+    Column(Modifier.widthIn(min = 72.dp).height(54.dp).clip(RoundedCornerShape(18.dp)).kxClick(label, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
+        Icon(icon, null, Modifier.size(22.dp), tint = ink)
+        T(label, 11.sp, FontWeight.SemiBold, Kx.text2, maxLines = 1)
+    }
 }
 
 @Composable

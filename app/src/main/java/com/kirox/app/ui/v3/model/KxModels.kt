@@ -10,7 +10,7 @@ import androidx.compose.runtime.Immutable
  *
  * Conventions shared by both stores:
  * - times: "HH:mm" today, «вчера», weekday «пн» this week, «12 нояб.» this year, "dd.MM.yy" older;
- * - last seen: «в сети» only when online, otherwise Telegram wording «был(а) недавно», «был(а) вчера в 21:14»;
+ * - last seen: «в сети» only when online, otherwise Telegram wording «в сети недавно», «в сети вчера в 21:14»;
  * - colorIndex: Telegram accent color id 0..6 for the initials circle (-1 = derive from id);
  * - avatar / media paths: local file paths, null while not downloaded (initials / placeholder shown).
  */

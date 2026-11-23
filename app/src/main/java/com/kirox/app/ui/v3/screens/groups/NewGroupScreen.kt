@@ -48,10 +48,10 @@ import com.kirox.app.ui.v3.theme.*
 private data class NgP(val name: String, val status: String, val online: Boolean, val from: Color, val to: Color, val ink: Color)
 private val NgPeople = listOf(
     NgP("Анна", "в сети", true, Color(0xFF4B3F7A), Color(0xFF2A2240), Color(0xFFDCD0FF)),
-    NgP("Алина", "в сети 5 минут назад", false, Color(0xFF3A6E7A), Color(0xFF14303A), Color(0xFFCFF4FF)),
+    NgP("Алина", "была 5 минут назад", false, Color(0xFF3A6E7A), Color(0xFF14303A), Color(0xFFCFF4FF)),
     NgP("Дана", "в сети", true, Color(0xFF9E3F5C), Color(0xFF2E1420), Color(0xFFFFD0DD)),
-    NgP("Мама", "в сети вчера", false, Color(0xFF9E3F5C), Color(0xFF2E1420), Color(0xFFFFD0DD)),
-    NgP("Олег", "в сети в 12:40", false, Color(0xFF2F6E9E), Color(0xFF14243A), Color(0xFFCFE6FF)),
+    NgP("Мама", "была вчера", false, Color(0xFF9E3F5C), Color(0xFF2E1420), Color(0xFFFFD0DD)),
+    NgP("Олег", "был в 12:40", false, Color(0xFF2F6E9E), Color(0xFF14243A), Color(0xFFCFE6FF)),
     NgP("Сергей", "в сети", true, Color(0xFF3F7A5A), Color(0xFF1E3A2A), Color(0xFFCFF2DD)),
     NgP("Тимур", "был недавно", false, Color(0xFF7A5A2E), Color(0xFF3A2A14), Color(0xFFFFE2B8)),
     NgP("Ярослав", "был на этой неделе", false, Color(0xFF5C6661), Color(0xFF2A302D), Color(0xFFE2E8E4)),
@@ -114,11 +114,14 @@ fun NewGroupScreen(ctx: KxScreenCtx) {
         }
         if (step == 1) {
             val bg by animateColorAsState(if (canNext) Color.Transparent else Kx.w(.08f), tween(250), label = "nb")
-            Box(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 18.dp, bottom = 26.dp).size(60.dp)
-                .then(if (canNext) Modifier.shadow(20.dp, RoundedCornerShape(22.dp), ambientColor = Color(0x733F9A6C), spotColor = Color(0x733F9A6C)) else Modifier)
-                .clip(RoundedCornerShape(22.dp)).background(bg).then(if (canNext) Modifier.cssLinear(140f, Kx.accentMid, Kx.accentDeep) else Modifier)
-                .kxClick("Далее") { if (canNext) step = 2 }, contentAlignment = Alignment.Center) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(28.dp), tint = if (canNext) Kx.onAccent else Color(0xFF5C6661))
+            // critique-C P3: an extended FAB that says what it does.
+            Row(Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 18.dp, bottom = 26.dp).height(56.dp)
+                .then(if (canNext) Modifier.shadow(20.dp, RoundedCornerShape(28.dp), ambientColor = Color(0x733F9A6C), spotColor = Color(0x733F9A6C)) else Modifier)
+                .clip(RoundedCornerShape(28.dp)).background(bg).then(if (canNext) Modifier.cssLinear(140f, Kx.accentMid, Kx.accentDeep) else Modifier)
+                .kxClick("Далее") { if (canNext) step = 2 }.padding(start = 22.dp, end = 18.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (sel.isNotEmpty()) "Далее · ${sel.size}" else "Далее", style = KxType.style(16.sp, FontWeight.ExtraBold, if (canNext) Kx.onAccent else Color(0xFF5C6661)))
+                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(24.dp), tint = if (canNext) Kx.onAccent else Color(0xFF5C6661))
             }
         }
         if (step == 2) {
@@ -172,7 +175,10 @@ private fun ColumnScope.Step1(sel: MutableList<Int>, q: String, onQ: (String) ->
             }
         }
         Box(Modifier.align(Alignment.CenterVertically).weight(1f).widthIn(min = 100.dp).height(36.dp).padding(start = 4.dp), contentAlignment = Alignment.CenterStart) {
-            if (q.isEmpty()) Text(if (sel.isNotEmpty()) "Ещё…" else "Поиск по имени", style = KxType.style(15.sp, color = Kx.text4))
+            if (q.isEmpty()) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Outlined.Search, null, Modifier.size(18.dp), tint = Kx.text4)
+                Text("Найти контакт", style = KxType.style(15.sp, color = Kx.text4))
+            }
             BasicTextField(q, onQ, Modifier.fillMaxWidth(), textStyle = KxType.style(15.sp), singleLine = true, cursorBrush = SolidColor(Kx.accent))
         }
     }

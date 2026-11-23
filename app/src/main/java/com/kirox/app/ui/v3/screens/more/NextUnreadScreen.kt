@@ -52,7 +52,8 @@ private val NU = listOf(
 fun NextUnreadScreen(ctx: KxScreenCtx) {
     if (ctx.c3Live) { NextUnreadLive(ctx); return }
     var i by remember { mutableIntStateOf(0) }
-    var p by remember { mutableIntStateOf(0) }
+    // critique-A: opens mid-pull so the next channel (avatar + name) is visible.
+    var p by remember { mutableIntStateOf(68) }
     var k by remember { mutableIntStateOf(0) }
     val c = NU[i]; val nx = NU[(i + 1) % NU.size]
     val ready = p >= 100
@@ -88,6 +89,12 @@ fun NextUnreadScreen(ctx: KxScreenCtx) {
                     Box(Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(12.dp)).background(Kx.accent.copy(alpha = .1f)).padding(horizontal = 12.dp, vertical = 4.dp)) {
                         Text("Вы всё прочитали ✓", style = mts(12, W7, Kx.accent))
                     }
+                    // Telegram-like «Следующий канал» pill: always says where the pull leads.
+                    Row(Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(18.dp)).background(Kx.w(.06f)).padding(start = 6.dp, end = 12.dp, top = 5.dp, bottom = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MoLetter(nx.l, nx.c, size = 26.dp, fontSize = 11)
+                        Text("Следующий канал: ${nx.n}", style = mts(12, W7, Kx.text2), maxLines = 1)
+                    }
                 }
                 // pull indicator
                 Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height((pa * 1.3f).dp).clipToBounds(),
@@ -107,7 +114,8 @@ fun NextUnreadScreen(ctx: KxScreenCtx) {
                         maxLines = 1, softWrap = false)
                 }
             }
-            Column(Modifier.fillMaxWidth().moTopLine().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 18.dp)) {
+            // critique-A S: the pull/release buttons only simulate the gesture — demo tray.
+            com.kirox.app.ui.v3.components.KxDemoControls(ctx.store, Modifier.padding(bottom = 10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Kx.accent.copy(alpha = .14f)).kxClick { p = minOf(100, p + 34) },
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
@@ -120,8 +128,6 @@ fun NextUnreadScreen(ctx: KxScreenCtx) {
                         Text("Отпустить", style = mts(14, W8, if (ready) MoInk else MoSub))
                     }
                 }
-                Text("В приложении — просто потяните ленту вверх в конце канала", style = mts(11, color = MoMuted), textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
             }
         }
     }

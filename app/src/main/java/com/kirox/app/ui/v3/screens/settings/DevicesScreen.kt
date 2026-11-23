@@ -63,7 +63,7 @@ fun DevicesScreen(ctx: KxScreenCtx) {
             "windows" in d || "desktop" in d || "linux" in d -> Icons.Rounded.DesktopWindows
             else -> Icons.Rounded.PhoneAndroid
         }
-        val where = listOf(s.device, s.place, if (s.passwordPending) "ожидает пароль" else s.time).filter { it.isNotBlank() }.joinToString(" · ")
+        val where = listOf(s.device, s.place, if (s.passwordPending) "вход не завершён: ждёт облачный пароль" else s.time).filter { it.isNotBlank() }.joinToString(" · ")
         DSession(s.id, icon, s.app.ifBlank { s.device }, where, tiles[i % tiles.size].first, tiles[i % tiles.size].second)
     }
     var ask by remember { mutableStateOf<Long?>(null) } // -1 = all
@@ -124,10 +124,7 @@ fun DevicesScreen(ctx: KxScreenCtx) {
                 }
                 val ttlOpts = listOf("1 неделя", "1 месяц", "6 месяцев", "1 год")
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(TileBg).padding(horizontal = 14.dp, vertical = 12.dp)) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text("Завершать, если неактивен", style = KxType.style(14.sp), modifier = Modifier.weight(1f))
-                        Text(ttlOpts[ttl], style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
-                    }
+                    Text("Завершать, если неактивен", style = KxType.style(14.sp)) // critique-B P3: the selected pill shows the value
                     Spacer(Modifier.height(10.dp))
                     SPills(ttlOpts, ttl) { store.setSessionTtl(ttlDays[it]) }
                 }
@@ -188,7 +185,7 @@ private fun SessionRow(d: DSession, leaving: Boolean, onAsk: () -> Unit) {
         Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(d.bg), contentAlignment = Alignment.Center) { Icon(d.icon, null, Modifier.size(21.dp), tint = d.ink) }
         Column(Modifier.weight(1f)) {
             Text(d.name, style = KxType.style(14.sp, FontWeight.SemiBold), maxLines = 1)
-            Text(d.where, style = KxType.style(12.sp, color = Kx.text4), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(d.where, style = KxType.style(12.sp, color = Kx.text4, lineHeight = 16.sp), maxLines = 2, overflow = TextOverflow.Ellipsis) // critique-B P3: two lines
         }
         Box(Modifier.size(38.dp).clip(CircleShape).background(Color(229, 72, 77).copy(alpha = .10f)).kxClick("Завершить сеанс", onClick = onAsk), contentAlignment = Alignment.Center) {
             Icon(Icons.AutoMirrored.Outlined.Logout, null, Modifier.size(20.dp), tint = Kx.danger)

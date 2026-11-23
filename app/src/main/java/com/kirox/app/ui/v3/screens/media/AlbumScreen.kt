@@ -84,7 +84,7 @@ private fun DemoAlbumScreen(ctx: KxScreenCtx) {
             Column(Modifier.weight(1f).fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
                 T("Как съездили? Покажи фото 🙂", 15.sp, modifier = Modifier.fillMaxWidth(.8f).wrapContentWidth(Alignment.Start)
                     .clip(RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)).background(Kx.w(.07f)).padding(horizontal = 12.dp, vertical = 8.dp))
-                Column(Modifier.align(Alignment.End).width(290.dp).clip(RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)).cssGrad(135f, Kx.accentMid, Kx.accentDeep).padding(4.dp)) {
+                Column(Modifier.align(Alignment.End).width(290.dp).clip(RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)).cssGrad(135f, Kx.accentMid, Kx.accentDeep).padding(2.dp)) { // critique-C P3: a 2dp frame
                     Row(Modifier.height(223.dp).clip(RoundedCornerShape(17.dp, 17.dp, 4.dp, 4.dp)), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                         Box(Modifier.weight(2f).fillMaxHeight().demoPhoto(P[0]).kxClick("Фото 1") { grid = true }, contentAlignment = Alignment.Center) {
                             Icon(Icons.Rounded.Landscape, null, Modifier.size(40.dp), tint = Color.White.copy(alpha = .75f))

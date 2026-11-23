@@ -124,7 +124,11 @@ fun LinkPreviewScreen(ctx: KxScreenCtx) {
                             Text(site, style = ts(12.sp, FontWeight.ExtraBold, Kx.accent), maxLines = 1)
                             Text(title, style = ts(13.sp, color = Kx.text2), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        Icon(Icons.Outlined.Tune, null, Modifier.size(20.dp), tint = Kx.text3)
+                        // critique-B P3: the tune icon says what it opens.
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Outlined.Tune, null, Modifier.size(20.dp), tint = Kx.text3)
+                            Text("Вид", style = ts(10.sp, color = Kx.text3))
+                        }
                     }
                     Box(Modifier.size(32.dp).clip(CircleShape).kxClick("Убрать превью") { removed = true }, contentAlignment = Alignment.Center) {
                         Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text3)

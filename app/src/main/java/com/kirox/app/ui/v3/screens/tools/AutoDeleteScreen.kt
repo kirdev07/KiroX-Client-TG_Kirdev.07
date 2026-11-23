@@ -201,7 +201,8 @@ fun AutoDeleteScreen(ctx: KxScreenCtx) {
                         TSmallSwitch(all)
                     }
                 }
-                Text("Сообщения удаляются у обоих. $name увидит, что вы включили автоудаление.", style = KxType.style(12.sp, color = Kx.text4, lineHeight = 17.sp),
+                // critique-B: one hint — «у обоих» is already said under the preview.
+                Text("$name увидит в чате, что вы включили автоудаление.", style = KxType.style(12.sp, color = Kx.text4, lineHeight = 17.sp),
                     modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp))
             }
         }

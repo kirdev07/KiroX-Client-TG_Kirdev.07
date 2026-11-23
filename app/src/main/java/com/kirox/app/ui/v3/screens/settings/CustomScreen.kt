@@ -72,7 +72,7 @@ internal fun ownThemeLook(real: Boolean): KxThemeLook? {
 internal fun themeLook(i: Int, real: Boolean): KxThemeLook =
     if (i == CustomThemes.lastIndex) ownThemeLook(real) ?: CustomThemes[0] else CustomThemes.getOrElse(i) { CustomThemes[0] }
 
-/** Board «Кастомизация»: live preview card, 12 colour swatches, look rows, dock tab switches. */
+/** Board «Оформление»: live preview card, 12 colour swatches, look rows, dock tab switches. */
 @Composable
 fun CustomScreen(ctx: KxScreenCtx) {
     val store = ctx.store
@@ -96,7 +96,7 @@ fun CustomScreen(ctx: KxScreenCtx) {
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         SGlow(glow, 400.dp, (-100).dp, (-100).dp)
         Column(Modifier.fillMaxSize()) {
-            SHeader("Кастомизация", ctx.back)
+            SHeader("Оформление", ctx.back)
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp).navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Preview(accent, glow, b1, b2, onBubble, Modifier.kxRise(0))
@@ -105,8 +105,9 @@ fun CustomScreen(ctx: KxScreenCtx) {
                     Row(Modifier.padding(start = 2.dp, end = 2.dp, bottom = 10.dp), verticalAlignment = Alignment.Bottom) {
                         Text("Цвет · ${t.name}", style = KxType.style(14.sp, FontWeight.Bold, Kx.text2), modifier = Modifier.weight(1f))
                         // Real account: own themes are made/imported/exported on the v3 «Свои темы» page.
-                        Text(if (real) "Свои темы: $ownCount ›" else "Своих: $ownCount", style = KxType.style(12.sp, color = if (real) Kx.accent else Kx.text4),
-                            modifier = if (real) Modifier.kxClick("Свои темы") { ctx.open("OwnThemes") } else Modifier)
+                        // critique-B: always a link to «Свои темы» (the demo count was plain text).
+                        Text("Свои темы: $ownCount ›", style = KxType.style(12.sp, color = Kx.accent),
+                            modifier = Modifier.kxClick("Свои темы") { ctx.open("OwnThemes") }.padding(vertical = 6.dp))
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         CustomThemes.chunked(6).forEachIndexed { r, row ->
@@ -127,7 +128,7 @@ fun CustomScreen(ctx: KxScreenCtx) {
                     SNavRow(Icons.Rounded.Forum, "Чаты", "Пузыри, обои, размер текста", groupShape(0, 4), accent) { ctx.open("ChatStyle") }
                     SNavRow(Icons.Rounded.AutoAwesome, "Анимации", "Сцена и скорость", groupShape(1, 4), accent) { ctx.open("Anim") }
                     SNavRow(Icons.Rounded.Wallpaper, "Оформление отдельных чатов", if (looks == 0) "Пока ни у одного" else "Своё у $looks ${if (looks % 10 == 1 && looks % 100 != 11) "чата" else "чатов"}", groupShape(2, 4), accent) { ctx.open("ChatTheme") }
-                    SNavRow(Icons.Rounded.Apps, "Иконка приложения", "Как kiroX выглядит на экране", groupShape(3, 4), accent) { ctx.open("AppIcon") }
+                    SNavRow(Icons.Rounded.Apps, "Значок приложения", "Как kiroX выглядит на рабочем столе", groupShape(3, 4), accent) { ctx.open("AppIcon") }
                 }
 
                 Column(Modifier.kxRise(180), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -220,6 +221,8 @@ private fun Swatch(look: KxThemeLook, on: Boolean, conic: Boolean, modifier: Mod
         .clip(CircleShape)
         .drawBehind {
             if (conic) rotate(-90f) { drawRect(Brush.sweepGradient(listOf(Color(0xFF8FD3AC), Color(0xFFC9A6FF), Color(0xFFFFAE80), Color(0xFF7FC4F0), Color(0xFF8FD3AC)))) }
+            // critique-B: AMOLED shares the green accent with the first theme — its swatch is half black so the two never look the same.
+            else if (look.name == "AMOLED") drawRect(Brush.linearGradient(0f to look.accent, .5f to look.accent, .5f to Color.Black, 1f to Color.Black, start = cssAngleStart(140f, size), end = cssAngleEnd(140f, size)))
             else drawRect(Brush.linearGradient(0f to look.accent, .45f to look.accent, 1f to look.b1, start = cssAngleStart(140f, size), end = cssAngleEnd(140f, size)))
         }
         .then(if (!on) Modifier.topHighlight(Kx.w(.3f)) else Modifier)

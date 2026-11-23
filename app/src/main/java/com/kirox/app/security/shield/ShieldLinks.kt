@@ -41,7 +41,7 @@ object ShieldLinks {
         if (hostRaw.isEmpty()) return ShieldLinkVerdict(raw, "", "", level, reasons)
         val host = decodePuny(hostRaw)
         val isIp = Regex("""^\d{1,3}(\.\d{1,3}){3}$""").matches(hostRaw) || hostRaw.startsWith("[") || Regex("""^\d{8,10}$""").matches(hostRaw) || Regex("""^0x[0-9a-f]+$""").matches(hostRaw)
-        if (isIp) flag(2, "Вместо названия сайта — IP-адрес $hostRaw: так прячут, кому принадлежит страница")
+        if (isIp) flag(2, "Вместо названия сайта — набор цифр ($hostRaw): так прячут, кому принадлежит страница")
 
         val odd = host.indices.filter { i -> val c = host[i]; !(c in 'a'..'z' || c in '0'..'9' || c == '.' || c == '-') }.toSet()
         val puny = hostRaw.split('.').any { it.startsWith("xn--") }
@@ -73,7 +73,7 @@ object ShieldLinks {
         if (puny || odd.isNotEmpty()) {
             val letters = host.filter { it.isLetter() }
             val mixed = letters.any { it in 'a'..'z' } && letters.any { it !in 'a'..'z' }
-            flag(if (looks != null || mixed) 2 else 1, if (mixed) "В адресе смешаны буквы разных алфавитов: $host" else "Адрес записан не латиницей (${if (puny) "punycode" else "особые буквы"}): $host")
+            flag(if (looks != null || mixed) 2 else 1, if (mixed) "В адресе смешаны буквы разных алфавитов: $host" else "В адресе особые буквы, похожие на обычные: $host")
         }
         if (!trusted && site in ShieldDomains.SHORTENERS) flag(1, "Короткая ссылка ($site): не видно, куда она ведёт на самом деле")
         val tld = site.substringAfterLast('.', "")

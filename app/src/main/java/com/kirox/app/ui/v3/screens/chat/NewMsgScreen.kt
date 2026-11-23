@@ -111,7 +111,7 @@ fun NewMsgScreen(ctx: KxScreenCtx) {
                     if (mode == "msg" && q.isEmpty()) item {
                         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                ActionTile(Icons.Rounded.GroupAdd, "Новая группа", Kx.accent.copy(alpha = .2f), Kx.accent, Modifier.weight(1f), highlight = true) { mode = "group"; picked = emptyList(); step = "pick" }
+                                ActionTile(Icons.Rounded.GroupAdd, "Новая группа", Kx.accent.copy(alpha = .2f), Kx.accent, Modifier.weight(1f)) { mode = "group"; picked = emptyList(); step = "pick" }
                                 ActionTile(Icons.Rounded.Campaign, "Новый канал", Color(0x29FFAE80), Color(0xFFFFAE80), Modifier.weight(1f)) { mode = "channel"; step = "name"; name = "" }
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

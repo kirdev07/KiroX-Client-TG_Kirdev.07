@@ -40,7 +40,7 @@ import kotlinx.coroutines.delay
 
 // demo link + people. Real store (wave3): the link is t.me/<username> (or Telegram's download page without one); kiroX does not read the
 // phone book (no READ_CONTACTS), so the «not in Telegram» list stays demo.
-private const val InviteLink = "t.me/+Kx7pQ2mZr4"
+private const val InviteLink = "t.me/alex_codes" // critique-B: a personal link (t.me/+… is a group invite)
 private val InvPeople = listOf(
     listOf("Бабушка", "Б", "B07A2E", "+7 701 ••• •• 44"), listOf("Сосед Ерлан", "Е", "2F6E9E", "+7 777 ••• •• 18"), listOf("Тётя Галя", "Г", "C0443C", "+7 705 ••• •• 90"),
     listOf("Тренер Аскар", "А", "3F9A6C", "+7 747 ••• •• 03"), listOf("Мастер по ремонту", "М", "5C6661", "+7 700 ••• •• 61"), listOf("Света (работа)", "С", "6A4C9C", "+7 771 ••• •• 27"),
@@ -133,6 +133,9 @@ fun InviteFriendsScreen(ctx: KxScreenCtx) {
                             Text(p[0], style = ts(15.sp, FontWeight.Bold))
                             Text(if (isSent) "SMS открыта в приложении сообщений" else p[3], style = ts(12.sp, color = if (isSent) Kx.accent else Kx.text4))
                         }
+                        // critique-B: a visible checkbox on every row, not only on the selected ones.
+                        if (!isSent) Box(Modifier.size(24.dp).clip(CircleShape).background(if (on) Kx.accent else Color.Transparent).border(2.dp, if (on) Kx.accent else Kx.w(.3f), CircleShape),
+                            contentAlignment = Alignment.Center) { if (on) Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Kx.onAccent) }
                     }
                 }
                 if (demo && list.isEmpty()) Text("Никого не нашли", style = ts(14.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 30.dp))

@@ -85,10 +85,11 @@ fun SavedScreen(ctx: KxScreenCtx) {
     ChChatBg {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Row(Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 46.dp, outline = true, onClick = ctx.back)
-                Row(Modifier.weight(1f).height(54.dp).clip(RoundedCornerShape(27.dp)).border(1.dp, Kx.w(.16f), RoundedCornerShape(27.dp)).padding(horizontal = 6.dp),
+                // critique-A: the same flat chat header as Chat (no outlined capsule around avatar + title).
+                ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 44.dp, onClick = ctx.back)
+                Row(Modifier.weight(1f).height(54.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    KxAvatar("И", 0, size = 42.dp, icon = Icons.Rounded.Bookmark, colorIndex = 7)
+                    KxAvatar("И", 0, size = 40.dp, icon = Icons.Rounded.Bookmark, colorIndex = 7)
                     Column(Modifier.weight(1f)) {
                         Text("Избранное", style = ts(16, W700))
                         Text(when {
@@ -98,7 +99,7 @@ fun SavedScreen(ctx: KxScreenCtx) {
                         }, style = ts(12, color = Kx.text3))
                     }
                 }
-                ChRound(Icons.Outlined.Search, "Поиск", 46.dp, outline = true) { savedChat?.let { ctx.open("ChatSearch:${it.id}") } ?: ctx.open("ChatSearch") }
+                ChRound(Icons.Outlined.Search, "Поиск", 44.dp) { savedChat?.let { ctx.open("ChatSearch:${it.id}") } ?: ctx.open("ChatSearch") }
             }
             Row(Modifier.padding(top = 10.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 val vbg by animateColorAsState(if (byChats) Kx.accent else Kx.w(.07f), tween(250), label = "v")
@@ -121,7 +122,7 @@ fun SavedScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
-            Text("Теги в Избранном — функция Telegram Premium", style = ts(11, color = Kx.text4), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp))
+            // critique-A: no permanent «Теги — функция Premium» caption line.
             if (byChats) {
                 LazyColumn(Modifier.fillMaxSize().padding(top = 4.dp), contentPadding = PaddingValues(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     itemsIndexed(sources) { i, name ->

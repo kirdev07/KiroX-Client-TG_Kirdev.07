@@ -38,6 +38,15 @@ import com.kirox.app.ui.v3.data.KxOnDeviceTranslate
 import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.screens.chat.*
 import com.kirox.app.ui.v3.theme.Kx
+import com.kirox.app.ui.v3.screens.tools.TToast
+import com.kirox.app.ui.v3.screens.tools.TToastHost
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -56,27 +65,24 @@ val FeatureScreens: Map<String, KxScreenFn> = mapOf(
     "KxOnDevice" to { ctx -> OnDeviceScreen(ctx) },
 )
 
-/** Section «Функции kiroX» of the Settings tab (hook in SettingsScreen). */
+/** Section «Функции kiroX» of the Settings tab (hook in SettingsScreen): ONE group (design-critique B11), Музыка and the kiroX board included. */
 @Composable
 fun KxFeatureSettingsSection(store: KxStore, onOpen: (String) -> Unit) {
     val f = store.features
-    Column(Modifier.kxRise(280), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("Функции kiroX", style = ts(13, W800, Kx.accent), modifier = Modifier.kxHeading().padding(start = 6.dp, top = 6.dp, bottom = 6.dp))
+    Column(Modifier.kxRise(240)) {
+        KxGroupCaption("Функции kiroX")
         val rows = listOf(
-            FRow(Icons.Outlined.Bolt, "Шаблоны ответов", f.templates.size.takeIf { it > 0 }?.toString(), "KxTemplates"),
+            FRow(Icons.Outlined.Bolt, "Режим призрака и другое", null, "Features"),
+            FRow(Icons.Outlined.TextSnippet, "Шаблоны ответов", f.templates.size.takeIf { it > 0 }?.toString(), "KxTemplates"),
             FRow(Icons.Outlined.StarBorder, "Закладки", f.bookmarks.size.takeIf { it > 0 }?.toString(), "KxBookmarks"),
             FRow(Icons.AutoMirrored.Outlined.StickyNote2, "Заметки о чатах и людях", f.notes.size.takeIf { it > 0 }?.toString(), "KxNotes"),
-            FRow(Icons.Outlined.Alarm, "Прочитать позже", f.reminders.size.takeIf { it > 0 }?.toString(), "KxReminders"),
+            FRow(Icons.Outlined.Alarm, "Напоминания", f.reminders.size.takeIf { it > 0 }?.toString(), "KxReminders"),
             FRow(Icons.Outlined.Translate, "Расшифровка и перевод", if (store.me.premium) "Premium" else "на телефоне", "KxOnDevice"),
+            FRow(Icons.Outlined.MusicNote, "Музыка", null, "Music"),
         )
-        rows.forEachIndexed { i, r ->
-            val shape = when (i) { 0 -> RoundedCornerShape(22.dp, 22.dp, 6.dp, 6.dp); rows.lastIndex -> RoundedCornerShape(6.dp, 6.dp, 22.dp, 22.dp); else -> RoundedCornerShape(6.dp) }
-            Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).clip(shape).background(Kx.w(.045f)).kxClick { onOpen(r.route) }.padding(horizontal = 14.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF1F3A2C)), contentAlignment = Alignment.Center) { Icon(r.icon, null, Modifier.size(20.dp), tint = Color(0xFF8FD3AC)) }
-                Text(r.title, style = ts(15), modifier = Modifier.weight(1f))
-                r.value?.let { Text(it, style = ts(13, color = Kx.text4), maxLines = 1) }
-                Icon(Icons.Rounded.ChevronRight, null, Modifier.size(20.dp), tint = Kx.text4)
+        KxGroup {
+            rows.forEach { r ->
+                com.kirox.app.ui.v3.screens.settings.SNavRow(r.icon, r.title, null, RoundedCornerShape(0.dp), tint = KxTint.features, value = r.value) { onOpen(r.route) }
             }
         }
     }
@@ -95,7 +101,7 @@ fun KxProfileNote(store: KxStore, chatId: Long, title: String) {
         Icon(Icons.AutoMirrored.Outlined.StickyNote2, null, Modifier.size(20.dp), tint = Kx.accent)
         Column(Modifier.weight(1f)) {
             Text(if (note.isBlank()) "Добавить заметку" else note, style = ts(14, color = if (note.isBlank()) Kx.text3 else Kx.text, lh = 19.sp))
-            Text("Моя заметка · видите только вы", style = ts(11, color = Kx.text4), modifier = Modifier.padding(top = 2.dp))
+            Text("Заметка kiroX · только на этом телефоне", style = ts(11, color = Kx.text4), modifier = Modifier.padding(top = 2.dp))
         }
     }
     if (editing) NoteEditor(title, note, onDismiss = { editing = false }) { f.setNote(chatId, title, it); editing = false }
@@ -109,8 +115,8 @@ private fun NoteEditor(title: String, initial: String, onDismiss: () -> Unit, on
     Box(Modifier.fillMaxSize()) {
         BSheet(true, onDismiss) {
             Column(Modifier.imePadding()) {
-                Text("Заметка · $title", style = ts(18, W800), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("Хранится только на этом телефоне.", style = ts(12, color = Kx.text4), modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
+                Text("Заметка kiroX · $title", style = ts(18, W800), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("Видите только вы. Только на этом телефоне — в Telegram не отправляется.", style = ts(12, color = Kx.text4), modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
                 BTextArea(t, { t = it.take(4000) }, "Что важно помнить об этом чате", 140.dp)
                 ChPrimary("Сохранить", modifier = Modifier.padding(top = 12.dp).fillMaxWidth()) { onSave(t) }
             }
@@ -138,32 +144,49 @@ private fun TemplatesScreen(ctx: KxScreenCtx) {
                     Row(Modifier.padding(bottom = 4.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.accent.copy(alpha = .07f)).border(1.dp, Kx.accent.copy(alpha = .18f), RoundedCornerShape(18.dp))
                         .padding(horizontal = 14.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Outlined.Bolt, null, Modifier.size(20.dp), tint = Kx.accent)
-                        Text("Наберите «/» в любом чате или откройте ⋮ → «Шаблоны ответов». {имя} подставит имя собеседника. Шаблоны хранятся на телефоне и попадают в резервную копию настроек.",
+                        Text("Наберите «/» в любом чате или откройте ⋮ → «Шаблоны ответов». {имя} подставит имя собеседника, {время} — время сейчас (все подстановки — в редакторе). Нажмите на шаблон, чтобы изменить или удалить; порядок меняется перетаскиванием за ручку. Шаблоны хранятся на телефоне и попадают в резервную копию настроек.",
                             style = ts(13, color = Kx.text2, lh = 18.sp))
                     }
                 }
-                if (f.templates.isEmpty()) item { Text("Пока пусто — создайте первый шаблон.", style = ts(14, color = Kx.text4), modifier = Modifier.padding(8.dp)) }
-                itemsIndexed(f.templates, key = { _, t -> t.id }) { i, t ->
-                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.w(.045f)).kxClick { editing = t; key = t.key; body = t.text }
+                // A4: the shared empty state, its action inside (the bottom button shows once there is a list).
+                if (f.templates.isEmpty()) item {
+                    KxEmpty(Icons.Outlined.Bolt, "Шаблонов пока нет", "Сохраните частый ответ и отправляйте его одной командой «/».", Modifier.padding(top = 24.dp),
+                        action = "Новый шаблон", actionIcon = Icons.Outlined.Add) { editing = KxTemplate(0, "", ""); key = ""; body = "" }
+                }
+                // critique-B: tap = edit sheet (delete inside), order by dragging the handle (was ▲▼ per row).
+                itemsIndexed(f.templates, key = { _, t -> t.id }) { _, t ->
+                    var dy by remember { mutableFloatStateOf(0f) }
+                    var rowH by remember { mutableFloatStateOf(1f) }
+                    val gap = with(androidx.compose.ui.platform.LocalDensity.current) { 8.dp.toPx() }
+                    val dragging = dy != 0f
+                    Row(Modifier.fillMaxWidth().zIndex(if (dragging) 1f else 0f).graphicsLayer { translationY = dy }
+                        .onSizeChanged { rowH = it.height.toFloat() }
+                        .shadow(if (dragging) 12.dp else 0.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp)).background(if (dragging) Kx.surface3 else Kx.w(.045f))
+                        .kxClick("Изменить шаблон /${t.key}") { editing = t; key = t.key; body = t.text }
                         .padding(start = 14.dp, end = 4.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Column(Modifier.weight(1f)) {
                             Text("/${t.key}", style = ts(13, W800, Kx.accent))
                             Text(t.text, style = ts(14, color = Kx.text2, lh = 19.sp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            if (t.uses > 0) Text("использован ${t.uses} " + com.kirox.app.ui.v3.data.KxFormat.plural(t.uses, "раз", "раза", "раз"), style = ts(11, color = Kx.text4), modifier = Modifier.padding(top = 2.dp))
                         }
-                        Text("${t.uses}×", style = ts(11, color = Kx.text4))
-                        Column {
-                            Box(Modifier.size(36.dp).clip(CircleShape).kxClick("Выше", enabled = i > 0) { f.moveTemplate(t.id, i - 1) }, contentAlignment = Alignment.Center) {
-                                Icon(Icons.Outlined.KeyboardArrowUp, null, tint = if (i > 0) Kx.text2 else Kx.w(.15f))
-                            }
-                            Box(Modifier.size(36.dp).clip(CircleShape).kxClick("Ниже", enabled = i < f.templates.lastIndex) { f.moveTemplate(t.id, i + 1) }, contentAlignment = Alignment.Center) {
-                                Icon(Icons.Outlined.KeyboardArrowDown, null, tint = if (i < f.templates.lastIndex) Kx.text2 else Kx.w(.15f))
-                            }
+                        Box(Modifier.size(44.dp).clip(CircleShape).semantics { contentDescription = "Перетащите, чтобы изменить порядок" }
+                            .pointerInput(t.id) {
+                                detectDragGestures(onDragEnd = { dy = 0f }, onDragCancel = { dy = 0f }) { ch, d ->
+                                    ch.consume()
+                                    dy += d.y
+                                    val step = rowH + gap
+                                    val i = f.templates.indexOfFirst { it.id == t.id }
+                                    if (dy > step / 2 && i < f.templates.lastIndex) { f.moveTemplate(t.id, i + 1); dy -= step }
+                                    else if (dy < -step / 2 && i > 0) { f.moveTemplate(t.id, i - 1); dy += step }
+                                }
+                            }, contentAlignment = Alignment.Center) {
+                            Icon(Icons.Outlined.DragHandle, null, tint = Kx.text3)
                         }
                     }
                 }
             }
         }
-        ChPrimary("Новый шаблон", modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 22.dp).fillMaxWidth()
+        if (f.templates.isNotEmpty()) ChPrimary("Новый шаблон", modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 22.dp).fillMaxWidth()
             .shadow(14.dp, RoundedCornerShape(18.dp), spotColor = Kx.accentDeep), icon = Icons.Outlined.Add) { editing = KxTemplate(0, "", ""); key = ""; body = "" }
         BSheet(editing != null, { editing = null }) {
             Column(Modifier.imePadding()) {
@@ -205,17 +228,18 @@ private fun TemplatesScreen(ctx: KxScreenCtx) {
 private fun BookmarksScreen(ctx: KxScreenCtx) {
     val f = ctx.store.features
     var q by remember { mutableStateOf("") }
+    val toast = remember { TToast() }
     val shown = f.bookmarks.filter { q.isBlank() || it.text.contains(q, true) || it.chatTitle.contains(q, true) || it.sender.contains(q, true) }
     val byChat = shown.groupBy { it.chatId }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            KxTopBar("Закладки", subtitle = "Сообщения со звёздочкой из всех чатов · только на телефоне", onBack = ctx.back)
+            KxTopBar("Закладки", subtitle = "Из всех чатов · на телефоне", onBack = ctx.back)
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.06f)).padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text3)
                 ChInput(q, { q = it }, "Поиск по закладкам", Modifier.weight(1f))
             }
-            if (f.bookmarks.isEmpty()) Empty(Icons.Outlined.StarBorder, "Закладок пока нет", "Удерживайте сообщение в любом чате → «В закладки».")
+            if (f.bookmarks.isEmpty()) Empty(Icons.Outlined.StarBorder, "Закладок пока нет", "Удерживайте сообщение в любом чате → «В закладки». Закладки из всех чатов собираются здесь и хранятся только на этом телефоне.")
             else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 byChat.forEach { (chatId, list) ->
                     item(key = "h$chatId") { Text(list.first().chatTitle, style = ts(13, W800, Kx.accent), modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 2.dp)) }
@@ -225,30 +249,35 @@ private fun BookmarksScreen(ctx: KxScreenCtx) {
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Icon(Icons.Rounded.Star, null, Modifier.size(18.dp), tint = Color(0xFFFFD58A))
                             Column(Modifier.weight(1f)) {
-                                Text(b.sender + " · " + when_(b.added), style = ts(12, W700, Kx.text3), maxLines = 1)
+                                Text(listOfNotNull(b.sender.takeIf { it.isNotBlank() && it != b.chatTitle }, when_(b.added)).joinToString(" · "), style = ts(12, W700, Kx.text3), maxLines = 1)
                                 Text(b.text, style = ts(14, lh = 19.sp), maxLines = 3, overflow = TextOverflow.Ellipsis)
                             }
-                            Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Убрать из закладок") { f.removeBookmark(b.chatId, b.messageId); ctx.toast("Убрано из закладок") },
-                                contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(20.dp), tint = Kx.text4) }
+                            Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Убрать из закладок") {
+                                f.removeBookmark(b.chatId, b.messageId)
+                                toast.show("Убрано из закладок", Icons.Outlined.StarBorder, act = "Вернуть") { f.addBookmark(b) }
+                            }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(20.dp), tint = Kx.text4) }
                         }
                     }
                 }
-                if (shown.isEmpty()) item { Text("Ничего не нашлось", style = ts(14, color = Kx.text4), modifier = Modifier.padding(8.dp)) }
+                if (shown.isEmpty()) item { KxEmpty(Icons.Outlined.Search, "Ничего не нашлось", "Попробуйте другое слово или имя чата.", Modifier.padding(top = 24.dp)) }
             }
         }
+        TToastHost(toast, 34.dp)
     }
 }
 
 private fun when_(ms: Long): String = SimpleDateFormat("d MMM, HH:mm", Locale.forLanguageTag("ru")).format(Date(ms))
 
-@Composable
-private fun ColumnScope.Empty(icon: ImageVector, title: String, text: String) {
-    Column(Modifier.weight(1f).fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Box(Modifier.size(72.dp).clip(CircleShape).background(Kx.accent.copy(alpha = .1f)), contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(34.dp), tint = Kx.accent) }
-        Text(title, style = ts(18, W800), modifier = Modifier.padding(top = 14.dp))
-        Text(text, style = ts(14, color = Kx.text3, lh = 20.sp), modifier = Modifier.padding(top = 6.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-    }
+/** «Сегодня, 18:00» / «Завтра, 02:04» / «24 нояб., 02:04». */
+private fun relWhen(ms: Long, now: Long = System.currentTimeMillis()): String {
+    fun day(t: Long) = java.util.Calendar.getInstance().apply { timeInMillis = t }.let { it.get(java.util.Calendar.YEAR) * 400 + it.get(java.util.Calendar.DAY_OF_YEAR) }
+    val time = SimpleDateFormat("HH:mm", Locale.forLanguageTag("ru")).format(Date(ms))
+    return when (day(ms) - day(now)) { 0 -> "Сегодня, $time"; 1 -> "Завтра, $time"; -1 -> "Вчера, $time"; else -> when_(ms) }
 }
+
+/** A4: the shared [KxEmpty], filling the free height. */
+@Composable
+private fun ColumnScope.Empty(icon: ImageVector, title: String, text: String) = KxEmpty(icon, title, text, Modifier.weight(1f))
 
 // ---------------------------------------------------------------- Notes
 
@@ -256,22 +285,52 @@ private fun ColumnScope.Empty(icon: ImageVector, title: String, text: String) {
 private fun NotesScreen(ctx: KxScreenCtx) {
     val f = ctx.store.features
     var edit by remember { mutableStateOf<KxNote?>(null) }
+    var pick by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            KxTopBar("Заметки", subtitle = "О чатах и людях · видите только вы, на этом телефоне", onBack = ctx.back)
+            KxTopBar("Заметки kiroX", subtitle = "Только на этом телефоне", onBack = ctx.back)
             val list = f.notes.values.sortedByDescending { it.updated }
-            if (list.isEmpty()) Empty(Icons.AutoMirrored.Outlined.StickyNote2, "Заметок пока нет", "Откройте чат → ⋮ → «Заметка о чате», или профиль человека → «Добавить заметку».")
-            else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (list.isEmpty()) Column(Modifier.weight(1f)) {
+                Empty(Icons.AutoMirrored.Outlined.StickyNote2, "Заметок пока нет", "Нажмите «Новая заметка» и выберите чат — или откройте чат → ⋮ → «Заметка о чате».")
+            }
+            else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(list, key = { it.chatId }) { n ->
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.w(.045f)).kxClick { edit = n }.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(n.title.ifBlank { "Чат" }, style = ts(15, W800), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("Открыть чат", style = ts(12, W700, Kx.accent), modifier = Modifier.clip(RoundedCornerShape(12.dp)).kxClick { ctx.openChat(n.chatId) }.padding(horizontal = 8.dp, vertical = 6.dp))
+                            Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Открыть чат ${n.title}") { ctx.openChat(n.chatId) }, contentAlignment = Alignment.Center) {
+                                Icon(Icons.Outlined.ChatBubbleOutline, null, Modifier.size(20.dp), tint = Kx.accent)
+                            }
                         }
                         Text(n.text, style = ts(14, color = Kx.text2, lh = 19.sp), maxLines = 4, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
                         Text(when_(n.updated), style = ts(11, color = Kx.text4), modifier = Modifier.padding(top = 6.dp))
                     }
                 }
+            }
+        }
+        ChPrimary("Новая заметка", modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 22.dp).fillMaxWidth()
+            .shadow(14.dp, RoundedCornerShape(18.dp), spotColor = Kx.accentDeep), icon = Icons.Outlined.Add) { pick = true }
+        // «+ Заметка»: pick a chat, then the same editor.
+        BSheet(pick, { pick = false }) {
+            var q by remember { mutableStateOf("") }
+            Text("Заметка о чате", style = ts(18, W800), modifier = Modifier.padding(bottom = 10.dp))
+            Row(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.06f)).padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text3)
+                ChInput(q, { q = it }, "Найти чат", Modifier.weight(1f))
+            }
+            val chats = ctx.store.chats.filter { q.isBlank() || it.title.contains(q, true) }.take(40)
+            Column(Modifier.padding(top = 8.dp).heightIn(max = 380.dp).verticalScroll(rememberScrollState())) {
+                chats.forEach { c ->
+                    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).kxClick(c.title) {
+                        pick = false; edit = f.notes[c.id] ?: KxNote(c.id, c.title, "", System.currentTimeMillis())
+                    }.padding(horizontal = 8.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(Icons.Outlined.ChatBubbleOutline, null, Modifier.size(20.dp), tint = Kx.text3)
+                        Text(c.title, style = ts(15), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        if (f.notes.containsKey(c.id)) Text("есть заметка", style = ts(12, color = Kx.text4))
+                    }
+                }
+                if (chats.isEmpty()) Text("Ничего не нашлось", style = ts(14, color = Kx.text3), modifier = Modifier.padding(8.dp))
             }
         }
         edit?.let { n -> NoteEditor(n.title, n.text, onDismiss = { edit = null }) { f.setNote(n.chatId, n.title, it); edit = null } }
@@ -281,11 +340,12 @@ private fun NotesScreen(ctx: KxScreenCtx) {
 // ---------------------------------------------------------------- Reminders
 
 @Composable
-private fun RemindersScreen(ctx: KxScreenCtx) {
+internal fun RemindersScreen(ctx: KxScreenCtx) {
     val f = ctx.store.features
+    val toast = remember { TToast() }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            KxTopBar("Прочитать позже", subtitle = "Напоминания о сообщениях · уведомления от kiroX", onBack = ctx.back)
+            KxTopBar("Напоминания", subtitle = "Прочитать позже · на этом телефоне", onBack = ctx.back)
             if (f.reminders.isEmpty()) Empty(Icons.Outlined.Alarm, "Напоминаний нет", "Удерживайте сообщение → «Напомнить прочитать» и выберите время.")
             else LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(f.reminders, key = { it.id }) { r ->
@@ -294,15 +354,23 @@ private fun RemindersScreen(ctx: KxScreenCtx) {
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(Icons.Outlined.Alarm, null, Modifier.size(20.dp), tint = Kx.accent)
                         Column(Modifier.weight(1f)) {
-                            Text(when_(r.at) + " · " + r.chatTitle, style = ts(12, W700, Kx.accent), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(relWhen(r.at) + " · " + r.chatTitle, style = ts(12, W700, Kx.accent), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(r.text, style = ts(14, lh = 19.sp), maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
-                        Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Отменить напоминание") { f.removeReminder(r.id); ctx.toast("Напоминание отменено") },
-                            contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(20.dp), tint = Kx.text4) }
+                        // critique-B: snooze one hour; remove with «Вернуть».
+                        Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Отложить на час") {
+                            val made = f.addReminder(r.copy(at = maxOf(r.at, System.currentTimeMillis()) + 3_600_000L))
+                            toast.show("Напомню " + relWhen(made.at).replaceFirstChar { it.lowercase() }, Icons.Outlined.Snooze)
+                        }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Snooze, null, Modifier.size(20.dp), tint = Kx.text3) }
+                        Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Отменить напоминание") {
+                            f.removeReminder(r.id)
+                            toast.show("Напоминание отменено", Icons.Outlined.Alarm, act = "Вернуть") { f.addReminder(r) }
+                        }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(20.dp), tint = Kx.text4) }
                     }
                 }
             }
         }
+        TToastHost(toast, 34.dp)
     }
 }
 
@@ -332,7 +400,7 @@ private fun OnDeviceScreen(ctx: KxScreenCtx) {
                         .border(1.dp, Kx.accent.copy(alpha = .18f), RoundedCornerShape(18.dp)).padding(14.dp))
                 KxSectionTitle("Голосовые и кружки → текст", Modifier.padding(start = 0.dp))
                 KxCard {
-                    KxRow("Распознавать на телефоне", subtitle = speechProblem ?: "Офлайн-распознавание системы (Android 13+)", icon = Icons.Outlined.GraphicEq,
+                    KxRow("Распознавать на телефоне", subtitle = speechProblem ?: "Распознавание Android, без интернета", icon = Icons.Outlined.GraphicEq,
                         trailing = { KxSwitch(sw(KxFeatureKeys.SPEECH_ON_DEVICE)) }) { flip(KxFeatureKeys.SPEECH_ON_DEVICE) }
                     val li = f.settings[KxFeatureKeys.SPEECH_LANG] ?: 0
                     KxRow("Язык голосовых", subtitle = KxFeatureLangs.speech.getOrElse(li) { KxFeatureLangs.speech[0] }.second, icon = Icons.Outlined.Language,
@@ -344,11 +412,11 @@ private fun OnDeviceScreen(ctx: KxScreenCtx) {
                 }
                 KxSectionTitle("Перевод сообщений", Modifier.padding(start = 0.dp))
                 KxCard {
-                    KxRow("Переводить на телефоне", subtitle = "ML Kit от Google: модель ~30 МБ на язык, скачивается один раз", icon = Icons.Outlined.Translate,
+                    KxRow("Переводить на телефоне", subtitle = "Языковой пакет ~30 МБ на язык, скачивается один раз", icon = Icons.Outlined.Translate,
                         trailing = { KxSwitch(sw(KxFeatureKeys.TR_ON_DEVICE)) }) { flip(KxFeatureKeys.TR_ON_DEVICE) }
-                    KxRow("Скачивать модели только по Wi-Fi", icon = Icons.Outlined.Wifi, trailing = { KxSwitch(sw(KxFeatureKeys.TR_WIFI_ONLY)) }) { flip(KxFeatureKeys.TR_WIFI_ONLY) }
+                    KxRow("Скачивать пакеты только по Wi-Fi", icon = Icons.Outlined.Wifi, trailing = { KxSwitch(sw(KxFeatureKeys.TR_WIFI_ONLY)) }) { flip(KxFeatureKeys.TR_WIFI_ONLY) }
                     val to = listOf("ru", "en", "kk").getOrElse(store.pref(KxPrefs.TRANSLATE_TO)) { "ru" }
-                    KxRow(if (busy) "Скачивается…" else "Скачать модель языка перевода", subtitle = "Язык перевода: ${KxFeatureLangs.name(to)}", icon = Icons.Outlined.Download) {
+                    KxRow(if (busy) "Скачивается…" else "Скачать пакет языка перевода", subtitle = "Язык перевода: ${KxFeatureLangs.nominative(to)}", icon = Icons.Outlined.Download) {
                         if (demo || busy) return@KxRow
                         busy = true
                         scope.launch {
@@ -357,15 +425,16 @@ private fun OnDeviceScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                KxSectionTitle("Скачанные модели перевода", Modifier.padding(start = 0.dp))
+                KxSectionTitle("Скачанные языки перевода", Modifier.padding(start = 0.dp))
                 KxCard {
                     val m = models
                     if (m == null) KxRow("Загрузка…")
-                    else if (m.isEmpty()) KxRow("Пока ни одной", subtitle = "Модель скачается при первом переводе, после вашего согласия")
+                    else if (m.isEmpty()) KxRow("Пока ни одного", subtitle = "Пакет скачается при первом переводе, после вашего согласия")
                     else m.sorted().forEach { code ->
-                        KxRow("Модель $code", subtitle = "для ${KxFeatureLangs.name(code)} · ≈ 30 МБ",
+                        // critique-B: the name in the nominative; English is built into Google's on-phone translator and cannot be removed.
+                        KxRow(KxFeatureLangs.nominative(code).replaceFirstChar { it.uppercase() }, subtitle = if (code == "en") "Встроен · не удаляется" else "≈ 30 МБ",
                             icon = Icons.Outlined.Translate, trailing = {
-                                if (code != "en") Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Удалить модель") {
+                                if (code != "en") Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Удалить язык") {
                                     if (!demo) scope.launch { KxOnDeviceTranslate.delete(code)?.let(ctx.toast); models = KxOnDeviceTranslate.downloaded() }
                                 }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Delete, null, tint = Kx.text3) }
                             })

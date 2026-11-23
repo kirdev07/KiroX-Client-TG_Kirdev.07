@@ -60,7 +60,7 @@ fun HoursScreen(ctx: KxScreenCtx) {
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             ExBar("Часы и адрес", { ctx.back() }) { KxPremiumChip() }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 110.dp)) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 130.dp)) {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Kx.w(.04f))
                     .ellipseBg(1f, .9f, 1f, 0f, 0f to Kx.accentDeep.copy(alpha = .28f), .6f to Color.Transparent).border(1.dp, Kx.accent.copy(alpha = .2f), RoundedCornerShape(24.dp)).padding(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -91,7 +91,9 @@ fun HoursScreen(ctx: KxScreenCtx) {
                             contentAlignment = Alignment.Center) { Text(label, style = ts(12.sp, FontWeight.Bold, Kx.text2), maxLines = 1) }
                     }
                 }
-                Column(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp))) {
+                // critique-B: say which end each stepper moves and by how much.
+                Text("«−» — открываться раньше, «+» — закрываться позже, шаг 30 мин", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 10.dp))
+                Column(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp))) {
                     days.forEachIndexed { i, d ->
                         val isToday = i == today
                         Row(Modifier.fillMaxWidth().background(if (isToday) Kx.accent.copy(alpha = .06f) else Color.Transparent).padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),

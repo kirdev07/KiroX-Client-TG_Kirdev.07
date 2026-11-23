@@ -122,7 +122,7 @@ private fun DemoGroupCallScreen(ctx: KxScreenCtx) {
                     T("Курс английского", 17.sp, FontWeight.ExtraBold, maxLines = 1)
                     T("Видеочат · $count · ${sec / 60}:${(sec % 60).toString().padStart(2, '0')}", 12.sp, color = Kx.text3, maxLines = 1)
                 }
-                MRoundBtn(if (grid) Icons.Outlined.GraphicEq else Icons.Outlined.GridView, "Вид", size = 42.dp, bg = Kx.w(.07f), border = Kx.w(.1f)) { grid = !grid }
+                MRoundBtn(if (grid) Icons.Outlined.RecordVoiceOver else Icons.Outlined.GridView, if (grid) "Показать говорящего" else "Показать сеткой", size = 42.dp, bg = Kx.w(.07f), border = Kx.w(.1f)) { grid = !grid }
                 MRoundBtn(Icons.Outlined.Group, "Участники", size = 42.dp, bg = Kx.w(.07f), border = Kx.w(.1f)) { people = true }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 8.dp).height(22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -136,27 +136,19 @@ private fun DemoGroupCallScreen(ctx: KxScreenCtx) {
         }
 
         // Controls.
-        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 14.dp, end = 14.dp, bottom = 24.dp).fillMaxWidth()
+        // critique-C P1: the one call control row (white = on, glass = off, red end last).
+        KxCallControls(listOf(
+            KxCallButton(if (cam) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff, "Камера", cam) { cam = !cam },
+            KxCallButton(if (speakerOut) Icons.AutoMirrored.Rounded.VolumeUp else Icons.Rounded.PhoneInTalk, if (speakerOut) "Динамик" else "Телефон", speakerOut) { speakerOut = !speakerOut },
+            KxCallButton(if (mic) Icons.Rounded.Mic else Icons.Rounded.MicOff, "Микрофон", mic) { mic = !mic; hand = false },
+            KxCallButton(Icons.Rounded.FrontHand, if (hand) "Опустить руку" else "Рука", hand) { hand = !hand },
+            KxCallButton(Icons.Rounded.CallEnd, "Выйти", end = true) { gone = true; people = false },
+        ), Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 14.dp, end = 14.dp, bottom = 24.dp)
             .shadow(40.dp, RoundedCornerShape(34.dp), ambientColor = Color.Black.copy(alpha = .5f), spotColor = Color.Black.copy(alpha = .5f))
             .clip(RoundedCornerShape(34.dp)).background(Kx.surface).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
-            .border(1.dp, Kx.w(.16f), RoundedCornerShape(34.dp)).topHighlight(Kx.w(.18f)).padding(start = 8.dp, end = 8.dp, top = 14.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.Bottom) {
-            GcBtn(if (cam) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff, "Камера", if (cam) on else glass, if (cam) Kx.bg else on) { cam = !cam }
-            GcBtn(if (speakerOut) Icons.AutoMirrored.Rounded.VolumeUp else Icons.Rounded.PhoneInTalk, if (speakerOut) "Динамик" else "Телефон",
-                if (speakerOut) on else glass, if (speakerOut) Kx.bg else on) { speakerOut = !speakerOut }
-            val micLabel = if (mic) "В эфире" else "Микрофон"
-            Column(Modifier.width(76.dp).kxClick(micLabel) { mic = !mic; hand = false }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.size(62.dp, 50.dp).drawBehind { if (mic) drawRoundRect(Kx.accent.copy(alpha = .18f), Offset(-4.dp.toPx(), -4.dp.toPx()), Size(size.width + 8.dp.toPx(), size.height + 8.dp.toPx()), CornerRadius(29.dp.toPx())) }
-                    .clip(RoundedCornerShape(25.dp)).then(if (mic) Modifier.cssGrad(140f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.16f))), contentAlignment = Alignment.Center) {
-                    Icon(if (mic) Icons.Rounded.Mic else Icons.Rounded.MicOff, null, Modifier.size(28.dp), tint = if (mic) Kx.onAccent else on)
-                }
-                Text(micLabel, style = ts(11.sp, FontWeight.Bold, if (mic) Kx.accent else Kx.text2), maxLines = 1, softWrap = false)
-            }
-            GcBtn(Icons.Rounded.FrontHand, if (hand) "Опустить" else "Поднять руку", if (hand) Kx.warning else glass, if (hand) Color(0xFF1A1206) else on) { hand = !hand }
-            GcBtn(Icons.Rounded.CallEnd, "Выйти", Color(0xFFE5534B), Color.White) { gone = true; people = false }
-        }
+            .border(1.dp, Kx.w(.16f), RoundedCornerShape(34.dp)).topHighlight(Kx.w(.18f)).padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 12.dp))
 
-        MSheet(people, { people = false }, dim = .5f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
+        MSheet(people, { people = false }, dim = .6f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
             handleColor = Color(0xFF3A4540), handleWidth = 36.dp, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp), modifier = Modifier.heightIn(max = 620.dp)) {
             Row(Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 T("Участники · $count", 19.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f))

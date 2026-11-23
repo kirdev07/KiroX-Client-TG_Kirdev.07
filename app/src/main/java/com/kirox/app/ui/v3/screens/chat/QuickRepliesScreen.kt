@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -64,13 +65,14 @@ fun QuickRepliesScreen(ctx: KxScreenCtx) {
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад") { if (chat) chat = false else ctx.back() }
                 Text(if (chat) "Проверка" else "Быстрые ответы", style = ts(22, W800), modifier = Modifier.weight(1f), maxLines = 1)
-                Row(Modifier.clip(RoundedCornerShape(16.dp)).background(Kx.w(.06f)).padding(3.dp)) {
-                    listOf(false to "Список", true to "В чате").forEach { (v, label) ->
-                        val on = chat == v
-                        val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .16f) else Color.Transparent, tween(200), label = "t")
-                        Box(Modifier.height(32.dp).clip(RoundedCornerShape(13.dp)).background(bg).kxClick { chat = v; draft = "/"; if (v) sent.clear() }.padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.Center) { Text(label, style = ts(12, W800, if (on) Kx.accent else Kx.text3)) }
-                    }
+            }
+            // critique-A: the mode toggle has its own row so the title is never cut («Быстрые…»).
+            Row(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kx.w(.06f)).padding(3.dp)) {
+                listOf(false to "Список", true to "Проверить в чате").forEach { (v, label) ->
+                    val on = chat == v
+                    val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .16f) else Color.Transparent, tween(200), label = "t")
+                    Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(13.dp)).background(bg).kxClick { chat = v; draft = "/"; if (v) sent.clear() }.padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.Center) { Text(label, style = ts(13, W800, if (on) Kx.accent else Kx.text3)) }
                 }
             }
             if (!chat) Box(Modifier.weight(1f)) {
@@ -85,12 +87,15 @@ fun QuickRepliesScreen(ctx: KxScreenCtx) {
                     }
                     itemsIndexed(list, key = { _, x -> x.key }) { i, x ->
                         Row(Modifier.fillMaxWidth().chIn(i * 40, 10.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.045f)).kxClick { editing = i; ek = x.key; et = x.text }
-                            .padding(horizontal = 14.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            .padding(start = 14.dp, end = 4.dp, top = 12.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(Modifier.height(28.dp).clip(RoundedCornerShape(14.dp)).background(Kx.accent.copy(alpha = .14f)).padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                                 Text("/${x.key}", style = ts(13, W800, Kx.accent))
                             }
                             Text(x.text, style = ts(14, color = Kx.text2, lh = 19.sp), maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                            Text("${x.uses}×", style = ts(11, color = Kx.text4), modifier = Modifier.padding(top = 6.dp))
+                            // Trailing ⋮ = «Изменить / Удалить» live in the editor sheet it opens.
+                            Box(Modifier.size(40.dp).clip(CircleShape).kxClick("Изменить или удалить /${x.key}") { editing = i; ek = x.key; et = x.text }, contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.MoreVert, null, Modifier.size(20.dp), tint = Kx.text3)
+                            }
                         }
                     }
                 }

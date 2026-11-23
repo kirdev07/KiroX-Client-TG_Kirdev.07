@@ -101,11 +101,11 @@ fun PinnedScreen(ctx: KxScreenCtx) {
                                 Text(c.name, style = mts(15, W7), maxLines = 1)
                                 Text(c.msg, style = mts(12, color = MoMuted), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                 PinArrow(Icons.Outlined.KeyboardArrowUp, "Поднять ${c.name}", i > 0) { move(i, -1) }
                                 PinArrow(Icons.Outlined.KeyboardArrowDown, "Опустить ${c.name}", i < n - 1) { move(i, 1) }
                             }
-                            Box(Modifier.size(36.dp).clip(CircleShape).kxClick("Открепить ${c.name}") {
+                            Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Открепить ${c.name}") {
                                 pins.remove(id); id.toLongOrNull()?.takeIf { live }?.let { ctx.store.setPinned(it, false) }; toast.show("Чат «${c.name}» откреплён", Icons.Outlined.PushPin)
                             }, contentAlignment = Alignment.Center) {
                                 Icon(Icons.Outlined.PushPin, null, Modifier.size(20.dp), tint = MoSub)
@@ -141,8 +141,9 @@ fun PinnedScreen(ctx: KxScreenCtx) {
 
 @Composable
 private fun PinArrow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
-    Box(Modifier.size(32.dp, 24.dp).graphicsLayer { alpha = if (enabled) 1f else .3f }.clip(RoundedCornerShape(8.dp)).background(Kx.w(.06f))
-        .kxClick(label, onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, null, Modifier.size(18.dp), tint = Kx.text)
+    // critique-A: 44 dp targets; a disabled arrow loses its fill and fades to 20 %.
+    Box(Modifier.size(40.dp, 44.dp).graphicsLayer { alpha = if (enabled) 1f else .2f }.clip(RoundedCornerShape(12.dp)).background(if (enabled) Kx.w(.07f) else Color.Transparent)
+        .kxClick(label, enabled = enabled, onClick = onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, null, Modifier.size(22.dp), tint = Kx.text)
     }
 }

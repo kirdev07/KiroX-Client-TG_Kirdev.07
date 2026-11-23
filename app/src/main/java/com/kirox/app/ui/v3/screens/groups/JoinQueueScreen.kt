@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.groups
 
+import kotlinx.coroutines.launch
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -59,6 +60,10 @@ fun JoinQueueScreen(ctx: KxScreenCtx) {
     var okN by remember { mutableIntStateOf(0) }
     var noN by remember { mutableIntStateOf(0) }
     var confirm by remember { mutableStateOf(false) }
+    var confirmAll by remember { mutableStateOf(false) }
+    // critique-C P1: bulk decisions wait 5 s for «Отменить» before they reach Telegram.
+    val scope = rememberCoroutineScope()
+    var pendingJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val tip = rememberGxTip()
     val store = ctx.store
     val chatId = gxChatId(ctx.arg)
@@ -117,11 +122,22 @@ fun JoinQueueScreen(ctx: KxScreenCtx) {
             .border(1.dp, Kx.w(.16f), RoundedCornerShape(26.dp)).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GxPillButton("Отклонить всех", Modifier.weight(1f), height = 46.dp, bg = Color(0x1FE5534B), ink = Kx.danger, size = 13, weight = FontWeight.ExtraBold) { confirm = true }
             GxPillButton("Принять всех · ${left.size}", Modifier.weight(1.3f), height = 46.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)),
-                ink = Kx.onAccent, size = 13, weight = FontWeight.ExtraBold) { val n = left.size; left.forEach { process(it, true) }; done.addAll(left.map { it.id }); okN += n; say("Приняты все: $n", true) }
+                ink = Kx.onAccent, size = 13, weight = FontWeight.ExtraBold) { confirmAll = true }
         }
         GxTip(tip, bottom = 90.dp, icon = Icons.Rounded.CheckCircle, durationMs = 2000, bg = Color(0xF528302C), textSize = 13)
-        GxConfirm(confirm, "Отклонить все заявки?", "Все люди из списка получат отказ.", confirm = "Отклонить всех", onCancel = { confirm = false }) {
-            confirm = false; val l = reqs.filter { it.id !in done }; l.forEach { process(it, false) }; done.addAll(l.map { it.id }); noN += l.size; say("Отклонены все: ${l.size}", false)
+        fun bulk(ok: Boolean) {
+            val l = reqs.filter { it.id !in done }; val ids = l.map { it.id }
+            done.addAll(ids); if (ok) okN += l.size else noN += l.size
+            pendingJob?.cancel()
+            pendingJob = scope.launch { delay(5000); l.forEach { process(it, ok) } }
+            tip.say(if (ok) "Приняты: ${l.size}" else "Отклонены: ${l.size}", if (ok) Icons.Rounded.CheckCircle else Icons.Rounded.Block, if (ok) Kx.accent else Kx.danger,
+                action = "Отменить") { pendingJob?.cancel(); pendingJob = null; done.removeAll(ids); if (ok) okN -= l.size else noN -= l.size }
+        }
+        GxConfirm(confirm, "Отклонить ${left.size} ${gxReqPlural(left.size)}?", "Все люди из списка получат отказ.", confirm = "Отклонить", onCancel = { confirm = false }) {
+            confirm = false; bulk(false)
+        }
+        GxConfirm(confirmAll, "Принять ${left.size} ${gxReqPlural(left.size)}?", "Все люди из списка вступят в группу.", confirm = "Принять", danger = false, onCancel = { confirmAll = false }) {
+            confirmAll = false; bulk(true)
         }
     }
 }
@@ -154,11 +170,20 @@ private fun ReqCard(r: JReq, leaving: Boolean?, onNo: () -> Unit, onOk: () -> Un
             Text(r.mutual, style = KxType.style(12.sp, color = Kx.accent))
         }
         Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            GxPillButton("Отклонить", Modifier.weight(1f), height = 40.dp, bg = Kx.w(.07f), size = 13, enabled = leaving == null, onClick = onNo)
-            GxPillButton("Принять", Modifier.weight(1.4f), height = 40.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent, size = 13,
-                weight = FontWeight.ExtraBold, enabled = leaving == null, onClick = onOk)
+            // critique-C P1: a flagged request makes «Отклонить» the filled action and «Принять» quiet.
+            if (r.flag != null) {
+                GxPillButton("Принять", Modifier.weight(1f), height = 44.dp, bg = Kx.w(.07f), size = 13, enabled = leaving == null, onClick = onOk)
+                GxPillButton("Отклонить", Modifier.weight(1.4f), height = 44.dp, bg = Kx.dangerSolid, ink = Color.White, size = 13,
+                    weight = FontWeight.ExtraBold, enabled = leaving == null, onClick = onNo)
+            } else {
+                GxPillButton("Отклонить", Modifier.weight(1f), height = 44.dp, bg = Kx.w(.07f), size = 13, enabled = leaving == null, onClick = onNo)
+                GxPillButton("Принять", Modifier.weight(1.4f), height = 44.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = Kx.onAccent, size = 13,
+                    weight = FontWeight.ExtraBold, enabled = leaving == null, onClick = onOk)
+            }
         }
     }
 }
 
 @Suppress("unused") private suspend fun keepDelay() = delay(0)
+
+internal fun gxReqPlural(n: Int): String = when { n % 10 == 1 && n % 100 != 11 -> "заявку"; n % 10 in 2..4 && n % 100 !in 12..14 -> "заявки"; else -> "заявок" }

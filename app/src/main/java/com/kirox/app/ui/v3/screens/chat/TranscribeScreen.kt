@@ -92,7 +92,7 @@ private fun DemoTranscribeScreen(ctx: KxScreenCtx) {
                 Column(Modifier.weight(1f)) { Text("Мама", style = ts(16, W800)); Text("в сети", style = ts(12, color = Kx.accent)) }
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Сегодня", style = ts(11, W700, Kx.text3), modifier = Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(10.dp)).background(Kx.w(.06f)).padding(horizontal = 10.dp, vertical = 3.dp))
                 TVoices.forEachIndexed { i, v ->
                     val s = st[i]; val open = s == "load" || s == "show"
@@ -160,12 +160,7 @@ private fun DemoTranscribeScreen(ctx: KxScreenCtx) {
                     }
                     BSwitch(auto)
                 }
-                Row(Modifier.padding(top = 4.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.height(18.dp).clip(RoundedCornerShape(9.dp)).background(Kx.premium.copy(alpha = .18f)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
-                        Text("PREMIUM", style = ts(11, W800, Kx.premium))
-                    }
-                    Text("Без Premium Telegram даёт лишь несколько расшифровок в неделю.", style = ts(12, color = Kx.text3))
-                }
+                Text("Осталось 2 расшифровки на этой неделе", style = ts(12, color = Kx.text3), modifier = Modifier.padding(top = 4.dp).padding(horizontal = 4.dp))
             }
         }
         BToast(toast, tk, Modifier.align(Alignment.BottomCenter).navigationBarsPadding(), icon = Icons.Rounded.CheckCircle, bottom = 96.dp)
@@ -247,7 +242,7 @@ private fun RealTranscribeScreen(ctx: KxScreenCtx) {
             else if (list.isEmpty()) Box(Modifier.weight(1f).fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                 Text(if (chatId == null) "Откройте расшифровку из чата" else "В этом чате нет голосовых", style = ts(15, W700, Kx.text3))
             }
-            else Column(Modifier.weight(1f).verticalScroll(rememberScrollState(Int.MAX_VALUE)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            else Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState(Int.MAX_VALUE)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 list.forEach { v ->
                     val s = st[v.messageId]; val open = s == "load" || s == "show"
                     val me = v.out; val pl = cur == v.messageId && p.playing && p.track == null
@@ -291,12 +286,8 @@ private fun RealTranscribeScreen(ctx: KxScreenCtx) {
                 }
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
-            Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.height(18.dp).clip(RoundedCornerShape(9.dp)).background(Kx.premium.copy(alpha = .18f)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
-                    Text("PREMIUM", style = ts(11, W800, Kx.premium))
-                }
-                Text(if (store.me.premium) "С Premium расшифровка без ограничений." else "Без Premium Telegram даёт лишь несколько расшифровок в неделю.", style = ts(12, color = Kx.text3))
-            }
+            Text(if (store.me.premium) "Расшифровка без ограничений" else "Без Premium — несколько расшифровок в неделю", style = ts(12, color = Kx.text3),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 16.dp))
         }
         BToast(toast, tk, Modifier.align(Alignment.BottomCenter).navigationBarsPadding(), icon = Icons.Rounded.CheckCircle, bottom = 40.dp)
     }

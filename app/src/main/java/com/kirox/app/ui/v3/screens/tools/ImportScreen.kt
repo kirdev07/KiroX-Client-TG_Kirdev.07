@@ -35,8 +35,9 @@ import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
 private data class ImApp(val label: String, val sub: String, val icon: ImageVector, val c: Color)
-private val IM_APPS = listOf(ImApp("WhatsApp", "Файл .zip из «Экспорт чата»", Icons.Rounded.Chat, Color(0xFF2E8B57)),
-    ImApp("LINE", "Файл .txt из «Экспорт истории чата»", Icons.Rounded.ChatBubble, Color(0xFF06A04B)), ImApp("Другое приложение", "Текстовый файл .txt", Icons.Rounded.Description, Color(0xFF5C6661)))
+// critique-B P3: WhatsApp and «другое» only (LINE is not used by this audience); «архив чата», not file extensions.
+private val IM_APPS = listOf(ImApp("WhatsApp", "Архив чата из «Экспорт чата»", Icons.Rounded.Chat, Color(0xFF2E8B57)),
+    ImApp("Другое приложение", "Переписка, сохранённая в текстовый файл", Icons.Rounded.Description, Color(0xFF5C6661)))
 private val IM_TARGETS = listOf(listOf("Мама", "М", "Последнее сообщение вчера") to Color(0xFFB07A2E), listOf("Семья", "С", "Группа · 5 участников") to Color(0xFF2F6E9E),
     listOf("Новый чат", "+", "Создать отдельный") to Color(0xFF3F9A6C))
 private const val IM_TOTAL = 4812
@@ -104,7 +105,6 @@ fun ImportScreen(ctx: KxScreenCtx) {
                     Text("Как выгрузить чат", style = KxType.style(20.sp, FontWeight.ExtraBold))
                     val how = when (app) {
                         0 -> listOf("Откройте чат в WhatsApp и нажмите ⋮ → «Ещё»", "Выберите «Экспорт чата» и «С медиафайлами»", "В списке приложений выберите kiroX")
-                        1 -> listOf("Откройте чат в LINE и нажмите ≡ → «Настройки»", "Выберите «Экспорт истории чата»", "В списке приложений выберите kiroX")
                         else -> listOf("Сохраните переписку в текстовый файл", "Положите его в «Загрузки»", "Вернитесь сюда и выберите файл")
                     }
                     Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { how.forEachIndexed { i, t -> NumStep(i + 1, t) } }

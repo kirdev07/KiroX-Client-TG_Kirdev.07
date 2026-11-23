@@ -19,6 +19,8 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.style.TextOverflow
+import com.kirox.app.ui.v3.screens.media.mSheetDrag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -172,19 +174,23 @@ fun GxPillButton(text: String, modifier: Modifier = Modifier, height: Dp = 48.dp
         .kxClick(enabled = enabled, onClick = onClick).padding(horizontal = hPad),
         horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
         if (icon != null) Icon(icon, null, Modifier.size(iconSize), tint = ink)
-        Text(text, style = KxType.style(size.sp, weight, ink), maxLines = 1)
+        // critique-C P1: the label never clips mid-word — it shrinks to 13sp first, then ends with «…».
+        val fit = remember(text) { mutableStateOf(size.toFloat()) }
+        Text(text, style = KxType.style(fit.value.sp, weight, ink), maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false,
+            modifier = Modifier.weight(1f, fill = false),
+            onTextLayout = { r -> if (r.hasVisualOverflow && fit.value > 13f) fit.value = fit.value - 1f })
     }
 }
 
 /** Bottom sheet of the boards: radius 30 top, solid gradient, 40x4 handle, padding 10/16/24. */
 @Composable
-fun BoxScope.GxSheet(visible: Boolean, onClose: () -> Unit, scrimAlpha: Float = .55f, bottomPad: Dp = 24.dp, handleGap: Dp = 14.dp, content: @Composable ColumnScope.() -> Unit) {
+fun BoxScope.GxSheet(visible: Boolean, onClose: () -> Unit, scrimAlpha: Float = .6f, bottomPad: Dp = 24.dp, handleGap: Dp = 14.dp, content: @Composable ColumnScope.() -> Unit) {
     if (visible) BackHandler(onBack = onClose)
     GxScrim(visible, scrimAlpha, onClose)
     AnimatedVisibility(visible, Modifier.align(Alignment.BottomCenter),
         enter = slideInVertically(tween(350, easing = CubicBezierEasing(.2f, .9f, .25f, 1f))) { it },
         exit = slideOutVertically(tween(250)) { it }) {
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = KxShape.sheet, topEnd = KxShape.sheet))
+        Column(Modifier.mSheetDrag(onClose).fillMaxWidth().clip(RoundedCornerShape(topStart = KxShape.sheet, topEnd = KxShape.sheet))
             .background(Brush.verticalGradient(listOf(Color(0xFF222C27), Color(0xFF101412)))).hairline(Kx.w(.16f), top = true)
             .gxPlainClick {}.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = bottomPad)) {
             Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = handleGap).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))
@@ -196,7 +202,11 @@ fun BoxScope.GxSheet(visible: Boolean, onClose: () -> Unit, scrimAlpha: Float = 
 /** Board-local status tip (info icon, 18 radius, bottom 96, 2.2s by default; boards pass their own look). */
 class GxTipState {
     var text by mutableStateOf(""); var icon by mutableStateOf<ImageVector?>(null); var tint by mutableStateOf<Color?>(null); var id by mutableLongStateOf(0L)
-    fun say(t: String, i: ImageVector? = null, c: Color? = null) { text = t; icon = i; tint = c; id = System.nanoTime() }
+    /** critique-C P1: optional «Отменить» on the tip (bulk actions, removals); the tip then stays 5 s. */
+    var action by mutableStateOf<String?>(null); var onAction by mutableStateOf<(() -> Unit)?>(null)
+    fun say(t: String, i: ImageVector? = null, c: Color? = null, action: String? = null, onAction: (() -> Unit)? = null) {
+        text = t; icon = i; tint = c; this.action = action; this.onAction = onAction; id = System.nanoTime()
+    }
 }
 
 @Composable fun rememberGxTip() = remember { GxTipState() }
@@ -206,13 +216,16 @@ fun BoxScope.GxTip(state: GxTipState, bottom: Dp = 96.dp, icon: ImageVector = Ic
                    bg: Color = Color(0xF828322D), border: Color = Kx.w(.12f), textSize: Int = 13, iconSize: Dp = 18.dp,
                    padH: Dp = 16.dp, padV: Dp = 10.dp) {
     var shown by remember { mutableStateOf(false) }
-    LaunchedEffect(state.id) { if (state.id != 0L) { shown = true; delay(durationMs); shown = false } }
+    LaunchedEffect(state.id) { if (state.id != 0L) { shown = true; delay(if (state.action != null) maxOf(durationMs, 5000L) else durationMs); shown = false } }
     AnimatedVisibility(shown, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = bottom),
         enter = fadeIn(tween(250)) + slideInVertically(tween(250)) { it / 3 }, exit = fadeOut(tween(300))) {
         Row(Modifier.clip(RoundedCornerShape(18.dp)).background(bg).border(1.dp, border, RoundedCornerShape(18.dp))
             .padding(horizontal = padH, vertical = padV), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(state.icon ?: icon, null, Modifier.size(iconSize), tint = state.tint ?: Kx.accent)
-            Text(state.text, style = KxType.style(textSize.sp, FontWeight.SemiBold), maxLines = 1)
+            Text(state.text, style = KxType.style(textSize.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+            val act = state.action
+            if (act != null) Text(act, style = KxType.style(textSize.sp, FontWeight.ExtraBold, Kx.accent),
+                modifier = Modifier.kxHitClick(act, RoundedCornerShape(12.dp)) { state.onAction?.invoke(); shown = false }.padding(horizontal = 6.dp, vertical = 4.dp))
         }
     }
 }

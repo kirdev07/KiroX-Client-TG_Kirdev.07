@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Backspace
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Mood
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
+import com.kirox.app.ui.v3.components.kxRenderableEmoji
 import com.kirox.app.ui.v3.theme.*
 
 private val EK_TONES = listOf("", "🏻", "🏼", "🏽", "🏾", "🏿")
@@ -93,8 +95,15 @@ fun EmojiKeyboardScreen(ctx: KxScreenCtx) {
                         Text(draft.last(), style = mts(17), maxLines = 1, modifier = Modifier.graphicsLayer { alpha = p; val s = 1.6f - .6f * p; scaleX = s; scaleY = s })
                     }
                 }
-                Box(Modifier.size(44.dp).clip(CircleShape).kxClick("Стереть") { if (draft.isNotEmpty()) draft.removeAt(draft.size - 1) }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.AutoMirrored.Outlined.Backspace, null, Modifier.size(24.dp), tint = MoSub)
+                // critique-A: the composer keeps send (⌫ moved into the panel).
+                Box(Modifier.size(46.dp).clip(CircleShape).then(if (draft.isNotEmpty()) Modifier.moAccent() else Modifier.background(Kx.w(.07f)))
+                    .kxClick("Отправить") {
+                        if (draft.isEmpty()) return@kxClick
+                        val chat = ctx.arg?.substringBefore(':')?.toLongOrNull()
+                        if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { if (chat == null) { ctx.toast("Откройте эмодзи из чата, чтобы отправить"); return@kxClick }; ctx.store.send(chat, draft.joinToString("")) }
+                        draft.clear()
+                    }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(22.dp), tint = if (draft.isNotEmpty()) MoInk else MoMuted)
                 }
             }
 
@@ -113,18 +122,20 @@ fun EmojiKeyboardScreen(ctx: KxScreenCtx) {
                             Text(withTone("👋", EK_TONES[tone]), style = mts(18))
                             Icon(Icons.Outlined.ExpandMore, null, Modifier.size(16.dp), tint = MoSub)
                         }
+                        Box(Modifier.size(44.dp, 38.dp).clip(RoundedCornerShape(19.dp)).background(Kx.w(.06f)).kxClick("Стереть") { if (draft.isNotEmpty()) draft.removeAt(draft.size - 1) },
+                            contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Outlined.Backspace, null, Modifier.size(20.dp), tint = MoSub) }
                     }
-                    Text(c.name + if (cat == 2) " · нажмите на жест с уголком, чтобы выбрать тон" else "", style = mts(12, W7, MoMuted),
+                    Text(c.name + if (cat == 2) " · жест с уголком — выбор тона" else "", style = mts(12, W7, MoMuted), maxLines = 1,
                         modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 2.dp))
                     val ga = moEnter(200, key = gk)
                     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 8.dp).graphicsLayer { alpha = ga }) {
-                        c.list.chunked(8).forEach { row ->
+                        c.list.kxRenderableEmoji().chunked(8).forEach { row -> // critique-A S: no tofu on old fonts
                             Row {
                                 row.forEach { e ->
                                     val tonable = e in EK_TONABLE
                                     Box(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(12.dp)).background(if (picker == e) Kx.accent.copy(alpha = .16f) else Color.Transparent)
                                         .kxClick(e) { if (tonable) picker = e else add(e) }, contentAlignment = Alignment.Center) {
-                                        Text(withTone(e, EK_TONES[tone]), style = mts(28), maxLines = 1)
+                                        Text(withTone(e, EK_TONES[tone]), style = mts(25), maxLines = 1, softWrap = false)
                                         if (tonable) Canvas(Modifier.align(Alignment.BottomEnd).padding(end = 5.dp, bottom = 5.dp).size(5.dp)) {
                                             drawPath(Path().apply { moveTo(size.width, 0f); lineTo(size.width, size.height); lineTo(0f, size.height); close() }, Kx.w(.35f))
                                         }

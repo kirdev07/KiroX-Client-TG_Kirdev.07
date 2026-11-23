@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -153,10 +154,10 @@ fun MyQrScreen(ctx: KxScreenCtx) {
                             }
                         }
                         Box(Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xFFF4F7F5)).padding(4.dp).clip(RoundedCornerShape(10.dp)).background(ink),
-                            contentAlignment = Alignment.Center) { Icon(Icons.Rounded.ChatBubble, null, Modifier.size(22.dp), tint = Color(0xFFF4F7F5)) }
+                            contentAlignment = Alignment.Center) { Icon(androidx.compose.ui.res.painterResource(com.kirox.app.R.drawable.ic_stat_kirox_v3), null, Modifier.size(24.dp), tint = Color(0xFFF4F7F5)) } // critique-B: the kiroX mark
                     }
-                    Text("@${user.uppercase()}", style = KxType.style(22.sp, FontWeight.ExtraBold, ink).copy(letterSpacing = .3.sp), modifier = Modifier.padding(top = 16.dp))
-                    Text("Отсканируйте, чтобы написать мне в kiroX", style = KxType.style(13.sp, color = Color(0xFF5C6A63)), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+                    Text("@$user", style = KxType.style(22.sp, FontWeight.ExtraBold, ink).copy(letterSpacing = .3.sp), modifier = Modifier.padding(top = 16.dp))
+                    Text("Отсканируйте, чтобы написать мне в Telegram", style = KxType.style(13.sp, color = Color(0xFF5C6A63)), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
                 }
                 Box(Modifier.align(Alignment.TopCenter).size(92.dp).clip(CircleShape).background(Color(0xFFF4F7F5)).padding(5.dp).clip(CircleShape)
                     .cssGradient(140f, 0f to Kx.accentDeep, 1f to Color(0xFF1F4D36)), contentAlignment = Alignment.Center) {
@@ -187,14 +188,15 @@ fun MyQrScreen(ctx: KxScreenCtx) {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                 Icon(Icons.Outlined.Link, null, tint = Kx.text); Spacer(Modifier.width(8.dp)); Text("Ссылка", style = KxType.style(15.sp, FontWeight.Bold))
             }
-            Row(Modifier.weight(1.4f).height(54.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xFFF4F7F5)).kxClick {
+            // critique-B P3: the system accent CTA (was an off-system white pill).
+            Row(Modifier.weight(1.4f).height(54.dp).clip(RoundedCornerShape(18.dp)).background(Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep))).kxClick {
                 runCatching {
                     context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, "https://t.me/$user"), null)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
             }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                Icon(Icons.Outlined.IosShare, null, tint = Color(0xFF0B110E)); Spacer(Modifier.width(8.dp))
-                Text("Поделиться кодом", style = KxType.style(15.sp, FontWeight.ExtraBold, Color(0xFF0B110E)))
+                Icon(Icons.Outlined.IosShare, null, tint = Kx.onAccent); Spacer(Modifier.width(8.dp))
+                Text("Поделиться кодом", style = KxType.style(15.sp, FontWeight.ExtraBold, Kx.onAccent))
             }
         }
         if (scanning) Box(Modifier.fillMaxSize().background(Color.Black)) {

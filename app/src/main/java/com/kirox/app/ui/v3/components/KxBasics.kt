@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -121,7 +122,8 @@ fun KxChip(text: String, selected: Boolean, modifier: Modifier = Modifier, dashe
             .height(36.dp).clip(shape)
             .then(
                 when {
-                    selected -> Modifier.background(Kx.accent)
+                    // critique-C: selected = dark-green fill + green outline + green text (as the boards)
+                    selected -> Modifier.background(Kx.accent.copy(alpha = .14f)).border(1.dp, Kx.accent.copy(alpha = .55f), shape)
                     dashed -> Modifier.dashedBorder(Kx.dashed, 18.dp)
                     else -> Modifier.background(Kx.w(.05f)).border(1.dp, Kx.line, shape)
                 }
@@ -130,7 +132,7 @@ fun KxChip(text: String, selected: Boolean, modifier: Modifier = Modifier, dashe
         contentAlignment = Alignment.Center
     ) {
         Text(text, style = KxType.chip.copy(
-            color = if (selected) Kx.onAccent else if (dashed) Kx.text4 else Kx.text2,
+            color = if (selected) Kx.accent else if (dashed) Kx.text4 else Kx.text2,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium), maxLines = 1)
     }
 }
@@ -145,13 +147,14 @@ fun Modifier.dashedBorder(color: Color, radius: Dp, width: Dp = 1.dp): Modifier 
 
 /** Counter badge (22dp). Muted chats get the gray one, mentions the amber "@". */
 @Composable
-fun KxBadge(text: String, modifier: Modifier = Modifier, muted: Boolean = false, size: Dp = 22.dp) {
+fun KxBadge(text: String, modifier: Modifier = Modifier, muted: Boolean = false, size: Dp = 22.dp, mention: Boolean = false) {
+    // critique-A S: one badge style (accent fill) + one special case: mention «@» = accent outline.
     Box(
         modifier.heightIn(min = size).widthIn(min = size).clip(RoundedCornerShape(size / 2))
-            .background(if (muted) Kx.badgeMuted else Kx.accent).padding(horizontal = 7.dp),
+            .then(if (mention) Modifier.border(1.5.dp, Kx.accent, RoundedCornerShape(size / 2)) else Modifier.background(if (muted) Kx.badgeMuted else Kx.accent)).padding(horizontal = 7.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, style = KxType.caption.copy(color = if (muted) Kx.text2 else Kx.onAccent,
+        Text(text, style = KxType.caption.copy(color = if (mention) Kx.accent else if (muted) Kx.text2 else Kx.onAccent,
             fontWeight = if (muted) FontWeight.Bold else FontWeight.ExtraBold), maxLines = 1)
     }
 }
@@ -164,7 +167,9 @@ fun KxAvatar(name: String, id: Long, modifier: Modifier = Modifier, size: Dp = 5
              ringColor: Color = Kx.bg, letterWeight: FontWeight = FontWeight.Bold, letterSize: androidx.compose.ui.unit.TextUnit = (size.value * 0.37f).sp,
              /** Local photo path (TDLib download); the letter shows until it is decoded. */
              photo: String? = null) {
-    val shape = if (square) RoundedCornerShape(size * 0.3f) else CircleShape
+    // critique-A S: one avatar rule — every peer (people, groups, channels) is a circle, as in Telegram; `square` is kept for old call sites.
+    @Suppress("UNUSED_VARIABLE") val legacySquare = square
+    val shape = CircleShape
     Box(modifier.size(size)) {
         val inner = if (story) Modifier.padding(2.dp) else Modifier
         // conic-gradient starts at 12 o'clock, sweepGradient at 3: rotate the ring by -90 degrees.
@@ -284,22 +289,36 @@ fun KxButton(text: String, modifier: Modifier = Modifier, kind: KxButtonKind = K
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) { Icon(icon, null, Modifier.size(20.dp), tint = ink); Spacer(Modifier.width(8.dp)) }
-        Text(text, style = KxType.style(15.sp, if (kind == KxButtonKind.Quiet) FontWeight.Bold else FontWeight.ExtraBold, ink), maxLines = 1)
+        // critique-C: a long label shrinks down to 13sp, then ends with «…» (was cut: «Поделитьс»).
+        var fs by remember(text) { mutableStateOf(15f) }
+        Text(text, style = KxType.style(fs.sp, if (kind == KxButtonKind.Quiet) FontWeight.Bold else FontWeight.ExtraBold, ink), maxLines = 1, softWrap = false,
+            overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+            onTextLayout = { if (it.hasVisualOverflow && fs > 13f) fs -= 1f })
     }
 }
 
-/** Switch drawn the mockup way. Default 48x28 / knob 22 (most boards); each board passes its own values. */
+/**
+ * A2: THE switch of v3 (every board uses it; the old local copies delegate here). 48x28, knob 22.
+ * ON: near-white knob on the green track; OFF: grey knob on a dark track. Only [onTint] may tint the ON
+ * track (e.g. the violet night mode of «Не беспокоить»); the old size/colour params are kept for the old
+ * call sites but ignored, so every switch looks the same.
+ */
 @Composable
-fun KxSwitch(checked: Boolean, modifier: Modifier = Modifier, width: Dp = 48.dp, height: Dp = 28.dp, knob: Dp = 22.dp,
-             trackOn: Color = Kx.accentDeep, trackOff: Color = Kx.w(.14f), knobOn: Color = Kx.text, knobOff: Color = Kx.text3, shadow: Boolean = false) {
-    val pad = (height - knob) / 2
-    val x by animateDpAsState(if (checked) width - knob - pad else pad, spring(dampingRatio = .55f, stiffness = 700f), label = "knob")
-    Box(modifier.kxToggleState(checked).size(width, height).clip(RoundedCornerShape(height / 2)).background(if (checked) trackOn else trackOff)) {
-        Box(Modifier.offset(x, pad).size(knob).then(if (shadow) Modifier.shadow(3.dp, CircleShape) else Modifier).clip(CircleShape).background(if (checked) knobOn else knobOff))
+fun KxSwitch(checked: Boolean, modifier: Modifier = Modifier, @Suppress("UNUSED_PARAMETER") width: Dp = 48.dp, @Suppress("UNUSED_PARAMETER") height: Dp = 28.dp,
+             @Suppress("UNUSED_PARAMETER") knob: Dp = 22.dp, @Suppress("UNUSED_PARAMETER") trackOn: Color = Kx.accentDeep, @Suppress("UNUSED_PARAMETER") trackOff: Color = Kx.w(.14f),
+             @Suppress("UNUSED_PARAMETER") knobOn: Color = Kx.text, @Suppress("UNUSED_PARAMETER") knobOff: Color = Kx.text3, @Suppress("UNUSED_PARAMETER") shadow: Boolean = false, onTint: Color? = null) {
+    val w = 48.dp; val h = 28.dp; val k = 22.dp
+    val pad = (h - k) / 2
+    val reduced = LocalKxReducedMotion.current
+    val x by animateDpAsState(if (checked) w - k - pad else pad, if (reduced) snap() else spring(dampingRatio = .6f, stiffness = 700f), label = "knob")
+    val track by androidx.compose.animation.animateColorAsState(if (checked) (onTint ?: Kx.accentDeep) else Kx.w(.14f), tween(if (reduced) 0 else 200), label = "track")
+    val ink by androidx.compose.animation.animateColorAsState(if (checked) Color(0xFFF7FAF8) else Kx.text3, tween(if (reduced) 0 else 200), label = "ink")
+    Box(modifier.kxToggleState(checked).size(w, h).clip(RoundedCornerShape(h / 2)).background(track)) {
+        Box(Modifier.offset(x, pad).size(k).then(if (checked) Modifier.shadow(2.dp, CircleShape) else Modifier).clip(CircleShape).background(ink))
     }
 }
 
-/** Settings-style row: icon tile, title + subtitle, trailing slot. 64dp tall. */
+/** Settings-style row: icon tile, title + subtitle, trailing slot. 60dp+ tall. */
 @Composable
 fun KxRow(title: String, modifier: Modifier = Modifier, subtitle: String? = null, icon: ImageVector? = null, iconTint: Color = Kx.accent,
           danger: Boolean = false, trailing: @Composable (() -> Unit)? = null, onClick: (() -> Unit)? = null) {
@@ -309,7 +328,7 @@ fun KxRow(title: String, modifier: Modifier = Modifier, subtitle: String? = null
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) {
-            Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(if (danger) Kx.dangerSolid.copy(alpha = .12f) else iconTint.copy(alpha = .12f)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(if (danger) Kx.dangerSolid.copy(alpha = .12f) else iconTint.copy(alpha = .14f)), contentAlignment = Alignment.Center) {
                 Icon(icon, null, Modifier.size(22.dp), tint = if (danger) Kx.danger else iconTint)
             }
             Spacer(Modifier.width(14.dp))
@@ -324,19 +343,17 @@ fun KxRow(title: String, modifier: Modifier = Modifier, subtitle: String? = null
 
 /** Rounded group card holding rows (settings lists). */
 @Composable
-fun KxCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(KxShape.card)).background(Kx.w(.045f)).border(1.dp, Kx.w(.05f), RoundedCornerShape(KxShape.card)), content = content)
-}
+fun KxCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) = KxGroup(modifier, inset = 70.dp, content = content) // A1: one group look
 
 @Composable
 fun KxSectionTitle(text: String, modifier: Modifier = Modifier) =
-    Text(text, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.text2), modifier = modifier.kxHeading().padding(start = 20.dp, top = 18.dp, bottom = 8.dp))
+    Text(text, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = modifier.kxHeading().padding(start = 20.dp, top = 18.dp, bottom = 8.dp)) // critique-C: captions green
 
 /** The purple "PREMIUM" chip. */
 @Composable
 fun KxPremiumChip(modifier: Modifier = Modifier) {
     Box(modifier.height(20.dp).clip(RoundedCornerShape(10.dp)).background(Kx.premium.copy(alpha = .18f)).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-        Text("PREMIUM", style = KxType.style(11.sp, FontWeight.ExtraBold, Kx.premium))
+        Text("Premium", style = KxType.style(11.sp, FontWeight.ExtraBold, Kx.premium))
     }
 }
 
@@ -346,10 +363,11 @@ fun KxTopBar(title: String, modifier: Modifier = Modifier, subtitle: String? = n
              actions: @Composable RowScope.() -> Unit = {}) {
     Row(modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (onBack != null) KxIconButton(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, onClick = onBack)
+        if (onBack != null) KxBackButton(onBack)
         Column(Modifier.weight(1f)) {
             KxLine(title, KxType.h1, Modifier.kxHeading())
-            if (subtitle != null) Text(subtitle, style = KxType.caption.copy(fontSize = 13.sp, lineHeight = 18.sp), maxLines = 2)
+            // A5: header subtitles are one line; explanations live in the screen body.
+            if (subtitle != null) Text(subtitle, style = KxType.caption.copy(fontSize = 13.sp, lineHeight = 18.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         actions()
     }
@@ -357,3 +375,44 @@ fun KxTopBar(title: String, modifier: Modifier = Modifier, subtitle: String? = n
 
 @Suppress("unused") private val keepBorderStroke = BorderStroke(1.dp, Color.Transparent)
 @Suppress("unused") private val keepInteraction: MutableInteractionSource? = null
+
+/** critique-A S: THE back button of every header (44dp circled glass, 48dp touch). X only for modals: [close] = true. */
+@Composable
+fun KxBackButton(onBack: () -> Unit, modifier: Modifier = Modifier, close: Boolean = false) =
+    KxIconButton(if (close) androidx.compose.material.icons.Icons.Rounded.Close else androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack,
+        if (close) "Закрыть" else "Назад", modifier, glass = true, tint = Kx.text, iconSize = 24.dp, onClick = onBack)
+
+/** critique-A S: a trailing header action — the same circled 44dp glass button, always with a label for TalkBack. */
+@Composable
+fun KxHeaderAction(icon: ImageVector, label: String, modifier: Modifier = Modifier, tint: Color = Kx.text2, onClick: () -> Unit) =
+    KxIconButton(icon, label, modifier, glass = true, tint = tint, onClick = onClick)
+
+/**
+ * critique-A S: the «create» action of a tab (new chat / call / story / contact) — a bottom-right FAB in thumb reach,
+ * above the floating dock. Put it in the tab's root Box: Modifier.align(Alignment.BottomEnd).
+ */
+@Composable
+fun KxFab(icon: ImageVector, label: String, modifier: Modifier = Modifier, aboveDock: Boolean = true, onClick: () -> Unit) {
+    Box(modifier.navigationBarsPadding().padding(end = 18.dp, bottom = if (aboveDock) 100.dp else 22.dp)
+        .kxHitClick(label, RoundedCornerShape(20.dp), onClick = onClick)
+        .size(56.dp).shadow(14.dp, RoundedCornerShape(20.dp), spotColor = Kx.accentDeep).clip(RoundedCornerShape(20.dp)).background(Kx.accentGradient),
+        contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(26.dp), tint = Kx.onAccent) }
+}
+
+/**
+ * critique-A S: demo-only controls (state switchers, «Макет: …» pills) live in ONE dashed «демо» tray, drawn only
+ * for the demo store — never on a real account.
+ */
+@Composable
+fun KxDemoControls(store: com.kirox.app.ui.v3.model.KxStore, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    if (store !is com.kirox.app.ui.v3.demo.KxDemoStore) return
+    Column(modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp).dashedBorder(Kx.dashed, 16.dp).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("демо", style = KxType.style(11.sp, FontWeight.ExtraBold, Kx.text4))
+        content()
+    }
+}
+
+/** Demo-only explanation («Демо: числа для примера») in the same dashed «демо» tray; nothing on a real account. */
+@Composable
+fun KxDemoHint(store: com.kirox.app.ui.v3.model.KxStore, text: String, modifier: Modifier = Modifier) =
+    KxDemoControls(store, modifier) { Text(text, style = KxType.style(13.sp, color = Kx.text3, lineHeight = 18.sp)) }

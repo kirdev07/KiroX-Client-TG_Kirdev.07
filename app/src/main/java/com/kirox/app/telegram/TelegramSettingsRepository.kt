@@ -9,7 +9,7 @@ enum class PrivacyLevel(val title: String) { Everybody("Все"), Contacts("Мо
 enum class PrivacyItem(val title: String, val levels: List<PrivacyLevel> = PrivacyLevel.entries) {
     PhoneNumber("Номер телефона"),
     FindByPhone("Кто найдёт меня по номеру", listOf(PrivacyLevel.Everybody, PrivacyLevel.Contacts)),
-    LastSeen("Время захода"),
+    LastSeen("Время последней активности"),
     ProfilePhoto("Фото профиля"),
     Bio("О себе"),
     Birthdate("Дата рождения"),
@@ -17,7 +17,7 @@ enum class PrivacyItem(val title: String, val levels: List<PrivacyLevel> = Priva
     Gifts("Подарки в профиле"),
     ForwardLink("Ссылка при пересылке"),
     Calls("Звонки"),
-    PeerToPeer("Peer-to-peer в звонках"),
+    PeerToPeer("Прямое соединение в звонках"),
     VoiceNotes("Голосовые и видеосообщения"),
     ChatInvites("Приглашения в группы");
 

@@ -104,7 +104,7 @@ fun SendDeviceScreen(ctx: KxScreenCtx) {
                         Icon(x.icon, null, Modifier.size(28.dp), tint = if (on) Kx.accent else Kx.text3)
                         Text(x.name, style = ts(13, W700), modifier = Modifier.padding(top = 4.dp), maxLines = 1)
                         Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Box(Modifier.size(6.dp).clip(CircleShape).background(x.stInk)); Text(x.st, style = ts(11, color = x.stInk), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Box(Modifier.size(6.dp).clip(CircleShape).background(x.stInk)); Text(x.st, style = ts(11, color = x.stInk), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                         }
                     }
                 }
@@ -121,7 +121,8 @@ fun SendDeviceScreen(ctx: KxScreenCtx) {
                         Column(Modifier.weight(1f)) {
                             Text(f.name, style = ts(14, W700), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             val pa by animateFloatAsState(p / 100f, tween(200, easing = LinearEasing), label = "p")
-                            Box(Modifier.padding(top = 4.dp).fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.08f))) {
+                            // critique-A: the progress bar appears only once sending has started (no «loading» look before).
+                            if (p > 0f) Box(Modifier.padding(top = 4.dp).fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.08f))) {
                                 Box(Modifier.fillMaxHeight().fillMaxWidth(pa).background(Kx.accent))
                             }
                         }

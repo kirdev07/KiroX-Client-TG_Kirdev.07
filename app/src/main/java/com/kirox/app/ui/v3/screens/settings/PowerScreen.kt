@@ -75,11 +75,8 @@ internal fun SSlider(value: Int, min: Int, max: Int, color: Color, step: Int = 1
 }
 
 
-/** Russian plural: 1 функция / 2 функции / 5 функций. */
-internal fun plural(n: Int, one: String, few: String, many: String): String {
-    val m = kotlin.math.abs(n) % 100; val d = m % 10
-    return if (m in 11..19) many else if (d == 1) one else if (d in 2..4) few else many
-}
+/** Russian plural: 1 функция / 2 функции / 5 функций — the one helper [com.kirox.app.ui.v3.data.KxFormat.plural]. */
+internal fun plural(n: Int, one: String, few: String, many: String): String = com.kirox.app.ui.v3.data.KxFormat.plural(n, one, few, many)
 
 /** Board «Энергосбережение»: animated battery hero, demo charge slider, threshold slider, what-to-turn-off switches. */
 @Composable
@@ -105,7 +102,7 @@ fun PowerScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back, modifier = Modifier.border(1.dp, Kx.w(.09f), CircleShape))
+                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Text("Энергосбережение", style = KxType.h1, modifier = Modifier.weight(1f))
             }
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 30.dp)) {
@@ -136,16 +133,17 @@ fun PowerScreen(ctx: KxScreenCtx) {
                     Row { Text("Выкл.", style = KxType.style(11.sp, color = Kx.text4), modifier = Modifier.weight(1f)); Text("Всегда", style = KxType.style(11.sp, color = Kx.text4)) }
                 }
                 Row(Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 6.dp), verticalAlignment = Alignment.Bottom) {
-                    Text("Что отключать", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.weight(1f))
+                    Text("В режиме энергосбережения", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.weight(1f))
                     Text("$cnt из 6", style = KxType.style(12.sp, color = Kx.text4))
                 }
                 val opts = listOf<Triple<ImageVector, String, String>>(
-                    Triple(Icons.Outlined.Animation, "Анимации интерфейса", "Переходы, лупа в нижней панели"),
-                    Triple(Icons.Outlined.AutoAwesome, "Эффекты реакций", "Вспышки при отправке реакций"),
-                    Triple(Icons.Outlined.PlayCircle, "Автозапуск видео и GIF", "Будут играть по нажатию"),
-                    Triple(Icons.Outlined.BlurOn, "Стекло и размытие", "Панели станут плотнее"),
-                    Triple(Icons.Outlined.EmojiEmotions, "Анимированные стикеры", "Покажутся первым кадром"),
-                    Triple(Icons.Outlined.Sync, "Фоновое обновление", "Чаты обновятся при открытии"))
+                    // critique-B: rows say the action (switch ON = «this is switched off while saving»).
+                    Triple(Icons.Outlined.Animation, "Отключать анимации интерфейса", "Переходы, лупа в нижней панели"),
+                    Triple(Icons.Outlined.AutoAwesome, "Отключать эффекты реакций", "Вспышки при отправке реакций"),
+                    Triple(Icons.Outlined.PlayCircle, "Не запускать видео и GIF сами", "Будут играть по нажатию"),
+                    Triple(Icons.Outlined.BlurOn, "Отключать стекло и размытие", "Панели станут плотнее"),
+                    Triple(Icons.Outlined.EmojiEmotions, "Останавливать анимированные стикеры", "Покажутся первым кадром"),
+                    Triple(Icons.Outlined.Sync, "Отключать фоновое обновление", "Чаты обновятся при открытии"))
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg)) {
                     opts.forEachIndexed { i, (ic, label, sub) ->
                         val on = off[i]; val active = on && saving
@@ -170,16 +168,9 @@ fun PowerScreen(ctx: KxScreenCtx) {
     }
 }
 
-/** 50x30 switch: track accent / w.12, knob #06150D / #8A958F, travel 20 with cubic-bezier(.34,1.45,.5,1) .25s. */
+/** A2: the one [KxSwitch]. */
 @Composable
-internal fun DarkKnobSwitch(on: Boolean) {
-    val reduced = LocalKxReducedMotion.current
-    val x by animateDpAsState(if (on) 20.dp else 0.dp, if (reduced) tween(0) else tween(250, easing = CubicBezierEasing(.34f, 1.45f, .5f, 1f)), label = "k")
-    val track by animateColorAsState(if (on) Kx.accent else Kx.w(.12f), tween(200), label = "t")
-    Box(Modifier.kxToggleState(on).size(50.dp, 30.dp).clip(RoundedCornerShape(15.dp)).background(track)) {
-        Box(Modifier.offset(3.dp + x, 3.dp).size(24.dp).clip(CircleShape).background(if (on) Kx.onAccent else Kx.text4))
-    }
-}
+internal fun DarkKnobSwitch(on: Boolean) = KxSwitch(on)
 
 @Composable
 private fun Battery(batt: Int, color: Color, glow: Color, saving: Boolean) {

@@ -112,7 +112,7 @@ fun SecretScreen(ctx: KxScreenCtx) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Icon(Icons.Rounded.Lock, null, Modifier.size(16.dp), tint = Kx.accent); KxLine(h.title, ts(16, W800, Kx.accent))
                     }
-                    Text("секретный чат · $tShort", style = ts(12, color = Kx.text3), maxLines = 1)
+                    Text("секретный чат", style = ts(12, color = Kx.text3), maxLines = 1) // critique-A: the TTL lives in the pill + bubbles only
                 }
                 val tbg by animateColorAsState(if (timer > 0) Kx.accent.copy(alpha = .14f) else Kx.w(.06f), label = "tb")
                 Row(Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).background(tbg).kxClick("Таймер удаления") { timerSheet = true }.padding(horizontal = 12.dp),

@@ -62,7 +62,8 @@ private fun rmDay(d: Int) = when (d) { 0 -> "Сегодня"; 1 -> "Завтра
 @Composable
 fun RemindScreen(ctx: KxScreenCtx) {
     val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
-    if (!demo) { RemindReal(ctx); return }
+    // critique-B: one reminders feature — on a real account this board is «Напоминания» of Settings (KxReminders).
+    if (!demo) { com.kirox.app.ui.v3.features.RemindersScreen(ctx); return }
     val list = remember { mutableStateListOf<RmItem>().apply { addAll(RmSeed) } }
     var tab by remember { mutableIntStateOf(0) }
     var sheet by remember { mutableStateOf(false) }
@@ -113,7 +114,7 @@ fun RemindScreen(ctx: KxScreenCtx) {
                     shown.map { it.day }.distinct().forEach { d ->
                         shown.filter { it.day == d }.forEachIndexed { j, r ->
                             k++
-                            if (j == 0 && (tab == 0 || k == 1)) Text((if (tab == 1) "Выполнено" else rmDay(d)).uppercase(), style = ts(12.sp, FontWeight.Bold, Kx.text4, ls = .6.sp),
+                            if (j == 0 && (tab == 0 || k == 1)) Text(if (tab == 1) "Выполнено" else rmDay(d), style = ts(13.sp, FontWeight.ExtraBold, Kx.accent),
                                 modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp, bottom = 6.dp))
                             key(r.id) { RmCard(r, k - 1, if (pop == r.id) popN else 0, {
                                 upd(r.id) { it.copy(done = !it.done) }; pop = r.id; popN++

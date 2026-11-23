@@ -50,17 +50,17 @@ private val SS_ITEMS = listOf(
     SsItem("Звонки: шумоподавление", "Настройки › Звонки", Icons.Rounded.GraphicEq, Color(0xFF7FB8E0), "звук микрофон", "CallSettings"),
     SsItem("Облачный пароль", "Настройки › Конфиденциальность › Двухэтапная проверка", Icons.Rounded.Password, Kx.warning, "пароль", "TwoStep"),
     SsItem("Код-пароль", "Настройки › Конфиденциальность", Icons.Rounded.Pin, Kx.warning, "пароль код блокировка", "Lock"),
-    SsItem("Тема оформления", "Настройки › Кастомизация", Icons.Rounded.Palette, Kx.premium, "тема цвет ночь", "Custom"),
-    SsItem("Ночной режим по расписанию", "Настройки › Кастомизация › Ночной режим", Icons.Rounded.DarkMode, Kx.premium, "тема ночь тёмная", "NightMode"),
-    SsItem("Очистить кэш", "Настройки › Данные и память", Icons.Rounded.CleaningServices, Kx.danger, "память кэш место", "Storage"),
+    SsItem("Тема оформления", "Настройки › Оформление", Icons.Rounded.Palette, Kx.premium, "тема цвет ночь", "Custom"),
+    SsItem("Ночной режим по расписанию", "Настройки › Оформление › Ночной режим", Icons.Rounded.DarkMode, Kx.premium, "тема ночь тёмная", "NightMode"),
+    SsItem("Освободить место", "Настройки › Данные и память", Icons.Rounded.CleaningServices, Kx.danger, "память кэш место", "Storage"),
     SsItem("Автозагрузка медиа", "Настройки › Данные и память", Icons.Rounded.Download, Kx.danger, "память загрузка трафик", "Storage"),
     SsItem("Размер текста", "Настройки › Специальные возможности", Icons.Rounded.FormatSize, Kx.text3, "шрифт текст размер", "Access"),
     // wave5: boards that had no search entry.
     SsItem("Прокси", "Настройки › Данные и память", Icons.Rounded.VpnLock, Kx.danger, "прокси сеть vpn подключение", "Proxy"),
     SsItem("Трафик", "Настройки › Данные и память", Icons.Rounded.DataUsage, Kx.danger, "трафик сеть мобильная", "Traffic"),
-    SsItem("Энергосбережение", "Настройки › Функции kiroX", Icons.Rounded.BatterySaver, Kx.accent, "батарея заряд энергия", "Power"),
+    SsItem("Энергосбережение", "Настройки › Режим призрака и другое", Icons.Rounded.BatterySaver, Kx.accent, "батарея заряд энергия", "Power"),
     SsItem("Обновления", "Настройки › О приложении", Icons.Rounded.SystemUpdate, Kx.accent, "обновление версия", "Update"),
-    SsItem("Значок приложения", "Настройки › Кастомизация", Icons.Rounded.Apps, Kx.premium, "иконка значок", "AppIcon"))
+    SsItem("Значок приложения", "Настройки › Оформление", Icons.Rounded.Apps, Kx.premium, "иконка значок", "AppIcon"))
 /** Night mode needs a light v3 theme that 1.0 doesn't have: its board is searchable only in the demo. */
 private fun ssItems(demo: Boolean) = if (demo) SS_ITEMS else SS_ITEMS.filter { it.board != "NightMode" }
 private val SS_FAQ = mapOf("звук" to listOf("Почему не приходят уведомления?"), "пароль" to listOf("Что делать, если забыли облачный пароль?"), "память" to listOf("Куда делось место на телефоне?"))
@@ -73,7 +73,7 @@ fun SettingsSearchScreen(ctx: KxScreenCtx) {
     var q by rememberSaveable { mutableStateOf("") }
     val store = ctx.store
     val recent = if (store is com.kirox.app.ui.v3.demo.KxDemoStore && store.prefTexts[com.kirox.app.ui.v3.model.KxPrefsAccount.SEARCH_RECENT] == null)
-        listOf("Тема оформления", "Очистить кэш", "Код-пароль") else store.prefList(com.kirox.app.ui.v3.model.KxPrefsAccount.SEARCH_RECENT)
+        listOf("Тема оформления", "Освободить место", "Код-пароль") else store.prefList(com.kirox.app.ui.v3.model.KxPrefsAccount.SEARCH_RECENT)
     fun saveRecent(list: List<String>) = store.putPrefList(com.kirox.app.ui.v3.model.KxPrefsAccount.SEARCH_RECENT, list)
     var k by remember { mutableIntStateOf(0) }
     val qq = q.trim().lowercase()
@@ -123,7 +123,7 @@ fun SettingsSearchScreen(ctx: KxScreenCtx) {
                 }
                 Column(Modifier.padding(top = 18.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f)).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Outlined.ManageSearch, null, Modifier.size(36.dp), tint = Kx.text4)
-                    Text("Ищите по словам: «звук», «пароль», «тема», «память». Найдём и настройку, и ответ из «Помощи».", style = KxType.style(13.sp, color = Kx.text3, lineHeight = 19.sp),
+                    Text("Найдём и настройку, и ответ из «Помощи».", style = KxType.style(13.sp, color = Kx.text3, lineHeight = 19.sp),
                         textAlign = TextAlign.Center)
                 }
             } else if (res.isNotEmpty()) {

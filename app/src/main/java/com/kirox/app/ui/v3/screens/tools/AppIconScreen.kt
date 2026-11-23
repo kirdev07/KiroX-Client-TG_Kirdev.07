@@ -131,7 +131,8 @@ fun AppIconScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
-            Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
+            // critique-B: content ends 24 dp above the CTA (the info card was cut behind it).
+            Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 24.dp)) {
                 Text("Выберите стиль", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
                 AI.chunked(3).forEachIndexed { r, row ->
                     Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -159,7 +160,7 @@ fun AppIconScreen(ctx: KxScreenCtx) {
                 }
                 Row(Modifier.padding(top = 4.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.w(.04f)).padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.Info, null, Modifier.size(18.dp), tint = Kx.text3)
-                    Text("Ярлык на рабочем столе обновится через пару секунд. На некоторых лаунчерах его придётся перетащить заново.", style = KxType.style(12.sp, color = Kx.text3, lineHeight = 17.sp))
+                    Text("Значок на рабочем столе обновится через пару секунд. На некоторых телефонах его придётся перетащить на экран заново.", style = KxType.style(12.sp, color = Kx.text3, lineHeight = 17.sp))
                 }
             }
             Box(Modifier.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 20.dp)) {

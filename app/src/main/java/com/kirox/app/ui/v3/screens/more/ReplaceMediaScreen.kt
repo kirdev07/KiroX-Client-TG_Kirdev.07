@@ -90,9 +90,12 @@ fun ReplaceMediaScreen(ctx: KxScreenCtx) {
                     }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(20.dp), tint = MoSub) }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.size(46.dp).clip(CircleShape).background(if (editing) Kx.accent.copy(alpha = .14f) else Kx.w(.06f))
-                        .kxClick("Заменить фото") { if (editing) picker = true }, contentAlignment = Alignment.Center) {
+                    // critique-A: while editing the swap button is labelled «Заменить».
+                    Row(Modifier.height(46.dp).widthIn(min = 46.dp).clip(RoundedCornerShape(23.dp)).background(if (editing) Kx.accent.copy(alpha = .14f) else Kx.w(.06f))
+                        .kxClick("Заменить фото") { if (editing) picker = true }.padding(horizontal = if (editing) 12.dp else 11.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Icon(if (editing) Icons.Outlined.SwapHoriz else Icons.Outlined.AttachFile, null, Modifier.size(24.dp), tint = if (editing) Kx.accent else MoSub)
+                        if (editing) Text("Заменить", style = mts(13, W8, Kx.accent))
                     }
                     Box(Modifier.weight(1f).heightIn(min = 46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.07f)).padding(horizontal = 14.dp),
                         contentAlignment = Alignment.CenterStart) {

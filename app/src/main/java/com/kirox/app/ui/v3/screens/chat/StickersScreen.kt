@@ -54,7 +54,7 @@ internal fun emojiSplit(s: String): List<String> {
     val it = java.text.BreakIterator.getCharacterInstance(); it.setText(s)
     val out = ArrayList<String>(); var start = it.first(); var end = it.next()
     while (end != java.text.BreakIterator.DONE) { val g = s.substring(start, end); if (g.isNotBlank()) out += g; start = end; end = it.next() }
-    return out
+    return out.kxRenderableEmoji() // critique-A S: no «⌧» on older fonts
 }
 
 private class Cat(val icon: ImageVector?, val emoji: String, val label: String, val chars: String, val keys: String)
@@ -214,6 +214,15 @@ fun StickersScreen(ctx: KxScreenCtx) {
                         Box(Modifier.height(42.dp).clip(RoundedCornerShape(12.dp)).kxClick(e) {
                             draft += e; recent = (listOf(e) + recent.filter { it != e }).take(16)
                         }, contentAlignment = Alignment.Center) { Text(e, style = ts(27)) }
+                    }
+                    // critique-A: «Недавние» is followed by every category (one scrolling panel, like the emoji keyboard), not 60 % empty.
+                    if (mode == 0 && cat == 0 && qq.isEmpty()) EmojiCats.drop(1).forEach { c ->
+                        item(span = { GridItemSpan(maxLineSpan) }, key = "h${c.label}") { Text(c.label, style = ts(12, W800, Kx.text3), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp)) }
+                        itemsIndexed(emojiSplit(c.chars), key = { i, e -> "a${c.label}$i$e" }) { _, e ->
+                            Box(Modifier.height(42.dp).clip(RoundedCornerShape(12.dp)).kxClick(e) {
+                                draft += e; recent = (listOf(e) + recent.filter { it != e }).take(16)
+                            }, contentAlignment = Alignment.Center) { Text(e, style = ts(27)) }
+                        }
                     }
                     if (mode == 1) itemsIndexed(stickers, key = { i, e -> "s$cat$i$e" }) { i, e ->
                         Box(Modifier.height(80.dp).clip(RoundedCornerShape(16.dp)).kxClick("Стикер $e") {

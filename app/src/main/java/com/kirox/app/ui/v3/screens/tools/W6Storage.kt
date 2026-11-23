@@ -112,7 +112,7 @@ internal fun W6StorageReal(ctx: KxScreenCtx, overlay: W6StorageOverlay) {
             Spacer(Modifier.height(10.dp))
             com.kirox.app.ui.v3.screens.settings.GroupLabel("Больше всего занимают")
             list.forEachIndexed { i, c ->
-                Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).clip(groupShape(i, list.size, 20.dp)).background(TTile).kxClick(c.title) {
+                Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).kxGroupItem(groupShape(i, list.size, 20.dp), TTile, 64.dp).kxClick(c.title) {
                     overlay.confirm = KxConfirm("Очистить кэш «${c.title}»?", "Будет освобождено около ${w6Bytes(c.bytes)}. Сообщения останутся, файлы загрузятся снова, когда вы их откроете.", "Очистить") {
                         co.launch {
                             runCatching { services.settings.clearStorage(StorageCategory.entries.toSet(), c.chatId) }

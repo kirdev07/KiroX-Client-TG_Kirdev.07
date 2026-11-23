@@ -43,7 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val TR_NETS = listOf(Triple("Мобильная", Icons.Outlined.SignalCellularAlt, Icons.Rounded.SignalCellularAlt),
-    Triple("Wi-Fi", Icons.Outlined.Wifi, Icons.Rounded.Wifi), Triple("Роуминг", Icons.Outlined.Public, Icons.Rounded.Public))
+    Triple("Wi-Fi", Icons.Outlined.Wifi, Icons.Rounded.Wifi), Triple("Роуминг", Icons.Outlined.Luggage, Icons.Rounded.Luggage))
 private val TR_CATS = listOf<Triple<String, ImageVector, Color>>(
     Triple("Видео", Icons.Rounded.Movie, Color(0xFF2F6E9E)), Triple("Фото", Icons.Rounded.Image, Color(0xFF3F9A6C)),
     Triple("Голосовые и музыка", Icons.Rounded.GraphicEq, Color(0xFF6A4C9C)), Triple("Звонки", Icons.Rounded.Call, Color(0xFFB07A2E)),

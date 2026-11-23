@@ -56,7 +56,7 @@ fun DocScanScreen(ctx: KxScreenCtx) {
             ChRound(Icons.Outlined.Close, "Закрыть", 44.dp, bg = Kx.w(.1f), border = Color.Transparent, onClick = ctx.back)
             Text("Сканер документов", style = ts(15, W800), textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f))
             Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(if (auto) Kx.accent.copy(alpha = .18f) else Kx.w(.1f)).kxClick { auto = !auto }.padding(horizontal = 12.dp),
-                contentAlignment = Alignment.Center) { Text(if (auto) "Авто" else "Вручную", style = ts(12, W800, if (auto) Kx.accent else Kx.text)) }
+                contentAlignment = Alignment.Center) { Text(if (auto) "Автосъёмка" else "Вручную", style = ts(12, W800, if (auto) Kx.accent else Kx.text)) }
         }
         // Viewfinder
         Box(Modifier.weight(1f).padding(horizontal = 12.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(hex("#14100C"))

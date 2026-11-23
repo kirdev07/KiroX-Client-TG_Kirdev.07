@@ -35,7 +35,7 @@ private data class LoAlt(val icon: ImageVector, val t: String, val s: String, va
 private val LoAlts = listOf(
     LoAlt(Icons.Rounded.PersonAdd, "Добавить аккаунт", "Второй номер рядом с этим, переключение в один тап", Kx.accent, Kx.accent.copy(alpha = .14f), "Accounts"),
     LoAlt(Icons.Rounded.Pin, "Поставить код-пароль", "Закроет kiroX от чужих глаз, выходить не нужно", Kx.accent, Kx.accent.copy(alpha = .14f), "Passcode"),
-    LoAlt(Icons.Rounded.CleaningServices, "Очистить кэш", "Если мало места — освободите 1,8 ГБ, чаты останутся", Kx.warning, Kx.warning.copy(alpha = .14f), "Storage"),
+    LoAlt(Icons.Rounded.CleaningServices, "Освободить место", "Если мало места — освободите 1,8 ГБ, чаты останутся", Kx.warning, Kx.warning.copy(alpha = .14f), "Storage"),
     LoAlt(Icons.Rounded.SimCard, "Сменить номер", "Новая SIM — переносим аккаунт со всеми чатами", Kx.accent, Kx.accent.copy(alpha = .14f), "ChangeNumber"),
     LoAlt(Icons.Rounded.SupportAgent, "Написать в поддержку", "Что-то не работает? Расскажите, разберёмся", Kx.text3, Kx.w(.08f), "Help"),
 )
@@ -109,10 +109,10 @@ fun LogoutScreen(ctx: KxScreenCtx) {
                     LoLine(Icons.Rounded.Key, Kx.text3, "Для входа понадобится код из СМС или Telegram и облачный пароль, если он есть.")
                 }
                 Row(Modifier.padding(top = 14.dp).fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(12.dp))
-                    .kxClick("Очистить кэш на телефоне", role = androidx.compose.ui.semantics.Role.Switch) { cache = !cache }.padding(horizontal = 2.dp),
+                    .kxClick("Удалить временные файлы с телефона", role = androidx.compose.ui.semantics.Role.Switch) { cache = !cache }.padding(horizontal = 2.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
-                        Text("Очистить кэш на телефоне", style = ts(14.sp, FontWeight.Bold))
+                        Text("Удалить временные файлы с телефона", style = ts(14.sp, FontWeight.Bold))
                         Text(if (cacheText != null) "Освободит $cacheText" else "Освободит место на телефоне", style = ts(12.sp, color = Kx.text3))
                     }
                     KxSwitch(cache, width = 46.dp, height = 28.dp, knob = 22.dp, trackOn = Kx.accentDeep, trackOff = Kx.w(.14f), knobOn = Kx.text, knobOff = Kx.text3)

@@ -123,8 +123,16 @@ fun ShareContactScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Outlined.ChevronRight, null, Modifier.size(24.dp), tint = Kx.accent)
                 }
                 Text("Контакты", style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 12.dp, bottom = 6.dp))
+                // critique-B: search over the contact list.
+                var sq by remember { mutableStateOf("") }
+                Row(Modifier.padding(bottom = 6.dp).fillMaxWidth().height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.06f)).padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text3)
+                    ExField(sq, { sq = it }, "Поиск контакта", Modifier.weight(1f), ts(15.sp))
+                }
                 Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
                     ScList.forEachIndexed { i, c ->
+                        if (sq.isNotBlank() && !c.name.contains(sq.trim(), true) && !c.ph.replace(" ", "").contains(sq.trim().replace(" ", ""))) return@forEachIndexed
                         Row(Modifier.fillMaxWidth().kxClick(c.name) { pick = i; me = false }.padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             ExLetter(c.l, 42.dp, c.a, c.b, ink = Kx.text, font = 16.sp)
                             Column(Modifier.weight(1f)) { Text(c.name, style = ts(15.sp, FontWeight.Bold)); Text("${c.ph} · ${c.tg}", style = ts(12.sp, color = Kx.text4)) }

@@ -186,10 +186,12 @@ private fun Perk(icon: ImageVector, t: String, l: Int, open: Boolean, fresh: Boo
             Icon(icon, null, Modifier.size(20.dp), tint = if (open) Kx.accent else Kx.text4)
         }
         Text(t, style = KxType.style(14.sp, FontWeight.Bold, if (open) Kx.text else Kx.text4), modifier = Modifier.weight(1f))
-        Row(Modifier.height(24.dp).clip(RoundedCornerShape(12.dp)).background(if (open) Color(0x298FD3AC) else Kx.w(.06f)).padding(horizontal = 8.dp),
+        // critique-C P3: a check for unlocked perks, a «🔒 Ур. N» pill only on locked ones.
+        if (open) Icon(Icons.Rounded.CheckCircle, "Открыто", Modifier.size(22.dp), tint = Kx.accent)
+        else Row(Modifier.height(24.dp).clip(RoundedCornerShape(12.dp)).background(Kx.w(.06f)).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            Icon(if (open) Icons.Rounded.LockOpen else Icons.Rounded.Lock, null, Modifier.size(14.dp), tint = if (open) Kx.accent else Kx.text3)
-            Text(if (open) "Открыто" else "Ур. $l", style = KxType.style(11.sp, FontWeight.ExtraBold, if (open) Kx.accent else Kx.text3))
+            Icon(Icons.Rounded.Lock, null, Modifier.size(14.dp), tint = Kx.text3)
+            Text("Ур. $l", style = KxType.style(11.sp, FontWeight.ExtraBold, Kx.text3))
         }
     }
 }

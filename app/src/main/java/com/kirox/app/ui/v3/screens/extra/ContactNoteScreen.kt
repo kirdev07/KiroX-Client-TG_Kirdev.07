@@ -90,22 +90,12 @@ fun ContactNoteScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Text("Эмодзи рядом с именем — чтобы быстрее найти в списке", style = ts(11.sp, color = Kx.text4), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 6.dp))
-                CnLabel("Заметка · видите только вы", 16)
+                CnLabel("Заметка о контакте в Telegram · видите только вы", 16)
                 Box(Modifier.fillMaxWidth().height(96.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(18.dp)).padding(horizontal = 14.dp, vertical = 12.dp)) {
                     ExField(note, { note = it }, "", Modifier.fillMaxSize(), ts(14.sp, lh = 20.3.sp), singleLine = false)
                 }
-                FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    CnTags.forEachIndexed { i, (icon, label) ->
-                        val on = tags[i]
-                        val ink = if (on) Kx.accent else Kx.text2
-                        Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f))
-                            .border(1.dp, if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), RoundedCornerShape(16.dp)).kxClick(label) { tags[i] = !on }.padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(icon, null, Modifier.size(15.dp), tint = ink); Text(label, style = ts(12.sp, FontWeight.Bold, ink))
-                        }
-                    }
-                }
-                Text("Контакт не узнает, как вы подписали. Имя и заметка хранятся в вашем облаке Telegram.", style = ts(12.sp, color = Kx.text4, lh = 17.4.sp),
+                // critique-B: one way to mark a contact — the emoji next to the name (the tag row did the same job).
+                Text("Контакт не узнает, как вы его подписали. Имя и эта заметка хранятся в Telegram и видны на всех ваших устройствах. Заметки kiroX о чатах — отдельные, только на этом телефоне.", style = ts(12.sp, color = Kx.text4, lh = 17.4.sp),
                     modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp))
             }
         }

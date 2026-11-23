@@ -40,7 +40,7 @@ private val EX_KINDS = listOf(
     ExKind("Видео", Icons.Outlined.Movie, Icons.Rounded.Movie, 2900f, true), ExKind("Голосовые", Icons.Outlined.GraphicEq, Icons.Rounded.GraphicEq, 120f, true),
     ExKind("Файлы", Icons.Outlined.Description, Icons.Rounded.Description, 860f, true), ExKind("Стикеры", Icons.Outlined.EmojiEmotions, Icons.Rounded.EmojiEmotions, 45f, true))
 private val EX_LIMITS = listOf("8 МБ" to 8f, "50 МБ" to 50f, "500 МБ" to 500f, "Любые" to 1e9f)
-private val EX_PERIODS = listOf("Всё время" to 1f, "Последний год" to .4f, "Месяц" to .06f, "Неделя" to .015f)
+private val EX_PERIODS = listOf("Всё время" to 1f, "Год" to .4f, "Месяц" to .06f, "Неделя" to .015f)
 private val EX_STEPS = listOf("Собираем сообщения", "Копируем фото", "Копируем видео и файлы", "Упаковываем архив")
 private fun exFmt(mb: Float) = if (mb >= 1000) String.format(java.util.Locale.US, "%.1f", mb / 1000).replace('.', ',') + " ГБ" else "${maxOf(1, Math.round(mb))} МБ"
 
@@ -120,13 +120,13 @@ fun ExportScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Text("За какой период", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 18.dp, bottom = 10.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // critique-B P3: one segmented row (the chips wrapped with «Неделя» alone on a line).
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     EX_PERIODS.forEachIndexed { i, (l, _) ->
                         val sel = per == i
-                        val bg by animateColorAsState(if (sel) Kx.accent.copy(alpha = .14f) else Kx.w(.05f), tween(200), label = "pb")
-                        val bd by animateColorAsState(if (sel) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), tween(200), label = "pd")
-                        Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(bg).border(1.dp, bd, RoundedCornerShape(18.dp)).kxClick(role = Role.RadioButton) { per = i }
-                            .padding(horizontal = 14.dp), contentAlignment = Alignment.Center) { Text(l, style = KxType.style(13.sp, FontWeight.Bold, if (sel) Kx.accent else Kx.text2)) }
+                        val bg by animateColorAsState(if (sel) Kx.accent.copy(alpha = .16f) else Color.Transparent, tween(200), label = "pb")
+                        Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(14.dp)).background(bg).kxClick(role = Role.RadioButton) { per = i },
+                            contentAlignment = Alignment.Center) { Text(l, style = KxType.style(12.sp, FontWeight.Bold, if (sel) Kx.accent else Kx.text2), maxLines = 1) }
                     }
                 }
                 Text("Формат", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 18.dp, bottom = 10.dp))

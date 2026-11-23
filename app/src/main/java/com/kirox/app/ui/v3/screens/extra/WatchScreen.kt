@@ -93,7 +93,7 @@ fun WatchScreen(ctx: KxScreenCtx) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 30.dp)) {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp))) {
                     ExSwitchRow(Icons.Outlined.Vibration, "Вибрация на часах", "Лёгкий двойной толчок", vib, 12) { vib = !vib }
-                    ExSwitchRow(Icons.Outlined.Star, "Только избранные чаты", "Остальные — без уведомлений на часах", onlyFav, 12) { onlyFav = !onlyFav }
+                    ExSwitchRow(Icons.Outlined.Star, "Только выбранные чаты", "Закреплённые чаты; остальные — без уведомлений на часах", onlyFav, 12) { onlyFav = !onlyFav }
                     ExSwitchRow(Icons.Outlined.Bolt, "Быстрые ответы", "Иначе сразу диктовка", quick, 12) { quick = !quick }
                 }
             }

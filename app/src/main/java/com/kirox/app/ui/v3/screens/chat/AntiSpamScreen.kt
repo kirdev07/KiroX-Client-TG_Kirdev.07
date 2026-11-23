@@ -112,7 +112,7 @@ fun AntiSpamScreen(ctx: KxScreenCtx) {
                     }
                 }
                 if (demo) Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(Triple(if (aggr) "27" else "—", "удалено за неделю", Kx.danger), Triple("${list.size}", "сегодня", Kx.text), Triple("${back.size}", "отмечено «не спам»", Kx.accent)).forEach { (v, t, c) ->
+                    listOf(Triple(if (aggr) "27" else "—", "удалено за неделю", Kx.danger), Triple("${list.size}", "сегодня", Kx.text), Triple("${back.size}", "не спам", Kx.accent)).forEach { (v, t, c) ->
                         Column(Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(Kx.w(.04f)).padding(horizontal = 6.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(v, style = ts(22, W800, c)); Text(t, style = ts(11, color = Kx.text3), textAlign = TextAlign.Center)
                         }

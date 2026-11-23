@@ -104,6 +104,10 @@ fun TopicsScreen(ctx: KxScreenCtx) {
                 if (t == null) {
                     Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).cssGradient(140f, Kx.accentDeep, Color(0xFF1B2E3A)), contentAlignment = Alignment.Center) { Text((header?.title ?: "A").take(1).uppercase(), style = ts(16, W800, Color(0xFFDFF5E8))) }
                     Column(Modifier.weight(1f)) { Text(header?.title ?: "Android-разработка", style = ts(16, W800), maxLines = 1); Text(if (header != null) "форум · ${header.status}" else "форум · 2 140 участников", style = ts(12, color = Kx.text3)) }
+                    // critique-A: list/grid is one icon toggle in the header (no full chip row for a rare setting).
+                    Box(Modifier.kxHitClick(if (grid) "Показать списком" else "Показать плиткой") { grid = !grid }.size(42.dp).clip(CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(if (grid) Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView, null, tint = Kx.text)
+                    }
                     Box(Modifier.kxHitClick("Поиск") { ctx.open(if (chatId != null) "ChatSearch:$chatId" else "ChatSearch") }.size(42.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Search, null, tint = Kx.text) }
                 } else {
                     Box(Modifier.size(40.dp).clip(CircleShape).background(TCol[t.c].second), contentAlignment = Alignment.Center) { Icon(TIcons[t.icon], null, Modifier.size(22.dp), tint = Color.White) }
@@ -112,16 +116,7 @@ fun TopicsScreen(ctx: KxScreenCtx) {
             }
             if (t == null) Box(Modifier.weight(1f)) {
                 Column {
-                    Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(Triple(false, Icons.AutoMirrored.Outlined.ViewList, "Списком"), Triple(true, Icons.Outlined.GridView, "Плиткой")).forEach { (v, icon, label) ->
-                            val on = grid == v
-                            val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f), tween(200), label = "v")
-                            Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(bg).kxClick(label) { grid = v }.padding(horizontal = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(icon, null, Modifier.size(18.dp), tint = if (on) Kx.accent else Kx.text2); Text(label, style = ts(13, W700, if (on) Kx.accent else Kx.text2))
-                            }
-                        }
-                    }
+                    Spacer(Modifier.height(6.dp))
                     if (!grid) LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 100.dp)) {
                         itemsIndexed(list, key = { _, x -> x.name }) { i, x ->
                             Row(Modifier.fillMaxWidth().chIn(i * 40, 10.dp).alpha(if (x.closed) .75f else 1f).clip(RoundedCornerShape(18.dp)).kxClick(x.name) { openAt(i) }

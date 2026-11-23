@@ -81,6 +81,10 @@ fun RateAppScreen(ctx: KxScreenCtx) {
                                     .kxClick(label) { r = i; k++ }, contentAlignment = Alignment.Center) { Text(e, style = ts(30)) }
                             }
                         }
+                        // critique-A: the scale is labelled at both ends.
+                        Row(Modifier.padding(top = 6.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Плохо", style = ts(11, color = Kx.text4)); Text("Отлично", style = ts(11, color = Kx.text4))
+                        }
                     }
                     if (low) Column(Modifier.padding(top = 16.dp).chIn(dy = 8.dp, durationMs = 250)) {
                         Text("Что улучшить?", style = ts(13, W700, Kx.accent))
@@ -116,7 +120,8 @@ fun RateAppScreen(ctx: KxScreenCtx) {
                         Text("Спасибо!", style = ts(20, W800), modifier = Modifier.padding(top = 14.dp))
                         Text("Отзыв ушёл разработчику. Если хотите, оцените kiroX и в магазине — при любой оценке.", style = ts(14, color = Kx.text3, lh = 20.3.sp),
                             textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
-                        Box(Modifier.padding(top = 16.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 24.dp).padding(2.dp).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.08f))
+                        // critique-A S: demo-only replay control
+                        if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) Box(Modifier.padding(top = 16.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 24.dp).padding(2.dp).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.08f))
                             .kxClick { r = -1; tags.clear(); done = false }.padding(horizontal = 18.dp), contentAlignment = Alignment.Center) { Text("Макет: показать снова", style = ts(14, W700, Kx.accent)) }
                     }
                     repeat(6) { i -> Heart(w * (25 + i * 9) / 100f, i * 150) }

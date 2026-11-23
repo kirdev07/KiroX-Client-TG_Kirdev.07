@@ -7,6 +7,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -80,25 +82,19 @@ private fun DemoMusicScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (ctx.arg != "tab") MRoundBtn(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", highlight = Kx.w(.14f)) { ctx.back() }
-                Column(Modifier.weight(1f)) {
-                    T("Добрый вечер", 12.sp, color = Kx.text4)
-                    T("Музыка", 22.sp, FontWeight.ExtraBold)
-                }
+                T("Музыка", 22.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f))
                 MRoundBtn(Icons.Outlined.Search, "Поиск", tint = Kx.text2)
                 MRoundBtn(Icons.AutoMirrored.Outlined.PlaylistAdd, "Новый плейлист", tint = Kx.text2)
             }
             var filter by remember { mutableIntStateOf(0) }
-            Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Все", "Любимое", "Плейлисты", "Чаты").forEachIndexed { i, s ->
-                    val on = i == filter
-                    Box(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (on) Kx.accent else Kx.w(.06f)).kxClick { filter = i }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
-                        T(s, 13.sp, if (on) FontWeight.Bold else FontWeight.SemiBold, if (on) Kx.onAccent else Kx.text2)
-                    }
-                }
+            // critique-C P2: the same tabs and names as the real library (MusicLibrary).
+            val chipScroll = rememberScrollState()
+            Row(Modifier.padding(top = 10.dp).kxEdgeFade(chipScroll).horizontalScroll(chipScroll).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Каналы", "Моя музыка", "Плейлисты", "Скачанные").forEachIndexed { i, s -> KxChip(s, i == filter) { filter = i } }
             }
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
                 T("Для вас", 16.sp, FontWeight.ExtraBold, modifier = Modifier.padding(bottom = 10.dp))
-                Row(Modifier.height(150.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.height(120.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(Modifier.weight(1.3f).fillMaxHeight().kxRise(0, 500).clip(RoundedCornerShape(26.dp))
                         .cssGrad(150f, 0f to Color(0xFF3E7A5A), .75f to Color(0xFF10241A))
                         .kxClick { cur = (L.indices).random(); pos = 0; playing = true; shuffle = true }.padding(14.dp)) {
@@ -111,16 +107,18 @@ private fun DemoMusicScreen(ctx: KxScreenCtx) {
                             Icon(Icons.Rounded.Shuffle, null, Modifier.size(24.dp), tint = Kx.onAccent)
                         }
                     }
-                    Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        SmallMix("Любимое", "12 треков", Color(0xFFA24B5B), Color(0xFF3A1820), Color(0xFFFFD6DE), 50, Modifier.weight(1f))
-                        SmallMix("Из чатов", "3 чата", Color(0xFF4B3F7A), Color(0xFF1E1830), Color(0xFFDCD0FF), 100, Modifier.weight(1f))
-                    }
                 }
             }
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
                 Row(Modifier.padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     T("Все треки", 16.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f))
-                    T("Сначала новые", 12.sp, color = Kx.text4)
+                    var newest by remember { mutableStateOf(true) }
+                    Row(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(Kx.w(.06f)).border(1.dp, Kx.line, RoundedCornerShape(16.dp))
+                        .kxClick("Сортировка") { newest = !newest }.padding(start = 12.dp, end = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        T(if (newest) "Сначала новые" else "По названию", 12.sp, FontWeight.SemiBold, Kx.text2)
+                        Icon(Icons.Rounded.KeyboardArrowDown, null, Modifier.size(18.dp), tint = Kx.text3)
+                    }
                 }
                 L.forEachIndexed { i, t ->
                     val active = i == cur
@@ -129,7 +127,7 @@ private fun DemoMusicScreen(ctx: KxScreenCtx) {
                         .kxClick { cur = i; pos = 0; playing = true }.padding(horizontal = 6.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(Modifier.size(46.dp).clip(RoundedCornerShape(12.dp)).cover(t), contentAlignment = Alignment.Center) {
-                            if (active) Equalizer(eqClock)
+                            if (active) Equalizer(eqClock) else Icon(Icons.Rounded.MusicNote, null, Modifier.size(20.dp), tint = Color.White.copy(alpha = .55f))
                         }
                         Column(Modifier.weight(1f)) {
                             T(t.title, 15.sp, FontWeight.SemiBold, if (active) Kx.accent else Kx.text, maxLines = 1)
@@ -154,6 +152,7 @@ private fun DemoMusicScreen(ctx: KxScreenCtx) {
     }
 }
 
+@Suppress("unused")
 @Composable
 private fun SmallMix(title: String, sub: String, c1: Color, c2: Color, subColor: Color, delayMs: Int, modifier: Modifier) {
     Column(modifier.fillMaxWidth().kxRise(delayMs, 500).clip(RoundedCornerShape(20.dp)).cssGrad(150f, c1, c2).kxClick { }.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -189,8 +188,8 @@ private fun MiniPlayer(c: MusicTrack, playing: Boolean, progress: Float, clock: 
                 T(c.title, 14.sp, FontWeight.Bold, maxLines = 1)
                 T(c.artist, 12.sp, color = Color(0xFFA6B5AC))
             }
-            Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.accent).kxClick(if (playing) "Пауза" else "Играть", onClick = onToggle), contentAlignment = Alignment.Center) {
-                Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, Modifier.size(24.dp), tint = Kx.onAccent)
+            Box(Modifier.size(44.dp).clip(CircleShape).background(Color.White).kxClick(if (playing) "Пауза" else "Играть", onClick = onToggle), contentAlignment = Alignment.Center) {
+                Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, Modifier.size(24.dp), tint = Kx.bg)
             }
             Box(Modifier.size(40.dp, 44.dp).kxClick("Следующий трек", onClick = onNext), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.SkipNext, null, Modifier.size(24.dp), tint = Kx.text2)
@@ -217,7 +216,7 @@ private fun FullPlayer(c: MusicTrack, playing: Boolean, progress: Float, pos: In
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MRoundBtn(Icons.Rounded.KeyboardArrowDown, "Свернуть", bg = Kx.w(.08f), border = null, onClick = onCollapse)
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                androidx.compose.material3.Text("ИГРАЕТ ИЗ", style = ts(11.sp, color = Color.White.copy(alpha = .65f)).copy(letterSpacing = 1.sp))
+                androidx.compose.material3.Text("Играет из", style = ts(12.sp, color = Color.White.copy(alpha = .65f)))
                 T(source, 14.sp, FontWeight.Bold, maxLines = 1)
             }
             MRoundBtn(Icons.Rounded.MoreHoriz, "Ещё", bg = Kx.w(.08f), border = null)
@@ -235,7 +234,7 @@ private fun FullPlayer(c: MusicTrack, playing: Boolean, progress: Float, pos: In
             }
             if (showLike) Box(Modifier.size(46.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("В любимое", onClick = onLike), contentAlignment = Alignment.Center) {
                 Icon(if (liked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder, null,
-                    Modifier.size(24.dp).graphicsLayer { scaleX = heart.value; scaleY = heart.value }, tint = if (liked) Color(0xFFFF8A9A) else Color.White)
+                    Modifier.size(24.dp).graphicsLayer { scaleX = heart.value; scaleY = heart.value }, tint = if (liked) Kx.accent else Color.White)
             }
         }
         Column(Modifier.padding(top = 20.dp)) {

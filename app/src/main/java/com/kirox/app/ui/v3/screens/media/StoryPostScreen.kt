@@ -150,7 +150,7 @@ private fun DemoStoryPostScreen(ctx: KxScreenCtx) {
                 onPhoto = { photo = it; mode = "photo"; text = "" }, onStartText = { mode = "text"; text = "" })
         }
 
-        MSheet(audOpen, { audOpen = false }, dim = .5f, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp)) {
+        MSheet(audOpen, { audOpen = false }, dim = .6f, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp)) {
             T("Кто увидит историю", 19.sp, FontWeight.ExtraBold)
             Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Auds.forEachIndexed { i, a -> AudRow(a, i == aud) { aud = i } }
@@ -244,7 +244,7 @@ private fun Picker(tab: String, bg: Int, onTab: (String) -> Unit, onBg: (Int) ->
             val w = maxWidth / 2
             Box(Modifier.offset(w * x).size(w, 36.dp).clip(RoundedCornerShape(18.dp)).background(Kx.accent))
             Row(Modifier.fillMaxSize()) {
-                listOf(Triple("photo", Icons.Rounded.PhotoLibrary, "Фото"), Triple("text", Icons.Outlined.Title, "Текст")).forEach { (k, icon, label) ->
+                listOf(Triple("photo", Icons.Rounded.PhotoLibrary, "Галерея"), Triple("text", Icons.Outlined.Title, "Текст")).forEach { (k, icon, label) ->
                     val ink by animateColorAsState(if (tab == k) Kx.onAccent else Kx.text2, tween(300), label = "ink")
                     Row(Modifier.weight(1f).fillMaxHeight().kxClick(role = androidx.compose.ui.semantics.Role.Tab) { onTab(k) }, verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
@@ -276,7 +276,7 @@ private fun Picker(tab: String, bg: Int, onTab: (String) -> Unit, onBg: (Int) ->
                     }
                 }
             }
-            T("Выберите фото или видео — текст добавите на следующем шаге", 12.sp, color = Kx.text4, modifier = Modifier.padding(top = 10.dp, start = 16.dp, end = 16.dp).fillMaxWidth().wrapContentWidth())
+            T("Выберите фото или видео", 12.sp, color = Kx.text4, modifier = Modifier.padding(top = 10.dp, start = 16.dp, end = 16.dp).fillMaxWidth().wrapContentWidth())
         } else Column(Modifier.padding(horizontal = 16.dp).kxRise(0, 250)) {
             val b = TextBgs[bg]
             val c1 by animateColorAsState(b.c1, tween(400), label = "t1"); val c2 by animateColorAsState(b.c2, tween(400), label = "t2")

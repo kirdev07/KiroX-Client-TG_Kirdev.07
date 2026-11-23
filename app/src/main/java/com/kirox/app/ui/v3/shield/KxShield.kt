@@ -17,14 +17,22 @@ import java.util.Calendar
 
 /** Layers of «Защита kiroX» the hub turns on and off. */
 enum class ShieldLayer(val key: String, val title: String, val sub: String) {
-    Text("text", "Мошеннические сообщения", "Полоска над подозрительным сообщением от незнакомца"),
-    Code("code", "Код-щит", "Остановит, если вы отправляете код входа или пароль"),
-    Links("links", "Рентген ссылок", "Двойники сайтов, punycode, «@» в адресе, IP, короткие ссылки"),
-    Apk("apk", "Рентген APK", "Пакет, подпись и опасные доступы перед установкой"),
+    Text("text", "Мошеннические сообщения", "Предупреждение над подозрительным сообщением от незнакомца"),
+    Code("code", "Защита кодов", "Остановит, если вы отправляете код входа или пароль"),
+    Links("links", "Проверка ссылок", "Адреса-двойники известных сайтов и подозрительные короткие ссылки"),
+    Apk("apk", "Проверка установщиков", "Перед установкой покажет, кто сделал приложение и какие доступы оно просит"),
 }
 
 /** What kiroX stopped: counted once per warning, per week. */
-enum class ShieldEvent(val key: String, val label: String) { Text("text", "Подозрительных сообщений"), Code("code", "Попыток отправить код или пароль"), Link("link", "Опасных ссылок"), Apk("apk", "Установщиков APK") }
+enum class ShieldEvent(val key: String, private val forms: Array<String>) {
+    Text("text", arrayOf("сообщение", "сообщения", "сообщений")),
+    Code("code", arrayOf("код или пароль", "кода или пароля", "кодов или паролей")),
+    Link("link", arrayOf("ссылка", "ссылки", "ссылок")),
+    Apk("apk", arrayOf("приложение", "приложения", "приложений"));
+
+    /** Lower-case caption for [n] with the right Russian plural («1 сообщение», «3 ссылки», «5 приложений»). */
+    fun label(n: Int): String = com.kirox.app.ui.v3.data.KxFormat.plural(n, forms[0], forms[1], forms[2])
+}
 
 /** «Почему?» request shown by [KxShieldGate.Overlay]. */
 data class ShieldWhy(val title: String, val verdict: ShieldVerdict, val chatId: Long = 0, val messageId: Long = 0, val text: String = "")
@@ -100,6 +108,22 @@ object KxShield {
         else demoPrefs["marks"] = ((demoPrefs["marks"] as? Int) ?: 0) + 1
         put(acc, if (scam) "marks.scam" else "marks.ok", getInt(acc, if (scam) "marks.scam" else "marks.ok") + 1)
         if (!scam) trust(acc, chatId, true)
+        version++
+    }
+
+    /** «Отменить» right after a mark: the counter goes back, the chat is no longer trusted, the last stored mark is dropped and the model is rebuilt. */
+    fun unmark(acc: String, chatId: Long, scam: Boolean) {
+        val key = if (scam) "marks.scam" else "marks.ok"
+        put(acc, key, (getInt(acc, key) - 1).coerceAtLeast(0))
+        if (!scam) trust(acc, chatId, false)
+        if (acc != DEMO) marksFile(acc)?.takeIf { it.exists() }?.let { f ->
+            runCatching {
+                val lines = f.readLines().toMutableList()
+                val i = lines.indexOfLast { it.startsWith(if (scam) "1|" else "0|") }
+                if (i >= 0) { lines.removeAt(i); f.writeText(lines.joinToString("") { "$it\n" }) }
+            }
+        }
+        synchronized(lock) { models.remove(acc) }
         version++
     }
 

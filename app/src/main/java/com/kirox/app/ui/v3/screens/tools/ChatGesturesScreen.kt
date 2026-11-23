@@ -125,7 +125,7 @@ fun ChatGesturesScreen(ctx: KxScreenCtx) {
                         .clip(CircleShape).background(Kx.w(.45f)).border(2.dp, Kx.w(.8f), CircleShape))
                 }
             }
-            Text(if (act.label == "Ничего") "Жест выключен" else "→ " + act.label, style = KxType.style(14.sp, color = Kx.text2), textAlign = TextAlign.Center,
+            Text(if (act.label == "Ничего") "Жест выключен" else (if (g.key == "swipeL") "← " else if (g.key == "swipeR") "→ " else "") + act.label, style = KxType.style(14.sp, color = Kx.text2), textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 14.dp))
         }
     }) {
@@ -159,7 +159,11 @@ fun ChatGesturesScreen(ctx: KxScreenCtx) {
                 Column(Modifier.weight(1f)) {
                     Text(x.label, style = KxType.style(15.sp, FontWeight.Bold)); Text("Сейчас: " + x.opts[pick[i]].label, style = KxType.style(12.sp, color = Kx.text4))
                 }
-                Icon(Icons.Rounded.PlayCircle, null, Modifier.size(24.dp), tint = if (sel) Kx.accent else Kx.dashed)
+                // critique-B: the play button says what it does.
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Показать", style = KxType.style(12.sp, FontWeight.Bold, if (sel) Kx.accent else Kx.text3))
+                    Icon(Icons.Rounded.PlayCircle, null, Modifier.size(24.dp), tint = if (sel) Kx.accent else Kx.text3)
+                }
             }
         }
     }

@@ -151,7 +151,7 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
                     items(sent) { m -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { Box(Modifier.fillMaxWidth(.78f), contentAlignment = Alignment.CenterEnd) {
                         ChatBubble(true, m.text, m.time, m.silent, null, Modifier.chIn()) } } }
                 } else {
-                    if (sched.isEmpty()) item { Box(Modifier.fillMaxWidth().padding(bottom = 200.dp), contentAlignment = Alignment.Center) { Text("Отложенных сообщений нет", style = ts(14, color = Kx.text4)) } }
+                    if (sched.isEmpty()) item { KxEmpty(Icons.Outlined.Schedule, "Отложенных сообщений нет", "Удерживайте кнопку отправки, чтобы выбрать время", Modifier.padding(top = 24.dp, bottom = 120.dp)) }
                     items(sched, key = { it.id }) { m ->
                         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(m.whenDay, style = ts(12, color = Kx.text3), modifier = Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(12.dp)).background(Kx.w(.06f)).padding(horizontal = 12.dp, vertical = 4.dp))
@@ -173,8 +173,14 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
                 }
             }
             if (!list) Row(Modifier.padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.07f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(23.dp)).padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.CenterStart) { ChInput(draft, { draft = it }, "Сообщение", Modifier.fillMaxWidth()) }
+                // critique-A: a visible clock in the composer (when there is text) tells that sending can be scheduled.
+                Row(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.07f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(23.dp)).padding(start = 14.dp, end = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    ChInput(draft, { draft = it }, "Сообщение", Modifier.weight(1f))
+                    if (text.isNotEmpty()) Box(Modifier.size(42.dp).clip(CircleShape).kxClick("Отправить позже") { menu = true }, contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.Schedule, null, Modifier.size(20.dp), tint = Kx.accent)
+                    }
+                }
                 Box(Modifier.size(46.dp).clip(CircleShape).cssGradient(140f, Kx.accentMid, Kx.accentDeep).semantics { contentDescription = "Отправить; удерживайте — ещё варианты" }
                     .pointerInput(text, menu) { detectTapGestures(onTap = { if (menu) menu = false else sendNow(false) }, onLongPress = { if (text.isNotEmpty()) menu = true }) },
                     contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.Send, null, tint = Kx.onAccent) }

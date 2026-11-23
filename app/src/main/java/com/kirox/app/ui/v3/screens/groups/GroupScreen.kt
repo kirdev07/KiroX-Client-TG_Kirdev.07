@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.groups
 
+import com.kirox.app.ui.v3.model.kxCount
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
@@ -47,8 +49,8 @@ private data class GMember(val p: GxPerson, val status: String, val online: Bool
 private val GMembers = listOf(
     GMember(GxPeople.me, "в сети", true, "владелец", Color(0x29FFD27A), Color(0xFFFFD27A)),
     GMember(GxPeople.maxim, "в сети", true, "админ", Color(0x298FD3AC), Kx.accent),
-    GMember(GxPeople.anna, "был(а) 5 мин назад", false),
-    GMember(GxPeople.ilya, "был(а) недавно", false),
+    GMember(GxPeople.anna, "в сети 5 мин назад", false),
+    GMember(GxPeople.ilya, "в сети недавно", false),
 )
 private val SlowOpts = listOf("Выкл.", "10 с", "30 с", "1 мин", "5 мин", "15 мин", "1 ч")
 private val SlowSecs = listOf(0, 10, 30, 60, 300, 900, 3600)
@@ -126,13 +128,8 @@ fun GroupScreen(ctx: KxScreenCtx) {
                 }
                 GAction(Icons.Outlined.Search, "Поиск", Modifier.weight(1f)) { ctx.open(if (chatId != null) "ChatSearch:$chatId" else "ChatSearch") }
                 GAction(Icons.Rounded.Videocam, "Видеочат", Modifier.weight(1f)) { if (chatId != null && ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) ctx.store.joinGroupCall(chatId) else ctx.open("GroupCall") }
-                Column(Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(20.dp))
-                    .cssLinear(150f, Color(0x593F9A6C), Color(0x1F3F9A6C)).border(1.dp, Color(0x598FD3AC), RoundedCornerShape(20.dp))
-                    .kxClick("Управление") { manage = true },
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically)) {
-                    Icon(Icons.Rounded.AdminPanelSettings, null, Modifier.size(24.dp), tint = Color(0xFFC8F0D8))
-                    Text("Управление", style = KxType.style(11.sp, FontWeight.Bold), maxLines = 1)
-                }
+                // critique-C P2: drawn like the other three (the outline read as «selected»).
+                GAction(Icons.Rounded.AdminPanelSettings, "Управление", Modifier.weight(1f)) { manage = true }
             }
             Column(Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.w(.045f)).padding(horizontal = 14.dp, vertical = 12.dp)) {
                 if (about.isNotEmpty()) Text(about, style = KxType.style(14.sp, lineHeight = 19.sp))
@@ -154,6 +151,15 @@ fun GroupScreen(ctx: KxScreenCtx) {
                     }
                     Text("Добавить участников", style = KxType.style(14.sp, FontWeight.Bold, Kx.accent))
                 }
+                // critique-C P2: shared media entry (Telegram users expect it on a group profile).
+                Row(Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(16.dp)).kxClick { ctx.open(if (chatId != null) "SharedMedia:$chatId" else "SharedMedia") }.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.size(40.dp).clip(CircleShape).background(Kx.w(.06f)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.PhotoLibrary, null, Modifier.size(22.dp), tint = Kx.text2)
+                    }
+                    Text("Медиа, файлы и ссылки", style = KxType.style(14.sp, FontWeight.SemiBold), modifier = Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, Modifier.size(20.dp), tint = Kx.text4)
+                }
                 shownMembers.forEach { m ->
                     Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         GxLetter(m.p.letter, m.p.from, m.p.to, m.p.ink, online = m.online)
@@ -164,6 +170,12 @@ fun GroupScreen(ctx: KxScreenCtx) {
                         if (m.role != null) Text(m.role, style = KxType.style(11.sp, FontWeight.Bold, m.roleInk),
                             modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(m.roleBg).padding(horizontal = 9.dp, vertical = 3.dp))
                     }
+                }
+                if (members > shownMembers.size) Row(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(16.dp))
+                    .kxClick("Показать всех участников") { ctx.open(if (chatId != null) "Members:$chatId" else "Members") }.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Rounded.ExpandMore, null, Modifier.size(20.dp), tint = Kx.accent)
+                    Text("Показать всех · ${kxCount(members)}", style = KxType.style(14.sp, FontWeight.Bold, Kx.accent))
                 }
             }
         }

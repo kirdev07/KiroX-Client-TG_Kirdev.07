@@ -163,7 +163,7 @@ internal object KxReminders {
             .apply { if (!secret) { putExtra(com.kirox.app.notify.MessageNotifications.EXTRA_OPEN_CHAT, chatId); putExtra(KxFeatureJump.EXTRA_CHAT, chatId); putExtra(KxFeatureJump.EXTRA_MESSAGE, messageId) } }
         val n = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox_v3)
-            .setContentTitle(if (secret) "kiroX" else "Прочитать позже · ${i.getStringExtra("ti").orEmpty()}")
+            .setContentTitle(if (secret) "kiroX" else "Напоминание · ${i.getStringExtra("ti").orEmpty()}")
             .setContentText(if (secret) "Напоминание" else i.getStringExtra("t").orEmpty().ifBlank { "Сообщение" })
             .setStyle(if (secret) null else NotificationCompat.BigTextStyle().bigText(i.getStringExtra("t").orEmpty()))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)

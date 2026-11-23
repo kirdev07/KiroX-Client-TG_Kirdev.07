@@ -145,6 +145,8 @@ fun JoinRequestScreen(ctx: KxScreenCtx) {
                         }
                         if (!live || inf0 != null) GxPillButton(if (byRequest) "Подать заявку" else if (inf0?.channel == true) "Подписаться" else "Вступить", Modifier.padding(top = 12.dp).fillMaxWidth(), height = 54.dp, brush = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)),
                             ink = Kx.onAccent, size = 16, weight = FontWeight.ExtraBold) { join() }
+                        // critique-C P3: a visible quiet exit besides the scrim.
+                        GxPillButton("Не сейчас", Modifier.padding(top = 8.dp).fillMaxWidth(), height = 48.dp, bg = Color.Transparent, ink = Kx.text2, size = 15, onClick = ctx.back)
                     }
                     1 -> Column(Modifier.padding(top = 18.dp).gxRise(0, 300, 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         val inf = rememberInfiniteTransition(label = "wait")

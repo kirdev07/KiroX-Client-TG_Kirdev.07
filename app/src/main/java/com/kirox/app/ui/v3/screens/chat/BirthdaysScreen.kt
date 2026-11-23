@@ -144,11 +144,10 @@ fun BirthdaysScreen(ctx: KxScreenCtx) {
 }
 
 @Composable
-private fun RowScope.HeroBtn(icon: ImageVector, text: String, onClick: () -> Unit) {
-    Row(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.08f)).kxClick(onClick = onClick),
-        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, Modifier.size(18.dp), tint = Kx.text); Text(text, style = ts(13, W700), maxLines = 1,
-            autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 13.sp))
+private fun HeroBtn(icon: ImageVector, text: String, onClick: () -> Unit) {
+    // critique-A: one primary «Поздравить» + two icon buttons (labels go to TalkBack).
+    Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick(text, onClick = onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, null, Modifier.size(20.dp), tint = Kx.text)
     }
 }
 

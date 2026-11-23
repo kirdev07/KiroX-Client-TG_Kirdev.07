@@ -46,7 +46,7 @@ import kotlinx.coroutines.delay
 private data class BPeer(val id: Long, val name: String, val sub: String, val a1: Color, val a2: Color, val ink: Color)
 
 private val BAll = listOf(
-    BPeer(1, "Реклама Окон", "в чёрном списке 3 дня", Color(0xFF7A5A2E), Color(0xFF3A2A14), Color(0xFFFFE2B8)),
+    BPeer(1, "Реклама Окон", "заблокировано 3 дня назад", Color(0xFF7A5A2E), Color(0xFF3A2A14), Color(0xFFFFE2B8)),
     BPeer(2, "Неизвестный", "+7 ••• ••• •• 41 · в октябре", Color(0xFF5C6661), Color(0xFF2A302D), Color(0xFFE2E8E4)),
     BPeer(3, "Бот розыгрышей", "бот · в сентябре", Color(0xFF9E3F5C), Color(0xFF2E1420), Color(0xFFFFD0DD)),
     BPeer(4, "Ярослав", "только что", Color(0xFF2F6E9E), Color(0xFF14243A), Color(0xFFCFE6FF)),
@@ -60,6 +60,7 @@ fun BlockedScreen(ctx: KxScreenCtx) {
     // store.blocked / store.block(userId, blocked). The suspicious-message card and the report flow stay a local demo
     // (demo: needs store — reportChat is a multi-step Telegram flow, not in the store yet); its peer has a negative local id.
     val store = ctx.store
+    val demoStore = store is com.kirox.app.ui.v3.demo.KxDemoStore
     fun look(i: Int) = BAll[i % 3]
     val spam = BAll[5].copy(id = -6)
     var spamBlocked by remember { mutableStateOf(false) }
@@ -92,7 +93,7 @@ fun BlockedScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", tint = Kx.text, iconSize = 24.dp, onClick = ctx.back, modifier = Modifier.border(1.dp, Kx.w(.09f), CircleShape))
+                KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
                 Text("Заблокированные", style = KxType.h1, modifier = Modifier.weight(1f))
             }
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 30.dp)) {
@@ -111,8 +112,13 @@ fun BlockedScreen(ctx: KxScreenCtx) {
                     }
                     if (ids.isEmpty()) Text("Список пуст", style = KxType.style(14.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(26.dp))
                 }
-                Text("Подозрительные сообщения", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 18.dp, bottom = 6.dp))
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg).padding(12.dp)) {
+                // critique-B: the suspicious-message card is a demo of the report flow — real accounts get the link to «Защита kiroX» instead
+                // (it already warns over such messages); «Заблокировать» is the primary action, «Пожаловаться» the secondary one.
+                if (!demoStore) Column(Modifier.padding(top = 18.dp)) {
+                    SNavRow(Icons.Outlined.Shield, "Подозрительные сообщения", "Предупреждения и проверка — в «Защите kiroX»", groupShape(0, 1, 20.dp)) { ctx.open("Shield") }
+                }
+                if (demoStore) Text("Подозрительные сообщения", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 18.dp, bottom = 6.dp))
+                if (demoStore) Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg).padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(Modifier.size(46.dp).clip(CircleShape).cssGradient(140f, 0f to Color(0xFF5C6661), 1f to Color(0xFF2A302D)), contentAlignment = Alignment.Center) {
                             Text("?", style = KxType.style(17.sp, FontWeight.Bold, Color(0xFFE2E8E4)))
@@ -128,11 +134,11 @@ fun BlockedScreen(ctx: KxScreenCtx) {
                         Text("Не из ваших контактов. Похоже на мошенничество.", style = KxType.style(12.sp, color = Kx.warning, lineHeight = 17.sp))
                     }
                     Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(14.dp)).background(Kx.danger.copy(alpha = .12f)).kxClick { report = true; step = 1 }, contentAlignment = Alignment.Center) {
-                            Text("Пожаловаться", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.danger))
+                        Box(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.07f)).kxClick { report = true; step = 1 }, contentAlignment = Alignment.Center) {
+                            Text("Пожаловаться", style = KxType.style(13.sp, FontWeight.Bold))
                         }
-                        Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(14.dp)).background(Kx.w(.07f)).kxClick { block(-6); say("Crypto Bonus в чёрном списке") }, contentAlignment = Alignment.Center) {
-                            Text("Заблокировать", style = KxType.style(13.sp, FontWeight.Bold))
+                        Box(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)).background(Kx.danger.copy(alpha = .14f)).kxClick { block(-6); say("Заблокировано: Crypto Bonus") }, contentAlignment = Alignment.Center) {
+                            Text("Заблокировать", style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.danger))
                         }
                     }
                 }
@@ -141,7 +147,7 @@ fun BlockedScreen(ctx: KxScreenCtx) {
         if (add) AccSheet({ add = false }) {
             Text("Кого заблокировать?", style = KxType.style(18.sp, FontWeight.ExtraBold), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp))
             candidates.forEach { c ->
-                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).kxClick { block(c.id); add = false; say("${c.name} в чёрном списке") }.padding(horizontal = 6.dp, vertical = 8.dp),
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).kxClick { block(c.id); add = false; say("Заблокировано: ${c.name}") }.padding(horizontal = 6.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(Modifier.size(42.dp).clip(CircleShape).cssGradient(140f, 0f to c.a1, 1f to c.a2), contentAlignment = Alignment.Center) {
                         Text(c.name.take(1), style = KxType.style(16.sp, FontWeight.Bold, c.ink))

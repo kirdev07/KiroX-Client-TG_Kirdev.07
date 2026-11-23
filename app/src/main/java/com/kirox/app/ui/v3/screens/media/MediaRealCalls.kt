@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.media
 
+import com.kirox.app.ui.v3.model.kxDuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -131,10 +132,10 @@ internal fun RealCallEnd(ctx: KxScreenCtx) {
         }
         T(c.name, 24.sp, FontWeight.ExtraBold, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 12.dp))
         T((if (c.phase == KxCallPhase.Failed) c.failure.ifBlank { "Не удалось позвонить" } else c.endReason.ifBlank { "Звонок завершён" }) +
-            (if (c.endedSeconds > 0) " · ${fmtClock(c.endedSeconds)}" else ""), 14.sp, color = Kx.text3, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp))
+            (if (c.endedSeconds > 0) " · длительность ${kxDuration(c.endedSeconds)}" else ""), 14.sp, color = Kx.text3, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp))
         Row(Modifier.align(Alignment.CenterHorizontally).padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             EndBtn(Icons.Rounded.Call, "Позвонить", accent = true) { ctx.store.call(c.peerId, false) }
-            EndBtn(Icons.Rounded.Videocam, "Видео") { ctx.store.call(c.peerId, true) }
+            EndBtn(Icons.Rounded.Videocam, "Видеозвонок") { ctx.store.call(c.peerId, true) }
             EndBtn(Icons.Rounded.ChatBubble, "Написать") { ctx.openChat(c.peerId) }
         }
         if (c.endedSeconds > 0 && !sent) Column(Modifier.padding(top = 24.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Kx.w(.05f)).padding(16.dp)) {

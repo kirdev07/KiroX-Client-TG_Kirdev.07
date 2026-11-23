@@ -78,7 +78,8 @@ fun SmartTextScreen(ctx: KxScreenCtx) {
                             val text = buildAnnotatedString {
                                 append(m.pre)
                                 withLink(LinkAnnotation.Clickable(m.kind, TextLinkStyles(SpanStyle(color = Kx.accent, fontWeight = FontWeight.Bold, background = hl))) { open = m.kind }) {
-                                    append(" "); appendInlineContent("ic", "•"); append(m.hit); append(" ")
+                                    // critique-B: icon + value never split over two lines (word joiner after the icon, no-break spaces inside).
+                                    append(" "); appendInlineContent("ic", "•"); append("\u2060"); append(m.hit.replace(' ', '\u00A0')); append(" ")
                                 }
                                 append(m.post)
                             }

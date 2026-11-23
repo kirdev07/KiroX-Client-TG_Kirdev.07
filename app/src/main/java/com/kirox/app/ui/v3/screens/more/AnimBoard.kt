@@ -85,7 +85,16 @@ fun AnimScreen(ctx: KxScreenCtx) {
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MoBack(ctx.back)
                 Text("Анимации", style = mts(22, W8), modifier = Modifier.weight(1f))
-                Box(Modifier.size(52.dp, 30.dp).clip(RoundedCornerShape(15.dp)).background(track).kxClick("Анимации", Role.Switch) { store.putPref(KxPrefs.ANIM_ON, if (on) 0 else 1) }) {
+            }
+            // critique-A: the master switch is the first row (not a bare switch in the header).
+            Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp).fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(18.dp)).background(Color.White.copy(alpha = .045f))
+                .kxClick("Анимации", Role.Switch) { store.putPref(KxPrefs.ANIM_ON, if (on) 0 else 1) }.padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("Анимации", style = mts(15, W7))
+                    Text(if (on) "Сцена на фоне и движение интерфейса" else "Выключены", style = mts(12, color = Color(0xFF8A958F)))
+                }
+                Box(Modifier.size(52.dp, 30.dp).clip(RoundedCornerShape(15.dp)).background(track)) {
                     Box(Modifier.padding(3.dp).offset(x = knobX).size(24.dp).clip(CircleShape).background(Color.White))
                 }
             }
@@ -125,10 +134,8 @@ fun AnimScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AnimSegment("Скорость интерфейса", listOf("Обычные", "Меньше", "Выкл."), speed, Modifier.weight(1f)) { store.putPref(KxPrefs.ANIM_SPEED, it) }
-                    AnimSegment("Качество эффектов", listOf("Авто", "Высокое", "Лёгкое"), qual, Modifier.weight(1f)) { store.putPref(KxPrefs.ANIM_QUAL, it) }
-                }
+                AnimSegment("Движение интерфейса", listOf("Полное", "Меньше", "Выкл."), speed, Modifier.fillMaxWidth()) { store.putPref(KxPrefs.ANIM_SPEED, it) }
+                AnimSegment("Качество эффектов", listOf("Авто", "Высокое", "Лёгкое"), qual, Modifier.fillMaxWidth()) { store.putPref(KxPrefs.ANIM_QUAL, it) }
             }
         }
     }
@@ -140,9 +147,9 @@ private fun AnimSegment(label: String, items: List<String>, cur: Int, modifier: 
         Text(label, style = mts(12, W7, Color(0xFF9AA59F)), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             items.forEachIndexed { i, t ->
-                Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(12.dp)).background(if (i == cur) Color(0xFF8FD3AC) else Color.White.copy(alpha = .07f))
+                Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp)).background(if (i == cur) Color(0xFF8FD3AC) else Color.White.copy(alpha = .07f))
                     .kxClick(t) { onPick(i) }, contentAlignment = Alignment.Center) {
-                    Text(t, style = mts(11, W7, if (i == cur) Color(0xFF06150D) else Color(0xFFC9D2CC)), maxLines = 1)
+                    Text(t, style = mts(13, W7, if (i == cur) Color(0xFF06150D) else Color(0xFFC9D2CC)), maxLines = 1)
                 }
             }
         }

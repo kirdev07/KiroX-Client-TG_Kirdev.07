@@ -81,7 +81,7 @@ fun ContactSyncScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 44.dp, border = Color.Transparent, onClick = ctx.back)
-                Text("Контакты", style = ts(20, W800))
+                Text("Синхронизация контактов", style = ts(20, W800), maxLines = 1)
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
                 Orbit(on, syncing)
@@ -122,9 +122,10 @@ fun ContactSyncScreen(ctx: KxScreenCtx) {
                             Row(Modifier.chIn(i * 60, 8.dp, 300).fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 LetterAv(l, hex(c), 44.dp, 16)
                                 Column(Modifier.weight(1f)) { Text(n, style = ts(15, W700)); Text("В Telegram · $wh", style = ts(12, color = Kx.text3)) }
-                                Box(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).then(if (done) Modifier.background(Kx.accent.copy(alpha = .14f)) else Modifier.cssGradient(135f, Kx.accentMid, Kx.accentDeep))
+                                Box(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (done) Color.Transparent else Kx.accent.copy(alpha = .14f))
+                                    .border(1.dp, if (done) Kx.w(.12f) else Color.Transparent, RoundedCornerShape(17.dp))
                                     .kxClick { if (!done) hi += i }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                                    Text(if (done) "Отправлено 👋" else "Сказать привет", style = ts(12, W800, if (done) Kx.accent else Kx.onAccent))
+                                    Text(if (done) "Отправлено 👋" else "Сказать привет", style = ts(12, W800, if (done) Kx.text3 else Kx.accent))
                                 }
                             }
                         }

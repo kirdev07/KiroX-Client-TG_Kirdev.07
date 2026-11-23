@@ -86,7 +86,7 @@ fun CallCaptionsScreen(ctx: KxScreenCtx) {
                             Column(Modifier.fillMaxWidth(.9f).wrapContentWidth(if (other) Alignment.Start else Alignment.End).exIn(300, dy = 12.dp)
                                 .clip(RoundedCornerShape(18.dp)).background(if (other) Kx.w(.07f) else Kx.accent.copy(alpha = .12f))
                                 .border(1.dp, if (other) Kx.w(.08f) else Kx.accent.copy(alpha = .3f), RoundedCornerShape(18.dp)).padding(horizontal = 12.dp, vertical = 10.dp)) {
-                                Text(if (other) "Marco · итальянский" else "Вы", style = ts(11.sp, FontWeight.ExtraBold, if (other) Color(0xFF6FA9D8) else Kx.accent))
+                                Text(if (other) "Marco · итальянский" else "Вы", style = ts(11.sp, FontWeight.ExtraBold, if (other) Kx.text2 else Kx.accent))
                                 Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Text((if (k == line) ws.take(words) else ws).joinToString(" "), style = ts(16.sp, FontWeight.SemiBold, lh = 22.4.sp), modifier = Modifier.weight(1f, fill = false))
                                     if (k == line) {

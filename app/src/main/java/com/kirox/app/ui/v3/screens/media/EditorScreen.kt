@@ -1,9 +1,12 @@
 package com.kirox.app.ui.v3.screens.media
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -16,6 +19,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
@@ -42,7 +46,8 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
-private data class PaintDot(val x: Float, val y: Float, val size: Float, val color: Color)
+/** A paint dot, or a text label when [text] is set (the «Текст» tool). */
+private data class PaintDot(val x: Float, val y: Float, val size: Float, val color: Color, val text: String? = null)
 
 private val EditorPalette = listOf(Color.White to "Белый", Color(0xFF8FD3AC) to "Зелёный", Color(0xFFFFD27A) to "Жёлтый",
     Color(0xFFFF8A80) to "Красный", Color(0xFF7FC4F0) to "Голубой", Color(0xFFC9A6FF) to "Сиреневый")
@@ -58,6 +63,9 @@ fun EditorScreen(ctx: KxScreenCtx) {
     var square by remember { mutableStateOf(false) }
     var spoiler by remember { mutableStateOf(false) }
     val dots = remember { mutableStateListOf<PaintDot>() }
+    val redo = remember { mutableStateListOf<PaintDot>() }
+    var label by remember { mutableStateOf("") }
+    var askReset by remember { mutableStateOf(false) }
     var caption by remember { mutableStateOf("") }
     val glass = Kx.w(.12f)
 
@@ -66,12 +74,14 @@ fun EditorScreen(ctx: KxScreenCtx) {
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MRoundBtn(Icons.Outlined.Close, "Отмена", bg = glass, border = null, tint = Color.White) { ctx.back() }
                 Spacer(Modifier.weight(1f))
-                AnimatedVisibility(dots.isNotEmpty(), enter = fadeIn(tween(200)) + slideInVertically(tween(200)) { it / 4 }) {
-                    MRoundBtn(Icons.AutoMirrored.Outlined.Undo, "Отменить штрих", bg = glass, border = null, tint = Color.White) { if (dots.isNotEmpty()) dots.removeAt(dots.lastIndex) }
+                // critique-C P1: «Сбросить» asks first; «Готово» (top right) keeps the edits and stays in the editor.
+                val edited = dots.isNotEmpty() || rot != 0 || flip || square || spoiler
+                AnimatedVisibility(edited, enter = fadeIn(tween(200)), exit = fadeOut(tween(150))) {
+                    MRoundBtn(Icons.Outlined.RestartAlt, "Сбросить все правки", bg = glass, border = null, tint = Color.White) { askReset = true }
                 }
-                Box(Modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).background(glass)
-                    .kxClick { rot = 0; flip = false; square = false; spoiler = false; dots.clear() }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
-                    T("Сбросить", 13.sp, FontWeight.Bold, Color.White)
+                Box(Modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).background(Color.White)
+                    .kxClick("Готово") { tool = null; ctx.toast("Правки сохранены") }.padding(horizontal = 18.dp), contentAlignment = Alignment.Center) {
+                    T("Готово", 14.sp, FontWeight.ExtraBold, Color.Black)
                 }
             }
             Box(Modifier.padding(top = 70.dp).fillMaxWidth().height(470.dp), contentAlignment = Alignment.Center) {
@@ -80,10 +90,15 @@ fun EditorScreen(ctx: KxScreenCtx) {
                 val h by animateDpAsState(if (square) 330.dp else 440.dp, tween(350, easing = Ease), label = "h")
                 val size = if (thick) 18f else 9f
                 Box(Modifier.size(330.dp, h).graphicsLayer { rotationZ = r; scaleX = sx }.clip(RoundedCornerShape(18.dp))
-                    .pointerInput(tool, color, thick) {
+                    .pointerInput(tool, color, thick, label) {
                         detectTapGestures { o ->
-                            if (tool != "draw") return@detectTapGestures
-                            dots.add(PaintDot(o.x / this.size.width, o.y / this.size.height, size, EditorPalette[color].first))
+                            val dot = when {
+                                tool == "draw" -> PaintDot(o.x / this.size.width, o.y / this.size.height, size, EditorPalette[color].first)
+                                tool == "text" && label.isNotBlank() -> PaintDot(o.x / this.size.width, o.y / this.size.height, 22f, EditorPalette[color].first, label.trim())
+                                else -> return@detectTapGestures
+                            }
+                            dots.add(dot); redo.clear()
+                            if (dot.text != null) label = ""
                             while (dots.size > 120) dots.removeAt(0)
                         }
                     }) {
@@ -94,22 +109,29 @@ fun EditorScreen(ctx: KxScreenCtx) {
                 }
             }
             Column(Modifier.padding(top = 548.dp, start = 16.dp, end = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (tool == "draw") Column(Modifier.kxRise(0, 250), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (tool == "draw" || tool == "text") Column(Modifier.kxRise(0, 250), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         EditorPalette.forEachIndexed { i, (c, label) ->
                             val on = i == color
                             val sc by animateFloatAsState(if (on) 1.1f else 1f, tween(200), label = "sw")
-                            Box(Modifier.size(30.dp).graphicsLayer { scaleX = sc; scaleY = sc }
+                            Box(Modifier.kxHitClick(label, CircleShape, min = 36.dp) { color = i }.size(28.dp).graphicsLayer { scaleX = sc; scaleY = sc }
                                 .drawBehind { if (on) { drawCircle(c, size.minDimension / 2 + 5.dp.toPx()); drawCircle(Color.Black, size.minDimension / 2 + 3.dp.toPx()) } }
-                                .clip(CircleShape).background(c).then(if (!on) Modifier.border(1.dp, Kx.w(.3f), CircleShape) else Modifier)
-                                .kxClick(label) { color = i })
+                                .clip(CircleShape).background(c).then(if (!on) Modifier.border(1.dp, Kx.w(.3f), CircleShape) else Modifier))
                         }
                         Spacer(Modifier.weight(1f))
-                        Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(glass).kxClick { thick = !thick }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                            T(if (thick) "Толстая" else "Тонкая", 12.sp, FontWeight.Bold, Color.White)
-                        }
+                        if (tool == "draw") MRoundBtn(Icons.Outlined.LineWeight, if (thick) "Толстая линия" else "Тонкая линия", size = 36.dp, iconSize = 20.dp,
+                            bg = if (thick) Color.White else glass, border = null, tint = if (thick) Color.Black else Color.White) { thick = !thick }
+                        // critique-C P1: undo / redo of strokes and labels.
+                        MRoundBtn(Icons.AutoMirrored.Outlined.Undo, "Отменить", size = 36.dp, iconSize = 20.dp, bg = glass, border = null,
+                            tint = if (dots.isNotEmpty()) Color.White else Color.White.copy(alpha = .35f)) { if (dots.isNotEmpty()) redo.add(dots.removeAt(dots.lastIndex)) }
+                        MRoundBtn(Icons.AutoMirrored.Outlined.Redo, "Вернуть", size = 36.dp, iconSize = 20.dp, bg = glass, border = null,
+                            tint = if (redo.isNotEmpty()) Color.White else Color.White.copy(alpha = .35f)) { if (redo.isNotEmpty()) dots.add(redo.removeAt(redo.lastIndex)) }
                     }
-                    T("Нажимайте на фото, чтобы рисовать", 12.sp, color = Color.White.copy(alpha = .55f), modifier = Modifier.fillMaxWidth().wrapContentWidth())
+                    if (tool == "text") Box(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(22.dp)).background(glass).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
+                        if (label.isEmpty()) T("Текст, затем нажмите на фото", 14.sp, color = Color.White.copy(alpha = .5f))
+                        BasicTextField(label, { if (it.length <= 60) label = it }, Modifier.fillMaxWidth(), singleLine = true, textStyle = ts(14.sp, color = Color.White), cursorBrush = SolidColor(Kx.accent))
+                    }
+                    else T("Нажимайте на фото, чтобы рисовать", 12.sp, color = Color.White.copy(alpha = .55f), modifier = Modifier.fillMaxWidth().wrapContentWidth())
                 }
                 if (tool == "crop") Row(Modifier.fillMaxWidth().kxRise(0, 250), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
                     listOf("Свободно" to false, "Квадрат" to true).forEach { (label, sq) ->
@@ -119,15 +141,17 @@ fun EditorScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    val tools = listOf(Triple("draw", Icons.Outlined.Brush to Icons.Rounded.Brush, "Рисовать"), Triple("crop", Icons.Outlined.Crop to Icons.Rounded.Crop, "Обрезать"),
+                val toolScroll = rememberScrollState()
+                Row(Modifier.kxEdgeFade(toolScroll).horizontalScroll(toolScroll), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val tools = listOf(Triple("draw", Icons.Outlined.Brush to Icons.Rounded.Brush, "Рисовать"), Triple("text", Icons.Outlined.TextFields to Icons.Rounded.TextFields, "Текст"),
+                        Triple("crop", Icons.Outlined.Crop to Icons.Rounded.Crop, "Обрезать"),
                         Triple("rotate", Icons.Outlined.RotateRight to Icons.Rounded.RotateRight, "Повернуть"), Triple("flip", Icons.Outlined.Flip to Icons.Rounded.Flip, "Отразить"),
                         Triple("spoiler", Icons.Outlined.AutoAwesome to Icons.Rounded.AutoAwesome, if (spoiler) "Спойлер: вкл" else "Спойлер"))
                     tools.forEach { (k, icons, label) ->
-                        val active = if (k == "draw" || k == "crop") tool == k else if (k == "spoiler") spoiler else false
-                        ToolTile(label, if (active) icons.second else icons.first, active, Modifier.weight(1f)) {
+                        val active = if (k == "draw" || k == "crop" || k == "text") tool == k else if (k == "spoiler") spoiler else false
+                        ToolTile(label, if (active) icons.second else icons.first, active, Modifier.width(66.dp)) {
                             when (k) {
-                                "draw", "crop" -> tool = if (tool == k) null else k
+                                "draw", "crop", "text" -> tool = if (tool == k) null else k
                                 "rotate" -> rot += 90
                                 "flip" -> flip = !flip
                                 else -> spoiler = !spoiler
@@ -149,6 +173,9 @@ fun EditorScreen(ctx: KxScreenCtx) {
                 Icon(Icons.AutoMirrored.Rounded.Send, null, tint = Kx.onAccent)
             }
         }
+        if (askReset) KxConfirmDialog(KxConfirm("Сбросить все правки?", "Рисунки, текст, обрезка и поворот пропадут.", "Сбросить") {
+            rot = 0; flip = false; square = false; spoiler = false; dots.clear(); redo.clear()
+        }) { askReset = false }
     }
 }
 
@@ -184,6 +211,14 @@ fun SunsetPhoto(modifier: Modifier) {
 private fun BoxScope.DotView(d: PaintDot) {
     val s = LocalKxReducedMotion.current.let { rm -> remember { Animatable(if (rm) 1f else 0f) } }
     LaunchedEffect(Unit) { s.animateTo(1f, tween(150, easing = Ease)) }
+    if (d.text != null) {
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.matchParentSize()) {
+            T(d.text, d.size.sp, FontWeight.ExtraBold, d.color, maxLines = 2,
+                modifier = Modifier.offset(maxWidth * d.x - 8.dp, maxHeight * d.y - 14.dp).graphicsLayer { scaleX = s.value; scaleY = s.value }
+                    .background(Color.Black.copy(alpha = .35f), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 2.dp))
+        }
+        return
+    }
     Canvas(Modifier.matchParentSize()) {
         drawCircle(d.color, d.size.dp.toPx() / 2 * s.value, Offset(size.width * d.x, size.height * d.y))
     }

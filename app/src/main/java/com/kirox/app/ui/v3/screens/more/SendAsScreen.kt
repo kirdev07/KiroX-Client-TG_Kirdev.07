@@ -53,7 +53,8 @@ fun SendAsScreen(ctx: KxScreenCtx) {
     val senders = if (live) c3Load(chatId, reload) { ctx.store.sendAsOptions(chatId!!) } else null
     val premium = ctx.store.me.premium
     val palette = listOf(Kx.accentMid, Color(0xFF2F6E9E), Color(0xFF3F9A6C), Color(0xFFB07A2E), Color(0xFF6A4C9C))
-    val ids = if (!live) SA_IDS else senders.orEmpty().mapIndexed { i, s ->
+    // critique-A: «Вы» shows the account's own initial, not «В» from the word «Вы».
+    val ids = if (!live) SA_IDS.mapIndexed { i, x -> if (i == 0) x.copy(l = ctx.store.me.name.take(1).uppercase().ifEmpty { "?" }) else x } else senders.orEmpty().mapIndexed { i, s ->
         SaId(if (s.id == ctx.store.me.id) "Вы" else s.name, s.name.take(1).uppercase().ifEmpty { "?" }, palette[i % palette.size], if (i == 0) Kx.accentDeep else null,
             if (s.premiumOnly && !premium) "${s.sub} · нужен Premium" else s.sub.replaceFirstChar { it.uppercase() }, s.channel || s.id < 0, !s.premiumOnly || premium)
     }

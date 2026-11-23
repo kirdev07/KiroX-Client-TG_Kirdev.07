@@ -90,7 +90,7 @@ private fun DemoGalleryScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("Всё" to Icons.Outlined.PermMedia, "Фото" to Icons.Outlined.Image, "Видео" to Icons.Outlined.Movie, "Большие" to Icons.Outlined.Storage).forEachIndexed { i, (label, icon) ->
+                listOf("Все" to Icons.Outlined.PermMedia, "Фото" to Icons.Outlined.Image, "Видео" to Icons.Outlined.Movie, "Большие файлы" to Icons.Outlined.Storage).forEachIndexed { i, (label, icon) ->
                     val on = kind == i
                     Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f)).kxClick { kind = i }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -101,13 +101,15 @@ private fun DemoGalleryScreen(ctx: KxScreenCtx) {
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GChats.forEachIndexed { i, (name, l, c) ->
                     val on = chat == i
-                    Column(Modifier.width(54.dp).graphicsLayer { alpha = if (on || (chat == 0 && i == 0)) 1f else .55f }.kxClick("Фильтр: $name") { chat = i },
+                    Column(Modifier.width(64.dp).graphicsLayer { alpha = if (on || (chat == 0 && i == 0)) 1f else .55f }.kxClick("Фильтр: $name") { chat = i },
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Box(Modifier.padding(top = 4.dp).size(44.dp).drawBehind { if (on) { drawCircle(Kx.accent, size.minDimension / 2 + 4.dp.toPx()); drawCircle(Kx.bg, size.minDimension / 2 + 2.dp.toPx()) } }
                             .clip(CircleShape).background(c), contentAlignment = Alignment.Center) {
                             if (i == 0) Icon(Icons.Rounded.Apps, null, Modifier.size(22.dp), tint = Kx.text) else T(l, 15.sp, FontWeight.ExtraBold)
                         }
-                        T(name, 11.sp, color = Kx.text2, maxLines = 1)
+                        // critique-C P3: two centred lines instead of «Kotlin-кл…».
+                        androidx.compose.material3.Text(name, style = ts(11.sp, color = Kx.text2).copy(textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 13.sp), maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -204,7 +206,7 @@ private fun RealGalleryScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("Всё" to Icons.Outlined.PermMedia, "Фото" to Icons.Outlined.Image, "Видео" to Icons.Outlined.Movie, "Большие" to Icons.Outlined.Storage).forEachIndexed { i, (label, icon) ->
+                listOf("Все" to Icons.Outlined.PermMedia, "Фото" to Icons.Outlined.Image, "Видео" to Icons.Outlined.Movie, "Большие файлы" to Icons.Outlined.Storage).forEachIndexed { i, (label, icon) ->
                     val on = kind == i
                     Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f)).kxClick { kind = i }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

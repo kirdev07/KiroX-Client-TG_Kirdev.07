@@ -42,7 +42,7 @@ import com.kirox.app.ui.v3.theme.Kx
 
 private val SG = listOf(Color(0xFFF2A65A) to Color(0xFFC0587E), Color(0xFF7EC8E3) to Color(0xFF3F9A6C), Color(0xFF141B3A) to Color(0xFF2C2F6E), Color(0xFFD9E4EE) to Color(0xFF5B7389),
     Color(0xFFF7D774) to Color(0xFF7A3A16), Color(0xFF3F9A6C) to Color(0xFF14243A), Color(0xFF9E3F5C) to Color(0xFF2E1420), Color(0xFFB07A2E) to Color(0xFF3A2A14), Color(0xFF6A4C9C) to Color(0xFF14121C))
-private val Tabs = listOf("Медиа" to KxSharedTab.Media, "Файлы" to KxSharedTab.Files, "Ссылки" to KxSharedTab.Links, "Голос" to KxSharedTab.Voice, "Музыка" to KxSharedTab.Music)
+private val Tabs = listOf("Медиа" to KxSharedTab.Media, "Файлы" to KxSharedTab.Files, "Ссылки" to KxSharedTab.Links, "Голосовые" to KxSharedTab.Voice, "Музыка" to KxSharedTab.Music)
 
 // demo: used when the store has nothing shared for this chat (no arg / empty)
 private val DemoFiles = listOf(listOf("PDF", "Билеты_на_поезд.pdf", "284 КБ · 20 нояб"), listOf("DOC", "Список покупок.docx", "18 КБ · 18 нояб"), listOf("ZIP", "Фото с дачи.zip", "42 МБ · 12 нояб"),

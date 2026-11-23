@@ -89,9 +89,8 @@ fun PasswordScreen(ctx: KxScreenCtx) {
                 PwGlow(reduced)
                 Column(Modifier.fillMaxWidth()) {
                     Box(Modifier.height(64.dp).offset(x = (-12).dp), contentAlignment = Alignment.CenterStart) {
-                        Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).kxClick("Назад", onClick = ctx.back), contentAlignment = Alignment.Center) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = Kx.text)
-                        }
+                        // critique-B: the same 44 dp glass back button as every other header.
+                        KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back, modifier = Modifier.padding(start = 12.dp))
                     }
                     LockBadge(if (busy) Icons.Rounded.LockOpen else Icons.Rounded.Lock, if (errOn) Kx.danger else Kx.accent, reduced, Modifier.align(Alignment.CenterHorizontally).padding(top = 36.dp))
                 }
@@ -110,7 +109,9 @@ fun PasswordScreen(ctx: KxScreenCtx) {
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Outlined.Key, null, tint = Kx.text4)
                     Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                        if (pw.isEmpty()) Text("Пароль", style = KxType.style(17.sp, color = Kx.text4))
+                        // critique-B P3: the hint is shown as the placeholder, like Telegram.
+                        val hintText = (if (auth != null) auth.passwordHint else ctx.store.cloudPassword?.hint).orEmpty()
+                        if (pw.isEmpty()) Text(if (hintText.isNotBlank()) hintText else "Пароль", style = KxType.style(17.sp, color = Kx.text4), maxLines = 1)
                         BasicTextField(pw, { pw = it }, Modifier.fillMaxWidth().onFocusChanged { focus = it.isFocused }, singleLine = true,
                             textStyle = KxType.style(17.sp).copy(letterSpacing = if (show || pw.isEmpty()) 0.sp else 3.sp), cursorBrush = SolidColor(Kx.accent),
                             visualTransformation = if (show) VisualTransformation.None else PasswordVisualTransformation())

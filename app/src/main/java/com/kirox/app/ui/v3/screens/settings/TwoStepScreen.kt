@@ -154,9 +154,7 @@ private fun Manage(ctx: KxScreenCtx, cp: com.kirox.app.ui.v3.model.KxCloudPasswo
     val reduced = LocalKxReducedMotion.current
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.height(64.dp).padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).kxClick("Назад", onClick = ctx.back), contentAlignment = Alignment.Center) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = Kx.text)
-            }
+            KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = ctx.back)
         }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FloatTile(Icons.Rounded.VerifiedUser, reduced, Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
@@ -165,16 +163,7 @@ private fun Manage(ctx: KxScreenCtx, cp: com.kirox.app.ui.v3.model.KxCloudPasswo
                 Text("Его спросят при входе на новом устройстве, после кода из СМС", style = KxType.style(14.sp, color = Kx.text3, lineHeight = 20.sp), textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(top = 6.dp, start = 8.dp, end = 8.dp))
             }
-            Column(Modifier.sRise(50).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(TileBg).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                val mail = when { cp.pendingEmailPattern != null -> "ждёт код"; cp.hasRecoveryEmail -> "указана"; else -> "не указана" }
-                listOf("Пароль" to "••••••", "Подсказка" to cp.hint.ifBlank { "нет" }, "Почта" to mail).forEach { (k, v) ->
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Rounded.CheckCircle, null, Modifier.size(20.dp), tint = if (k == "Почта" && !cp.hasRecoveryEmail) Kx.text4 else Kx.accent)
-                        Text(k, style = KxType.style(14.sp, color = Kx.text2), modifier = Modifier.weight(1f))
-                        Text(v, style = KxType.style(14.sp, FontWeight.Bold), maxLines = 1)
-                    }
-                }
-            }
+            // critique-B: the status checklist repeated the rows below (and printed the hint twice) — only the rows with values stay.
             if (cp.pendingResetDate > 0) Column(Modifier.sRise(80), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 SNavRow(Icons.Rounded.Schedule, "Сброс пароля запрошен", "Пароль снимется ${resetDate(cp.pendingResetDate)}", groupShape(0, 2, 20.dp), tint = Kx.warning) {}
                 SNavRow(Icons.Outlined.Close, "Отменить сброс", null, groupShape(1, 2, 20.dp)) { onCancelReset() }
@@ -184,7 +173,7 @@ private fun Manage(ctx: KxScreenCtx, cp: com.kirox.app.ui.v3.model.KxCloudPasswo
             Column(Modifier.sRise(100), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 SNavRow(Icons.Rounded.Password, "Сменить пароль", "Старый перестанет работать", groupShape(0, 3, 20.dp)) { onFlow("change") }
                 SNavRow(Icons.Rounded.Edit, "Подсказка", cp.hint.ifBlank { "Не задана" }, groupShape(1, 3, 20.dp)) { onFlow("hint") }
-                SNavRow(Icons.Rounded.Mail, "Почта для восстановления", if (cp.hasRecoveryEmail) "Изменить почту" else "Добавить — поможет, если забудете пароль", groupShape(2, 3, 20.dp)) { onFlow("mail") }
+                SNavRow(Icons.Rounded.Mail, "Почта для восстановления", if (cp.hasRecoveryEmail) "Указана · изменить" else "Не указана — поможет, если забудете пароль", groupShape(2, 3, 20.dp)) { onFlow("mail") }
             }
             Column(Modifier.sRise(150), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 SNavRow(Icons.AutoMirrored.Rounded.HelpOutline, "Забыли пароль?", if (cp.hasRecoveryEmail) "Код придёт на почту для восстановления" else "Сброс через 7 дней", groupShape(0, 2, 20.dp),
@@ -266,9 +255,7 @@ private fun PwFlow(steps: List<PStep>, ctx: KxScreenCtx, finishLabel: String, da
 
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 24.dp)) {
         Row(Modifier.height(64.dp).fillMaxWidth().offset(x = (-12).dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).kxClick("Назад") { back() }, contentAlignment = Alignment.Center) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = Kx.text)
-            }
+            Box(Modifier.padding(start = 12.dp)) { KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp) { back() } }
             if (steps.size > 1) Row(Modifier.weight(1f).padding(end = 24.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
                 repeat(steps.size) { i ->
                     val w by animateDpAsState(if (i == step) 28.dp else 8.dp, tween(350, easing = CubicBezierEasing(.34f, 1.45f, .5f, 1f)), label = "pw")

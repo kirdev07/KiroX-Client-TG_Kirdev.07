@@ -127,7 +127,7 @@ fun ShortcutsScreen(ctx: KxScreenCtx) {
                 }
                 Text("kiroX", style = KxType.style(11.sp, color = Kx.w(.9f)))
             }
-            Text(if (menu) "Нажмите на пункт, чтобы закрепить его отдельной иконкой" else if (pinned.isNotEmpty()) "Ярлык появился на главном экране" else "Нажмите на kiroX — в Android это долгое нажатие",
+            Text(if (menu) "Нажмите на пункт, чтобы закрепить его отдельной иконкой" else if (pinned.isNotEmpty()) "Ярлык появился на главном экране" else "Удерживайте значок kiroX на рабочем столе",
                 style = KxType.style(11.sp, color = Kx.w(.75f)), textAlign = TextAlign.End, modifier = Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 30.dp).widthIn(max = 150.dp))
             if (menu) {
                 val m = remember { Animatable(0f) }

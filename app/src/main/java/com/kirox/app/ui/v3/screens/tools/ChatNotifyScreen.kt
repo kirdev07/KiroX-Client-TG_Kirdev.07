@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -39,10 +40,11 @@ import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.launch
 
-private val CN_MUTES = listOf("Включены" to Icons.Outlined.NotificationsActive, "1 час" to Icons.Outlined.Schedule, "8 часов" to Icons.Outlined.Bedtime,
+private val CN_MUTES = listOf("Не отключать" to Icons.Outlined.NotificationsActive, "1 час" to Icons.Outlined.Schedule, "8 часов" to Icons.Outlined.Bedtime,
     "2 дня" to Icons.Outlined.DateRange, "Неделю" to Icons.Outlined.CalendarMonth, "Навсегда" to Icons.Outlined.NotificationsOff)
 private val CN_UNTIL = listOf("", "до 19:20", "до 02:20 ночи", "до вторника", "до 29 ноября", "пока не включите")
-private val CN_SOUNDS = listOf("Капля", "Стекло", "Росток", "Колокольчик")
+/** critique-B: the same catalogue as «Звук уведомлений» (without «Без звука» — that is the mute grid above). */
+private val CN_SOUNDS get() = KxDemoSoundNames.filter { it != "Без звука" }
 
 /** Board «Уведомления» of one chat: lock-screen push preview, mute period grid, all/mentions, sound + switches, reset. */
 @Composable
@@ -59,7 +61,7 @@ fun ChatNotifyScreen(ctx: KxScreenCtx) {
     var preview by rememberSaveable { mutableStateOf(true) }
     var vibro by rememberSaveable { mutableStateOf(true) }
     var pinned by rememberSaveable { mutableStateOf(true) }
-    var sound by rememberSaveable { mutableIntStateOf(2) }
+    var sound by rememberSaveable { mutableIntStateOf(0) }
     val muted = mute > 0
     val scope = rememberCoroutineScope()
     var loaded by remember { mutableStateOf(!live) }
@@ -128,7 +130,7 @@ fun ChatNotifyScreen(ctx: KxScreenCtx) {
         }
     }) {
         Spacer(Modifier.height(10.dp))
-        Text("Без звука", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp))
+        Text("Отключить звук", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 8.dp))
         CN_MUTES.chunked(3).forEachIndexed { r, row ->
             Row(Modifier.padding(top = if (r > 0) 6.dp else 0.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 row.forEachIndexed { k, (label, ic) ->
@@ -140,7 +142,7 @@ fun ChatNotifyScreen(ctx: KxScreenCtx) {
                     Row(Modifier.weight(1f).height(46.dp).clip(shape).background(bg).border(1.dp, bd, shape).kxClick(role = Role.RadioButton) { setMute(i) },
                         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         Icon(ic, null, Modifier.size(17.dp), tint = ink); Spacer(Modifier.width(4.dp))
-                        Text(label, style = KxType.style(13.sp, FontWeight.Bold, ink), maxLines = 1)
+                        Text(label, style = KxType.style(if (label.length > 9) 12.sp else 13.sp, FontWeight.Bold, ink), maxLines = 1)
                     }
                 }
             }
@@ -178,9 +180,12 @@ fun ChatNotifyScreen(ctx: KxScreenCtx) {
                     onClick = { when (i) { 0 -> preview = !preview; 1 -> vibro = !vibro; else -> pinned = !pinned }; save() }) { TSmallSwitch(on) }
             }
         }
-        Box(Modifier.padding(top = 12.dp).fillMaxWidth().height(46.dp).clip(RoundedCornerShape(18.dp))
-            .kxClick { what = 0; preview = true; vibro = true; pinned = true; sound = 2; setMute(0) }, contentAlignment = Alignment.Center) {
-            Text(if (live) "Сбросить: со звуком, всё показывать" else "Как в общих настройках для групп", style = KxType.style(14.sp, FontWeight.Bold, Kx.text3))
+        // critique-B: the reset is a real row with an icon (was plain grey text).
+        Row(Modifier.padding(top = 12.dp).fillMaxWidth().height(50.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.04f))
+            .kxClick { what = 0; preview = true; vibro = true; pinned = true; sound = 0; setMute(0) }.padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(Icons.Rounded.RestartAlt, null, Modifier.size(22.dp), tint = Kx.accent)
+            Text(if (live) "Сбросить: со звуком, всё показывать" else "Как в общих настройках для групп", style = KxType.style(15.sp, FontWeight.SemiBold, Kx.accent), modifier = Modifier.weight(1f))
         }
     }
 }
