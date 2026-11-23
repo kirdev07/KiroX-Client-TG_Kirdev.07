@@ -341,8 +341,23 @@ private fun OutputSheet(visible: Boolean, music: KxMusic, onClose: () -> Unit) {
         Row(Modifier.padding(top = 10.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(if (out.volume == 0) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp, null, Modifier.size(22.dp), tint = Kx.text2)
             // Follows the volume keys (the store listens to the system volume while the player is open).
+            // Owner: a round thumb on a thin rounded track (the M3 default is a vertical bar with a gap).
+            @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
             Slider(out.volume.toFloat(), { music.setVolume(it.toInt()) }, Modifier.weight(1f), valueRange = 0f..out.maxVolume.coerceAtLeast(1).toFloat(),
-                colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Kx.accent, inactiveTrackColor = Kx.w(.15f), activeTickColor = Color.Transparent, inactiveTickColor = Color.Transparent))
+                thumb = {
+                    androidx.compose.foundation.layout.Box(Modifier.size(20.dp)
+                        .shadow(3.dp, androidx.compose.foundation.shape.CircleShape)
+                        .background(Color.White, androidx.compose.foundation.shape.CircleShape))
+                },
+                track = { st ->
+                    val span = (st.valueRange.endInclusive - st.valueRange.start).takeIf { it > 0f } ?: 1f
+                    val f = ((st.value - st.valueRange.start) / span).coerceIn(0f, 1f)
+                    androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(6.dp)
+                        .background(Kx.w(.15f), androidx.compose.foundation.shape.RoundedCornerShape(3.dp))) {
+                        androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth(f).fillMaxHeight()
+                            .background(Kx.accent, androidx.compose.foundation.shape.RoundedCornerShape(3.dp)))
+                    }
+                })
             T("${if (out.maxVolume > 0) out.volume * 100 / out.maxVolume else 0}%", 12.sp, color = Kx.text3, modifier = Modifier.widthIn(min = 36.dp))
         }
     }
