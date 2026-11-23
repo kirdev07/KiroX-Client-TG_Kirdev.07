@@ -49,14 +49,14 @@ fun CallsScreen(store: KxStore, onCall: (KxCall, Boolean) -> Unit, onOpen: (Stri
             Row(Modifier.statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Звонки", style = KxType.style(30.sp, FontWeight.ExtraBold).copy(letterSpacing = (-.4).sp), modifier = Modifier.weight(1f))
                 KxIconButton(androidx.compose.material.icons.Icons.Outlined.Search, "Поиск", size = 42.dp, glass = true) { onOpen("Search") }
-                Box(Modifier.size(42.dp).shadow(18.dp, CircleShape, spotColor = Color(0x593F9A6C)).clip(CircleShape).background(Kx.accentGradient).kxClick("Новый звонок") { onOpen("NewCall") }, contentAlignment = Alignment.Center) {
+                Box(Modifier.size(42.dp).shadow(18.dp, CircleShape, spotColor = Color(0x593F9A6C)).clip(CircleShape).background(Kx.accentGradient).kxClick("Новый звонок") { onOpen("Contacts") }, contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.AddIcCall, null, Modifier.size(22.dp), tint = Kx.onAccent)
                 }
             }
             Segmented(missed, store.missedCalls) { missed = it }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp))
                 .background(Brush.linearGradient(listOf(Color(0x333F9A6C), Kx.w(.03f)))).border(1.dp, Kx.accent.copy(alpha = .16f), RoundedCornerShape(22.dp))
-                .kxClick { onOpen("CallLink") }.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                .kxClick { onOpen("PlanCall") }.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.size(44.dp).clip(RoundedCornerShape(15.dp)).background(Kx.accent.copy(alpha = .18f)), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Link, null, tint = Kx.accent) }
                 Column(Modifier.weight(1f)) {
                     Text("Ссылка на звонок", style = KxType.style(15.sp, FontWeight.Bold))

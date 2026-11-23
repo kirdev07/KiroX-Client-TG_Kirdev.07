@@ -59,7 +59,7 @@ class VoiceRecorder(private val context: Context) {
             created.setAudioSamplingRate(48_000)
             created.setAudioEncodingBitRate(32_000)
             created.setAudioChannels(1)
-            created.setOutputFile(target)
+            created.setOutputFile(target.path)
             created.prepare()
             created.start()
             recorder = created

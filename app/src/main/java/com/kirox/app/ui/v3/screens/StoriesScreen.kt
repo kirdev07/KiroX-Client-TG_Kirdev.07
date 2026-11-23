@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.rounded.*
@@ -21,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
@@ -119,6 +121,9 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
     val progress = remember { Animatable(0f) }
     val flying = remember { mutableStateListOf<Pair<Long, String>>() }
     var paused by remember { mutableStateOf(false) }
+    var reply by remember { mutableStateOf("") }
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    val toast = LocalKxToast.current
     if (peers.isEmpty()) { LaunchedEffect(Unit) { onClose() }; return }
     val peer = peers[open]
     val s = peer.slides[slide.coerceIn(0, peer.slides.lastIndex)]
@@ -174,11 +179,18 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
             flying.forEach { (id, e) -> key(id) { FlyingEmoji(e) { flying.removeAll { it.first == id } } } }
         }
         Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 10.dp, end = 10.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Reply field: typing pauses the story; «Отправить» sends the reply to the author (store.replyStory).
             Box(Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Kx.w(.12f)).border(1.dp, Kx.w(.2f), RoundedCornerShape(25.dp))
-                .kxClick("Ответить") { paused = true }.padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
-                Text("Ответить ${peer.name}…", style = KxType.style(15.sp, color = Color.White.copy(alpha = .8f)), maxLines = 1)
+                .padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
+                if (reply.isEmpty()) Text("Ответить…", style = KxType.style(15.sp, color = Color.White.copy(alpha = .8f)), maxLines = 1)
+                androidx.compose.foundation.text.BasicTextField(reply, { reply = it; if (it.isNotEmpty()) paused = true }, Modifier.fillMaxWidth()
+                    .onFocusChanged { if (it.isFocused) paused = true },
+                    singleLine = true, textStyle = KxType.style(15.sp, color = Color.White), cursorBrush = androidx.compose.ui.graphics.SolidColor(Kx.accent))
             }
-            listOf("❤️", "🔥", "😂").forEach { e ->
+            if (reply.isNotBlank()) Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.accent).kxClick("Отправить") {
+                store.replyStory(peer.id, s.id, reply.trim()); reply = ""; paused = false; focus.clearFocus(); toast("Ответ отправлен")
+            }, contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(20.dp), tint = Kx.onAccent) }
+            else listOf("❤️", "🔥", "😂").forEach { e ->
                 Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.w(.12f)).border(1.dp, Kx.w(.2f), CircleShape)
                     .kxClick("Реакция $e") { store.reactStory(peer.id, s.id, e); flying.add(System.nanoTime() to e) }, contentAlignment = Alignment.Center) { Text(e, style = KxType.style(20.sp)) }
             }

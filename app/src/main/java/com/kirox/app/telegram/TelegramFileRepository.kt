@@ -23,6 +23,8 @@ data class TelegramFileState(
 class TelegramFileRepository(private val client: TelegramClient) {
     private val paths = ConcurrentHashMap<Int, MutableStateFlow<String?>>()
     private val states = ConcurrentHashMap<Int, MutableStateFlow<TelegramFileState>>()
+    /** Background downloads asked for by [observe]; forgotten when TDLib closes, so they are asked again. */
+    private val requested: MutableSet<Int> = ConcurrentHashMap.newKeySet()
 
     init {
         client.addUpdateHandler { update ->
@@ -34,6 +36,7 @@ class TelegramFileRepository(private val client: TelegramClient) {
                     states[file.id]?.value = file.toState()
                 }
                 is TdApi.UpdateAuthorizationState -> if (update.authorizationState is TdApi.AuthorizationStateClosed) {
+                    requested.clear()
                     if (client.paused) {
                         // Same account after the pause: file ids stay valid and screens keep these flows.
                         // Downloads stopped with TDLib; the next start resumes them on request.
@@ -48,13 +51,15 @@ class TelegramFileRepository(private val client: TelegramClient) {
 
     /** Local path of [file], starting a background download when it is not on disk yet. */
     fun observe(file: TelegramFileRef, priority: Int = AVATAR_PRIORITY): StateFlow<String?> {
-        var created = false
-        val flow = paths.getOrPut(file.id) { created = true; MutableStateFlow(file.localPath) }
+        val flow = paths.getOrPut(file.id) { MutableStateFlow(file.localPath) }
         if (file.localPath != null && flow.value == null) flow.value = file.localPath
-        if (created && file.localPath == null) {
-            client.send(TdApi.DownloadFile(file.id, priority, 0, 0, false)) { result ->
+        // Asked again after a failed request, a background pause (TDLib stopped the download) or deleteLocal.
+        if (flow.value == null && requested.add(file.id)) {
+            val sent = client.send(TdApi.DownloadFile(file.id, priority, 0, 0, false)) { result ->
                 if (result is TdApi.File && result.local.isDownloadingCompleted) flow.value = result.local.path
+                if (result is TdApi.Error) requested.remove(file.id)
             }
+            if (!sent) requested.remove(file.id)
         }
         return flow
     }
@@ -85,6 +90,7 @@ class TelegramFileRepository(private val client: TelegramClient) {
     /** Removes the downloaded copy from the phone; the file stays in Telegram and can be downloaded again. */
     fun deleteLocal(file: TelegramFileRef) {
         client.send(TdApi.DeleteFile(file.id))
+        requested.remove(file.id)
         states[file.id]?.let { it.value = TelegramFileState(total = it.value.total) }
         paths[file.id]?.value = null
     }

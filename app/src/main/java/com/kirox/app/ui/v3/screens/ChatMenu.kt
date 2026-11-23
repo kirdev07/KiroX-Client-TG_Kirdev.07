@@ -38,9 +38,13 @@ private val ChatMenuGlass = Brush.verticalGradient(listOf(Color(0xF22E3A34), Col
  * «⋮» menu of a chat: opens the chat's own boards with "<Board>:<chatId>" so they work on the real account.
  * Items depend on the chat kind (calls only where they exist, leave vs delete).
  */
+/** An extra row on top of [ChatMenuSheet] (profile ⋮: share contact, block…). */
+internal class ChatMenuExtra(val icon: ImageVector, val label: String, val danger: Boolean = false, val onClick: () -> Unit)
+
 @Composable
-internal fun ChatMenuSheet(h: KxChatHeader, onDismiss: () -> Unit, onOpen: (String) -> Unit) {
+internal fun ChatMenuSheet(h: KxChatHeader, onDismiss: () -> Unit, onOpen: (String) -> Unit, extra: List<ChatMenuExtra> = emptyList()) {
     val id = h.chatId
+    androidx.activity.compose.BackHandler(onBack = onDismiss)
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) { appear.animateTo(1f, tween(220, easing = KxMotion.rise)) }
     val group = h.kind == KxChatKind.Group || h.kind == KxChatKind.Channel
@@ -67,9 +71,16 @@ internal fun ChatMenuSheet(h: KxChatHeader, onDismiss: () -> Unit, onOpen: (Stri
                 .shadow(40.dp, RoundedCornerShape(22.dp), spotColor = Color.Black.copy(alpha = .6f)).clip(RoundedCornerShape(22.dp))
                 .background(ChatMenuGlass).border(1.dp, Kx.stroke, RoundedCornerShape(22.dp)).heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(6.dp)
         ) {
+            extra.forEach { x ->
+                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(14.dp)).kxClick(x.label) { onDismiss(); x.onClick() }.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Icon(x.icon, null, Modifier.size(20.dp), tint = if (x.danger) Kx.danger else Kx.accent)
+                    Text(x.label, style = KxType.style(15.sp, color = if (x.danger) Kx.danger else Kx.text))
+                }
+            }
             items.forEach { (icon, label, board) ->
                 val danger = board.startsWith("DeleteChat") || board.startsWith("Report")
-                Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick(label) { onDismiss(); onOpen(board) }.padding(horizontal = 12.dp),
+                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(14.dp)).kxClick(label) { onDismiss(); onOpen(board) }.padding(horizontal = 12.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(icon, null, Modifier.size(20.dp), tint = if (danger) Kx.danger else Kx.accent)
                     Text(label, style = KxType.style(15.sp, color = if (danger) Kx.danger else Kx.text))

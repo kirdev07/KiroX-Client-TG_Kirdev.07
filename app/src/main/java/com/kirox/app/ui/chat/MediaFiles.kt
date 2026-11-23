@@ -53,14 +53,16 @@ internal suspend fun openFile(context: Context, path: String, name: String, mime
         }.getOrNull()
     } ?: return false
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", copy)
-    val intent = if (action == Intent.ACTION_SEND) Intent(action).setType(mimeTypeOf(fileName, mimeType)).putExtra(Intent.EXTRA_STREAM, uri)
-        else Intent(action).setDataAndType(uri, mimeTypeOf(fileName, mimeType))
+    // Both kinds get the read grant (without the parentheses only ACTION_VIEW had it).
+    val intent = (if (action == Intent.ACTION_SEND) Intent(action).setType(mimeTypeOf(fileName, mimeType)).putExtra(Intent.EXTRA_STREAM, uri)
+        else Intent(action).setDataAndType(uri, mimeTypeOf(fileName, mimeType)))
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
     return runCatching { context.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
 }
 
 /** Copies a downloaded photo or video to Pictures/kiroX or Movies/kiroX (MediaStore, no storage permission). */
 internal suspend fun saveToGallery(context: Context, path: String, video: Boolean): Boolean = withContext(Dispatchers.IO) {
+    if (android.os.Build.VERSION.SDK_INT < 29) return@withContext saveLegacy(context, path, File(path).name, if (video) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES)
     runCatching {
         val name = File(path).name
         val collection = if (video) MediaStore.Video.Media.EXTERNAL_CONTENT_URI else MediaStore.Images.Media.EXTERNAL_CONTENT_URI
@@ -85,6 +87,7 @@ internal suspend fun saveToGallery(context: Context, path: String, video: Boolea
 
 /** Copies a downloaded file to the public Downloads/KiroX folder (MediaStore, no storage permission). */
 internal suspend fun saveToDownloads(context: Context, path: String, name: String, mimeType: String): Boolean = withContext(Dispatchers.IO) {
+    if (android.os.Build.VERSION.SDK_INT < 29) return@withContext saveLegacy(context, path, displayFileName(path, name, mimeType), Environment.DIRECTORY_DOWNLOADS)
     runCatching {
         val fileName = displayFileName(path, name, mimeType)
         val values = ContentValues().apply {
@@ -105,3 +108,20 @@ internal suspend fun saveToDownloads(context: Context, path: String, name: Strin
         }
     }.getOrDefault(false)
 }
+
+/**
+ * Android 7–9 (no MediaStore RELATIVE_PATH / Downloads): copies into the public folder <dir>/kiroX with the
+ * storage permission (declared with maxSdkVersion 28) and lets the gallery index it. False without the permission.
+ */
+@Suppress("DEPRECATION")
+private fun saveLegacy(context: Context, path: String, fileName: String, dir: String): Boolean = runCatching {
+    if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+        android.content.pm.PackageManager.PERMISSION_GRANTED) return false
+    val folder = File(Environment.getExternalStoragePublicDirectory(dir), "kiroX").apply { mkdirs() }
+    var target = File(folder, fileName)
+    var n = 1
+    while (target.exists()) target = File(folder, "${fileName.substringBeforeLast('.')} (${n++})" + fileName.substringAfterLast('.', "").let { if (it.isEmpty()) "" else ".$it" })
+    File(path).copyTo(target)
+    android.media.MediaScannerConnection.scanFile(context, arrayOf(target.path), null, null)
+    true
+}.getOrDefault(false)

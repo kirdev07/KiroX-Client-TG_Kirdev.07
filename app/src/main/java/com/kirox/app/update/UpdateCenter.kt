@@ -110,7 +110,8 @@ class UpdateCenter(private val context: Context) {
             _state.value = if (release != null) UpdateState.Available(release) else UpdateState.Idle
             return
         }
-        if (!context.packageManager.canRequestPackageInstalls()) {
+        // Android 7 has one global "unknown sources" switch: the installer itself asks for it there.
+        if (android.os.Build.VERSION.SDK_INT >= 26 && !context.packageManager.canRequestPackageInstalls()) {
             context.startActivity(
                 Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:${context.packageName}".toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
@@ -149,7 +150,7 @@ class UpdateCenter(private val context: Context) {
             return (0 until list.length()).asSequence().map { list.getJSONObject(it) }
                 .filterNot { it.optBoolean("draft") || (it.optBoolean("prerelease") && !betaChannel) }
                 .filter { AppVersion.isNewer(it.optString("tag_name").removePrefix("v"), currentVersion) }
-                .sortedWith { a, b -> if (AppVersion.isNewer(a.optString("tag_name").removePrefix("v"), b.optString("tag_name").removePrefix("v"))) -1 else 1 }
+                .sortedWith { a, b -> AppVersion.compare(b.optString("tag_name").removePrefix("v"), a.optString("tag_name").removePrefix("v")) }
                 .firstNotNullOfOrNull(::parse)
         } finally {
             connection.disconnect()
@@ -221,7 +222,8 @@ class UpdateCenter(private val context: Context) {
     /** Same package, same signing certificate and a higher version code than the installed app. */
     private fun verifyPackage(file: File) {
         val pm = context.packageManager
-        val flags = PackageManager.GET_SIGNING_CERTIFICATES
+        @Suppress("DEPRECATION")
+        val flags = if (android.os.Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES
         val archive = pm.getPackageArchiveInfo(file.path, flags) ?: fail(file, "Файл не является приложением Android")
         val installed = pm.getPackageInfo(context.packageName, flags)
         if (archive.packageName != context.packageName) fail(file, "Это другое приложение")
@@ -229,10 +231,11 @@ class UpdateCenter(private val context: Context) {
         if (certificates(archive) != certificates(installed)) fail(file, "Подпись не совпадает с установленной версией")
     }
 
-    private fun versionCode(info: PackageInfo): Long = info.longVersionCode
+    private fun versionCode(info: PackageInfo): Long = androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(info)
 
     private fun certificates(info: PackageInfo): Set<String> {
-        val signatures = info.signingInfo?.apkContentsSigners
+        @Suppress("DEPRECATION")
+        val signatures = if (android.os.Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners else info.signatures
         return signatures.orEmpty().map { sig -> MessageDigest.getInstance("SHA-256").digest(sig.toByteArray()).joinToString("") { "%02x".format(it) } }.toSet()
     }
 

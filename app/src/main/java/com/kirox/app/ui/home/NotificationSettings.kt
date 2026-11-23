@@ -168,7 +168,7 @@ internal fun NotificationSettingsScreen(onBack: () -> Unit, onNotice: (String) -
         }
         item {
             LinkRow("Все уведомления kiroX", "Системные настройки приложения") {
-                context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                openAppNotificationSettings(context)
             }
         }
         item {
@@ -240,7 +240,16 @@ private fun NotifyScope.channel(): String = when (this) {
     NotifyScope.Channels -> com.kirox.app.notify.MessageNotifications.CHANNEL_CHANNELS
 }
 
+/** The app's page in system settings: notification settings on Android 8+, app info on Android 7. */
+private fun openAppNotificationSettings(context: android.content.Context) {
+    val intent = if (android.os.Build.VERSION.SDK_INT >= 26) Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        else Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${context.packageName}"))
+    runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+}
+
 private fun openChannelSettings(context: android.content.Context, channel: String) {
+    // No channels before Android 8.
+    if (android.os.Build.VERSION.SDK_INT < 26) return openAppNotificationSettings(context)
     runCatching {
         context.startActivity(
             Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)

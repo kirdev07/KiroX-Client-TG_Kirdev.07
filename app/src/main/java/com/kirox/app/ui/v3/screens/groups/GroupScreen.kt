@@ -69,6 +69,7 @@ private val GAntiSpam = GTool(Icons.Rounded.HealthAndSafety, "Защита от 
 fun GroupScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val chatId = gxChatId(ctx.arg)
+    var peerMenu by remember { mutableStateOf(false) }
     val header = chatId?.let { store.header(it) }
     val info = gxLoad(chatId) { chatId?.let { store.groupInfo(it) } }
     val memberList = gxLoad(chatId) { chatId?.let { store.members(it) } }
@@ -169,8 +170,9 @@ fun GroupScreen(ctx: KxScreenCtx) {
         Row(Modifier.statusBarsPadding().padding(10.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GxGlassButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", onClick = ctx.back)
             Spacer(Modifier.weight(1f))
-            GxGlassButton(Icons.Rounded.MoreVert, "Ещё") { ctx.open("PeerMenu") }
+            GxGlassButton(Icons.Rounded.MoreVert, "Ещё") { if (chatId != null) peerMenu = true else ctx.toast("Меню группы — на реальном аккаунте") }
         }
+        if (peerMenu && chatId != null) com.kirox.app.ui.v3.screens.ChatMenuSheet(store.header(chatId), onDismiss = { peerMenu = false }, onOpen = ctx.open)
 
         AnimatedVisibility(manage, enter = slideInHorizontally(tween(380, easing = CubicBezierEasing(.2f, .9f, .25f, 1f))) { it },
             exit = slideOutHorizontally(tween(300)) { it }) {

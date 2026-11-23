@@ -43,7 +43,7 @@ import com.kirox.app.ui.v3.theme.KxType
 import kotlinx.coroutines.launch
 
 private fun galleryPermissions(): Array<String> = if (android.os.Build.VERSION.SDK_INT >= 33)
-    arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO) else arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO) else if (android.os.Build.VERSION.SDK_INT < 29) arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE) else arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
 
 /**
  * Attach sheet on the real account: the phone's recent photos and videos (store.deviceMedia, asks for gallery
@@ -51,6 +51,7 @@ private fun galleryPermissions(): Array<String> = if (android.os.Build.VERSION.S
  */
 @Composable
 internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, onOpen: (String) -> Unit, toast: (String) -> Unit) {
+    androidx.activity.compose.BackHandler(onBack = onClose)
     val scope = rememberCoroutineScope()
     var reload by remember { mutableIntStateOf(0) }
     var media by remember { mutableStateOf<List<KxDeviceMedia>?>(null) }

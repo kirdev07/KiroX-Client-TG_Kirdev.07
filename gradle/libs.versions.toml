@@ -20,8 +20,10 @@ commonsCompress = "1.28.0"
 xz = "1.12"
 profileinstaller = "1.4.1"
 exifinterface = "1.4.2"
+desugarJdkLibs = "2.1.5"
 
 [libraries]
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commonsCompress" }

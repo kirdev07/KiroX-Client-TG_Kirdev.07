@@ -13,6 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
@@ -52,6 +54,8 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
         else KxAvatarPalette.Swatch(androidx.compose.ui.graphics.lerp(base.from, Color.White, .18f), base.to, base.ink)
     var tab by rememberSaveable { mutableStateOf(KxSharedTab.Media) }
     val toast = LocalKxToast.current
+    var peerMenu by remember { mutableStateOf(false) }
+    var peerConfirm by remember { mutableStateOf<KxConfirm?>(null) }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Box(Modifier.fillMaxWidth().height(300.dp).background(Brush.verticalGradient(listOf(sw.from.copy(alpha = .55f), Color.Transparent))))
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).statusBarsPadding().padding(bottom = 30.dp)) {
@@ -113,14 +117,30 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
                     }
                 }
             }
-            SharedContent(store.shared(p.chatId, tab), tab, Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp))
+            val uri = androidx.compose.ui.platform.LocalUriHandler.current
+            SharedContent(store.shared(p.chatId, tab), tab, Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp)) { item ->
+                when (tab) {
+                    KxSharedTab.Media, KxSharedTab.Gif -> onOpen((if (item.video != null && tab == KxSharedTab.Media) "VideoPlayer:" else "Viewer:") + "${p.chatId}:${item.messageId}")
+                    KxSharedTab.Links -> listOf(item.title, item.sub).firstOrNull { it.contains("://") || com.kirox.app.ui.v3.data.KxChat3Mapping.host(it) != null }
+                        ?.let { l -> if (runCatching { uri.openUri(if (l.contains("://")) l.trim() else "https://" + l.trim()) }.isFailure) toast("Не удалось открыть ссылку") }
+                    else -> onOpen("SharedMedia:${p.chatId}")
+                }
+            }
         }
         Row(Modifier.statusBarsPadding().padding(10.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GlassButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", onBack)
             Spacer(Modifier.weight(1f))
             GlassButton(Icons.Outlined.Edit, "Изменить контакт") { onOpen("EditContact") }
-            GlassButton(Icons.Rounded.MoreVert, "Ещё") { onOpen("PeerMenu") }
+            GlassButton(Icons.Rounded.MoreVert, "Ещё") { peerMenu = true }
         }
+        // ⋮: the chat menu of this chat plus block / unblock behind a confirm).
+        if (peerMenu) ChatMenuSheet(store.header(chatId), onDismiss = { peerMenu = false }, onOpen = onOpen, extra = buildList {
+            if (p.blocked) add(ChatMenuExtra(Icons.Outlined.LockOpen, "Разблокировать") { store.block(p.id, false); toast("${p.name} разблокирован(а)") })
+            else add(ChatMenuExtra(Icons.Outlined.Block, "Заблокировать", danger = true) {
+                peerConfirm = KxConfirm("Заблокировать ${p.name}?", "${p.name} не сможет писать вам и звонить.", "Заблокировать") { store.block(p.id, true); toast("${p.name} заблокирован(а)") }
+            })
+        })
+        peerConfirm?.let { c -> KxConfirmDialog(c) { peerConfirm = null } }
     }
 }
 
@@ -146,7 +166,7 @@ private fun InfoLine(value: String, label: String, divider: Boolean) {
 }
 
 @Composable
-private fun SharedContent(items: List<KxSharedItem>, tab: KxSharedTab, modifier: Modifier) {
+private fun SharedContent(items: List<KxSharedItem>, tab: KxSharedTab, modifier: Modifier, onItem: (KxSharedItem) -> Unit) {
     if (items.isEmpty()) { Text("Здесь пока пусто", style = KxType.bodySmall, modifier = modifier.padding(vertical = 24.dp)); return }
     if (tab == KxSharedTab.Media || tab == KxSharedTab.Gif) {
         Column(modifier.clip(RoundedCornerShape(18.dp)), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -154,7 +174,7 @@ private fun SharedContent(items: List<KxSharedItem>, tab: KxSharedTab, modifier:
                 Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     row.forEachIndexed { i, it ->
                         val look = if (tab == KxSharedTab.Gif) GifLooks[(it.look - 10).coerceAtLeast(0) % 3] else MediaLooks[it.look % 6]
-                        Box(Modifier.weight(1f).height(112.dp).kxRise(i * 30, 300).drawBehind { drawRect(Brush.linearGradient(look, cssAngleStart(150f, size), cssAngleEnd(150f, size))) }.kxClick("Открыть") {}) {
+                        Box(Modifier.weight(1f).height(112.dp).kxRise(i * 30, 300).drawBehind { drawRect(Brush.linearGradient(look, cssAngleStart(150f, size), cssAngleEnd(150f, size))) }.kxClick("Открыть") { onItem(it) }) {
                             it.video?.let { v -> Text(v, style = KxType.style(11.sp, FontWeight.SemiBold), modifier = Modifier.align(Alignment.BottomStart).padding(6.dp)
                                 .clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .45f)).padding(horizontal = 6.dp, vertical = 1.dp)) }
                         }
@@ -177,7 +197,7 @@ private fun SharedContent(items: List<KxSharedItem>, tab: KxSharedTab, modifier:
                 KxSharedTab.Links -> Quad(Icons.Rounded.Link, listOf(Color(0xFF1E3333), Color(0xFF1F2E40), Color(0xFF26302B))[i % 3], listOf(Color(0xFF9FDCD6), Color(0xFFA9CBF5), Kx.text2)[i % 3], false)
                 else -> Quad(if (it.video == "circle") Icons.Rounded.RadioButtonChecked else Icons.Rounded.Mic, Color(0xFF1F3A2C), Kx.accent, true)
             }
-            Row(Modifier.fillMaxWidth().height(58.dp).kxRise(i * 40, 300).clip(RoundedCornerShape(16.dp)).background(Kx.w(.04f)).kxClick(it.title) {}.padding(horizontal = 10.dp),
+            Row(Modifier.fillMaxWidth().height(58.dp).kxRise(i * 40, 300).clip(RoundedCornerShape(16.dp)).background(Kx.w(.04f)).kxClick(it.title) { onItem(it) }.padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.size(40.dp).clip(if (round) CircleShape else RoundedCornerShape(if (tab == KxSharedTab.Links) 12.dp else 10.dp)).background(tile), contentAlignment = Alignment.Center) {
                     Icon(icon, null, Modifier.size(20.dp), tint = ink)

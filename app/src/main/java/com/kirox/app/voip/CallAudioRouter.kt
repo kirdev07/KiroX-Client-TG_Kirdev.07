@@ -65,11 +65,13 @@ class CallAudioRouter(context: Context) {
         video = isVideo
         userChoice = null
         previousMode = audio.mode
-        focus = android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
-            .setAudioAttributes(
-                android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build()
-            ).build().also { runCatching { audio.requestAudioFocus(it) } }
+        if (Build.VERSION.SDK_INT >= 26) {
+            focus = android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAudioAttributes(
+                    android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build()
+                ).build().also { runCatching { audio.requestAudioFocus(it) } }
+        } else @Suppress("DEPRECATION") runCatching { audio.requestAudioFocus(null, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT) }
         audio.mode = AudioManager.MODE_IN_COMMUNICATION
         audio.registerAudioDeviceCallback(deviceCallback, handler)
         refreshAvailable()
@@ -97,7 +99,8 @@ class CallAudioRouter(context: Context) {
             if (audio.isBluetoothScoOn) { audio.stopBluetoothSco(); audio.isBluetoothScoOn = false }
         }
         audio.mode = previousMode
-        focus?.let { runCatching { audio.abandonAudioFocusRequest(it) } }
+        if (Build.VERSION.SDK_INT >= 26) focus?.let { runCatching { audio.abandonAudioFocusRequest(it) } }
+        else @Suppress("DEPRECATION") runCatching { audio.abandonAudioFocus(null) }
         focus = null
     }
 

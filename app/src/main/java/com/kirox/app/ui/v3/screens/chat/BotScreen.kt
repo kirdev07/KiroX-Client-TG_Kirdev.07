@@ -61,6 +61,8 @@ private fun money(v: Int) = String.format(java.util.Locale("ru"), "%,d", v).repl
 /** Board «Бот»: start card, bot replies with inline buttons, reply keyboard, commands menu and the pizza mini app. */
 @Composable
 fun BotScreen(ctx: KxScreenCtx) {
+    val botChat = ctx.arg?.substringBefore(':')?.toLongOrNull()
+    var botMenu by remember { mutableStateOf(false) }
     var fresh by remember { mutableStateOf(true) }
     val msgs = remember { mutableStateListOf<BMsg>() }
     var typing by remember { mutableStateOf(false) }
@@ -91,7 +93,7 @@ fun BotScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Rounded.LocalPizza, null, Modifier.size(22.dp), tint = Color(0xFF2A1A04))
                 }
                 Column(Modifier.weight(1f)) { Text("Пицца рядом", style = ts(16, W800)); Text("бот · 12 400 пользователей", style = ts(12, color = Kx.text3)) }
-                Box(Modifier.size(42.dp).clip(CircleShape).kxClick("Ещё") { ctx.open("PeerMenu") }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.MoreVert, null, tint = Kx.text) }
+                Box(Modifier.size(42.dp).clip(CircleShape).kxClick("Ещё") { if (botChat != null) botMenu = true else ctx.toast("Меню бота — на реальном аккаунте") }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.MoreVert, null, tint = Kx.text) }
             }
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (fresh) item {
@@ -212,6 +214,7 @@ fun BotScreen(ctx: KxScreenCtx) {
                 }
             }
         }
+        if (botMenu && botChat != null) com.kirox.app.ui.v3.screens.ChatMenuSheet(ctx.store.header(botChat), onDismiss = { botMenu = false }, onOpen = ctx.open)
     }
 }
 

@@ -52,6 +52,7 @@ fun MessageMenuSheet(
     more: List<Triple<ImageVector, String, () -> Unit>> = emptyList(),
 ) {
     var deleting by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler { if (deleting) deleting = false else onDismiss() }
     val clipboard = LocalClipboardManager.current
     val reduced = LocalKxReducedMotion.current
     val appear = remember { Animatable(if (reduced) 1f else 0f) }

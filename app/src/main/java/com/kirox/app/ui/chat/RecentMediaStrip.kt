@@ -44,22 +44,18 @@ internal data class RecentMedia(val uri: Uri, val isVideo: Boolean, val duration
 private fun mediaPermissions(): Array<String> = when {
     Build.VERSION.SDK_INT >= 34 -> arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
     Build.VERSION.SDK_INT >= 33 -> arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
-    else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    // Android 7–9: the same storage dialog also allows «Сохранить в галерею» (public folders need WRITE there).
+    else -> if (Build.VERSION.SDK_INT < 29) arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE) else arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
 }
 
 private fun hasMediaAccess(context: Context) = mediaPermissions().any { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
 
 private fun loadRecentMedia(context: Context, limit: Int): List<RecentMedia> = runCatching {
-    val collection = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+    val collection = MediaStore.Files.getContentUri("external")
     val projection = arrayOf(MediaStore.Files.FileColumns._ID, MediaStore.Files.FileColumns.MEDIA_TYPE, MediaStore.Video.VideoColumns.DURATION)
     val selection = "${MediaStore.Files.FileColumns.MEDIA_TYPE} IN (${MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE}, ${MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO})"
-    val args = android.os.Bundle().apply {
-        putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, selection)
-        putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(MediaStore.Files.FileColumns.DATE_ADDED))
-        putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION, android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
-        putInt(android.content.ContentResolver.QUERY_ARG_LIMIT, limit)
-    }
-    context.contentResolver.query(collection, projection, args, null)?.use { cursor ->
+    com.kirox.app.compat.MediaCompat.queryNewest(context.contentResolver, collection, projection, selection, MediaStore.Files.FileColumns.DATE_ADDED, limit)?.use { cursor ->
+
         buildList {
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(0)
@@ -125,7 +121,7 @@ internal fun RecentMediaStrip(limit: Int, onSend: (List<Uri>) -> Unit) {
 private fun MediaTile(item: RecentMedia, order: Int, onClick: () -> Unit) {
     val context = LocalContext.current
     val thumb by produceState<ImageBitmap?>(null, item.uri) {
-        value = withContext(Dispatchers.IO) { runCatching { context.contentResolver.loadThumbnail(item.uri, Size(240, 240), null).asImageBitmap() }.getOrNull() }
+        value = withContext(Dispatchers.IO) { runCatching { com.kirox.app.compat.MediaCompat.thumbnail(context.contentResolver, item.uri, 240)?.asImageBitmap() }.getOrNull() }
     }
     val selected = order >= 0
     Box(Modifier.size(104.dp).clip(RoundedCornerShape(14.dp)).background(Fusion.colors.surface3).clickable(onClick = onClick)) {

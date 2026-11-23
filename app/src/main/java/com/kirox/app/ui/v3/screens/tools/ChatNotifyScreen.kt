@@ -98,7 +98,7 @@ fun ChatNotifyScreen(ctx: KxScreenCtx) {
                     }
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            KxLine(if (preview) "$title · Дмитрий" else "kiroX", KxType.style(13.sp, FontWeight.ExtraBold), Modifier.weight(1f))
+                            KxLine(if (!preview) "kiroX" else if (hdr == null) "$title · Дмитрий" else title, KxType.style(13.sp, FontWeight.ExtraBold), Modifier.weight(1f))
                             Text("сейчас", style = KxType.style(11.sp, color = Kx.text3))
                         }
                         KxLine(if (!preview) "Новое сообщение" else if (what == 1) "@kirill_dev, глянешь PR?" else "Собираемся в субботу в 11:00",

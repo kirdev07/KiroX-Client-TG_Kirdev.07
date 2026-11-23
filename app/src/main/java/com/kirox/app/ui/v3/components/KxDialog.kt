@@ -30,6 +30,7 @@ data class KxConfirm(val title: String, val text: String, val yes: String, val d
  */
 @Composable
 fun KxConfirmDialog(c: KxConfirm, onDismiss: () -> Unit) {
+    androidx.activity.compose.BackHandler(onBack = onDismiss)
     val a = remember { Animatable(0f) }
     LaunchedEffect(c) { a.snapTo(0f); a.animateTo(1f, tween(200, easing = KxMotion.rise)) }
     Box(Modifier.fillMaxSize()) {

@@ -74,6 +74,7 @@ class ConnectionMonitor(context: Context, private val client: TelegramClient) {
         connected = hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET),
         wifi = hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET),
         cellular = hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR),
-        roaming = !hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING)
+        // NOT_ROAMING is reported from Android 9; before that every network would look like roaming.
+        roaming = android.os.Build.VERSION.SDK_INT >= 28 && !hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING)
     )
 }

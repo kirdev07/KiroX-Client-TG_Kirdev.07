@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- qadc build (com.kirox.app.testdc) only (Telegram test servers): the KxSim harness lets QA agents act as other test users
+     through adb. Only the shell (and the system) holds android.permission.DUMP, so no installed app can
+     drive it. See design-reference/kirox-v3/qa/testdc.md. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name="com.kirox.app.testdc.SimReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.kirox.app.testdc.SIM" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

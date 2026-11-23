@@ -50,6 +50,16 @@ class KxNav(start: KxRoute = KxRoute.Home) {
 @Composable
 fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean = false) = KxTheme(reducedMotion || kxAccessNoMotion(store)) { KxAccessScale(store) {
     val nav = remember { KxNav() }
+    // v3 is always dark: light status/nav-bar icons even when the phone is in light mode (restored when v3 leaves).
+    val hostView = androidx.compose.ui.platform.LocalView.current
+    DisposableEffect(hostView) {
+        var c: android.content.Context? = hostView.context
+        while (c is android.content.ContextWrapper && c !is android.app.Activity) c = c.baseContext
+        val bars = (c as? android.app.Activity)?.window?.let { androidx.core.view.WindowCompat.getInsetsController(it, hostView) }
+        val wasLightStatus = bars?.isAppearanceLightStatusBars; val wasLightNav = bars?.isAppearanceLightNavigationBars
+        bars?.isAppearanceLightStatusBars = false; bars?.isAppearanceLightNavigationBars = false
+        onDispose { wasLightStatus?.let { bars?.isAppearanceLightStatusBars = it }; wasLightNav?.let { bars?.isAppearanceLightNavigationBars = it } }
+    }
     val context = androidx.compose.ui.platform.LocalContext.current
     var tab by rememberSaveable { mutableStateOf(KxTab.Chats) }
     var selecting by remember { mutableStateOf(false) }
@@ -59,6 +69,15 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
     // New Telegram terms (popup ones): the TermsUpdate board opens once per terms id.
     val termsId = store.termsUpdate?.id
     LaunchedEffect(termsId) { if (termsId != null) nav.push(KxRoute.Screen("TermsUpdate")) }
+    // Calls: the demo keeps its scripted CallingScreen; the real account opens the board that reads store.activeCall
+    // (VideoCall = real timer, mic/camera, hangUp). An incoming ringing call opens the Incoming board by itself.
+    val demoStore = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    fun startCall(peerId: Long, name: String, video: Boolean, colorIndex: Int) {
+        store.call(peerId, video)
+        nav.push(if (demoStore) KxRoute.Call(peerId, name, video, colorIndex) else KxRoute.Screen("VideoCall"))
+    }
+    val ringing = store.activeCall?.takeIf { !demoStore && it.phase == com.kirox.app.ui.v3.model.KxCallPhase.Incoming }?.id
+    LaunchedEffect(ringing) { if (ringing != null && (nav.current as? KxRoute.Screen)?.name != "Incoming") nav.push(KxRoute.Screen("Incoming")) }
     BackHandler(enabled = nav.stack.size > 1 || tab != KxTab.Chats) { if (!nav.pop()) tab = KxTab.Chats }
     KxScreen(modifier) { KxToastHost {
         val toast = com.kirox.app.ui.v3.components.LocalKxToast.current
@@ -84,7 +103,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                                 onNewMessage = { nav.push(KxRoute.Screen("NewMsg")) },
                                 onSelectionChange = { selecting = it },
                             )
-                            KxTab.Calls -> CallsScreen(store, onCall = { c, v -> store.call(c.peerId, v); nav.push(KxRoute.Call(c.peerId, c.name, v, c.colorIndex)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
+                            KxTab.Calls -> CallsScreen(store, onCall = { c, v -> if (c.group && !demoStore) { store.joinGroupCall(c.peerId); nav.push(KxRoute.Screen("GroupCall:${c.peerId}")) } else startCall(c.peerId, c.name, v, c.colorIndex) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                             KxTab.Stories -> StoriesScreen(store, onOpenViewer = { nav.push(KxRoute.Story(it)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                             KxTab.Settings -> SettingsScreen(store, onOpen = { if (it == "Старый дизайн") KxNewDesign.set(context, false) else nav.push(KxRoute.Screen(it)) })
                             else -> KxTabPlaceholder(t)
@@ -95,11 +114,15 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                         chatsBadge = store.unreadTotal, callsBadge = store.missedCalls, names = store.tabNames, hidden = hiddenTabs)
                 }
                 is KxRoute.Chat -> ChatScreen(store, route.chatId, onBack = { store.closeChat(route.chatId); nav.pop() },
-                    onCall = { v -> val h = store.header(route.chatId); store.call(route.chatId, v); nav.push(KxRoute.Call(route.chatId, h.title, v, h.colorIndex)) },
-                    onProfile = { if (store.header(route.chatId).kind == com.kirox.app.ui.v3.model.KxChatKind.Private) nav.push(KxRoute.Profile(route.chatId)) else nav.push(KxRoute.Screen("Group:${route.chatId}")) },
-                    onOpen = { nav.push(KxRoute.Screen(it)) })
+                    onCall = { v -> val h = store.header(route.chatId); startCall(route.chatId, h.title, v, h.colorIndex) },
+                    onProfile = { when (store.header(route.chatId).kind) {
+                        com.kirox.app.ui.v3.model.KxChatKind.Private, com.kirox.app.ui.v3.model.KxChatKind.Bot, com.kirox.app.ui.v3.model.KxChatKind.Secret -> nav.push(KxRoute.Profile(route.chatId))
+                        com.kirox.app.ui.v3.model.KxChatKind.Channel -> nav.push(KxRoute.Screen("Channel:${route.chatId}"))
+                        else -> nav.push(KxRoute.Screen("Group:${route.chatId}"))
+                    } },
+                    onOpen = { nav.push(KxRoute.Screen(it)) }, onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) })
                 is KxRoute.Profile -> ProfileScreen(store, route.chatId, onBack = { nav.pop() },
-                    onCall = { v -> store.call(route.chatId, v); nav.push(KxRoute.Call(route.chatId, store.peer(route.chatId).name, v, store.peer(route.chatId).colorIndex)) },
+                    onCall = { v -> val p = store.peer(route.chatId); startCall(route.chatId, p.name, v, p.colorIndex) },
                     onSearch = { nav.push(KxRoute.Screen("ChatSearch")) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                 KxRoute.Archive -> ArchiveScreen(store, onBack = { nav.pop() }, onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) })
                 is KxRoute.Screen -> {

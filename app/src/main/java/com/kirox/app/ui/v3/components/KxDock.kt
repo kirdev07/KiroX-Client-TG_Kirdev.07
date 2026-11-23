@@ -64,7 +64,10 @@ fun KxDock(current: KxTab, onPick: (KxTab) -> Unit, modifier: Modifier = Modifie
                 Box(Modifier.size(78.dp, 52.dp).clip(RoundedCornerShape(26.dp)).kxClick(label, Role.Tab) { onPick(tab) }) {
                     Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Icon(icon(tab, on), null, Modifier.size(23.dp), tint = color)
-                        Text(label, maxLines = 1, style = KxType.style(11.sp, if (on) FontWeight.ExtraBold else FontWeight.SemiBold, color, 13.sp))
+                        // Dock labels grow with the system font only up to ×1.15 (fixed 78×52 pill), then ellipsize.
+                        val fk = androidx.compose.ui.platform.LocalDensity.current.fontScale.let { if (it > 1.15f) 1.15f / it else 1f }
+                        Text(label, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 70.dp),
+                            style = KxType.style((11 * fk).sp, if (on) FontWeight.ExtraBold else FontWeight.SemiBold, color, (13 * fk).sp))
                     }
                     if (badge > 0) Box(
                         Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 3.dp).heightIn(min = 18.dp).widthIn(min = 18.dp)

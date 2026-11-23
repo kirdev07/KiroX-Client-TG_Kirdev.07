@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same theme; android:windowLightNavigationBar exists from Android 8.1 (values/ is the Android 7–8.0 copy). -->
+    <style name="Theme.KiroX" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#071424</item>
+        <item name="android:navigationBarColor">#071424</item>
+        <item name="android:statusBarColor">#071424</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

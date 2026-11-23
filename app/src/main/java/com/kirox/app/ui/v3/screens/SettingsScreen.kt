@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.KxStore
+import com.kirox.app.ui.v3.model.pref
 import com.kirox.app.ui.v3.theme.*
 
 /** Settings tab (board "Настройки"): profile card, Premium + gifts, main rows, 2x2 tiles, ⋮ menu. */
@@ -50,7 +51,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                 Row(Modifier.kxRise(120), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     PremiumButton(Modifier.weight(1.4f)) { onOpen("Premium") }
                     Row(Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.05f)).border(1.dp, Kx.fillHi, RoundedCornerShape(22.dp))
-                        .kxClick { onOpen("Gifts") }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        .kxClick { onOpen("GiftOpen") }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Rounded.Redeem, null, tint = Color(0xFFF2A6C0))
                         Column { Text("Подарки", style = KxType.style(15.sp, FontWeight.Bold)); Text("За звёзды", style = KxType.caption) }
                     }
@@ -59,9 +60,9 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                     val rows = listOf(
                         Row5(Icons.Rounded.Notifications, "Уведомления и звуки", null, Color(0xFF3B2A22), Color(0xFFFFB68F), "Notify"),
                         Row5(Icons.Rounded.Lock, "Конфиденциальность", null, Color(0xFF1F2E40), Color(0xFFA9CBF5), "Privacy"),
-                        Row5(Icons.Rounded.Storage, "Данные и память", "1,2 ГБ", Color(0xFF1E3333), Color(0xFF9FDCD6), "Storage"),
-                        Row5(Icons.Rounded.Palette, "Кастомизация", "Тёмно-зелёная", Color(0xFF1F3A2C), Color(0xFF8FD3AC), "Custom"),
-                        Row5(Icons.Rounded.Translate, "Язык", "Русский", Color(0xFF2E2A3D), Color(0xFFCFC2F2), "Language"),
+                        Row5(Icons.Rounded.Storage, "Данные и память", store.storage?.totalBytes?.let { com.kirox.app.ui.v3.screens.settings.sBytes(it) }, Color(0xFF1E3333), Color(0xFF9FDCD6), "Storage"),
+                        Row5(Icons.Rounded.Palette, "Кастомизация", com.kirox.app.ui.v3.screens.settings.CustomThemes[store.pref(com.kirox.app.ui.v3.model.KxPrefs.THEME).coerceIn(0, com.kirox.app.ui.v3.screens.settings.CustomThemes.lastIndex)].name, Color(0xFF1F3A2C), Color(0xFF8FD3AC), "Custom"),
+                        Row5(Icons.Rounded.Translate, "Язык", if (store.pref(com.kirox.app.ui.v3.model.KxPrefs.LANGUAGE) == 1) "English" else "Русский", Color(0xFF2E2A3D), Color(0xFFCFC2F2), "Language"),
                     )
                     rows.forEachIndexed { i, r ->
                         val shape = when (i) { 0 -> RoundedCornerShape(22.dp, 22.dp, 6.dp, 6.dp); rows.lastIndex -> RoundedCornerShape(6.dp, 6.dp, 22.dp, 22.dp); else -> RoundedCornerShape(6.dp) }
@@ -69,7 +70,9 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                             Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(r.bg), contentAlignment = Alignment.Center) { Icon(r.icon, null, Modifier.size(20.dp), tint = r.fg) }
                             Text(r.title, style = KxType.style(15.sp, FontWeight.Normal), modifier = Modifier.weight(1f))
-                            r.value?.let { Text(it, style = KxType.style(13.sp, color = Kx.text4)) }
+                            // the value gives way first (ellipsis) so a large system font does not break the title mid-word
+                            r.value?.let { Text(it, style = KxType.style(13.sp, color = Kx.text4), modifier = Modifier.widthIn(max = 100.dp), maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.End) }
                             Icon(Icons.Rounded.ChevronRight, null, Modifier.size(20.dp), tint = Kx.text4)
                         }
                     }
@@ -91,7 +94,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
             Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 58.dp, end = 16.dp).width(210.dp)
                 .clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Color(0xF22E3A34), Color(0xF5181E1B)))).border(1.dp, Kx.stroke, RoundedCornerShape(20.dp)).topHighlight(Kx.w(.22f)).padding(6.dp)) {
                 listOf(androidx.compose.material.icons.Icons.Outlined.AccountCircle to "Мой профиль", androidx.compose.material.icons.Icons.Outlined.SwitchAccount to "Аккаунты", androidx.compose.material.icons.Icons.Outlined.Contacts to "Контакты",
-                    androidx.compose.material.icons.Icons.Outlined.Devices to "Устройства", androidx.compose.material.icons.Icons.Outlined.Folder to "Чаты и папки", androidx.compose.material.icons.Icons.Outlined.History to "Старый дизайн").forEach { (ic, t) ->
+                    androidx.compose.material.icons.Icons.Outlined.Devices to "Устройства", androidx.compose.material.icons.Icons.Outlined.Folder to "Чаты и папки", androidx.compose.material.icons.Icons.Outlined.History to "Старый дизайн").filter { store !is com.kirox.app.ui.v3.demo.KxDemoStore || it.second != "Старый дизайн" }.forEach { (ic, t) ->
                     Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick { menu = false; onOpen(mapOf("Мой профиль" to "EditProfile", "Аккаунты" to "Accounts", "Контакты" to "Contacts", "Устройства" to "Devices", "Чаты и папки" to "Folders")[t] ?: t) }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(ic, null, Modifier.size(20.dp), tint = Kx.accent); Text(t, style = KxType.style(15.sp))
@@ -135,12 +138,13 @@ private fun ProfileCard(store: KxStore, onOpen: (String) -> Unit) {
             }
         }
         Row(Modifier.padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.10f)).border(1.dp, Kx.w(.12f), RoundedCornerShape(18.dp))
+            // Large system font: the «Изменить профиль» chip gives way (ellipsis) so the account chips stay whole.
+            Box(Modifier.weight(1f)) { Row(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.10f)).border(1.dp, Kx.w(.12f), RoundedCornerShape(18.dp))
                 .kxClick { onOpen("EditProfile") }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Rounded.Edit, null, Modifier.size(18.dp), tint = Kx.text); Text("Изменить профиль", style = KxType.style(13.sp, FontWeight.SemiBold))
-            }
-            Spacer(Modifier.weight(1f))
-            Text("Аккаунты", style = KxType.caption)
+                Icon(Icons.Rounded.Edit, null, Modifier.size(18.dp), tint = Kx.text)
+                Text("Изменить профиль", style = KxType.style(13.sp, FontWeight.SemiBold), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            } }
+            Text("Аккаунты", style = KxType.caption, maxLines = 1)
             Row(Modifier.padding(start = 2.dp).kxClick("Аккаунты") { onOpen("Accounts") }) {
                 store.accounts.forEachIndexed { i, a ->
                     val sw = if (i == 0) KxAvatarPalette.Swatch(Color(0xFF3E7A5A), Color(0xFF173A28), Color(0xFFDDF5E5)) else KxAvatarPalette.Swatch(Color(0xFF3C7BD0), Color(0xFF142A4A), Color(0xFFD6E6FF))

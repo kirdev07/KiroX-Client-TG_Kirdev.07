@@ -18,7 +18,7 @@ if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
     // releaseCheck (package com.kirox.app.check) is a local R8 check build without Firebase:
     // google-services.json has no client for it, so its config task is skipped.
-    tasks.matching { it.name == "processReleaseCheckGoogleServices" || it.name == "processV3previewGoogleServices" }.configureEach { enabled = false }
+    tasks.matching { it.name == "processReleaseCheckGoogleServices" || it.name == "processV3previewGoogleServices" || it.name == "processQadcGoogleServices" }.configureEach { enabled = false }
 }
 
 android {
@@ -31,7 +31,8 @@ android {
 
     defaultConfig {
         applicationId = "com.kirox.app"
-        minSdk = 29
+        // Android 7.0+. Anything newer is guarded by SDK_INT checks / AndroidX compat (lint NewApi stays clean).
+        minSdk = 24
         targetSdk = 37
         versionCode = 8
         versionName = "1.0.0-rc.1"
@@ -43,12 +44,19 @@ android {
         manifestPlaceholders["appLabel"] = "kiroX"
         buildConfigField("String", "TELEGRAM_API_HASH", "\"${secret("KIROX_API_HASH", "kirox.apiHash").replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         // TDLib ships arm64 only; the call engine is built for the same ABI.
-        ndk { abiFilters += "arm64-v8a" }
+        ndk {
+            abiFilters += "arm64-v8a"
+            // 32-bit ARM phones (Android 7 era) once the TDLib workflow has produced its library (.github/workflows/tdlib.yml).
+            if (file("src/main/jniLibs/armeabi-v7a/libtdjni.so").exists()) abiFilters += "armeabi-v7a"
+        }
         externalNativeBuild {
             cmake {
                 arguments += listOf("-DANDROID_STL=c++_static", "-DANDROID_ARM_NEON=TRUE")
                 // Only the call engine: libyuv is linked into it statically, its own shared build (libyuv.so) is unused.
                 targets += "kiroxvoip"
+                // Its prebuilt media/crypto libraries (voip/prebuild/lib) exist for arm64 only: on 32-bit ARM
+                // the engine is absent, NativeCall.available is false and calls say so.
+                abiFilters += "arm64-v8a"
             }
         }
     }
@@ -73,10 +81,7 @@ android {
     }
 
     buildTypes {
-        debug {
-            // Telegram test DC for safe auth testing: KIROX_USE_TEST_DC=true in kirox.properties. Never in release.
-            buildConfigField("boolean", "TELEGRAM_USE_TEST_DC", (secret("KIROX_USE_TEST_DC") == "true").toString())
-        }
+        // TELEGRAM_USE_TEST_DC stays false (defaultConfig) everywhere except the separate `qadc` build below.
         release {
             signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = true
@@ -102,9 +107,20 @@ android {
             buildConfigField("boolean", "KX_V3_DEMO", "true")
             manifestPlaceholders["appLabel"] = "kiroX v3"
         }
+        // Telegram test servers (test DC) for team QA: its own app id, data and TDLib databases; test accounts
+        // only (+99966XYYYY), never the real Telegram. AGP forbids build types named "test…", hence `qadc`. src/qadc adds the KxSim broadcast harness (qa/testdc.md).
+        create("qadc") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".testdc"
+            matchingFallbacks += "debug"
+            buildConfigField("boolean", "TELEGRAM_USE_TEST_DC", "true")
+            manifestPlaceholders["appLabel"] = "kiroX test"
+        }
     }
 
     compileOptions {
+        // java.time and other Java 8+ library APIs on Android 7 (API < 26).
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -129,6 +145,7 @@ android {
 
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
 

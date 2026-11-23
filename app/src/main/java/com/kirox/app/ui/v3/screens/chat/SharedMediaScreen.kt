@@ -121,7 +121,7 @@ fun SharedMediaScreen(ctx: KxScreenCtx) {
                                     Box(Modifier.weight(1f).aspectRatio(1f).chPop(.92f, 300, k * 20).graphicsLayer { scaleX = scale; scaleY = scale }.clip(RoundedCornerShape(r))
                                         .cssGradient(150f, g.first, g.second)
                                         .combinedClickable(onClickLabel = "Медиа ${k + 1}", onLongClick = { if (selMode) toggle(k) else { selMode = true; sel.clear(); sel.add(k) } }) {
-                                            if (selMode) toggle(k) else ctx.open("MediaViewer:$chatId")
+                                            if (selMode) toggle(k) else ctx.open((if (it?.video != null) "VideoPlayer:" else "Viewer:") + "$chatId:${it?.messageId ?: 0}")
                                         }) {
                                         val video = it?.video ?: if (k % 4 == 2) "0:${(10 + (k * 7) % 50).toString().padStart(2, '0')}" else null
                                         if (video != null) Row(Modifier.align(Alignment.BottomStart).padding(6.dp).height(18.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(alpha = .5f))

@@ -50,17 +50,23 @@ object CallMedia {
         val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE).build()
         val audio = app.getSystemService(AudioManager::class.java)
         ringAudio = audio
-        ringFocus = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT).setAudioAttributes(attributes).build()
-            .also { runCatching { audio?.requestAudioFocus(it) } }
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            ringFocus = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT).setAudioAttributes(attributes).build()
+                .also { runCatching { audio?.requestAudioFocus(it) } }
+        } else @Suppress("DEPRECATION") runCatching { audio?.requestAudioFocus(null, AudioManager.STREAM_RING, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT) }
         ringtone = runCatching {
             RingtoneManager.getRingtone(app, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))?.apply {
                 audioAttributes = attributes
-                isLooping = true
+                // Android 7–8.1 cannot loop a Ringtone; the ringtone plays once there (most are long enough).
+                if (android.os.Build.VERSION.SDK_INT >= 28) isLooping = true
                 play()
             }
         }.getOrNull()
         vibrator = app.getSystemService(Vibrator::class.java)?.also { v ->
-            runCatching { v.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 600, 900), 0)) }
+            runCatching {
+                if (android.os.Build.VERSION.SDK_INT >= 26) v.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 600, 900), 0))
+                else @Suppress("DEPRECATION") v.vibrate(longArrayOf(0, 600, 900), 0)
+            }
         }
     }
 
@@ -69,7 +75,8 @@ object CallMedia {
         ringtone = null
         runCatching { vibrator?.cancel() }
         vibrator = null
-        ringFocus?.let { request -> runCatching { ringAudio?.abandonAudioFocusRequest(request) } }
+        if (android.os.Build.VERSION.SDK_INT >= 26) ringFocus?.let { request -> runCatching { ringAudio?.abandonAudioFocusRequest(request) } }
+        else @Suppress("DEPRECATION") runCatching { ringAudio?.abandonAudioFocus(null) }
         ringFocus = null
         ringAudio = null
     }

@@ -46,9 +46,11 @@ class KeepConnectedService : Service() {
 
     private fun promote(): Boolean {
         val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel(CHANNEL, com.kirox.app.i18n.I18n.t("Фоновое соединение"), NotificationManager.IMPORTANCE_MIN).apply { setShowBadge(false) })
+        if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel(CHANNEL, com.kirox.app.i18n.I18n.t("Фоновое соединение"), NotificationManager.IMPORTANCE_MIN).apply { setShowBadge(false) })
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
-        val notification = Notification.Builder(this, CHANNEL)
+        // Compat builder: Android 7 has no channels; MIN priority there matches the channel's IMPORTANCE_MIN.
+        val notification = androidx.core.app.NotificationCompat.Builder(this, CHANNEL)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MIN)
             .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox)
             .setContentTitle(com.kirox.app.i18n.I18n.t("kiroX на связи"))
             .setContentText(com.kirox.app.i18n.I18n.t("Сообщения приходят сразу"))
@@ -97,7 +99,7 @@ class KeepConnectedService : Service() {
         /** Allowed while KiroX is on screen and after boot; a refused start waits for the next launch. */
         fun start(context: Context) {
             if (!isEnabled(context)) return
-            runCatching { context.startForegroundService(Intent(context, KeepConnectedService::class.java)) }
+            runCatching { androidx.core.content.ContextCompat.startForegroundService(context, Intent(context, KeepConnectedService::class.java)) }
         }
     }
 }

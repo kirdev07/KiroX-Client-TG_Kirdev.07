@@ -198,15 +198,23 @@ private fun CallVideo(call: TelegramActiveCall, actions: CallActions) {
     }
 }
 
+/** Over the lock screen with the screen on: Activity methods on 8.1+, window flags on Android 7–8.0. */
+private fun showOverLockScreen(activity: Activity, on: Boolean) {
+    if (android.os.Build.VERSION.SDK_INT >= 27) { activity.setShowWhenLocked(on); activity.setTurnScreenOn(on); return }
+    @Suppress("DEPRECATION")
+    val flags = android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+    if (on) activity.window.addFlags(flags) else activity.window.clearFlags(flags)
+}
+
 /** Shows the call over the lock screen, and turns the screen off at the ear like a phone call. */
 @Composable
 private fun CallWindow(live: Boolean, earMode: Boolean) {
     val context = LocalContext.current
     val activity = context as? Activity
     DisposableEffect(live) {
-        if (live && activity != null) { activity.setShowWhenLocked(true); activity.setTurnScreenOn(true) }
+        if (live && activity != null) showOverLockScreen(activity, true)
         onDispose {
-            if (activity != null) { activity.setShowWhenLocked(false); activity.setTurnScreenOn(false) }
+            if (activity != null) showOverLockScreen(activity, false)
         }
     }
     // Held by CallMedia, which also lets it go when the call ends while this screen is not updating.

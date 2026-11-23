@@ -60,8 +60,15 @@ private fun gxLoadTags(store: com.kirox.app.ui.v3.model.KxStore, on: Boolean): L
 fun SavedScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val savedChat = store.chats.firstOrNull { it.kind == KxChatKind.Saved }
+    // Real account: Saved Messages come from its own history (opened here when it is not the open chat); never demo items.
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    if (!demo && savedChat != null) DisposableEffect(savedChat.id) {
+        val wasOpen = store.historyChatId == savedChat.id
+        if (!wasOpen) store.openChat(savedChat.id)
+        onDispose { if (!wasOpen) store.closeChat(savedChat.id) }
+    }
     val real = savedChat?.let { c -> store.messages(c.id).filter { it.kind != KxMsgKind.Service } }.orEmpty()
-    val msgs = if (real.isNotEmpty()) real.asReversed().map {
+    val msgs = if (!demo) real.asReversed().map {
         SavedItem(it.id, it.text.ifEmpty { it.fileName.ifEmpty { it.meta } }, null, null, it.time, it.forwardedFrom, it.forwardedFrom,
             it.kind == KxMsgKind.Photo || it.kind == KxMsgKind.Video)
     } else DemoSaved
@@ -69,9 +76,9 @@ fun SavedScreen(ctx: KxScreenCtx) {
     var tag by rememberSaveable { mutableStateOf<String?>(null) }
     var from by rememberSaveable { mutableStateOf<String?>(null) }
     var note by rememberSaveable { mutableStateOf("") }
-    val realTags = gxLoadTags(store, real.isNotEmpty())
-    val tags = if (real.isEmpty()) SavedTags else realTags.map { Triple(it.emoji, it.emoji, it.label) }
-    fun tagCount(k: String) = if (real.isEmpty()) msgs.count { it.key == k } else realTags.firstOrNull { it.emoji == k }?.count ?: 0
+    val realTags = gxLoadTags(store, !demo)
+    val tags = if (demo) SavedTags else realTags.map { Triple(it.emoji, it.emoji, it.label) }
+    fun tagCount(k: String) = if (demo) msgs.count { it.key == k } else realTags.firstOrNull { it.emoji == k }?.count ?: 0
     val list = msgs.filter { (tag == null || it.key == tag) && (from == null || it.from == from) }
     val sources = msgs.mapNotNull { it.from }.distinct()
 
@@ -104,7 +111,7 @@ fun SavedScreen(ctx: KxScreenCtx) {
                     val on = tag == k
                     val bg by animateColorAsState(if (on) Kx.accent else Kx.w(.07f), tween(250), label = "t")
                     val ink = if (on) Kx.onAccent else Kx.text2
-                    Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(bg).kxClick { if (real.isNotEmpty()) ctx.toast("Фильтр по тегам пока не переносится") else { tag = if (on) null else k; byChats = false } }.padding(horizontal = 12.dp),
+                    Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(bg).kxClick { if (!demo) ctx.toast("Фильтр по тегам пока не переносится") else { tag = if (on) null else k; byChats = false } }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Text("$e $label ", style = ts(13, W700, ink))
                         Text("${tagCount(k)}", style = ts(13, W700, ink.copy(alpha = .7f)))

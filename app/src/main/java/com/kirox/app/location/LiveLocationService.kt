@@ -35,6 +35,11 @@ data class LiveShare(val chatId: Long, val messageId: Long, val until: Long)
 class LiveLocationService : Service(), LocationListener {
     private val manager by lazy { getSystemService(LocationManager::class.java) }
     private var listening = false
+    /** Shares end by time even when the phone does not move and no new location arrives. */
+    private val timer = android.os.Handler(android.os.Looper.getMainLooper())
+    private val expiry = object : Runnable {
+        override fun run() { if (dropEnded().isNotEmpty()) timer.postDelayed(this, EXPIRY_CHECK_MS) }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -48,9 +53,27 @@ class LiveLocationService : Service(), LocationListener {
             .setOngoing(true)
             .addAction(0, I18n.t("Остановить"), PendingIntent.getService(this, 1, Intent(this, LiveLocationService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE))
             .build()
-        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
+        // Android 14+ refuses the location type without the permission: no crash, just no sharing.
+        val promoted = runCatching { androidx.core.app.ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION) }.isSuccess
+        // A sticky restart after the process died has no shares left (they live in memory): stop.
+        if (!promoted || _active.value.isEmpty()) {
+            if (promoted) stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         listen()
+        timer.removeCallbacks(expiry)
+        timer.postDelayed(expiry, EXPIRY_CHECK_MS)
         return START_STICKY
+    }
+
+    /** Forgets shares whose period is over; stops the service when none is left. Returns the live ones. */
+    private fun dropEnded(): List<LiveShare> {
+        val now = System.currentTimeMillis() / 1000
+        val (live, ended) = _active.value.values.partition { it.until > now }
+        ended.forEach { _active.value = _active.value - it.chatId }
+        if (live.isEmpty()) stopSelf()
+        return live
     }
 
     @SuppressLint("MissingPermission")
@@ -65,11 +88,8 @@ class LiveLocationService : Service(), LocationListener {
     }
 
     override fun onLocationChanged(location: Location) {
-        val now = System.currentTimeMillis() / 1000
-        val shares = _active.value
-        val (live, ended) = shares.values.partition { it.until > now }
-        ended.forEach { _active.value = _active.value - it.chatId }
-        if (live.isEmpty()) { stopSelf(); return }
+        val live = dropEnded()
+        if (live.isEmpty()) return
         val client = (application as KiroXApplication).telegram.client
         live.filter { it.messageId > 0 }.forEach { share ->
             client.send(TdApi.EditMessageLiveLocation(share.chatId, share.messageId, null, TdApi.LiveLocation(location.toTd(), 0, 0, 0)))
@@ -77,6 +97,7 @@ class LiveLocationService : Service(), LocationListener {
     }
 
     override fun onDestroy() {
+        timer.removeCallbacks(expiry)
         runCatching { manager.removeUpdates(this) }
         super.onDestroy()
     }
@@ -88,6 +109,7 @@ class LiveLocationService : Service(), LocationListener {
         private const val EXTRA_CHAT = "chat"
         private const val UPDATE_MS = 20_000L
         private const val UPDATE_METERS = 15f
+        private const val EXPIRY_CHECK_MS = 30_000L
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         private val _active = MutableStateFlow<Map<Long, LiveShare>>(emptyMap())
         /** Chats where your location is being shared now. */
@@ -114,7 +136,7 @@ class LiveLocationService : Service(), LocationListener {
                     client.query(TdApi.SendMessage(chatId, null, null, null, null, TdApi.InputMessageLiveLocation(TdApi.LiveLocation(location.toTd(), seconds, 0, 0))))
                 }.onSuccess { message ->
                     _active.value = _active.value + (chatId to LiveShare(chatId, message.id, System.currentTimeMillis() / 1000 + seconds))
-                    runCatching { context.startForegroundService(Intent(context, LiveLocationService::class.java)) }
+                    runCatching { androidx.core.content.ContextCompat.startForegroundService(context, Intent(context, LiveLocationService::class.java)) }
                 }
             }
         }
@@ -131,6 +153,7 @@ class LiveLocationService : Service(), LocationListener {
         fun stopAll(context: Context) = _active.value.keys.toList().forEach { stop(context, it) }
 
         private fun ensureChannel(context: Context) {
+        if (android.os.Build.VERSION.SDK_INT < 26) return
             context.getSystemService(NotificationManager::class.java).createNotificationChannel(
                 NotificationChannel(CHANNEL, I18n.t("Трансляция геопозиции"), NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) }
             )

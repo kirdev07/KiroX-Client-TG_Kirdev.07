@@ -41,10 +41,12 @@ object CustomIcon {
         return Bitmap.createBitmap(source, (source.width - side) / 2, (source.height - side) / 2, side, side)
     }
 
-    fun supported(context: Context): Boolean = context.getSystemService(ShortcutManager::class.java)?.isRequestPinShortcutSupported == true
+    fun supported(context: Context): Boolean = android.os.Build.VERSION.SDK_INT >= 26 && context.getSystemService(ShortcutManager::class.java)?.isRequestPinShortcutSupported == true
 
     /** Asks the launcher to add the shortcut; it shows its own confirmation. False when it can't. */
     fun pin(context: Context, label: String, icon: Bitmap): Boolean {
+        // Pinned shortcuts with adaptive icons are Android 8+.
+        if (android.os.Build.VERSION.SDK_INT < 26) return false
         val manager = context.getSystemService(ShortcutManager::class.java) ?: return false
         if (!manager.isRequestPinShortcutSupported) return false
         val open = Intent(context, com.kirox.app.MainActivity::class.java).setAction(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

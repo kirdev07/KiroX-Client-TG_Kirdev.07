@@ -114,7 +114,9 @@ class MessageNotifications(
             android.media.RingtoneManager.getRingtone(context, android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION))?.play()
         }
         if (local.inAppVibrate) runCatching {
-            context.getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(60, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            val vibrator = context.getSystemService(android.os.Vibrator::class.java)
+            if (android.os.Build.VERSION.SDK_INT >= 26) vibrator?.vibrate(android.os.VibrationEffect.createOneShot(60, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            else @Suppress("DEPRECATION") vibrator?.vibrate(60)
         }
     }
 
@@ -142,6 +144,9 @@ class MessageNotifications(
             .setNumber(if (!local.badge) 0 else if (local.badgeCountsMessages) group.items.size else 1)
             .setBadgeIconType(if (local.badge) NotificationCompat.BADGE_ICON_SMALL else NotificationCompat.BADGE_ICON_NONE)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            // Android 7 has no channels: these give the pop-up, sound and vibration the HIGH channel gives on 8+ (ignored there).
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setOnlyAlertOnce(!alert)
             .setSilent(quiet)
             // On a secure lock screen only "new message" shows, not the text.
@@ -231,7 +236,25 @@ class MessageNotifications(
     /** Marks the chat read: TDLib then removes the group everywhere. */
     fun markRead(groupId: Int, chatId: Long, maxNotificationId: Int) = client.post {
         client.send(TdApi.RemoveNotificationGroup(groupId, maxNotificationId))
-        chats.chat(chatId)?.lastMessage?.id?.let { last -> client.send(TdApi.ViewMessages(chatId, longArrayOf(last), null, true)) }
+        val view = { last: Long -> client.send(TdApi.ViewMessages(chatId, longArrayOf(last), null, true)) }
+        // Right after a start from the background the chat may not be loaded yet: ask TDLib for it.
+        chats.chat(chatId)?.lastMessage?.id?.let { view(it) }
+            ?: client.send(TdApi.GetChat(chatId)) { result -> (result as? TdApi.Chat)?.lastMessage?.id?.let { view(it) } }
+    }
+
+    /**
+     * «Прочитано» from the notification. In the background TDLib is usually paused (closed), where
+     * [markRead] alone would be dropped: start it, wait until it is ready, then pause it again.
+     */
+    suspend fun read(groupId: Int, chatId: Long, maxNotificationId: Int) {
+        cancel(groupId)
+        client.start()
+        try {
+            if (kotlinx.coroutines.withTimeoutOrNull(REPLY_WAIT) { client.ready.first { it } } == null) return
+            markRead(groupId, chatId, maxNotificationId)
+        } finally {
+            client.post(PAUSE_DELAY_MS) { client.pauseIfIdle() }
+        }
     }
 
     private fun senderName(message: TdApi.Message): String = when (val sender = message.senderId) {
@@ -304,6 +327,7 @@ class MessageNotifications(
         fun refreshChannels(context: Context) = ensureChannel(context)
 
         private fun ensureChannel(context: Context) {
+            if (android.os.Build.VERSION.SDK_INT < 26) return
             val manager = context.getSystemService(NotificationManager::class.java)
             manager.deleteNotificationChannel(OLD_CHANNEL)
             listOf(
@@ -341,11 +365,19 @@ class MessageActionReceiver : BroadcastReceiver() {
             return
         }
         if (intent.action != MessageNotifications.ACTION_READ) return
-        notifications.markRead(
-            intent.getIntExtra(MessageNotifications.EXTRA_GROUP, 0),
-            intent.getLongExtra(MessageNotifications.EXTRA_CHAT, 0),
-            intent.getIntExtra(MessageNotifications.EXTRA_MAX, 0)
-        )
+        // Keep the process alive while TDLib starts and sends the read marks.
+        val pending = goAsync()
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                notifications.read(
+                    intent.getIntExtra(MessageNotifications.EXTRA_GROUP, 0),
+                    intent.getLongExtra(MessageNotifications.EXTRA_CHAT, 0),
+                    intent.getIntExtra(MessageNotifications.EXTRA_MAX, 0)
+                )
+            } finally {
+                pending.finish()
+            }
+        }
     }
 }
 

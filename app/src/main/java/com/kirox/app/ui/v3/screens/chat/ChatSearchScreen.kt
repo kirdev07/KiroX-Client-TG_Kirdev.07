@@ -61,9 +61,10 @@ private val NameInks = listOf(Color(0xFFC7B5FF), Color(0xFF9FCBFF), Color(0xFFBD
 fun ChatSearchScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val chatId = ctx.arg?.toLongOrNull()
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
     val real = chatId?.let { store.messages(it) }.orEmpty().filter { it.kind != KxMsgKind.Service }
     val log = remember(real) {
-        if (real.isEmpty()) DemoLog else buildList {
+        if (demo) DemoLog else buildList {
             var n = 0
             real.forEach { m ->
                 m.dayHeader?.let { add(LogItem(day = it, dayN = ++n)) }
@@ -73,7 +74,7 @@ fun ChatSearchScreen(ctx: KxScreenCtx) {
             }
         }
     }
-    var q by remember { mutableStateOf(if (real.isEmpty()) "урок" else "") }
+    var q by remember { mutableStateOf(if (demo) "урок" else "") }
     var from by remember { mutableStateOf<Long?>(null) }
     var cur by remember { mutableIntStateOf(-1) }
     var listMode by remember { mutableStateOf(false) }
@@ -84,7 +85,7 @@ fun ChatSearchScreen(ctx: KxScreenCtx) {
     val qq = q.trim().lowercase()
     // Server search (store.searchInChat, newest first) adds hits that are loaded; ↑ past the oldest loaded hit loads older ones with store.jumpTo.
     val remoteIds by produceState(emptyList<Long>(), chatId, qq) {
-        value = if (chatId == null || qq.isEmpty() || real.isEmpty()) emptyList() else { kotlinx.coroutines.delay(300); store.searchInChat(chatId, qq) }
+        value = if (chatId == null || qq.isEmpty() || demo) emptyList() else { kotlinx.coroutines.delay(300); store.searchInChat(chatId, qq) }
     }
     val hits = log.indices.filter { i -> val m = log[i]; m.day == null && qq.isNotEmpty() && (m.text.lowercase().contains(qq) || (m.msgId != null && m.msgId in remoteIds)) && (from == null || m.by == from) }
     val loadedIds = log.mapNotNull { it.msgId }.toSet()

@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -94,16 +95,16 @@ private data class PendingDelete(val message: KxMessage, val forAll: Boolean, va
 
 /** Conversation (board «Чат»): flat header + pinned bar, bubbles, glass composer, round mic/send button. */
 @Composable
-fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit = {}, onMenu: () -> Unit = {}, onProfile: () -> Unit = {}, onOpen: (String) -> Unit = {}) {
+fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit = {}, onMenu: () -> Unit = {}, onProfile: () -> Unit = {}, onOpen: (String) -> Unit = {}, onOpenChat: (Long) -> Unit = {}) {
     val header = store.header(chatId)
     LocalStoreDownload = store::download
     LocalOpenMedia = { m -> onOpen((if (m.kind == KxMsgKind.Video) "VideoPlayer:" else "Viewer:") + "$chatId:${m.id}") }
     val look = chatLook(store)
-    androidx.compose.runtime.CompositionLocalProvider(LocalChatLook provides look) { ChatScreenBody(store, chatId, header, onBack, onCall, onMenu, onProfile, onOpen) }
+    androidx.compose.runtime.CompositionLocalProvider(LocalChatLook provides look) { ChatScreenBody(store, chatId, header, onBack, onCall, onMenu, onProfile, onOpen, onOpenChat) }
 }
 
 @Composable
-private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) -> Unit, onMenu: () -> Unit, onProfile: () -> Unit, onOpen: (String) -> Unit) {
+private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) -> Unit, onMenu: () -> Unit, onProfile: () -> Unit, onOpen: (String) -> Unit, onOpenChat: (Long) -> Unit) {
     val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
     var chatMenu by remember { mutableStateOf(false) }
     // Undo send (Чат → «Отмена отправки»): the text waits this many seconds before store.send; «Отменить» returns it.
@@ -120,6 +121,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
     var menuFor by remember(chatId) { mutableStateOf<KxMessage?>(null) }
     var editing by remember(chatId) { mutableStateOf<KxMessage?>(null) }
     var pending by remember(chatId) { mutableStateOf<PendingDelete?>(null) }
+    androidx.activity.compose.BackHandler(enabled = editing != null || replyTo != null) { if (editing != null) text = ""; editing = null; replyTo = null }
     var attach by remember { mutableStateOf(false) }
     var circleMode by rememberSaveable { mutableStateOf(false) }
     var recording by remember { mutableStateOf<Boolean?>(null) } // null = no, false = voice, true = circle
@@ -127,14 +129,75 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
     val messages = store.messages(chatId).filter { it.id != pending?.message?.id }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(0) }
+    // Follow the newest message only when it is ours or the list already sits at the bottom (older pages and
+    // incoming messages while reading further up must not yank the list).
+    val newest = messages.lastOrNull()
+    LaunchedEffect(newest?.id) { if (newest != null && (newest.out || listState.firstVisibleItemIndex <= 1)) listState.animateScrollToItem(0) }
     var hint by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(hint) { if (hint != null) { delay(1800); hint = null } }
     LaunchedEffect(recording) { recSecs = 0; while (recording != null) { delay(1000); recSecs++ } }
     LaunchedEffect(pending?.id) { val p = pending ?: return@LaunchedEffect; delay(5000); store.delete(chatId, listOf(p.message.id), p.forAll); if (pending?.id == p.id) pending = null }
     val latestPending by rememberUpdatedState(pending)
     DisposableEffect(chatId) { onDispose { latestPending?.let { store.delete(chatId, listOf(it.message.id), it.forAll) } } }
+    // Links in bubbles: web → in-app browser («Встроенный браузер») or the phone's browser; @name / t.me → the chat in kiroX;
+    // #tag → Hashtag board; /command → sent. KxChatPrefs.LINK_WARN on: a link whose text is not its address asks first.
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    var linkAsk by remember { mutableStateOf<KxConfirm?>(null) }
+    var browserUrl by remember { mutableStateOf<String?>(null) }
+    val openTarget: (KxLinkTarget) -> Unit = { t ->
+        when (t) {
+            is KxLinkTarget.Web -> if (!demo && store.tweaks["inAppBrowser"] == true) browserUrl = t.url
+                else if (runCatching { uriHandler.openUri(t.url) }.isFailure) toast("Не удалось открыть ссылку")
+            is KxLinkTarget.External -> if (runCatching { uriHandler.openUri(t.uri) }.isFailure) toast("Нет приложения для этой ссылки")
+            is KxLinkTarget.Username -> if (demo) toast("@${t.name}") else scope.launch {
+                val id = runCatching { store.publicChat(t.name) }.getOrNull()
+                if (id != null) onOpenChat(id) else toast("Не найдено: @${t.name}")
+            }
+            is KxLinkTarget.User -> if (demo) toast("Профиль недоступен в демо") else scope.launch {
+                val id = runCatching { store.privateChat(t.userId) }.getOrNull()
+                if (id != null) onOpenChat(id) else toast("Не удалось открыть чат")
+            }
+            is KxLinkTarget.Invite -> onOpen("JoinRequest:${t.link}")
+            is KxLinkTarget.Hashtag -> onOpen("Hashtag:#${t.tag}")
+            is KxLinkTarget.Command -> if (header.composer == KxComposer.Write) store.send(chatId, t.command) else toast(t.command)
+        }
+    }
+    val onLinkTap: (KxMessage, KxEntity) -> Unit = { msg, e ->
+        val t = KxChatLinks.target(msg.text, e)
+        val why = if ((store.prefs[KxChatPrefs.LINK_WARN] ?: 1) != 0) KxChatLinks.warning(msg.text, e) else null
+        if (t != null) {
+            if (why == null) openTarget(t)
+            else {
+                val label = KxChatLinks.part(msg.text, e).orEmpty()
+                val address = (t as? KxLinkTarget.Web)?.url ?: e.url.orEmpty()
+                val forged = com.kirox.app.ui.v3.data.KxChat3Mapping.linkWarning(label, address) != null
+                linkAsk = KxConfirm(
+                    title = if (forged) "Осторожно: подозрительная ссылка" else "Открыть ссылку?",
+                    text = "Текст ссылки: «$label»\n$address\n\n" + (if (forged) why + ". Не вводите там пароли и коды." else why),
+                    yes = if (forged) "Всё равно открыть" else "Открыть", danger = forged,
+                ) { openTarget(t) }
+            }
+        }
+    }
 
+    val msgActions = remember(chatId) { MsgActions(
+        vote = { msg, opts -> store.votePoll(chatId, msg.id, opts) },
+        button = { msg, r, c -> scope.launch {
+            val answer = runCatching { store.pressButton(chatId, msg.id, r, c) }.getOrNull()
+            when {
+                answer == null -> {}
+                answer.startsWith("http://") || answer.startsWith("https://") || answer.startsWith("tg://") -> KxChatLinks.url(answer)?.let { t ->
+                    if (t is KxLinkTarget.Web && (store.prefs[KxChatPrefs.LINK_WARN] ?: 1) != 0)
+                        linkAsk = KxConfirm("Открыть ссылку?", "Бот предлагает открыть\n$answer", "Открыть", danger = false) { openTarget(t) }
+                    else openTarget(t)
+                }
+                else -> toast(answer)
+            }
+        } },
+        retry = { msg -> store.retrySend(chatId, msg.id) },
+    ) }
+
+    androidx.compose.runtime.CompositionLocalProvider(LocalLinkTap provides onLinkTap, LocalMsgActions provides msgActions) {
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         // Two soft glows: radial-gradient(70% 40% at 100% 20%, .16) + (60% 35% at 0% 75%, .10).
         if (look.wallpaper == 2) Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF0F2A1D), Kx.bg, Color(0xFF0B1A13)))))
@@ -153,11 +216,14 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
         }
         val top = if (header.pinned != null) 184.dp else 130.dp
         LazyColumn(
-            Modifier.fillMaxSize().then(if (menuFor != null) Modifier.blur(10.dp) else Modifier), state = listState, reverseLayout = true,
+            Modifier.fillMaxSize().imePadding().then(if (menuFor != null) Modifier.blur(10.dp) else Modifier), state = listState, reverseLayout = true,
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = top, bottom = 104.dp),
             verticalArrangement = Arrangement.spacedBy(look.gap, Alignment.Bottom)
         ) {
-            items(messages.asReversed(), key = { it.id }) { m ->
+            val reversed = messages.asReversed()
+            itemsIndexed(reversed, key = { _, it -> it.id }) { index, m ->
+                // Older history: ask for the next page when the top 10 come into view (real store; demo has everything).
+                if (index >= reversed.size - 10 && !store.historyComplete(chatId)) LaunchedEffect(reversed.size) { store.loadOlder(chatId) }
                 Column(Modifier.fillMaxWidth().animateItem(fadeInSpec = tween(250), fadeOutSpec = tween(350), placementSpec = tween(350, easing = KxMotion.rise))) {
                     m.dayHeader?.let { DayPill(it) }
                     // wave3-account: gestures (ChatGestures board) and the word filter (KxChatGestures.kt)
@@ -237,7 +303,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
             Text(hint ?: "", style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(Color(0xF21E2823))
                 .border(1.dp, Kx.w(.12f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 7.dp))
         }
-        if (attach) { if (demo) AttachSheet(onClose = { attach = false }, onSend = { n -> attach = false; toast(if (n == 1) "Фото отправлено" else "Отправлено фото: $n") })
+        if (attach) { if (demo) AttachSheet(onClose = { attach = false }, onSend = { n -> attach = false; toast(if (n == 1) "Фото отправлено" else "Отправлено фото: $n") }, onOpen = onOpen)
             else RealAttachSheet(store, chatId, onClose = { attach = false }, onOpen = onOpen, toast = { toast(it) }) }
         held?.let { h ->
             Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding().padding(start = 14.dp, end = 14.dp, bottom = 84.dp).fillMaxWidth()
@@ -260,7 +326,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 onPin = { store.pin(chatId, m.id, !m.pinned); menuFor = null },
                 onSave = { store.saveToFavorites(chatId, listOf(m.id)); menuFor = null; toast("Сохранено в Избранное") },
                 onSelect = { menuFor = null; if (demo) toast("Выбрано: 1") else onOpen("MultiSelect:$chatId:${m.id}") },
-                onAllReactions = { menuFor = null; if (!demo) onOpen("ReactPicker:$chatId:${m.id}") },
+                onAllReactions = { menuFor = null; onOpen(if (demo) "ReactPicker" else "ReactPicker:$chatId:${m.id}") },
                 more = if (demo) emptyList() else buildList {
                     val group = header.kind == KxChatKind.Group
                     add(Triple(Icons.Outlined.Info, "Сведения") { menuFor = null; onOpen("MsgInfo:$chatId:${m.id}") })
@@ -273,6 +339,11 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 canDeleteForAll = m.canDeleteForAll && header.kind != KxChatKind.Saved,
             )
         }
+        linkAsk?.let { c -> KxConfirmDialog(c) { linkAsk = null } }
+    }
+    }
+    browserUrl?.let { url ->
+        com.kirox.app.ui.chat.InAppBrowser(url, onTelegramLink = { link -> browserUrl = null; KxChatLinks.url(link)?.let { if (it !is KxLinkTarget.Web) openTarget(it) else runCatching { uriHandler.openUri(link) } } }) { browserUrl = null }
     }
 }
 
@@ -391,10 +462,12 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
                     }
                 }
                 if (m.kind == KxMsgKind.File || m.kind == KxMsgKind.Music) FileLine(m)
+                val poll = m.poll
                 val pad = when { m.reply != null -> PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 7.dp); m.out -> PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 7.dp); else -> PaddingValues(start = 13.dp, end = 13.dp, top = 9.dp, bottom = 7.dp) }
-                TextWithMeta(m, Modifier.padding(pad))
+                if (m.kind == KxMsgKind.Poll && poll != null) PollBlock(m, poll) else TextWithMeta(m, Modifier.padding(pad))
             }
         }
+        if (m.buttons.isNotEmpty()) InlineButtons(m)
         if (m.reactions.isNotEmpty()) Row(Modifier.padding(top = 1.dp, bottom = 2.dp, start = 6.dp, end = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             m.reactions.forEach { r ->
                 Text("${r.emoji} ${r.count}", style = KxType.style(13.sp),
@@ -411,10 +484,118 @@ private fun TextWithMeta(m: KxMessage, modifier: Modifier) {
     Row(modifier, verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Column(Modifier.weight(1f, fill = false)) {
             val lk = LocalChatLook.current
-            Text(m.translation ?: m.text, style = KxType.style(lk.textSp.sp, color = if (m.out) OutText else Kx.text, lineHeight = (lk.textSp + 6f).sp))
+            val onLink = LocalLinkTap.current
+            val body = if (m.translation != null || m.entities.isEmpty()) androidx.compose.ui.text.AnnotatedString(m.translation ?: m.text)
+                else remember(m.text, m.entities, m.out, onLink) { bubbleText(m, onLink) }
+            Text(body, style = KxType.style(lk.textSp.sp, color = if (m.out) OutText else Kx.text, lineHeight = (lk.textSp + 6f).sp))
             if (m.translation != null) Text("Перевод · оригинал в меню", style = KxType.style(11.sp, color = if (m.out) OutMeta else Kx.text4))
         }
         MetaText(m, if (m.out) OutMeta else Kx.text4)
+    }
+}
+
+/** Poll votes, inline bot buttons and «send again» from the bubbles (set by ChatScreenBody). */
+private class MsgActions(val vote: (KxMessage, List<Int>) -> Unit, val button: (KxMessage, Int, Int) -> Unit, val retry: (KxMessage) -> Unit)
+private val LocalMsgActions = androidx.compose.runtime.staticCompositionLocalOf<MsgActions?> { null }
+
+private fun votesWord(n: Int) = if (n % 10 == 1 && n % 100 != 11) "голос" else if (n % 10 in 2..4 && n % 100 !in 12..14) "голоса" else "голосов"
+
+/** Poll / quiz in the bubble (board «Опрос», poll in chat): answers with result bars after voting, «Проголосовать» for multiple choice, «Отменить голос». */
+@Composable
+private fun PollBlock(m: KxMessage, p: KxPoll) {
+    val act = LocalMsgActions.current
+    val sub = if (m.out) Color(0xFFA9D9BF) else Kx.text3
+    val ink = if (m.out) OutText else Kx.text
+    var picked by remember(m.id, p.voted) { mutableStateOf(setOf<Int>()) }
+    val reveal = p.voted || p.closed
+    Column(Modifier.widthIn(min = 260.dp).padding(14.dp)) {
+        Text(p.question, style = KxType.style(16.sp, FontWeight.ExtraBold, ink, lineHeight = 21.sp))
+        Text((if (p.anonymous) "Анонимный " else "Открытый ") + (if (p.quiz) "тест" else "опрос") + (if (p.multiple) " · несколько ответов" else "") + (if (p.closed) " · завершён" else ""),
+            style = KxType.style(12.sp, color = sub), modifier = Modifier.padding(top = 3.dp))
+        Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            p.options.forEachIndexed { i, o ->
+                val pick = if (reveal) o.chosen else i in picked
+                val wrong = reveal && p.quiz && o.chosen && !o.correct
+                val bar = when { !reveal -> Color.Transparent; p.quiz -> if (o.correct) Color(0x598FD3AC) else if (o.chosen) Color(0x4DFF8A80) else Kx.w(.08f); pick -> Color(0x598FD3AC); else -> Kx.w(.1f) }
+                val mark = if (reveal) pick || (p.quiz && o.correct) else pick
+                val ring = when { wrong -> Color(0xFFFF8A80); mark -> Kx.accent; else -> Color(0xFFA9D9BF) }
+                val shape = RoundedCornerShape(if (p.multiple) 6.dp else 11.dp)
+                Box(Modifier.fillMaxWidth().heightIn(min = 42.dp).clip(RoundedCornerShape(14.dp)).background(Color.Black.copy(alpha = .18f))
+                    .then(if (!reveal && p.canVote && act != null) Modifier.kxClick(o.text) {
+                        if (p.multiple) picked = if (i in picked) picked - i else picked + i else act.vote(m, listOf(i))
+                    } else Modifier)) {
+                    if (reveal) Box(Modifier.matchParentSize().fillMaxWidth(o.percent.coerceIn(0, 100) / 100f).background(bar))
+                    Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(Modifier.size(22.dp).clip(shape).border(2.dp, ring, shape).background(if (mark) ring else Color.Transparent), contentAlignment = Alignment.Center) {
+                            if (mark) Icon(if (wrong) Icons.Rounded.Close else Icons.Rounded.Check, null, Modifier.size(15.dp), tint = Color(0xFF06150D))
+                        }
+                        Text(o.text, style = KxType.style(14.sp, FontWeight.SemiBold, ink), modifier = Modifier.weight(1f).padding(vertical = 10.dp))
+                        if (reveal) Text("${o.percent}%", style = KxType.style(13.sp, FontWeight.ExtraBold, ink))
+                    }
+                }
+            }
+        }
+        Row(Modifier.padding(top = 10.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(if (p.total > 0) "${p.total} ${votesWord(p.total)}" else "Пока нет голосов", style = KxType.style(12.sp, color = sub), modifier = Modifier.weight(1f))
+            if (!reveal && p.multiple && picked.isNotEmpty() && act != null) Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.accent)
+                .kxClick("Проголосовать") { act.vote(m, picked.sorted()) }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+                Text("Проголосовать", style = KxType.style(12.sp, FontWeight.ExtraBold, Color(0xFF06150D)))
+            }
+            if (p.voted && !p.closed && !p.quiz && act != null) Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Color.Black.copy(alpha = .2f))
+                .kxClick("Отменить голос") { act.vote(m, emptyList()) }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                Text("Отменить голос", style = KxType.style(12.sp, FontWeight.Bold, ink))
+            }
+            MetaText(m, if (m.out) OutMeta else Kx.text4)
+        }
+    }
+}
+
+/** Inline keyboard of a bot message: rows of buttons under the bubble; a tap asks the bot (store.pressButton). */
+@Composable
+private fun InlineButtons(m: KxMessage) {
+    val act = LocalMsgActions.current
+    Column(Modifier.widthIn(max = 312.dp).padding(top = 3.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        m.buttons.forEachIndexed { r, row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                row.forEachIndexed { c, label ->
+                    Box(Modifier.weight(1f).heightIn(min = 38.dp).clip(RoundedCornerShape(12.dp)).background(Kx.w(.08f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(12.dp))
+                        .kxClick(label) { act?.button?.invoke(m, r, c) }.padding(horizontal = 8.dp, vertical = 6.dp), contentAlignment = Alignment.Center) {
+                        Text(label, style = KxType.style(13.sp, FontWeight.SemiBold), maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** A tap on a link/@mention/#hashtag/phone in a bubble (set by ChatScreenBody; null = links not tappable). */
+private val LocalLinkTap = androidx.compose.runtime.staticCompositionLocalOf<((KxMessage, KxEntity) -> Unit)?> { null }
+
+/** Message text with its entities: bold/italic/underline/strike/code, and links in the LinkWarn colour (#8FD3AC, underlined) that react to a tap. */
+private fun bubbleText(m: KxMessage, onLink: ((KxMessage, KxEntity) -> Unit)?) = androidx.compose.ui.text.buildAnnotatedString {
+    val text = m.text
+    append(text)
+    val linkInk = if (m.out) OutMeta else Color(0xFF8FD3AC)
+    m.entities.forEach { e ->
+        if (KxChatLinks.part(text, e) == null) return@forEach
+        val start = e.offset; val end = e.offset + e.length
+        val style = when (e.type) {
+            KxEntityType.Bold -> androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)
+            KxEntityType.Italic -> androidx.compose.ui.text.SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+            KxEntityType.Underline -> androidx.compose.ui.text.SpanStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline)
+            KxEntityType.Strike -> androidx.compose.ui.text.SpanStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
+            KxEntityType.Code, KxEntityType.Pre -> androidx.compose.ui.text.SpanStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+            else -> null
+        }
+        if (style != null) addStyle(style, start, end)
+        if (KxChatLinks.isTappable(e) && KxChatLinks.target(text, e) != null) {
+            val web = e.type == KxEntityType.Link || e.type == KxEntityType.TextLink
+            val ink = androidx.compose.ui.text.SpanStyle(color = linkInk,
+                textDecoration = if (web) androidx.compose.ui.text.style.TextDecoration.Underline else null)
+            if (onLink == null) addStyle(ink, start, end)
+            else addLink(androidx.compose.ui.text.LinkAnnotation.Clickable(
+                tag = "kx-link-$start", styles = androidx.compose.ui.text.TextLinkStyles(ink)) { onLink(m, e) }, start, end)
+        }
     }
 }
 
@@ -426,7 +607,8 @@ private fun MetaText(m: KxMessage, color: Color) {
             KxOutState.Read -> Icon(Icons.Rounded.DoneAll, "Прочитано", Modifier.size(14.dp), tint = color)
             KxOutState.Sent -> Icon(Icons.Rounded.Done, "Отправлено", Modifier.size(14.dp), tint = color)
             KxOutState.Sending -> Icon(Icons.Rounded.Schedule, "Отправляется", Modifier.size(13.dp), tint = color)
-            KxOutState.Failed -> Icon(Icons.Rounded.ErrorOutline, "Не отправлено", Modifier.size(14.dp), tint = Kx.danger)
+            KxOutState.Failed -> { val retry = LocalMsgActions.current?.retry
+                Icon(Icons.Rounded.ErrorOutline, "Не отправлено", Modifier.size(14.dp).then(if (retry != null) Modifier.kxClick("Отправить ещё раз") { retry(m) } else Modifier), tint = Kx.danger) }
             KxOutState.None -> {}
         }
     }
@@ -646,7 +828,10 @@ private fun ChannelBar(mode: KxComposer, modifier: Modifier, onClick: () -> Unit
 
 /** «Недавние» attach sheet: camera + 5 photos with numbered marks, 8 kinds, caption + «Отправить N». */
 @Composable
-private fun AttachSheet(onClose: () -> Unit, onSend: (Int) -> Unit) {
+private fun AttachSheet(onClose: () -> Unit, onSend: (Int) -> Unit, onOpen: (String) -> Unit = {}) {
+    val camToast = LocalKxToast.current
+    val boardOf = mapOf("Галерея" to "Gallery", "Файл" to "FilePicker", "Место" to "Location", "Опрос" to "Poll", "Контакт" to "ShareContact", "Музыка" to "Music", "Игры" to "DiceGames", "Позже" to "Schedule")
+    androidx.activity.compose.BackHandler(onBack = onClose)
     val picked = remember { mutableStateListOf<Int>() }
     val tiles = listOf(listOf(Color(0xFF3E7A5A), Color(0xFF173A28)), listOf(Color(0xFF4B3F7A), Color(0xFF1E1830)), listOf(Color(0xFFC08A4A), Color(0xFF4A3018)),
         listOf(Color(0xFF3C7BD0), Color(0xFF142A4A)), listOf(Color(0xFFA24B5B), Color(0xFF3A1820)))
@@ -671,7 +856,7 @@ private fun AttachSheet(onClose: () -> Unit, onSend: (Int) -> Unit) {
             Column(Modifier.clip(RoundedCornerShape(18.dp)), verticalArrangement = Arrangement.spacedBy(4.dp)) { cells.chunked(3).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     row.forEach { i ->
-                        if (i < 0) Column(Modifier.weight(1f).height(108.dp).background(Color(0xFF151A17)).kxClick("Снять фото") {},
+                        if (i < 0) Column(Modifier.weight(1f).height(108.dp).background(Color(0xFF151A17)).kxClick("Снять фото") { camToast("Камера в демо не снимает — выберите фото ниже") },
                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                             Icon(Icons.Outlined.PhotoCamera, null, Modifier.size(30.dp), tint = Kx.accent); Text("Камера", style = KxType.style(12.sp, FontWeight.SemiBold, Kx.accent), modifier = Modifier.padding(top = 4.dp))
                         } else {
@@ -695,7 +880,7 @@ private fun AttachSheet(onClose: () -> Unit, onSend: (Int) -> Unit) {
             if (picked.isEmpty()) kinds.chunked(4).forEach { row ->
                 Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     row.forEach { (ic, label, colors) ->
-                        Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).kxClick(label) {}.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).kxClick(label) { boardOf[label]?.let { onClose(); onOpen(it) } }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(Modifier.size(52.dp).clip(RoundedCornerShape(18.dp)).background(colors.first), contentAlignment = Alignment.Center) { Icon(ic, null, tint = colors.second) }
                             Text(label, style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.padding(top = 6.dp))
                         }
@@ -705,7 +890,7 @@ private fun AttachSheet(onClose: () -> Unit, onSend: (Int) -> Unit) {
                 Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(24.dp)).background(Kx.fill).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
                     Text("Подпись…", style = KxType.style(15.sp, color = Kx.text4))
                 }
-                Box(Modifier.size(48.dp).clip(CircleShape).background(Kx.fillHi).kxClick("Редактировать фото") {}, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Tune, null, tint = Kx.text) }
+                Box(Modifier.size(48.dp).clip(CircleShape).background(Kx.fillHi).kxClick("Редактировать фото") { onClose(); onOpen("Editor") }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Tune, null, tint = Kx.text) }
                 KxButton("Отправить ${picked.size}", height = 48.dp, icon = Icons.AutoMirrored.Rounded.Send) { onSend(picked.size) }
             }
         }

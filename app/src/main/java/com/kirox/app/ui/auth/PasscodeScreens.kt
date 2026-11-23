@@ -35,6 +35,8 @@ import kotlin.time.Duration.Companion.seconds
 
 /** Whether the phone has a fingerprint or face enrolled that apps may use. */
 internal fun biometricAvailable(context: Context): Boolean {
+    // The system BiometricManager is Android 10+; on Android 7–9 the passcode alone unlocks kiroX.
+    if (android.os.Build.VERSION.SDK_INT < 29) return false
     val manager = context.getSystemService(BiometricManager::class.java) ?: return false
     return if (android.os.Build.VERSION.SDK_INT >= 30) manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
     else @Suppress("DEPRECATION") (manager.canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS)
@@ -42,6 +44,7 @@ internal fun biometricAvailable(context: Context): Boolean {
 
 /** The system fingerprint sheet; [onSuccess] runs on the main thread. */
 internal fun askBiometric(context: Context, onSuccess: () -> Unit) {
+    if (android.os.Build.VERSION.SDK_INT < 29) return
     val executor = context.mainExecutor
     val prompt = BiometricPrompt.Builder(context)
         .setTitle("Вход в kiroX")

@@ -411,13 +411,8 @@ internal class KxMediaBinder(
             val projection = arrayOf(android.provider.MediaStore.Files.FileColumns._ID, android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE, android.provider.MediaStore.Video.VideoColumns.DURATION)
             val image = android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE
             val videoType = android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO
-            val args = android.os.Bundle().apply {
-                putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, "${android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE} IN ($image, $videoType)")
-                putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(android.provider.MediaStore.Files.FileColumns.DATE_ADDED))
-                putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION, android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
-                putInt(android.content.ContentResolver.QUERY_ARG_LIMIT, limit)
-            }
-            app.contentResolver.query(collection, projection, args, null)?.use { c ->
+            com.kirox.app.compat.MediaCompat.queryNewest(app.contentResolver, collection, projection, "${android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE} IN ($image, $videoType)", android.provider.MediaStore.Files.FileColumns.DATE_ADDED, limit)?.use { c ->
+
                 buildList {
                     while (c.moveToNext()) {
                         val video = c.getInt(1) == videoType

@@ -5,7 +5,9 @@ Usage (from anywhere):
   python design-reference/kirox-v3/qa/kxbuild.py compile          -> :app:compileDebugKotlin
   python design-reference/kirox-v3/qa/kxbuild.py test "com.kirox.app.v3.*"
   python design-reference/kirox-v3/qa/kxbuild.py install          -> installV3preview on the Xiaomi only
+  python design-reference/kirox-v3/qa/kxbuild.py installtest      -> installQadc = com.kirox.app.testdc (Telegram test servers) on the Xiaomi only
   python design-reference/kirox-v3/qa/kxbuild.py raw <gradle args...>
+  python design-reference/kirox-v3/qa/kxbuild.py rawonline <gradle args...>   (fetches new dependencies once)
 
 Waits for the shared lock, runs Gradle with the team JDK, prints only errors/warnings summary
 and the exit code. Never run ./gradlew directly while this team is working.
@@ -38,7 +40,13 @@ def main():
     if cmd == 'compile': args = [':app:compileDebugKotlin']
     elif cmd == 'test': args = [':app:testDebugUnitTest'] + (['--tests', rest[0]] if rest else [])
     elif cmd == 'install': args = [':app:installV3preview']; env['ANDROID_SERIAL'] = '79ed61c9'
+    # Telegram test-server build (com.kirox.app.testdc, qa/testdc.md): Xiaomi only, never the real app.
+    elif cmd == 'installtest': args = [':app:installQadc']; env['ANDROID_SERIAL'] = '79ed61c9'
     elif cmd == 'raw': args = rest
+    # Same as raw but without --offline: only to fetch a newly added dependency once (never installs).
+    elif cmd == 'rawonline':
+        if any('install' in a.lower() for a in rest): print('rawonline never installs'); return 2
+        args = rest
     elif cmd == 'rawfull':
         if any('install' in a.lower() for a in rest): print('rawfull never installs; use install'); return 2
         args = rest
@@ -48,7 +56,7 @@ def main():
     try:
         # The v3 module outgrew a 2 GB daemon (OOM in compileDebugKotlin): bigger heap for team builds only.
         mem = ['-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8', '-Pkotlin.daemon.jvmargs=-Xmx3g']
-        p = subprocess.run([gradlew] + mem + args + (['--offline'] if cmd == 'rawfull' else ['--offline', '-q']), cwd=ROOT, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+        p = subprocess.run([gradlew] + mem + args + ([] if cmd == 'rawonline' else ['--offline'] if cmd == 'rawfull' else ['--offline', '-q']), cwd=ROOT, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
         out = (p.stdout or '') + (p.stderr or '')
         ol = out.splitlines(); lines = []
         for i, l in enumerate(ol):

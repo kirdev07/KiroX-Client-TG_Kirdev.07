@@ -50,7 +50,7 @@ internal fun rememberUriThumb(uri: String, px: Int = 360): ImageBitmap? {
     val context = LocalContext.current
     val bmp by produceState<ImageBitmap?>(null, uri, px) {
         value = withContext(Dispatchers.IO) {
-            runCatching { context.contentResolver.loadThumbnail(android.net.Uri.parse(uri), android.util.Size(px, px), null).asImageBitmap() }.getOrNull()
+            runCatching { com.kirox.app.compat.MediaCompat.thumbnail(context.contentResolver, android.net.Uri.parse(uri), px)?.asImageBitmap() }.getOrNull()
         }
     }
     return bmp
@@ -63,7 +63,7 @@ internal fun UriThumb(uri: String, modifier: Modifier, px: Int = 360, scale: Con
 
 private fun mediaPermissions(): Array<String> = if (android.os.Build.VERSION.SDK_INT >= 33)
     arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VIDEO)
-    else arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+    else if (android.os.Build.VERSION.SDK_INT < 29) arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) else arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
 
 /** StoryPost on the real account: pick a photo/video from the phone, caption, audience, publish (PostStory). */
 @Composable

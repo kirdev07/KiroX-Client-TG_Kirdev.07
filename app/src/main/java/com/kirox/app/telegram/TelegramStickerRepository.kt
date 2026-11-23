@@ -76,9 +76,10 @@ class TelegramStickerRepository(private val client: TelegramClient) {
     }.getOrDefault(false)
 
     suspend fun savedGifs(): List<TelegramPanelItem> = runCatching {
-        client.query(TdApi.GetSavedAnimations()).animations.map { a ->
+        client.query(TdApi.GetSavedAnimations()).animations.mapNotNull { a ->
+            // One GIF without a usable file must not empty the whole saved list.
             val (media, thumbnail) = mediaOf(TdApi.MessageAnimation(a, TdApi.FormattedText("", emptyArray()), false, false, false))
-            TelegramPanelItem(a.animation.id, media!!, thumbnail, isGif = true)
+            media?.let { TelegramPanelItem(a.animation.id, it, thumbnail, isGif = true) }
         }
     }.getOrDefault(emptyList())
 
