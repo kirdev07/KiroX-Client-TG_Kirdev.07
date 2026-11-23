@@ -171,7 +171,9 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                     androidx.compose.foundation.pager.HorizontalPager(tabPager, Modifier.fillMaxSize(), beyondViewportPageCount = 1,
                         userScrollEnabled = !selecting, key = { pages.getOrNull(it) ?: it }) { pageIndex ->
                         val t = pages.getOrNull(pageIndex) ?: KxTab.Chats
-                        saveables.SaveableStateProvider("tab-$t") { when (t) {
+                        // One root per page: a pager lays several root nodes of a page out side by side (Chats has the glow,
+                        // the column and its overlays — the column landed one screen to the right, off-screen).
+                        saveables.SaveableStateProvider("tab-$t") { Box(Modifier.fillMaxSize()) { when (t) {
                             KxTab.Chats -> ChatsScreen(
                                 store,
                                 onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) },
@@ -187,7 +189,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                             KxTab.Stories -> StoriesScreen(store, onOpenViewer = { nav.push(KxRoute.Story(it)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                             KxTab.Settings -> SettingsScreen(store, onOpen = { nav.push(KxRoute.Screen(it)) })
                             else -> KxTabPlaceholder(t)
-                        } }
+                        } } }
                     }
                     if (!selecting) KxBottomFade(Modifier.align(Alignment.BottomCenter))
                     if (!selecting) KxDock(shownTab, { tab = it }, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 22.dp),
