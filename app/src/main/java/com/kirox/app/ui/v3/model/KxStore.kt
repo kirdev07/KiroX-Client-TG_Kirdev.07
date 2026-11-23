@@ -436,6 +436,13 @@ interface KxStore {
     suspend fun postStory(media: KxDeviceMedia, caption: String, audience: Int): String? = null
     /** Sends a picked photo/video to a chat (VideoTrim / Editor «Отправить»). */
     suspend fun sendDeviceMedia(chatId: Long, media: KxDeviceMedia, caption: String = ""): String? = null
+    /** Attach sheet: a picked photo/video under a spoiler, or [asFile] as a document (original quality, real name). */
+    suspend fun sendDeviceMediaAs(chatId: Long, media: KxDeviceMedia, caption: String = "", spoiler: Boolean = false, asFile: Boolean = false): String? =
+        sendDeviceMedia(chatId, media, caption)
+    /** Attach «Музыка»: an audio file picked through the system ([uri] content uri) sent as music with its title/performer. */
+    suspend fun sendDeviceAudio(chatId: Long, uri: String, caption: String = ""): String? = null
+    /** «записывает видеосообщение» in [chatId] while the round-video recorder is open ([on] false clears it). */
+    fun roundActivity(chatId: Long, on: Boolean) {}
     /** User ids of the «Близкие друзья» list. */
     suspend fun closeFriends(): Set<Long> = emptySet()
     /** Private chat with a user (created if TDLib does not know it yet); null on failure. */

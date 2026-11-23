@@ -126,6 +126,8 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
 private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) -> Unit, onMenu: () -> Unit, onProfile: () -> Unit, onOpen: (String) -> Unit, onOpenChat: (Long) -> Unit) {
     val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
     var chatMenu by remember { mutableStateOf(false) }
+    // Real account: each increment opens the round-video recorder (composer circle mode or the attach «Кружок» tile).
+    var roundReq by remember { mutableIntStateOf(0) }
     // Undo send (Чат → «Отмена отправки»): the text waits this many seconds before store.send; «Отменить» returns it.
     val undoSecs = store.pref(KxChatPrefs.UNDO_SEND)
     var held by remember(chatId) { mutableStateOf<Pair<String, Long?>?>(null) }
@@ -353,12 +355,12 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 },
                 attachOpen = attach, onAttach = { attach = !attach },
                 circleMode = circleMode, onToggleMode = {
-                    // Real account: round videos have no camera recorder yet — stay on voice and say so instead of recording nothing.
-                    if (!demo) hint = "Кружки пока не поддерживаются — удерживайте для голосового"
-                    else { circleMode = !circleMode; hint = if (circleMode) "Удерживайте, чтобы записать кружок" else "Удерживайте, чтобы записать голосовое" }
+                    // Real account: holding in circle mode opens the old UI's round-video recorder (tap to record, tap to send there).
+                    circleMode = !circleMode
+                    hint = if (circleMode) "Удерживайте, чтобы записать кружок" else "Удерживайте, чтобы записать голосовое"
                 },
                 recording = recording, recSecs = recSecs,
-                onRecStart = { recording = circleMode; store.recordStart(chatId, circleMode) },
+                onRecStart = { if (circleMode && !demo) roundReq++ else { recording = circleMode; store.recordStart(chatId, circleMode) } },
                 onRecEnd = { send ->
                     val r = recording; recording = null
                     if (r != null) store.recordStop(chatId, send, recSecs.coerceAtLeast(1))
@@ -380,7 +382,8 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 .border(1.dp, Kx.w(.12f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 7.dp))
         }
         if (attach) { if (demo) AttachSheet(onClose = { attach = false }, onSend = { n -> attach = false; toast(if (n == 1) "Фото отправлено" else "Отправлено фото: $n") }, onOpen = onOpen)
-            else RealAttachSheet(store, chatId, onClose = { attach = false }, onOpen = onOpen, toast = { toast(it) }) }
+            else RealAttachSheet(store, chatId, onClose = { attach = false }, onOpen = onOpen, toast = { toast(it) }, onRound = { roundReq++ }) }
+        if (!demo) RealRoundVideo(store, chatId, roundReq, toast = { toast(it) })
         held?.let { h ->
             Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding().padding(start = 14.dp, end = 14.dp, bottom = 84.dp).fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp)).background(Color(0xF21E2823)).border(1.dp, Kx.w(.12f), RoundedCornerShape(18.dp)).padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),

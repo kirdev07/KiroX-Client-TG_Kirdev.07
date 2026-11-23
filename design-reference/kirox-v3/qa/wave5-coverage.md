@@ -113,7 +113,7 @@
 | Formatting entities in bubbles | — | ChatScreen bubble | ok (code; demo shows raw **) |
 | Attach sheet tiles | TelegramChatScreen.kt:977 | RealAttachSheet / demo AttachSheet — phone ✔ demo | gap high (camera, picker, music, spoiler, round, live loc) |
 | Voice record (hold, lock, cancel) | VoiceNotes.kt | Composer — phone ✔ demo (0:02 sent) | ok |
-| Round video record | VideoNoteRecorder.kt | «Кружки пока не поддерживаются» on real | gap high |
+| Round video record | VideoNoteRecorder.kt | real: old VideoNoteRecorder reused (attach «Кружок», hold mic in circle mode) | ok (fixer-attach, not phone-tested) |
 | Stickers / GIF / emoji panel | StickerPanel.kt | composer button `{}` — phone ✔ dead | gap high |
 | Scroll / paging / «Вниз» | requestOlder | loadOlder, ↓ button | ok |
 | Jump to message (date, search hit, pinned, show in chat) | rows.indexOfFirst + jumpDone | not handled | bug high |

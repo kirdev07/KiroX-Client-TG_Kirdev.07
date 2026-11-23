@@ -466,9 +466,15 @@ internal class KxMediaBinder(
         return attempt { services.stories.postStory(path, media.video, ((media.durationMs + 999) / 1000).toInt().coerceIn(1, 60).takeIf { media.video } ?: 0, caption, aud) }
     }
 
-    suspend fun sendDeviceMedia(chatId: Long, media: KxDeviceMedia, caption: String): String? {
-        val path = localCopy(media) ?: return "Не удалось открыть файл"
+    suspend fun sendDeviceMedia(chatId: Long, media: KxDeviceMedia, caption: String, spoiler: Boolean = false, asFile: Boolean = false): String? {
         val text = caption.takeIf { it.isNotBlank() }?.let { TdApi.FormattedText(it, emptyArray()) }
+        // Attach «Как файл»: the original bytes under the real file name, no recompression.
+        if (asFile) {
+            val file = namedCopy(media.uri) ?: return "Не удалось открыть файл"
+            return attempt { client.query(TdApi.SendMessage(chatId, null, null, null, null, TdApi.InputMessageDocument().apply {
+                document = TdApi.InputDocument().apply { document = TdApi.InputFileLocal(file) }; this.caption = text })) }
+        }
+        val path = localCopy(media) ?: return "Не удалось открыть файл"
         val seconds = ((media.durationMs + 999) / 1000).toInt()
         // wave5: width/height/duration + a preview frame for videos (other clients showed 0×0 and no preview).
         val meta = if (media.video) videoMeta(path) else null
@@ -476,11 +482,62 @@ internal class KxMediaBinder(
             video = TdApi.InputVideo().apply { video = TdApi.InputFileLocal(path); addedStickerFileIds = IntArray(0); duration = meta?.seconds?.takeIf { it > 0 } ?: seconds; supportsStreaming = true
                 meta?.let { m -> width = m.width; height = m.height; m.thumb?.let { t -> thumbnail = TdApi.InputThumbnail(TdApi.InputFileLocal(t), m.thumbW, m.thumbH) } } }
             this.caption = text
+            hasSpoiler = spoiler
         } else TdApi.InputMessagePhoto().apply {
             photo = TdApi.InputPhoto().apply { photo = TdApi.InputFileLocal(path); addedStickerFileIds = IntArray(0) }
             this.caption = text
+            hasSpoiler = spoiler
         }
         return attempt { client.query(TdApi.SendMessage(chatId, null, null, null, null, content)) }
+    }
+
+    /** A picked content uri copied into the app cache under its own display name (documents, music show that name). */
+    private suspend fun namedCopy(uri: String): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            val u = android.net.Uri.parse(uri)
+            val root = java.io.File(app.cacheDir, "v3-picked").apply { mkdirs() }
+            root.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 24 * 3600_000L }?.forEach { it.deleteRecursively() }
+            val shown = app.contentResolver.query(u, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) c.getString(0) else null }
+            val mime = app.contentResolver.getType(u)
+            val ext = mime?.let { android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+            val name = (shown ?: "file_${System.currentTimeMillis()}${ext?.let { ".$it" }.orEmpty()}").replace(Regex("[\\\\/:*?\"<>|]"), "_").take(120)
+            val dir = java.io.File(root, "n${System.nanoTime()}").apply { mkdirs() }
+            val out = java.io.File(dir, name)
+            app.contentResolver.openInputStream(u)!!.use { input -> out.outputStream().use { input.copyTo(it) } }
+            out.absolutePath
+        }.getOrNull()
+    }
+
+    /** Attach «Музыка»: an audio file sent as music — title, performer, length and the album cover read from the file. */
+    suspend fun sendDeviceAudio(chatId: Long, uri: String, caption: String): String? {
+        val path = namedCopy(uri) ?: return "Не удалось открыть файл"
+        val text = caption.takeIf { it.isNotBlank() }?.let { TdApi.FormattedText(it, emptyArray()) }
+        val audio = withContext(Dispatchers.IO) {
+            val r = android.media.MediaMetadataRetriever()
+            val input = TdApi.InputAudio().apply { audio = TdApi.InputFileLocal(path); title = ""; performer = "" }
+            try {
+                r.setDataSource(path)
+                input.title = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE)?.trim().orEmpty()
+                    .ifEmpty { java.io.File(path).nameWithoutExtension }
+                input.performer = (r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                    ?: r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST))?.trim().orEmpty()
+                input.duration = (((r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) + 999) / 1000).toInt()
+                runCatching {
+                    val art = r.embeddedPicture ?: return@runCatching
+                    val bmp = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size) ?: return@runCatching
+                    val scale = 320f / maxOf(bmp.width, bmp.height).coerceAtLeast(1)
+                    val small = if (scale < 1f) android.graphics.Bitmap.createScaledBitmap(bmp, (bmp.width * scale).toInt().coerceAtLeast(1), (bmp.height * scale).toInt().coerceAtLeast(1), true) else bmp
+                    val f = java.io.File("$path.cover.jpg")
+                    f.outputStream().use { small.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, it) }
+                    input.albumCoverThumbnail = TdApi.InputThumbnail(TdApi.InputFileLocal(f.absolutePath), small.width, small.height)
+                }
+            } catch (_: Exception) {
+                input.title = java.io.File(path).nameWithoutExtension
+            } finally { runCatching { r.release() } }
+            input
+        }
+        return attempt { client.query(TdApi.SendMessage(chatId, null, null, null, null, TdApi.InputMessageAudio().apply { this.audio = audio; this.caption = text })) }
     }
 
     private class VideoMeta(val width: Int, val height: Int, val seconds: Int, val thumb: String?, val thumbW: Int, val thumbH: Int)

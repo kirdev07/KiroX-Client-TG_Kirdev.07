@@ -1498,6 +1498,10 @@ class TelegramKxStore(
     override suspend fun deviceMedia(limit: Int) = mediaBinder.deviceMedia(limit)
     override suspend fun postStory(media: KxDeviceMedia, caption: String, audience: Int) = mediaBinder.postStory(media, caption, audience)
     override suspend fun sendDeviceMedia(chatId: Long, media: KxDeviceMedia, caption: String) = mediaBinder.sendDeviceMedia(chatId, media, caption)
+    override suspend fun sendDeviceMediaAs(chatId: Long, media: KxDeviceMedia, caption: String, spoiler: Boolean, asFile: Boolean) =
+        mediaBinder.sendDeviceMedia(chatId, media, caption, spoiler, asFile)
+    override suspend fun sendDeviceAudio(chatId: Long, uri: String, caption: String) = mediaBinder.sendDeviceAudio(chatId, uri, caption)
+    override fun roundActivity(chatId: Long, on: Boolean) { vm.activity.send(chatId, if (on) ChatActivity.RecordingVideoNote else null) }
     override suspend fun closeFriends() = mediaBinder.closeFriends()
     override suspend fun privateChat(userId: Long) = mediaBinder.privateChat(userId)
     override val activeCall: KxCallState? get() = mediaBinder.activeCall
