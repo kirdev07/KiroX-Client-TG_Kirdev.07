@@ -218,7 +218,7 @@ internal fun BoxScope.TSheet(onClose: () -> Unit, label: String? = null, bg: Bru
     LaunchedEffect(Unit) { launch { fade.animateTo(1f, tween(200)) }; p.animateTo(1f, tween(380, easing = TSheetEase)) }
     Box(Modifier.matchParentSize().graphicsLayer { alpha = fade.value }.background(Color.Black.copy(alpha = .55f)).kxClick("Закрыть", onClick = onClose))
     Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = (1f - p.value) * size.height }
-        .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(bg)
+        .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Color(0xFF101412)).background(bg)
         .drawBehind { drawLine(Kx.w(.16f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }
         .then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier)
         .clickable(interactionSource = null, indication = null) {}

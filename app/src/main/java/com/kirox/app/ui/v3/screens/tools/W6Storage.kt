@@ -121,7 +121,7 @@ internal fun W6StorageReal(ctx: KxScreenCtx, overlay: W6StorageOverlay) {
                         }
                     }
                 }.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    KxAvatar(c.title, c.chatId, size = 40.dp)
+                    KxAvatar(c.title, c.chatId, size = 40.dp, photo = runCatching { ctx.store.header(c.chatId).avatar }.getOrNull())
                     Text(c.title, style = KxType.style(15.sp), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                     Text(w6Bytes(c.bytes), style = KxType.style(13.sp, FontWeight.Bold, Kx.text3))
                     Icon(Icons.Rounded.CleaningServices, null, Modifier.size(18.dp), tint = Kx.text4)

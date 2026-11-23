@@ -189,7 +189,7 @@ fun LocationScreen(ctx: KxScreenCtx) {
         if (sent) Column(Modifier.fillMaxSize().ellipseGlow(1f, 0f, .72f, .36f, Kx.accentDeep.copy(alpha = .18f)).statusBarsPadding()) {
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp) { if (realSend) ctx.back() else sent = false }
-                KxAvatar(h.title, chatId, size = 38.dp, colorIndex = h.colorIndex)
+                KxAvatar(h.title, chatId, size = 38.dp, colorIndex = h.colorIndex, photo = h.avatar)
                 Column { Text(h.title, style = ts(16, W800), maxLines = 1); Text(h.status, style = ts(12, color = if (h.online) Kx.accent else Kx.text4), maxLines = 1) }
             }
             if (live) Row(Modifier.padding(horizontal = 12.dp).fillMaxWidth().height(44.dp).chIn(dy = 10.dp).clip(RoundedCornerShape(16.dp)).background(Kx.accent.copy(alpha = .1f))

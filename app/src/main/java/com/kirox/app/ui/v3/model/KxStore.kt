@@ -192,6 +192,8 @@ interface KxStore {
     suspend fun searchMessagesOf(query: String, kind: Int): List<KxFound> = emptyList()
     /** Message ids in the open chat, newest first. */
     suspend fun searchInChat(chatId: Long, query: String): List<Long> = emptyList()
+    /** fixer-chat4: hits in the open chat as full messages (text / media), newest first — chat search results. */
+    suspend fun searchInChatMessages(chatId: Long, query: String): List<KxMessage> = emptyList()
     /** Loads around [messageId] in the open chat; the history then contains it. */
     fun jumpTo(chatId: Long, messageId: Long) {}
     /** wave5: message the open chat [chatId] should scroll to now (loaded), 0 = none; the screen calls [jumpDone] after scrolling. */
@@ -435,6 +437,8 @@ interface KxStore {
     fun playerSeek(fraction: Float) {}
     fun playerShuffle() {}
     fun playerRepeat() {}
+    /** Music tab: channels, «Моя музыка», playlists, player extras and the audio output (see [KxMusic]). */
+    val music: KxMusic get() = KxMusic.None
     /** Plays (or pauses) one voice message. */
     fun playVoice(fileId: Int) {}
     /** wave5: downloads the file of a chat message and puts it into Telegram's download list (AddFileToDownloads → Downloads / Files boards). */
@@ -655,6 +659,8 @@ interface KxStore {
     suspend fun linkPreview(text: String): KxLinkPreview? = null
     /** The last message of the local day starting at [unix]; null when nothing was sent that day. */
     suspend fun messageAtDate(chatId: Long, unix: Int): Long? = null
+    /** fixer-chat4: days (1..31) of [year]-[month] on which the chat has messages (JumpDate highlights them). */
+    suspend fun messageDays(chatId: Long, year: Int, month: Int): Set<Int> = emptySet()
     /** Sticker set by its short name (t.me/addstickers/<name>) or id. */
     suspend fun stickerSetByName(name: String): KxStickerSetInfo? = null
     suspend fun stickerSetInfo(setId: Long): KxStickerSetInfo? = null
@@ -723,4 +729,7 @@ interface KxStore {
     suspend fun canPost(chatId: Long): Boolean = true
     /** Sends a photo that can be opened once (private chats only: elsewhere the answer is «Только в личных чатах»). */
     suspend fun sendViewOnce(chatId: Long, path: String): String? = null
+
+    // ---- features (additive): kiroX-only local tools — templates, bookmarks, notes, reminders (see KxFeatureModels) ----
+    val features: KxFeatureData get() = KxFeatureData.None
 }

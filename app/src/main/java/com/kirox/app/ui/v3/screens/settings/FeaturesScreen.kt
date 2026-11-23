@@ -174,6 +174,9 @@ private fun GhostCard(on: Boolean, g: Map<String, Boolean>, onToggle: () -> Unit
                         }
                     }
                 }
+                // compat: honest about Telegram's own rules — the server reads the chat when you answer or react in it.
+                if (g["read"] == true) Text("Ответ или реакция в чате всё равно отметят его прочитанным — так работает Telegram.",
+                    style = KxType.style(11.sp, color = Color(0xFFA6B5AC), lineHeight = 14.sp), modifier = Modifier.padding(start = 2.dp, top = 2.dp))
             }
         }
     }

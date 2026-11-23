@@ -61,6 +61,8 @@ fun ExportScreen(ctx: KxScreenCtx) {
     val shareScope = rememberCoroutineScope()
     // wave5: real account → the old UI's text export (all messages → Downloads/kiroX), real progress; the demo keeps the board's run.
     val realChat = ctx.arg?.toLongOrNull()?.takeIf { ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore }
+    // fixer-misc4: the per-kind sizes are invented, so only the demo store shows them; the real export is a text file in Downloads.
+    val sizes = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
     LaunchedEffect(phase) {
         if (phase != "run") return@LaunchedEffect
         prog = 0f
@@ -94,7 +96,7 @@ fun ExportScreen(ctx: KxScreenCtx) {
                                 TIconTile(if (sel) x.iconOn else x.icon, if (sel) Color.White else Kx.text3, ib)
                                 Column(Modifier.weight(1f)) {
                                     Text(x.label, style = KxType.style(14.sp, FontWeight.Bold), maxLines = 1)
-                                    Text("≈ " + exFmt(x.mb * k), style = KxType.style(11.sp, color = Kx.text4))
+                                    if (sizes) Text("≈ " + exFmt(x.mb * k), style = KxType.style(11.sp, color = Kx.text4))
                                 }
                             }
                         }
@@ -178,8 +180,13 @@ fun ExportScreen(ctx: KxScreenCtx) {
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         TIconTile(Icons.Rounded.FolderZip, Color.White, Kx.accentDeep, 44.dp, 14.dp, 24.dp)
                         Column(Modifier.weight(1f)) {
-                            KxLine("${title}_" + java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date()) + if (fmt == 0) ".zip" else ".json.zip", KxType.style(14.sp, FontWeight.Bold))
-                            Text(exFmt(total) + " · " + if (fmt == 0) "HTML" else "JSON", style = KxType.style(12.sp, color = Kx.text4))
+                            if (sizes) {
+                                KxLine("${title}_" + java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date()) + if (fmt == 0) ".zip" else ".json.zip", KxType.style(14.sp, FontWeight.Bold))
+                                Text(exFmt(total) + " · " + if (fmt == 0) "HTML" else "JSON", style = KxType.style(12.sp, color = Kx.text4))
+                            } else {
+                                KxLine(title.ifBlank { "chat" } + ".txt", KxType.style(14.sp, FontWeight.Bold))
+                                Text("Текст · в «Загрузках»", style = KxType.style(12.sp, color = Kx.text4))
+                            }
                         }
                     }
                 }
@@ -188,7 +195,7 @@ fun ExportScreen(ctx: KxScreenCtx) {
         Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(0f to Kx.bg.copy(alpha = 0f), .4f to Kx.bg)).navigationBarsPadding()
             .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             when (phase) {
-                "setup" -> TPill("Экспортировать · ≈ " + exFmt(total), Modifier.weight(1f).shadow(14.dp, RoundedCornerShape(27.dp), spotColor = Kx.accentDeep, ambientColor = Kx.accentDeep),
+                "setup" -> TPill(if (sizes) "Экспортировать · ≈ " + exFmt(total) else "Экспортировать", Modifier.weight(1f).shadow(14.dp, RoundedCornerShape(27.dp), spotColor = Kx.accentDeep, ambientColor = Kx.accentDeep),
                     Icons.Rounded.Download, 54.dp, green, size = 16) { if (on.none { it }) toast.show("Выберите, что сохранить", Icons.Rounded.Info) else if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore && realChat == null) toast.show("Откройте экспорт из меню чата", Icons.Rounded.Info) else phase = "run" }
                 "run" -> TPill("Отменить", Modifier.weight(1f), h = 54.dp, bg = solid(Kx.w(.07f)), ink = Kx.text, size = 16, weight = FontWeight.Bold) {
                     phase = "setup"; prog = 0f; toast.show("Экспорт отменён", Icons.Rounded.Close)

@@ -21,6 +21,8 @@ xz = "1.12"
 profileinstaller = "1.4.1"
 exifinterface = "1.4.2"
 desugarJdkLibs = "2.1.5"
+mlkitTranslate = "17.0.3"
+mlkitLanguageId = "17.0.6"
 
 [libraries]
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
@@ -64,6 +66,10 @@ androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
+
+# features: on-device translation and language detection for accounts without Premium (models download on first use).
+mlkit-translate = { module = "com.google.mlkit:translate", version.ref = "mlkitTranslate" }
+mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlkitLanguageId" }
 
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 

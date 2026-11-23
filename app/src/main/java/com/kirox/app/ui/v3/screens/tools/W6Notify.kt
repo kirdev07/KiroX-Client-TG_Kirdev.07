@@ -249,7 +249,8 @@ fun NotifyExceptionsScreen(ctx: KxScreenCtx) {
                 l.forEachIndexed { i, e ->
                     Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(groupShape(i, l.size, 20.dp)).background(TTile).kxClick(e.title) { ctx.open("ChatNotify:${e.chatId}") }
                         .padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        KxAvatar(e.title, e.chatId, size = 44.dp)
+                        val h = runCatching { ctx.store.header(e.chatId) }.getOrNull() // fixer-misc4: real photo like the chat list
+                        KxAvatar(e.title, e.chatId, size = 44.dp, colorIndex = h?.colorIndex ?: -1, photo = if (services != null) h?.avatar else null)
                         Column(Modifier.weight(1f)) {
                             Text(e.title, style = KxType.style(15.sp, FontWeight.SemiBold), maxLines = 1)
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

@@ -252,7 +252,7 @@ internal fun BoxScope.ExSheet(onClose: () -> Unit, bg: Color = Color(0xFF121614)
     LaunchedEffect(Unit) { launch { fade.animateTo(1f, tween(250)) }; p.animateTo(1f, tween(340, easing = EaseSheet)) }
     Box(Modifier.matchParentSize().graphicsLayer { alpha = fade.value }.background(Color.Black.copy(alpha = scrim)).kxClick("Отмена", onClick = onClose))
     Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = (1f - p.value) * size.height }
-        .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(bg)
+        .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Color(0xFF101412)).background(bg)
         .drawBehind { drawLine(Kx.w(.08f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }
         .clickable(interactionSource = null, indication = null) {}
         .navigationBarsPadding().padding(pad)) {

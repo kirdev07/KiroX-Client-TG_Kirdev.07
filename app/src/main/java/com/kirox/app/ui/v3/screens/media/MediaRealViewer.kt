@@ -112,6 +112,7 @@ private fun RealViewerPages(ctx: KxScreenCtx, list: List<KxMediaItem>, start: In
     val i = pager.currentPage.coerceIn(0, list.lastIndex)
     val m = list[i]
     val strip = rememberLazyListState()
+    var player by remember { mutableStateOf<ExoPlayer?>(null) }
     LaunchedEffect(i) { strip.animateScrollToItem((i - 3).coerceAtLeast(0)) }
     fun say(t: String) { menu = false; toast.show(t) }
     fun save(item: KxMediaItem) = scope.launch {
@@ -125,13 +126,16 @@ private fun RealViewerPages(ctx: KxScreenCtx, list: List<KxMediaItem>, start: In
             Box(Modifier.fillMaxSize().kxClick("Показать или скрыть панели") { ui = !ui }, contentAlignment = Alignment.Center) {
                 if (!p.video && p.media == null) LaunchedEffect(p.fileId) { ctx.store.download(p.fileId) }
                 KxImage(if (p.video) p.thumb else (p.media ?: p.thumb), Modifier.fillMaxSize(), maxPx = 2048, contentScale = ContentScale.Fit)
-                if (p.video) Box(Modifier.size(72.dp).clip(CircleShape).background(Color.Black.copy(alpha = .45f)).border(1.dp, Kx.w(.25f), CircleShape)
-                    .kxClick("Смотреть") { ctx.open("VideoPlayer:${p.chatId}:${p.messageId}") }, contentAlignment = Alignment.Center) {
+                // fixer-chat4: a video plays right here (streamed / local file), the current page only; a tap still toggles the bars.
+                if (p.video && k == pager.currentPage) InlineVideo(ctx, p, onTap = { ui = !ui }, onPlayer = { player = it })
+                else if (p.video) Box(Modifier.size(72.dp).clip(CircleShape).background(Color.Black.copy(alpha = .45f)).border(1.dp, Kx.w(.25f), CircleShape)
+                    .kxClick("Смотреть") { scope.launch { pager.animateScrollToPage(k) } }, contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.PlayArrow, null, Modifier.size(40.dp), tint = Color.White)
                 }
             }
         }
-        if (ui) Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = .7f), Color.Transparent))).statusBarsPadding()
+        // fixer-chat4: dark scrims behind the top and bottom bars (Telegram) so the bars never collide with the picture's own text.
+        if (ui) Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(0f to Color.Black.copy(alpha = .85f), .6f to Color.Black.copy(alpha = .55f), 1f to Color.Transparent)).statusBarsPadding()
             .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 30.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             MRoundBtn(Icons.AutoMirrored.Outlined.ArrowBack, "Закрыть", size = 42.dp, bg = Kx.w(.1f), border = null) { ctx.back() }
             Column(Modifier.weight(1f)) {
@@ -141,8 +145,10 @@ private fun RealViewerPages(ctx: KxScreenCtx, list: List<KxMediaItem>, start: In
             T("${i + 1} из ${list.size}", 13.sp, color = Kx.text2, modifier = Modifier.padding(end = 4.dp))
             MRoundBtn(Icons.Outlined.MoreVert, "Ещё", size = 42.dp, bg = Color.Transparent, border = null) { menu = true }
         }
-        if (ui) Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .8f))))
+        if (ui) Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(0f to Color.Transparent, .35f to Color.Black.copy(alpha = .6f), 1f to Color.Black.copy(alpha = .9f)))
             .navigationBarsPadding().padding(start = 14.dp, end = 14.dp, top = 40.dp, bottom = 22.dp)) {
+            val vp = player
+            if (m.video && vp != null) VideoSeekRow(vp)
             if (m.caption.isNotEmpty()) Text(m.caption, style = ts(15.sp).copy(lineHeight = 21.sp), maxLines = 4, modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 12.dp))
             LazyRow(Modifier.fillMaxWidth().padding(bottom = 14.dp), state = strip, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 itemsIndexed(list, key = { _, it -> it.messageId }) { k, p ->
@@ -171,8 +177,9 @@ private fun RealViewerPages(ctx: KxScreenCtx, list: List<KxMediaItem>, start: In
         MSheet(menu, { menu = false }, dim = .5f, top = Color(0xFF121614), bottom = Color(0xFF121614), border = Kx.w(.08f), highlight = null,
             handleColor = Color(0xFF3A4540), handleWidth = 36.dp, padding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 26.dp)) {
             MenuItem(Icons.AutoMirrored.Outlined.Chat, "Показать в чате", Kx.text) { menu = false; ctx.store.jumpTo(m.chatId, m.messageId); ctx.back() }
+            // fixer-chat4: «Весь альбом» = this album; «Все медиа чата» = this chat's media grid (SharedMedia), not the phone's Медиатека.
             if (m.albumId != 0L) MenuItem(Icons.Outlined.PhotoLibrary, "Весь альбом", Kx.text) { menu = false; ctx.open("Album:${m.chatId}:${m.messageId}") }
-            MenuItem(Icons.Outlined.Folder, "Все медиа чата", Kx.text) { menu = false; ctx.open("Gallery:${m.chatId}") }
+            MenuItem(Icons.Outlined.GridView, "Все медиа чата", Kx.text) { menu = false; ctx.open("SharedMedia:${m.chatId}") }
             fun askDelete(forAll: Boolean) {
                 menu = false
                 confirm = KxConfirm(if (m.video) "Удалить видео?" else "Удалить фото?",
@@ -186,6 +193,61 @@ private fun RealViewerPages(ctx: KxScreenCtx, list: List<KxMediaItem>, start: In
         }
         MToastHost(toast, top = 80.dp)
         confirm?.let { KxConfirmDialog(it) { confirm = null } }
+    }
+}
+
+/** fixer-chat4: the viewer's video page — ExoPlayer under a transparent tap layer (bars), a centre play button when paused. */
+@OptIn(UnstableApi::class)
+@Composable
+private fun InlineVideo(ctx: KxScreenCtx, p: KxMediaItem, onTap: () -> Unit, onPlayer: (ExoPlayer?) -> Unit) {
+    val player = rememberTgPlayer(p.fileId, ctx.store.fileState(p.fileId).path ?: p.media)
+    DisposableEffect(player) { onPlayer(player); onDispose { onPlayer(null) } }
+    var playing by remember { mutableStateOf(true) }
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(player) {
+        while (true) {
+            playing = player.playWhenReady && player.playbackState != Player.STATE_ENDED
+            if (player.playbackState == Player.STATE_READY) started = true
+            delay(200)
+        }
+    }
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        AndroidView(factory = { c -> PlayerView(c).apply { useController = false; this.player = player; keepScreenOn = true; setShutterBackgroundColor(android.graphics.Color.TRANSPARENT) } },
+            modifier = Modifier.fillMaxSize())
+        Box(Modifier.matchParentSize().kxClick("Показать или скрыть панели", onClick = onTap))
+        if (!started && playing) CircularProgressIndicator(color = Kx.accent)
+        else if (!playing) Box(Modifier.size(72.dp).clip(CircleShape).background(Color.Black.copy(alpha = .45f)).border(1.dp, Kx.w(.25f), CircleShape)
+            .kxClick("Смотреть") { if (player.playbackState == Player.STATE_ENDED) player.seekTo(0); player.play() }, contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.PlayArrow, null, Modifier.size(40.dp), tint = Color.White)
+        }
+    }
+}
+
+/** fixer-chat4: play / pause, position / length and a tap-to-seek bar for the viewer's current video. */
+@Composable
+private fun VideoSeekRow(player: ExoPlayer) {
+    var pos by remember(player) { mutableLongStateOf(0L) }
+    var dur by remember(player) { mutableLongStateOf(0L) }
+    var playing by remember(player) { mutableStateOf(true) }
+    LaunchedEffect(player) {
+        while (true) { pos = player.currentPosition.coerceAtLeast(0); if (player.duration > 0) dur = player.duration; playing = player.playWhenReady && player.playbackState != Player.STATE_ENDED; delay(250) }
+    }
+    fun mm(ms: Long) = "${ms / 60000}:${((ms / 1000) % 60).toString().padStart(2, '0')}"
+    val f = if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f
+    Row(Modifier.padding(start = 2.dp, end = 2.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(Modifier.size(36.dp).clip(CircleShape).background(Kx.w(.12f)).kxClick(if (playing) "Пауза" else "Смотреть") {
+            if (playing) player.pause() else { if (player.playbackState == Player.STATE_ENDED) player.seekTo(0); player.play() }
+        }, contentAlignment = Alignment.Center) { Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, Modifier.size(22.dp), tint = Color.White) }
+        T(mm(pos), 12.sp, color = Kx.text2)
+        BoxWithConstraints(Modifier.weight(1f).height(18.dp), contentAlignment = Alignment.CenterStart) {
+            val w = maxWidth
+            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.2f))) {
+                Box(Modifier.fillMaxHeight().fillMaxWidth(f).background(Kx.accent))
+            }
+            Box(Modifier.offset(x = w * f - 6.dp).size(12.dp).clip(CircleShape).background(Kx.text))
+            Row(Modifier.matchParentSize()) { repeat(20) { k -> Box(Modifier.weight(1f).fillMaxHeight().clickableNoRipple("Перейти") { if (dur > 0) player.seekTo((dur * (k + .5f) / 20f).toLong()) }) } }
+        }
+        T(mm(dur), 12.sp, color = Kx.text2)
     }
 }
 

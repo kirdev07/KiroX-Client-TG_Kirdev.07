@@ -64,6 +64,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                     val rows = listOf(
                         Row5(Icons.Rounded.Notifications, "Уведомления и звуки", null, Color(0xFF3B2A22), Color(0xFFFFB68F), "Notify"),
                         Row5(Icons.Rounded.Lock, "Конфиденциальность", null, Color(0xFF1F2E40), Color(0xFFA9CBF5), "Privacy"),
+                        Row5(Icons.Rounded.Shield, "Защита kiroX", null, Color(0xFF1F3A2C), Color(0xFF8FD3AC), "Shield"), // shield: hub entry
                         Row5(Icons.Rounded.Storage, "Данные и память", store.storage?.totalBytes?.let { com.kirox.app.ui.v3.screens.settings.sBytes(it) }, Color(0xFF1E3333), Color(0xFF9FDCD6), "Storage"),
                         Row5(Icons.Rounded.Palette, "Кастомизация", com.kirox.app.ui.v3.screens.settings.CustomThemes[store.pref(com.kirox.app.ui.v3.model.KxPrefs.THEME).coerceIn(0, com.kirox.app.ui.v3.screens.settings.CustomThemes.lastIndex)].name, Color(0xFF1F3A2C), Color(0xFF8FD3AC), "Custom"),
                         // qa-real: «Язык» hidden in 1.0 (Russian only); «Специальные возможности» gets its own row.
@@ -92,6 +93,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                         Tile(androidx.compose.material.icons.Icons.Outlined.Info, "О приложении", Color(0xFFFFD58A), Modifier.weight(1f), corner = com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-')) { onOpen("WhatsNew") }
                     }
                 }
+                com.kirox.app.ui.v3.features.KxFeatureSettingsSection(store, onOpen) // features: «Функции kiroX» rows
             }
         }
         }
@@ -154,7 +156,7 @@ private fun ProfileCard(store: KxStore, onOpen: (String) -> Unit) {
             Row(Modifier.padding(start = 2.dp).kxClick("Аккаунты") { onOpen("Accounts") }) {
                 store.accounts.forEachIndexed { i, a ->
                     val sw = if (i == 0) KxAvatarPalette.Swatch(Color(0xFF3E7A5A), Color(0xFF173A28), Color(0xFFDDF5E5)) else KxAvatarPalette.Swatch(Color(0xFF3C7BD0), Color(0xFF142A4A), Color(0xFFD6E6FF))
-                    KxAvatar(a.name, a.id, Modifier.offset(x = (-8 * i).dp).border(2.dp, Color(0xFF14201A), CircleShape), size = 30.dp, swatch = sw, letterWeight = FontWeight.ExtraBold, letterSize = 12.sp)
+                    KxAvatar(a.name, a.id, Modifier.offset(x = (-8 * i).dp).border(2.dp, Color(0xFF14201A), CircleShape), size = 30.dp, swatch = sw, letterWeight = FontWeight.ExtraBold, letterSize = 12.sp, photo = a.avatar)
                 }
                 Box(Modifier.offset(x = (-8 * store.accounts.size).dp).size(30.dp).clip(CircleShape).background(Color(0xFF26302B)).border(2.dp, Color(0xFF14201A), CircleShape), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.Add, "Добавить аккаунт", Modifier.size(16.dp), tint = Kx.text2)

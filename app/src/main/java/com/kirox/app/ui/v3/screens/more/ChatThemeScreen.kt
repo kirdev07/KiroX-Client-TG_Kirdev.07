@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -79,16 +80,20 @@ fun ChatThemeScreen(ctx: KxScreenCtx) {
             Row(Modifier.fillMaxWidth().background(Color(0xFF0D100E)).statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MoRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", bg = Kx.w(.08f), border = null, onClick = ctx.back)
-                MoLetter((header?.title ?: "А").take(1).uppercase(), Color(0xFFC0443C))
+                // fixer-misc4: the real chat's avatar (photo when downloaded), not a red letter.
+                if (header != null) com.kirox.app.ui.v3.components.KxAvatar(header.title, header.chatId, size = 40.dp, colorIndex = header.colorIndex, photo = header.avatar)
+                else MoLetter("А", Color(0xFFC0443C))
                 Column(Modifier.weight(1f)) {
                     Text(header?.title ?: "Анна", style = mts(16, W8), maxLines = 1)
                     Text(header?.status ?: "в сети", style = mts(12, color = th.acc), maxLines = 1)
                 }
             }
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(14.dp)) {
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().clipToBounds().padding(14.dp)) {
                 val w = maxWidth
                 val f = moEnter(400, key = k)
-                Column(Modifier.fillMaxSize().graphicsLayer { alpha = .2f + .8f * f }, verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
+                // Anchored to the bottom: with several real messages / photos the oldest ones slide out at the top instead of squeezing.
+                Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().wrapContentHeight(Alignment.Bottom, unbounded = true).graphicsLayer { alpha = .2f + .8f * f },
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
                     if (cur > 0 && curBoth) Box(Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(12.dp)).background(Color.Black.copy(alpha = .3f))
                         .padding(horizontal = 12.dp, vertical = 4.dp)) { Text("Вы поставили тему ${themes[cur].e} «${themes[cur].name}»", style = mts(12, color = Color(0xFFDDE5E0))) }
                     if (!live) {
@@ -96,10 +101,22 @@ fun ChatThemeScreen(ctx: KxScreenCtx) {
                         Box(Modifier.align(Alignment.End).widthIn(max = w * .78f).clip(RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp)).moLin(135f, th.outA, th.outB)
                             .padding(horizontal = 12.dp, vertical = 8.dp)) { Text("Давай что-нибудь весёлое!", style = mts(15, color = th.ink)) }
                         MoIncoming("Выбирай ты 🙂", bg = th.inBg, modifier = Modifier.widthIn(max = w * .78f))
-                    } else peek.filter { it.text.isNotBlank() }.takeLast(3).forEach { m ->
-                        if (m.out) Box(Modifier.align(Alignment.End).widthIn(max = w * .78f).clip(RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp)).moLin(135f, th.outA, th.outB)
-                            .padding(horizontal = 12.dp, vertical = 8.dp)) { Text(m.text, style = mts(15, color = th.ink), maxLines = 4) }
-                        else MoIncoming(m.text, m.time, bg = th.inBg, modifier = Modifier.widthIn(max = w * .78f))
+                    } else {
+                        // fixer-misc4: the chat's own last messages (already loaded by the open chat; the peek otherwise), photos as images.
+                        val loaded = chatId?.let { ctx.store.messages(it) }.orEmpty().filter { it.kind != com.kirox.app.ui.v3.model.KxMsgKind.Service }
+                        val src = (if (loaded.isNotEmpty()) loaded else peek).filter { it.text.isNotBlank() || it.thumb != null || it.media != null }.takeLast(6)
+                        src.forEach { m ->
+                            val pic = (m.thumb ?: m.media)?.takeIf { m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Photo || m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Video }
+                            val outShape = RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp); val inShape = RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)
+                            if (pic != null && !m.spoiler) {
+                                val ar = if (m.aspect > 0f) m.aspect.coerceIn(.6f, 1.8f) else 1.3f
+                                Box(Modifier.align(if (m.out) Alignment.End else Alignment.Start).width(w * .6f).aspectRatio(ar).clip(if (m.out) outShape else inShape).background(th.inBg)) {
+                                    com.kirox.app.ui.v3.components.KxImage(pic, Modifier.matchParentSize(), maxPx = 480)
+                                }
+                            } else if (m.out) Box(Modifier.align(Alignment.End).widthIn(max = w * .78f).clip(outShape).moLin(135f, th.outA, th.outB)
+                                .padding(horizontal = 12.dp, vertical = 8.dp)) { Text(m.text, style = mts(15, color = th.ink), maxLines = 4) }
+                            else MoIncoming(m.text, m.time, bg = th.inBg, modifier = Modifier.widthIn(max = w * .78f))
+                        }
                     }
                 }
             }

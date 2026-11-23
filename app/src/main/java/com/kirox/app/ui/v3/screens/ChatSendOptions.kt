@@ -78,7 +78,8 @@ internal fun ChatSendOptionsSheet(
                 Column(Modifier.padding(top = 10.dp)) {
                     SoRow(Icons.Outlined.NotificationsOff, "Без звука", "Уведомление придёт тихо", Kx.text, onSilent)
                     SoRow(Icons.AutoMirrored.Outlined.ScheduleSend, "Отложить", "Выбрать дату и время", Kx.accent) { picker = true }
-                    if (h.kind == KxChatKind.Private) SoRow(Icons.Outlined.HowToReg, "Когда будет в сети", h.status.ifBlank { h.title }, Kx.text, onWhenOnline)
+                    // features: Telegram sends «when online» only while the last seen is visible (not «недавно»).
+                    if (h.kind == KxChatKind.Private && com.kirox.app.ui.v3.model.KxSendWhen.lastSeenVisible(h.status)) SoRow(Icons.Outlined.HowToReg, "Когда будет в сети", h.status.ifBlank { h.title }, Kx.text, onWhenOnline)
                 }
             } else {
                 Text("Когда отправить?", style = KxType.style(19.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 12.dp, bottom = 12.dp))

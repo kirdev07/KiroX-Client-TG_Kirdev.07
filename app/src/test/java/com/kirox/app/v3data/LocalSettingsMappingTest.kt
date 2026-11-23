@@ -66,7 +66,7 @@ class LocalSettingsMappingTest {
     }
 
     @Test fun tabKeysMatchDockOrder() {
-        assertEquals(listOf("Контакты", "Звонки", "Чаты", "Истории", "Настройки"), KxLocalMapping.tabKeys)
+        assertEquals(listOf("Контакты", "Звонки", "Чаты", "Истории", "Настройки", "Музыка"), KxLocalMapping.tabKeys)
     }
 
     @Test fun defaultsCoverEveryKey() {

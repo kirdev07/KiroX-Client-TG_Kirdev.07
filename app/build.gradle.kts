@@ -196,6 +196,9 @@ dependencies {
     implementation(libs.androidx.profileinstaller)
     // Photo orientation in the photo editor.
     implementation(libs.androidx.exifinterface)
+    // kiroX features: translation on the phone (ML Kit, ~30 MB model per language downloaded on first use) and language id (bundled model).
+    implementation(libs.mlkit.translate)
+    implementation(libs.mlkit.language.id)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(composeBom)

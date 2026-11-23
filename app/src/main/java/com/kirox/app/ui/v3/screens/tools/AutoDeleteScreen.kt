@@ -61,6 +61,8 @@ private val AD_SECS = listOf(0, 3600, 86400, 604800, 2678400)
 private val AD_CUSTOM_SECS = listOf(3600, 3 * 3600, 6 * 3600, 12 * 3600, 86400, 2 * 86400, 3 * 86400, 604800, 2 * 604800, 2678400, 3 * 2678400, 31536000)
 private data class AdMsg(val text: String, val mine: Boolean, val time: String)
 private val AD_MSG = listOf(AdMsg("Привет! Завтра в силе?", false, "18:02"), AdMsg("Да, в 10 у метро", true, "18:03"), AdMsg("Код от подъезда 4512", false, "18:04"))
+/** fixer-misc4: the real account shows a neutral sample (marked «Пример»), not someone's invented chat. */
+private val AD_MSG_REAL = listOf(AdMsg("Так выглядит сообщение", false, "12:00"), AdMsg("Таймер идёт с момента отправки", true, "12:01"), AdMsg("Потом оно исчезнет у обоих", false, "12:02"))
 
 /** Board «Автоудаление»: live ring + vanishing bubbles preview, period grid, custom period slider, default for new chats, save. */
 @Composable
@@ -110,6 +112,8 @@ fun AutoDeleteScreen(ctx: KxScreenCtx) {
                         val c = Offset(size.width * .8f, 0f)
                         drawRect(Brush.radialGradient(0f to Kx.accentDeep.copy(alpha = .28f), .6f to Color.Transparent, center = c, radius = size.width * 1.2f))
                     }.border(1.dp, Kx.w(.08f), pShape)) {
+                    if (live) Text("Пример", style = KxType.style(11.sp, FontWeight.Bold, Kx.text3), modifier = Modifier.align(Alignment.TopStart).padding(12.dp)
+                        .clip(RoundedCornerShape(10.dp)).background(Kx.w(.07f)).padding(horizontal = 8.dp, vertical = 3.dp))
                     val ringInk by animateColorAsState(if (on) Kx.accent else Color(0xFF5C6661), tween(300), label = "ri")
                     val off by animateFloatAsState(frac, if (frac == 0f) tween(0) else tween(900, easing = LinearEasing), label = "ro")
                     Box(Modifier.align(Alignment.TopCenter).padding(top = 18.dp).size(86.dp), contentAlignment = Alignment.Center) {
@@ -126,7 +130,7 @@ fun AutoDeleteScreen(ctx: KxScreenCtx) {
                         }
                     }
                     Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        AD_MSG.forEachIndexed { i, m ->
+                        (if (live) AD_MSG_REAL else AD_MSG).forEachIndexed { i, m ->
                             val gone = i == goneIdx
                             val g by animateFloatAsState(if (gone) 1f else 0f, tween(800, easing = TEase), label = "g$i")
                             val shape = if (m.mine) RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp) else RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)

@@ -78,6 +78,9 @@ object KxPrefs {
     const val WALL = "wall.preset"
     const val WALL_BLUR = "wall.blur"
     const val WALL_MOTION = "wall.motion"
+
+    /** Dock: the «Музыка» tab is shown (1/0, off by default). */
+    const val MUSIC_TAB = "dock.music"
     const val WALL_DIM = "wall.dim"
 
     val defaults: Map<String, Int> = mapOf(

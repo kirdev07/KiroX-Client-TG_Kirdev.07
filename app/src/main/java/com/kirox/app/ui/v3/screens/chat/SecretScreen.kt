@@ -104,7 +104,7 @@ fun SecretScreen(ctx: KxScreenCtx) {
                 .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp, onClick = ctx.back)
                 Box(Modifier.size(40.dp)) {
-                    KxAvatar(h.title, peerId, size = 40.dp, colorIndex = h.colorIndex)
+                    KxAvatar(h.title, peerId, size = 40.dp, colorIndex = h.colorIndex, photo = h.avatar)
                     Box(Modifier.align(Alignment.BottomEnd).offset(3.dp, 3.dp).size(18.dp).clip(CircleShape).background(Kx.bg).padding(2.dp).clip(CircleShape).background(Kx.accent),
                         contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Lock, null, Modifier.size(11.dp), tint = Kx.onAccent) }
                 }

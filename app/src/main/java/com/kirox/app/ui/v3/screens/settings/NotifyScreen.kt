@@ -91,7 +91,12 @@ fun NotifyScreen(ctx: KxScreenCtx) {
         SGlow(glowGreen(.18f), alignEnd = true)
         Column(Modifier.fillMaxSize()) {
             SHeader("Уведомления", ctx.back, bottom = 2.dp) {
-                TestButton { banner = System.nanoTime() }
+                // fixer-misc4: on the real account «Проверить» also posts a real system notification (honest text, no demo chat).
+                val appCtx = androidx.compose.ui.platform.LocalContext.current.applicationContext
+                TestButton {
+                    banner = System.nanoTime()
+                    if (real && !com.kirox.app.notify.MessageNotifications.postTest(appCtx)) ctx.toast("Уведомления выключены для kiroX в настройках Android")
+                }
             }
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp).navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -162,7 +167,7 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                 com.kirox.app.ui.v3.screens.tools.W6NotifyExtras(ctx, overlay)
             }
         }
-        if (banner != 0L && app["banner"] == true) key(banner) { TestBanner { banner = 0L } }
+        if (banner != 0L && app["banner"] == true) key(banner) { TestBanner(real) { banner = 0L } }
         W6NotifyOverlayHost(overlay)
     }
 }
@@ -190,7 +195,7 @@ private fun TestButton(onClick: () -> Unit) {
 
 /** kxDrop 3.2s: slides in from -120%, holds, slides back. */
 @Composable
-private fun BoxScope.TestBanner(onDone: () -> Unit) {
+private fun BoxScope.TestBanner(real: Boolean, onDone: () -> Unit) {
     val y = remember { Animatable(-1.2f) }
     LaunchedEffect(Unit) {
         y.animateTo(0f, tween(384, easing = SheetEase)); delay(2336); y.animateTo(-1.2f, tween(480, easing = SheetEase)); delay(100); onDone()
@@ -202,15 +207,17 @@ private fun BoxScope.TestBanner(onDone: () -> Unit) {
         .background(Brush.verticalGradient(listOf(Color(46, 58, 52).copy(alpha = .92f), Color(24, 30, 27).copy(alpha = .95f))))
         .border(1.dp, Kx.w(.16f), shape).topHighlight(Kx.w(.22f)).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(Modifier.size(42.dp).clip(CircleShape).cssGradient(140f, 0f to Color(0xFF4B3F7A), 1f to Color(0xFF2A2240)), contentAlignment = Alignment.Center) {
+        if (real) Box(Modifier.size(42.dp).clip(CircleShape).cssGradient(140f, 0f to Kx.accentMid, 1f to Kx.accentDeep), contentAlignment = Alignment.Center) {
+            Icon(androidx.compose.ui.res.painterResource(com.kirox.app.R.drawable.ic_stat_kirox_v3), null, Modifier.size(22.dp), tint = Kx.onAccent)
+        } else Box(Modifier.size(42.dp).clip(CircleShape).cssGradient(140f, 0f to Color(0xFF4B3F7A), 1f to Color(0xFF2A2240)), contentAlignment = Alignment.Center) {
             Text("А", style = KxType.style(16.sp, FontWeight.ExtraBold, Color(0xFFDCD0FF)))
         }
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Анна", style = KxType.style(14.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
+                Text(if (real) "kiroX" else "Анна", style = KxType.style(14.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
                 Text("сейчас", style = KxType.style(11.sp, FontWeight.Medium, Kx.text4))
             }
-            Text("Ты где? Фильм через 10 минут 🎬", style = KxType.style(13.sp, color = Kx.text2), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (real) "Проверка уведомлений kiroX" else "Ты где? Фильм через 10 минут 🎬", style = KxType.style(13.sp, color = Kx.text2), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

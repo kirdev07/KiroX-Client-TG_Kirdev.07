@@ -47,7 +47,11 @@ class TelegramMessageRepository(
     /** Last failed action, for a toast; cleared by [clearError]. */
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    init { client.addUpdateHandler(::handle) }
+    init {
+        client.addUpdateHandler(::handle)
+        // compat: messages that arrived while kiroX was in the background are read once it is on screen again.
+        com.kirox.app.notify.AppVisibility.watch { visible -> if (visible) client.post { if (chatId != 0L) markViewed(chatId) } }
+    }
 
     private var resumeChatId = 0L
     /** Draft of the open thread or topic (the chat's own draft is in Chat.draftMessage). */
@@ -598,13 +602,14 @@ class TelegramMessageRepository(
     /** Tags of Saved Messages (Telegram Premium); empty without them. */
     suspend fun savedTags(): List<SavedTag> = runCatching {
         client.query(TdApi.GetSavedMessagesTags(0)).tags.mapNotNull { tag ->
-            (tag.tag as? TdApi.ReactionTypeEmoji)?.let { SavedTag(it.emoji, tag.label.orEmpty(), tag.count) }
+            // compat: Premium users tag with custom emoji too («ce:<id>», as reactions are keyed).
+            reactionKey(tag.tag)?.let { SavedTag(it, tag.label.orEmpty(), tag.count) }
         }
     }.getOrDefault(emptyList())
 
     /** Saved messages marked with the tag [emoji], newest first. */
     suspend fun savedByTag(emoji: String): List<TelegramMessage> {
-        val found = client.query(TdApi.SearchSavedMessages(0, TdApi.ReactionTypeEmoji(emoji), "", 0, 0, 100))
+        val found = client.query(TdApi.SearchSavedMessages(0, reactionType(emoji), "", 0, 0, 100))
         val deferred = kotlinx.coroutines.CompletableDeferred<List<TelegramMessage>>()
         client.post { deferred.complete(found.messages.map { it.toModel() }) }
         return deferred.await()
@@ -618,7 +623,7 @@ class TelegramMessageRepository(
         return deferred.await()
     }
 
-    suspend fun setTagLabel(emoji: String, label: String) { client.query(TdApi.SetSavedMessagesTagLabel(TdApi.ReactionTypeEmoji(emoji), label)) }
+    suspend fun setTagLabel(emoji: String, label: String) { client.query(TdApi.SetSavedMessagesTagLabel(reactionType(emoji), label)) }
 
     /** «Отложенные»: messages of the open chat waiting to be sent, soonest first. */
     suspend fun scheduledMessages(): List<ScheduledMessage> {
@@ -819,6 +824,8 @@ class TelegramMessageRepository(
     private fun markViewed(id: Long) {
         // Nothing is remembered as viewed either, so leaving ghost mode reads them on the next look.
         if (com.kirox.app.settings.KiroxTweaks.current.ghostRead) return
+        // compat: as Telegram's apps do, nothing is read while kiroX is not on screen (a chat left open in the background).
+        if (!com.kirox.app.notify.AppVisibility.visible) return
         val fresh = messages.values.filter { !it.isOutgoing && viewed.add(it.id) }.map { it.id }
         if (fresh.isNotEmpty()) client.send(TdApi.ViewMessages(id, fresh.toLongArray(), when (topic) {
             is TdApi.MessageTopicThread -> TdApi.MessageSourceMessageThreadHistory()

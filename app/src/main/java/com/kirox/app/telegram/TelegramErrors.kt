@@ -30,11 +30,29 @@ internal fun humanError(error: TdApi.Error): String {
         "LASTNAME_INVALID" -> "Недопустимая фамилия"
         "AUTH_TOKEN_EXPIRED" -> "QR-код устарел, сейчас появится новый"
         "SESSION_PASSWORD_NEEDED" -> "Требуется облачный пароль"
-        else -> when {
+        else -> premiumLimit(message) ?: when {
             error.code == 406 -> "Действие недоступно"
             error.code >= 500 || error.code == -1 -> "Telegram временно недоступен. Проверьте соединение"
             else -> "Не удалось выполнить запрос"
         }
+    }
+}
+
+/**
+ * compat: Telegram's Premium-only actions and account limits, said honestly (a free user learns why it failed,
+ * and that Premium raises the limit) instead of «Не удалось выполнить запрос». Null for any other error.
+ */
+private fun premiumLimit(message: String): String? {
+    val m = message.lowercase()
+    return when {
+        "premium" in m -> "Доступно с Telegram Premium"
+        "pinned" in m && ("maximum" in m || "too_much" in m || "too much" in m) -> "Достигнут лимит закреплённых чатов. С Telegram Premium — больше"
+        "folder" in m && ("maximum" in m || "too_much" in m || "too much" in m) || "filters_too_much" in m -> "Достигнут лимит папок. С Telegram Premium — больше"
+        "channels_too_much" in m -> "Вы состоите в слишком многих группах и каналах. С Telegram Premium — больше"
+        "file is too big" in m || "file_too_big" in m || "file_parts_invalid" in m -> "Файл больше лимита Telegram (2 ГБ, с Premium — 4 ГБ)"
+        "reactions_too_many" in m || "reaction_too_much" in m -> "Слишком много реакций на сообщение. С Telegram Premium — больше"
+        "usernames_active_too_much" in m -> "Достигнут лимит активных имён пользователя"
+        else -> null
     }
 }
 

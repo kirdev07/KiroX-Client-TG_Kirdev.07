@@ -62,6 +62,8 @@ fun ChatSearchScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val chatId = ctx.arg?.toLongOrNull()
     val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    // fixer-chat4: the real chat searches on the server and shows only the hits (text / media) — nothing before a query.
+    if (!demo && chatId != null) { RealChatSearch(ctx, chatId); return }
     val real = chatId?.let { store.messages(it) }.orEmpty().filter { it.kind != KxMsgKind.Service }
     val log = remember(real) {
         if (demo) DemoLog else buildList {
@@ -253,5 +255,83 @@ private fun LogBubble(m: LogItem, text: AnnotatedString, modifier: Modifier, fla
                 Text(m.time, style = ts(11, color = if (m.mine) Color(0xFFA9D9BF) else Kx.text4), modifier = Modifier.padding(start = 8.dp))
             }
         }
+    }
+}
+
+/**
+ * fixer-chat4: chat search on the real account. Before a query: a hint only (the history is not repeated as empty bubbles).
+ * Results come from Telegram (store.searchInChatMessages, newest first) with their text or media (thumbnail + kind);
+ * a tap scrolls the chat to the message. «По дате» opens the real calendar (JumpDate).
+ */
+@Composable
+private fun RealChatSearch(ctx: KxScreenCtx, chatId: Long) {
+    val store = ctx.store
+    val header = store.header(chatId)
+    var q by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
+    val qq = q.trim()
+    var searching by remember { mutableStateOf(false) }
+    val hits by produceState(emptyList<com.kirox.app.ui.v3.model.KxMessage>(), chatId, qq) {
+        if (qq.isEmpty()) { value = emptyList(); searching = false; return@produceState }
+        searching = true
+        kotlinx.coroutines.delay(300)
+        value = runCatching { store.searchInChatMessages(chatId, qq) }.getOrDefault(emptyList())
+        searching = false
+    }
+    var dateJump by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val jumpTarget = store.jumpTarget(chatId)
+    LaunchedEffect(jumpTarget, dateJump) { if (dateJump && jumpTarget != 0L) { dateJump = false; ctx.back() } }
+    Box(Modifier.fillMaxSize().background(Kx.bg)) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
+            Row(Modifier.fillMaxWidth().drawBehind { drawLine(Kx.w(.06f), Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx()) }
+                .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Закрыть поиск", 42.dp, bg = Color.Transparent, border = Color.Transparent, onClick = ctx.back)
+                Row(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.07f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(22.dp))
+                    .padding(start = 12.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.text4)
+                    ChInput(q, { q = it }, "Поиск в «${header.title}»", Modifier.weight(1f))
+                    if (q.isNotEmpty()) Box(Modifier.kxHitClick("Очистить") { q = "" }.size(30.dp).clip(CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.Cancel, null, Modifier.size(18.dp), tint = Kx.text4)
+                    }
+                }
+            }
+            Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                SChip(Icons.Outlined.CalendarMonth, "По дате", false) { dateJump = true; ctx.open("JumpDate:$chatId") }
+            }
+            when {
+                qq.isEmpty() -> SearchHint(Icons.Outlined.Search, "Введите слово для поиска", "Найдём сообщения, подписи к фото и файлы этого чата", Modifier.weight(1f))
+                searching && hits.isEmpty() -> SearchHint(Icons.Outlined.HourglassEmpty, "Ищем…", "", Modifier.weight(1f))
+                hits.isEmpty() -> SearchHint(Icons.Outlined.SearchOff, "Ничего не найдено", "Попробуйте другое слово", Modifier.weight(1f))
+                else -> LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
+                    item { Text("Найдено: ${hits.size}", style = ts(13, W800, Kx.accent), modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp)) }
+                    items(hits, key = { it.id }) { m ->
+                        val who = if (m.out) "Вы" else m.sender ?: header.title
+                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).kxClick("$who: ${m.text}") { store.jumpTo(chatId, m.id); ctx.back() }
+                            .padding(horizontal = 8.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            if (m.out || m.sender != null) KxAvatar(who, if (m.out) -1L else m.senderId, size = 42.dp, colorIndex = if (m.out) 7 else m.senderColorIndex.coerceAtLeast(0), photo = if (m.out) store.me.avatar else null)
+                            else KxAvatar(header.title, chatId, size = 42.dp, colorIndex = header.colorIndex, photo = header.avatar)
+                            Column(Modifier.weight(1f)) {
+                                Row { Text(who, style = ts(14, W700), modifier = Modifier.weight(1f), maxLines = 1); Text(listOfNotNull(m.dayHeader, m.time).joinToString(", "), style = ts(12, color = Kx.text4)) }
+                                val body = m.text.ifBlank { com.kirox.app.ui.v3.screens.menuKindLabel(m) }
+                                Text(splitHit(body, qq.lowercase()) ?: AnnotatedString(body), style = ts(14, color = Kx.text3), maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                            }
+                            val pic = m.thumb ?: m.media.takeIf { m.kind == KxMsgKind.Photo }
+                            if (pic != null && (m.kind == KxMsgKind.Photo || m.kind == KxMsgKind.Video || m.kind == KxMsgKind.Gif)) Box(Modifier.size(46.dp).clip(RoundedCornerShape(10.dp)).background(Kx.w(.06f))) {
+                                KxImage(pic, Modifier.matchParentSize(), maxPx = 160)
+                                if (m.kind != KxMsgKind.Photo) Icon(Icons.Outlined.PlayArrow, null, Modifier.align(Alignment.Center).size(20.dp), tint = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchHint(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, sub: String, modifier: Modifier) {
+    Column(modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
+        Icon(icon, null, Modifier.size(44.dp), tint = Kx.text4)
+        Text(title, style = ts(16, W700), textAlign = TextAlign.Center)
+        if (sub.isNotEmpty()) Text(sub, style = ts(13, color = Kx.text4), textAlign = TextAlign.Center)
     }
 }

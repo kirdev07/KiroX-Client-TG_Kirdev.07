@@ -13,6 +13,8 @@ import com.kirox.app.ui.v3.model.*
  * Never talks to TDLib. Avatar colors follow the boards (colorIndex = KxAvatarPalette order).
  */
 class KxDemoStore : KxStore {
+    // features: templates, bookmarks, notes and reminders with demo values (in memory).
+    override val features: KxFeatureData = KxMemoryFeatures.demo()
     override val me = KxProfile(1, "Алекс Миронов", "alex_codes", "+7 701 123 45 67", "Пишу Android-приложения. Люблю тёмные темы.", colorIndex = 7)
 
     override val accounts get() = listOf(me, KxProfile(2, "Рабочий", phone = "+7 702 *** ** 11", colorIndex = 6))

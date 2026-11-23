@@ -108,6 +108,7 @@ class MainActivity : ComponentActivity() {
 
     /** A notification of another signed-in account opens that account. */
     private fun openAccountFrom(intent: android.content.Intent?) {
+        com.kirox.app.ui.v3.data.KxFeatureJump.take(intent) // features: a «прочитать позже» reminder scrolls to its message
         intent?.getLongExtra(com.kirox.app.notify.MessageNotifications.EXTRA_OPEN_CHAT, 0L)?.takeIf { it != 0L }?.let { chatId ->
             intent.removeExtra(com.kirox.app.notify.MessageNotifications.EXTRA_OPEN_CHAT)
             com.kirox.app.notify.NotificationTarget.chat.value = chatId

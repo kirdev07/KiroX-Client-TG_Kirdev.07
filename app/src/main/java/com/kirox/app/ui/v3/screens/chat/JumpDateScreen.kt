@@ -30,6 +30,7 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.KxChatKind
 import com.kirox.app.ui.v3.theme.Kx
 import java.time.LocalDate
+import kotlinx.coroutines.launch
 
 private val Months = listOf("Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь")
 private val Gen = listOf("января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря")
@@ -60,12 +61,15 @@ fun JumpDateScreen(ctx: KxScreenCtx) {
     val title = store.header(chatId).title
     val today = if (live) LocalDate.now() else Today
     val first = if (live) LocalDate.of(2013, 8, 1) else First
-    fun count(d: LocalDate): Int = if (live) 0 else countDemo(d)
     var ym by remember { mutableStateOf(today.withDayOfMonth(1)) }
+    // fixer-chat4: the real chat marks the days that have messages (store.messageDays for the shown month; null while loading).
+    val liveDays = if (live) com.kirox.app.ui.v3.screens.more.c3Load(chatId, ym) { store.messageDays(chatId, ym.year, ym.monthValue) } else null
+    fun count(d: LocalDate): Int = if (live) (if (d.year == ym.year && d.monthValue == ym.monthValue && liveDays?.contains(d.dayOfMonth) == true) 10 else 0) else countDemo(d)
     var sel by remember { mutableIntStateOf(if (live) today.dayOfMonth else 14) }
     var dir by remember { mutableIntStateOf(0) }
     var gen by remember { mutableIntStateOf(0) }
     var jumped by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
     val days = ym.lengthOfMonth()
     val lead = ym.dayOfWeek.value - 1
     val monthTotal = (1..days).sumOf { count(ym.withDayOfMonth(it)) }
@@ -90,6 +94,8 @@ fun JumpDateScreen(ctx: KxScreenCtx) {
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("${Months[ym.monthValue - 1]} ${ym.year}", style = ts(18, W800))
                     if (!live) Text(if (monthTotal > 0) "$monthTotal ${plural(monthTotal, "сообщение", "сообщения", "сообщений")}" else "Сообщений не было", style = ts(12, color = Kx.text3))
+                    else Text(when { liveDays == null -> "Ищем дни с сообщениями…"; liveDays.isEmpty() -> "В этом месяце сообщений не было"
+                        else -> "Дней с сообщениями: ${liveDays.size}" }, style = ts(12, color = Kx.text3))
                 }
                 ChRound(Icons.Outlined.ChevronRight, "Следующий месяц", 40.dp, border = Color.Transparent, modifier = Modifier.alpha(if (canNext) 1f else .3f)) { if (canNext) go(ym.plusMonths(1), -1, 1) }
             }
@@ -111,7 +117,17 @@ fun JumpDateScreen(ctx: KxScreenCtx) {
                                         Column(Modifier.weight(1f).aspectRatio(1f).alpha(if (off) .25f else 1f).then(if (on) Modifier.chPop(.6f, 250, fade = false) else Modifier)
                                             .clip(RoundedCornerShape(14.dp)).then(if (on) Modifier.cssGradient(160f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Lvl[lvl]))
                                             .border(1.5.dp, if (isToday && !on) Kx.accent else Color.Transparent, RoundedCornerShape(14.dp))
-                                            .kxClick("$d ${Gen[ym.monthValue - 1]}: " + if (n > 0) "$n ${plural(n, "сообщение", "сообщения", "сообщений")}" else "нет сообщений") { if (!off) sel = d },
+                                            .kxClick("$d ${Gen[ym.monthValue - 1]}: " + if (live) (if (n > 0) "есть сообщения" else "нет сообщений") else if (n > 0) "$n ${plural(n, "сообщение", "сообщения", "сообщений")}" else "нет сообщений") {
+                                                if (!off) {
+                                                    sel = d
+                                                    // fixer-chat4: a highlighted day jumps right away (no second tap on «Перейти»).
+                                                    if (live && n > 0) scope.launch {
+                                                        val dayStart = date.atStartOfDay(java.time.ZoneId.systemDefault()).toEpochSecond().toInt()
+                                                        val id = store.messageAtDate(chatId, dayStart)
+                                                        if (id != null && id > 0) { if (store.historyChatId == chatId) ctx.back() else ctx.openChat(chatId); store.jumpTo(chatId, id) }
+                                                    }
+                                                }
+                                            },
                                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
                                             Text("$d", style = ts(14, if (on || isToday) W800 else W500, if (on || lvl >= 3) Kx.onAccent else Kx.text))
                                             Box(Modifier.size(4.dp).clip(CircleShape).background(if (isToday && !on) Kx.accent else Color.Transparent))
@@ -149,7 +165,7 @@ fun JumpDateScreen(ctx: KxScreenCtx) {
                     }
                 }
             } else key(sel, ym) {
-                Text(if (selDate == null) (if (live) "Выберите день" else "Выберите день — подсвечены дни, когда вы переписывались") else if (live && foundId == null) "Ищем…" else "В этот день вы не переписывались", style = ts(13, color = Kx.text4), textAlign = TextAlign.Center,
+                Text(if (selDate == null) (if (live) "Выберите день — подсвечены дни с сообщениями" else "Выберите день — подсвечены дни, когда вы переписывались") else if (live && foundId == null) "Ищем…" else if (selDate == today) "Сегодня сообщений ещё не было" else "В этот день вы не переписывались", style = ts(13, color = Kx.text4), textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 14.dp).fillMaxWidth().chIn(durationMs = 250).clip(RoundedCornerShape(22.dp)).background(Kx.w(.03f)).dashedBorder(Kx.w(.12f), 22.dp).padding(18.dp))
             }
             FlowRow(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

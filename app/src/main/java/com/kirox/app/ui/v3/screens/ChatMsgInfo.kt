@@ -64,7 +64,8 @@ internal fun ChatMsgInfoSheet(store: KxStore, chatId: Long, m: KxMessage, kind: 
                 if (i == null) Text("Загрузка…", style = KxType.style(14.sp, color = Kx.text3))
                 else {
                     InfoRow(Icons.AutoMirrored.Rounded.Send, if (m.out) "Отправлено" else "Получено", i.sent.ifBlank { m.time })
-                    if (i.edited.isNotBlank()) InfoRow(Icons.Rounded.Edit, "Изменено", i.edited)
+                    // fixer-chat4: an edited message always shows «Изменено» (TDLib may give no edit date, e.g. after a reload of the bubble).
+                    if (i.edited.isNotBlank() || m.edited) InfoRow(Icons.Rounded.Edit, "Изменено", i.edited.ifBlank { "да" })
                     if (kind == KxChatKind.Private && m.out) InfoRow(Icons.Rounded.DoneAll, "Прочитано",
                         i.read.removePrefix("Прочитано ").ifBlank { i.readNote.ifBlank { "—" } })
                     if (i.views > 0) InfoRow(Icons.Outlined.Visibility, "Просмотры", i.views.toString())

@@ -57,10 +57,13 @@ fun PremiumScreen(ctx: KxScreenCtx) {
     val scope = rememberCoroutineScope()
     val stars = store.starsBalance ?: 0L
     val gifts = store.giftCatalog.filter { !it.soldOut }.take(6)
-    // Recipient: user id from open("Premium:<userId>"), else the first contact.
-    val toId = ctx.arg?.toLongOrNull()
-    val toName = toId?.let { id -> store.contacts.firstOrNull { it.id == id }?.name ?: store.peer(id).name } ?: store.contacts.firstOrNull()?.name ?: ""
-    val toUser = toId ?: store.contacts.firstOrNull()?.id
+    // Recipient: user id from open("Premium:<userId>"); otherwise «Подарить» first opens a contact picker (fixer-misc4).
+    var toId by rememberSaveable { mutableStateOf(ctx.arg?.toLongOrNull()) }
+    val toName = toId?.let { id -> store.contacts.firstOrNull { it.id == id }?.name ?: store.peer(id).name } ?: ""
+    val toUser = toId
+    var picking by rememberSaveable { mutableStateOf(ctx.arg == "gift") } // open("Premium:gift") from Settings → «Подарки»
+    var query by rememberSaveable { mutableStateOf("") }
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
     var confirm by remember { mutableStateOf<KxConfirm?>(null) }
     var busy by remember { mutableStateOf(false) }
     var giftOpen by rememberSaveable { mutableStateOf(false) }
@@ -108,9 +111,15 @@ fun PremiumScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                BotButton(Modifier.weight(1.5f), reduced) { ctx.open("Bot:PremiumBot") }
+                BotButton(Modifier.weight(1.5f), reduced) {
+                    // fixer-misc4: the real account opens the real @PremiumBot chat (the bot starts only when the user taps «Старт» there).
+                    if (demo) ctx.open("Bot") else scope.launch {
+                        val id = store.publicChat("PremiumBot")
+                        if (id != null) ctx.openChat(id) else ctx.toast(store.error?.also { store.clearError() } ?: "Не удалось открыть @PremiumBot")
+                    }
+                }
                 Row(Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.07f)).border(1.dp, Kx.w(.1f), RoundedCornerShape(18.dp))
-                    .kxClick { giftOpen = true; pick = null; sent = false }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                    .kxClick { pick = null; sent = false; if (ctx.arg?.toLongOrNull() != null) giftOpen = true else { query = ""; picking = true } }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     Icon(Icons.Rounded.Redeem, null, tint = Color(0xFFF2A6C0)); Spacer(Modifier.width(6.dp))
                     Text("Подарить", style = KxType.style(14.sp, FontWeight.Bold))
                 }
@@ -120,6 +129,29 @@ fun PremiumScreen(ctx: KxScreenCtx) {
                 Icon(Icons.Rounded.Verified, null, Modifier.size(20.dp), tint = Kx.accent)
                 Text("Premium подключается только в официальном боте Telegram. kiroX просто откроет его, оплату внутри приложения мы не принимаем.",
                     style = KxType.style(12.sp, color = Kx.text3, lineHeight = 16.sp))
+            }
+        }
+        if (picking) SSheet({ picking = false }, "Кому подарить") {
+            Text("Кому подарить", style = KxType.style(19.sp, FontWeight.ExtraBold), modifier = Modifier.padding(start = 4.dp, bottom = 10.dp))
+            Box(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.07f)).padding(horizontal = 14.dp), contentAlignment = Alignment.CenterStart) {
+                if (query.isEmpty()) Text("Поиск контакта", style = KxType.style(14.sp, color = Kx.text4))
+                androidx.compose.foundation.text.BasicTextField(query, { query = it }, singleLine = true, textStyle = KxType.style(14.sp),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(Kx.accent), modifier = Modifier.fillMaxWidth())
+            }
+            val people = store.contacts.filter { query.isBlank() || it.name.contains(query.trim(), true) }
+            if (people.isEmpty()) Text(if (store.contacts.isEmpty()) "Контактов пока нет" else "Никого не нашли", style = KxType.style(14.sp, color = Kx.text3),
+                modifier = Modifier.padding(vertical = 24.dp).align(Alignment.CenterHorizontally))
+            else androidx.compose.foundation.lazy.LazyColumn(Modifier.padding(top = 8.dp).fillMaxWidth().heightIn(max = 420.dp)) {
+                items(people.size, key = { people[it].id }) { i -> val c = people[i]
+                    Row(Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(16.dp)).kxClick(c.name) { toId = c.id; picking = false; giftOpen = true }.padding(horizontal = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        KxAvatar(c.name, c.id, size = 42.dp, colorIndex = c.colorIndex, photo = c.avatar)
+                        Column(Modifier.weight(1f)) {
+                            Text(c.name, style = KxType.style(15.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (c.status.isNotBlank()) Text(c.status, style = KxType.style(12.sp, color = Kx.text4), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
             }
         }
         if (giftOpen) SSheet({ giftOpen = false }, "Подарок", top = Color(40, 34, 60).copy(alpha = .95f), bottomPad = 22.dp, grabberGap = 12.dp) {

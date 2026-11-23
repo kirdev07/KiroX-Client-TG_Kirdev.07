@@ -85,7 +85,7 @@ fun ContactsScreen(ctx: KxScreenCtx) {
                             Icon(Icons.Rounded.Share, null, tint = Kx.accent); Text("Пригласить", style = KxType.style(14.sp, FontWeight.SemiBold), maxLines = 1,
                                 autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 14.sp))
                         }
-                        Row(Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.045f)).kxClick { ctx.open("MyQr") }.padding(horizontal = 12.dp),
+                        Row(Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.045f)).kxClick { ctx.open(if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) "MyQr" else "MyQr:scan") }.padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Icon(Icons.Outlined.QrCodeScanner, null, tint = Kx.link); Text("По QR-коду", style = KxType.style(14.sp, FontWeight.SemiBold), maxLines = 1,
                                 autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 14.sp))
@@ -141,7 +141,7 @@ private fun ContactSheet(c: KxContact, ctx: KxScreenCtx, onClose: () -> Unit) {
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .55f)).kxClick("Закрыть", onClick = onClose))
         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = y.value * size.height }
-            .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Brush.verticalGradient(listOf(Color(0xF0222C27), Color(0xF7101412))))
+            .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Color(0xFF101412)).background(Brush.verticalGradient(listOf(Color(0xF0222C27), Color(0xF7101412))))
             .drawBehind { drawLine(Kx.w(.14f), Offset(0f, .5f), Offset(size.width, .5f), 1f); drawLine(Kx.w(.2f), Offset(0f, 1.5f), Offset(size.width, 1.5f), 1f) }.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp)) {
             Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 14.dp).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {

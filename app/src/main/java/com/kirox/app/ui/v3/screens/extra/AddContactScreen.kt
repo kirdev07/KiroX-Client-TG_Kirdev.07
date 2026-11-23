@@ -48,7 +48,9 @@ private fun acFmt(d: String) = listOf(d.take(3), d.drop(3).take(3), d.drop(6).ta
 /** Board «Новый контакт»: name, phone with country and live Telegram lookup, share-my-number switch, note, save. */
 @Composable
 fun AddContactScreen(ctx: KxScreenCtx) {
-    var first by remember { mutableStateOf("Мария") }
+    // fixer-misc4: the demo name only in the demo store; the real account starts with empty fields.
+    val demoStore = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    var first by remember { mutableStateOf(if (demoStore) "Мария" else "") }
     var last by remember { mutableStateOf("") }
     var digits by remember { mutableStateOf("") }
     var cc by remember { mutableIntStateOf(0) }
@@ -81,7 +83,7 @@ fun AddContactScreen(ctx: KxScreenCtx) {
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExRoundBtn(Icons.Outlined.Close, "Закрыть") { ctx.back() }
                 Text("Новый контакт", style = ts(20.sp, FontWeight.ExtraBold), modifier = Modifier.weight(1f))
-                ExRoundBtn(Icons.Outlined.QrCodeScanner, "Сканировать QR-код", border = null, tint = Kx.accent) { toast.show("Откроется сканер QR-кода", Icons.Rounded.QrCodeScanner) }
+                ExRoundBtn(Icons.Outlined.QrCodeScanner, "Сканировать QR-код", border = null, tint = Kx.accent) { if (demoStore) toast.show("Откроется сканер QR-кода", Icons.Rounded.QrCodeScanner) else ctx.open("MyQr:scan") }
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 110.dp)) {
                 Column(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {

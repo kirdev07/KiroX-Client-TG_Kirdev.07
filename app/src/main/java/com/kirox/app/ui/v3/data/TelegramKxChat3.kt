@@ -36,8 +36,10 @@ internal object KxChat3Mapping {
             KxEntityType.Pre -> TdApi.TextEntityTypePre()
             KxEntityType.Spoiler -> TdApi.TextEntityTypeSpoiler()
             KxEntityType.TextLink -> TdApi.TextEntityTypeTextUrl(e.url?.takeIf { it.isNotBlank() } ?: return null)
-            // Links, mentions and hashtags are found by Telegram itself; custom emoji need their id.
-            KxEntityType.Link, KxEntityType.Mention, KxEntityType.Hashtag, KxEntityType.CustomEmoji -> return null
+            // compat: a custom emoji keeps its id in url (TelegramKxStore mapping), so a Premium user's emoji survive copy / resend.
+            KxEntityType.CustomEmoji -> TdApi.TextEntityTypeCustomEmoji(e.url?.toLongOrNull()?.takeIf { it != 0L } ?: return null)
+            // Links, mentions and hashtags are found by Telegram itself.
+            KxEntityType.Link, KxEntityType.Mention, KxEntityType.Hashtag -> return null
         }
         if (e.length <= 0 || e.offset < 0) return null
         return TdApi.TextEntity(e.offset, e.length, type)
@@ -196,7 +198,7 @@ internal class KxChat3(private val services: TelegramServices, private val app: 
     private suspend fun found(chatId: Long, m: TdApi.Message) = KxFound(chatId, m.id, chatTitle(chatId), KxChat3Mapping.preview(m.content), KxFormat.chatTime(m.date))
 
     private fun options(o: KxSendOptions): TdApi.MessageSendOptions? {
-        val schedule = when { o.at == -1 -> TdApi.MessageSchedulingStateSendWhenOnline(); o.at > 0 -> TdApi.MessageSchedulingStateSendAtDate(o.at, 0); else -> null }
+        val schedule = KxScheduleMapping.state(o.at) // features: one mapping, unit-tested
         if (!o.silent && schedule == null && o.effectId == 0L) return null
         return TdApi.MessageSendOptions(null, o.silent, false, false, false, 0, false, schedule, o.effectId, 0, false)
     }
@@ -389,6 +391,27 @@ internal class KxChat3(private val services: TelegramServices, private val app: 
             KxMessage(m.id, m.isOutgoing, formattedTextOf(m.content)?.text.orEmpty().ifEmpty { KxChat3Mapping.preview(m.content) }, KxFormat.messageTime(m.date),
                 KxChat3Mapping.kind(kindOf(m.content), m.content), sender = if (group && !m.isOutgoing) senderName(m.senderId) else null)
         }
+    }
+
+    /**
+     * fixer-chat4: days of [year]-[month] (1..31) with at least one message — walks back day by day with
+     * GetChatMessageByDate (one request per day that has messages, not per calendar day).
+     */
+    suspend fun messageDays(chatId: Long, year: Int, month: Int): Set<Int> {
+        val zone = java.time.ZoneId.systemDefault()
+        val first = java.time.LocalDate.of(year, month, 1)
+        val start = first.atStartOfDay(zone).toEpochSecond()
+        var cursor = minOf(first.plusMonths(1).atStartOfDay(zone).toEpochSecond() - 1, System.currentTimeMillis() / 1000 + 60)
+        val out = HashSet<Int>()
+        repeat(32) {
+            if (cursor < start) return out
+            val m = orNull { client.query(TdApi.GetChatMessageByDate(chatId, cursor.toInt())) } ?: return out
+            if (m.id == 0L || m.date < start) return out
+            val d = java.time.Instant.ofEpochSecond(m.date.toLong()).atZone(zone).toLocalDate()
+            out += d.dayOfMonth
+            cursor = d.atStartOfDay(zone).toEpochSecond() - 1
+        }
+        return out
     }
 
     suspend fun messageAtDate(chatId: Long, dayStart: Int): Long? {

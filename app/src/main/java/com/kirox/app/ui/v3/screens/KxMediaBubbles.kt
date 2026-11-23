@@ -32,7 +32,7 @@ import com.kirox.app.ui.v3.theme.KxType
  */
 
 /** What kind of sticker file this is: by extension first, then by the first bytes (gzip = TGS, EBML = WEBM). */
-private fun stickerType(path: String): Int {
+internal fun stickerType(path: String): Int {
     val ext = path.substringAfterLast('.', "").lowercase()
     if (ext == "tgs") return 1
     if (ext == "webm") return 2
@@ -67,7 +67,7 @@ internal fun KxStickerBubble(m: KxMessage, store: KxStore?, size: Dp = 160.dp) {
 
 /** TGS sticker: gzip-compressed Lottie JSON, played in a loop. */
 @Composable
-private fun KxLottie(path: String, modifier: Modifier) {
+internal fun KxLottie(path: String, modifier: Modifier, play: Boolean = true) {
     val json by produceState<String?>(null, path) {
         value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             runCatching { java.util.zip.GZIPInputStream(java.io.File(path).inputStream()).bufferedReader().use { it.readText() } }.getOrNull()
@@ -75,7 +75,9 @@ private fun KxLottie(path: String, modifier: Modifier) {
     }
     val source = json ?: return
     val composition by com.airbnb.lottie.compose.rememberLottieComposition(com.airbnb.lottie.compose.LottieCompositionSpec.JsonString(source), cacheKey = path)
-    com.airbnb.lottie.compose.LottieAnimation(composition, iterations = com.airbnb.lottie.compose.LottieConstants.IterateForever, modifier = modifier)
+    // fixer-chat4: panels (sticker grid) draw a still first frame; the chat bubble plays the loop.
+    if (play) com.airbnb.lottie.compose.LottieAnimation(composition, iterations = com.airbnb.lottie.compose.LottieConstants.IterateForever, modifier = modifier)
+    else com.airbnb.lottie.compose.LottieAnimation(composition, { 0f }, modifier = modifier)
 }
 
 /** «📍 Геопозиция\nhttps://maps.google.com/?q=lat,lon» (TelegramMessageRepository) → (lat, lon). */

@@ -456,7 +456,12 @@ class TelegramKxStore(
         if (!show) { translations.update { it - messageId }; return }
         if (history.chatId != chatId) return
         scope.launch {
-            val text = vm.messages.translate(messageId, "ru")
+            // fixer-chat4: into the language picked for translations (KxPrefs.TRANSLATE_TO: ru / en / kk), not always Russian.
+            // features: without Premium the phone translates (ML Kit, KxOnDeviceTranslate); null = Telegram as before.
+            KxOnDeviceTranslate.forStore(me.premium, features.settings, historyMessages.firstOrNull { it.id == messageId }?.text.orEmpty(),
+                listOf("ru", "en", "kk").getOrElse(pref(KxPrefs.TRANSLATE_TO)) { "ru" })?.let { r ->
+                r.text?.let { t -> translations.update { it + (messageId to t) } }; r.error?.let { error = it }; return@launch }
+            val text = vm.messages.translate(messageId, listOf("ru", "en", "kk").getOrElse(pref(KxPrefs.TRANSLATE_TO)) { "ru" })
             if (text != null) translations.update { it + (messageId to text) } else error = "Не удалось перевести"
         }
     }
@@ -728,7 +733,10 @@ class TelegramKxStore(
                 msgKind == KxMsgKind.Unsupported -> "Сообщение не поддерживается в kiroX"
                 else -> text
             },
-            time = KxFormat.messageTime(date),
+            // compat: a message its author deleted but kept here («Сохранять удалённые») is local-only and says so
+            // (the bubble's time reads «удалено · 12:30» until the chat screen draws its own mark from [KxMessage.deleted]).
+            time = if (deleted) "удалено · " + KxFormat.messageTime(date) else KxFormat.messageTime(date),
+            deleted = deleted,
             kind = msgKind,
             status = when (delivery) {
                 TelegramDelivery.Sending -> KxOutState.Sending
@@ -779,7 +787,7 @@ class TelegramKxStore(
             views = viewCount?.let(KxFormat::compactCount).orEmpty(),
             comments = commentCount ?: 0,
             buttons = buttons.map { row -> row.map { it.text } },
-            canEdit = r?.canEdit ?: canEdit,
+            canEdit = !deleted && (r?.canEdit ?: canEdit),
             // Until GetMessageProperties answers (a moment): no «Удалить у всех», and «только у меня» only
             // where it exists (private chats; in supergroups and channels every delete is for all).
             canDeleteForAll = r?.canDeleteForAll ?: false,
@@ -1108,6 +1116,15 @@ class TelegramKxStore(
         if (history.chatId != chatId || query.isBlank()) return emptyList()
         return orNull { vm.messages.search(query.trim()).first }.orEmpty().map { it.id }
     }
+    override suspend fun searchInChatMessages(chatId: Long, query: String): List<KxMessage> {
+        val h = history
+        if (h.chatId != chatId || query.isBlank()) return emptyList()
+        val found = orNull { vm.messages.search(query.trim()).first }.orEmpty()
+        val known = paths.value
+        val group = h.peerKind == TelegramPeerKind.Group
+        val privateLike = h.peerKind == TelegramPeerKind.User || h.peerKind == TelegramPeerKind.Bot || h.peerKind == TelegramPeerKind.Saved
+        return found.map { m -> m.toKx(group, privateLike, KxFormat.dayHeader(m.date), null, null, m.id in h.pinnedIds, known) }
+    }
     // wave5: a jump asked right after openChat (search hit, JumpDate, SharedMedia) waits until that chat's history is open.
     @Volatile private var pendingJump: Pair<Long, Long>? = null
     override fun jumpTo(chatId: Long, messageId: Long) {
@@ -1398,6 +1415,7 @@ class TelegramKxStore(
     override suspend fun deleteStory(storyId: Int): String? = attempt { vm.stories.delete(me.id, storyId) }
     override suspend fun translateMessage(chatId: Long, messageId: Long, toLang: String): String? {
         // The board says why it failed; no store.error banner on top of that.
+        historyMessages.firstOrNull { it.id == messageId }?.text?.let { t -> KxOnDeviceTranslate.forStore(me.premium, features.settings, t, toLang)?.let { return it.text } } // features
         return orNull { vm.messages.translateIn(chatId, messageId, toLang) }
     }
     override suspend fun joinByInviteLink(link: String): String? {
@@ -1422,12 +1440,13 @@ class TelegramKxStore(
             val common = if (userId != 0L) orNull { services.admin.commonGroups(userId).size } ?: 0 else 0
             peerExtras[chatId] = base.copy(
                 username = info.username, phone = if (info.phone.isBlank()) "" else runCatching { com.kirox.app.phone.PhoneNumberEngine().formatInternational(info.phone) }.getOrDefault("+" + info.phone),
-                bio = info.about, birthday = extras?.birthday?.text.orEmpty(), commonGroups = common,
+                bio = info.about, birthday = extras?.birthday?.text.orEmpty(), commonGroups = common, emojiStatusId = info.emojiStatusId,
             )
         }
         val extra = peerExtras[chatId] ?: return base
         // Live values (status, online, avatar) from the header; the loaded facts from the extras.
-        return base.copy(username = extra.username, phone = extra.phone, bio = extra.bio, birthday = extra.birthday, commonGroups = extra.commonGroups)
+        return base.copy(username = extra.username, phone = extra.phone, bio = extra.bio, birthday = extra.birthday, commonGroups = extra.commonGroups,
+            emojiStatusId = extra.emojiStatusId)
     }
 
     private fun initRound5() {
@@ -1546,6 +1565,8 @@ class TelegramKxStore(
     override fun playerSeek(fraction: Float) = mediaBinder.playerSeek(fraction)
     override fun playerShuffle() = mediaBinder.playerShuffle()
     override fun playerRepeat() = mediaBinder.playerRepeat()
+    private val musicBinder by lazy { TelegramKxMusic(app, scope, mediaBinder) { autoPath(it, paths.value) }.also { it.start() } }
+    override val music: com.kirox.app.ui.v3.model.KxMusic get() = musicBinder
     override fun playVoice(fileId: Int) = mediaBinder.playVoice(fileId)
     override fun downloadMessageFile(chatId: Long, messageId: Long, fileId: Int) { mediaBinder.addToDownloads(fileId, chatId, messageId); if (fileId != 0) watchFile(TelegramFileRef(fileId, null)) }
     override val autoplayGifs: Boolean get() = vm.autoDownload.autoplayGifs.value
@@ -1554,7 +1575,11 @@ class TelegramKxStore(
     override fun removeDownloads(fileIds: List<Int>) = mediaBinder.removeDownloads(fileIds)
     override suspend fun voiceMessages(chatId: Long) = mediaBinder.voiceMessages(chatId)
     override fun markListened(chatId: Long, messageId: Long) = mediaBinder.markListened(chatId, messageId)
-    override suspend fun transcribe(chatId: Long, messageId: Long, onPartial: (String) -> Unit) = mediaBinder.transcribe(chatId, messageId, onPartial)
+    // features: without Premium the phone recognises the speech (KxOnDeviceSpeech); Premium keeps Telegram's recognition.
+    override suspend fun transcribe(chatId: Long, messageId: Long, onPartial: (String) -> Unit) =
+        if (!me.premium && features.settings[KxFeatureKeys.SPEECH_ON_DEVICE] != 0)
+            KxOnDeviceSpeech.transcribe(app, services.client, chatId, messageId, features.settings[KxFeatureKeys.SPEECH_LANG] ?: 0, onPartial)
+        else mediaBinder.transcribe(chatId, messageId, onPartial)
     override suspend fun storyArchive() = mediaBinder.storyArchive()
     override suspend fun profileStories() = mediaBinder.profileStories()
     override suspend fun setStoryOnProfile(storyId: Int, on: Boolean) = mediaBinder.setStoryOnProfile(storyId, on)
@@ -1683,6 +1708,7 @@ class TelegramKxStore(
     override suspend fun peekHistory(chatId: Long, limit: Int): List<KxMessage> = chat3.peekHistory(chatId, limit)
     override suspend fun linkPreview(text: String): KxLinkPreview? = chat3.linkPreview(text)
     override suspend fun messageAtDate(chatId: Long, unix: Int): Long? = chat3.messageAtDate(chatId, unix)
+    override suspend fun messageDays(chatId: Long, year: Int, month: Int): Set<Int> = runCatching { chat3.messageDays(chatId, year, month) }.getOrDefault(emptySet())
     override suspend fun stickerSetByName(name: String): KxStickerSetInfo? = chat3.stickerSetByName(name)
     override suspend fun stickerSetInfo(setId: Long): KxStickerSetInfo? = chat3.stickerSetInfo(setId)
     override suspend fun installedStickerSets(): List<KxStickerSetInfo> = chat3.installedStickerSets()
@@ -1729,7 +1755,10 @@ class TelegramKxStore(
     override fun clickBigEmoji(chatId: Long, messageId: Long) { scope.launch { chat3.clickBigEmoji(chatId, messageId) } }
     override val sensitiveAllowed: Boolean? get() = chat3.sensitive
     override fun allowSensitive(on: Boolean) = chat3.allowSensitive(on)
-    override suspend fun translateText(text: String, toLang: String): String? = chat3.translateText(text, toLang)
+    override suspend fun translateText(text: String, toLang: String): String? =
+        KxOnDeviceTranslate.forStore(me.premium, features.settings, text, toLang)?.text ?: chat3.translateText(text, toLang) // features: on the phone first without Premium
+    /** features: templates, bookmarks, notes, reminders of this account, saved on the phone (KxFeatureStorage). */
+    override val features: KxFeatureData get() = KxFeatureFiles.of(app, me.id)
     override suspend fun textEntities(text: String): List<KxEntity> = chat3.textEntities(text)
     override suspend fun chatFacts(chatId: Long): KxChatFacts? = chat3.chatFacts(chatId)
     override suspend fun canPost(chatId: Long): Boolean = vm.chats.writeAccess(chatId) == com.kirox.app.telegram.TelegramWriteAccess.Write

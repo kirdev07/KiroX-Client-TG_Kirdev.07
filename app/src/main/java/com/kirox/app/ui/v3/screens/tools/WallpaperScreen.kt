@@ -116,7 +116,7 @@ fun WallpaperScreen(ctx: KxScreenCtx) {
                     Column(Modifier.matchParentSize().graphicsLayer { alpha = .3f + .7f * sw.value; val s = 1.04f - .04f * sw.value; scaleX = s; scaleY = s }.padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Bottom)) {
                         Box(Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(alpha = .35f)).padding(horizontal = 10.dp, vertical = 3.dp)) {
-                            Text("Сегодня", style = KxType.style(11.sp, FontWeight.Bold, Kx.text2))
+                            Text(if (demoStore) "Сегодня" else "Пример", style = KxType.style(11.sp, FontWeight.Bold, Kx.text2)) // fixer-misc4: sample texts marked on the real account
                         }
                         listOf("Смотри, какие у меня обои 😍" to false, "Красиво! Тоже хочу такие" to true, "Настройки → Обои 👌" to false).forEach { (t, mine) ->
                             val r = if (mine) RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp) else RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)

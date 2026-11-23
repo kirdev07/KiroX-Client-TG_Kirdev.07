@@ -76,7 +76,7 @@ internal object KxLocalMapping {
     fun nightMode(autoTheme: Boolean, stored: Int) = if (autoTheme) 1 else stored.takeIf { it != 1 } ?: 3
 
     /** Dock tab keys for I18n own names, by the board's tab index. */
-    val tabKeys = listOf("Контакты", "Звонки", "Чаты", "Истории", "Настройки")
+    val tabKeys = listOf("Контакты", "Звонки", "Чаты", "Истории", "Настройки", "Музыка")
 }
 
 internal class KxLocalSettings(private val app: Context, private val scope: CoroutineScope) {
@@ -85,7 +85,7 @@ internal class KxLocalSettings(private val app: Context, private val scope: Coro
     private val prefs = app.getSharedPreferences("kirox_v3_prefs", Context.MODE_PRIVATE)
     private val own = setOf(KxPrefs.THEME, KxPrefs.CHAT_WALLPAPER, KxPrefs.TRANSLATE, KxPrefs.TRANSLATE_TO, KxPrefs.POWER_OFF, KxPrefs.NOISE, KxPrefs.ECHO,
         KxPrefs.RINGTONE, KxPrefs.NIGHT_MODE, KxPrefs.NIGHT_THEME, KxPrefs.WALL, KxPrefs.WALL_BLUR, KxPrefs.WALL_MOTION, KxPrefs.WALL_DIM,
-        KxPrefs.ANIM_ON, KxPrefs.ANIM_SCENE, KxPrefs.ANIM_SPEED, KxPrefs.ANIM_QUAL)
+        KxPrefs.ANIM_ON, KxPrefs.ANIM_SCENE, KxPrefs.ANIM_SPEED, KxPrefs.ANIM_QUAL, KxPrefs.MUSIC_TAB)
 
     var values by mutableStateOf(read())
         private set

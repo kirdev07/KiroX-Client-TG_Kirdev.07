@@ -130,7 +130,7 @@ fun ScheduleScreen(ctx: KxScreenCtx) {
                 .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp) { if (list) list = false else ctx.back() }
                 if (!list) {
-                    KxAvatar(h.title, chatId, size = 38.dp, colorIndex = h.colorIndex)
+                    KxAvatar(h.title, chatId, size = 38.dp, colorIndex = h.colorIndex, photo = h.avatar)
                     Column(Modifier.weight(1f)) { Text(h.title, style = ts(16, W800), maxLines = 1); Text(h.status, style = ts(12, color = Kx.text3), maxLines = 1) }
                     if (sched.isNotEmpty()) Box(Modifier.size(42.dp).chIn().clip(CircleShape).background(Kx.accent.copy(alpha = .12f)).kxClick("Отложенные") { list = true }, contentAlignment = Alignment.Center) {
                         Icon(Icons.AutoMirrored.Outlined.ScheduleSend, null, tint = Kx.accent)

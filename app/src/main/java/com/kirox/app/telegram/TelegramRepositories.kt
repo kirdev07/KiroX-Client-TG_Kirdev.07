@@ -168,4 +168,6 @@ class TelegramServices(context: android.content.Context) {
     val chat3Updates = TelegramChat3Updates(client)
     /** Accent colours and new terms of service (sent once by TDLib), for the v3 account boards. */
     val accountUpdates = TelegramAccountUpdates(client)
+    /** shield: «Код-щит» remembers fresh login codes from 777000 in memory for 15 minutes (security/shield). */
+    val shieldCodes = com.kirox.app.security.shield.ShieldCodeWatcher(client)
 }

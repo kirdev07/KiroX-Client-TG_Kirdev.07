@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.MotionPhotosOn
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
@@ -131,8 +132,11 @@ fun CustomScreen(ctx: KxScreenCtx) {
 
                 Column(Modifier.kxRise(180), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     SCaption("Нижняя панель")
-                    SSwitchRow(Icons.Outlined.Call, "Вкладка «Звонки»", calls, groupShape(0, 2), trackOn = accent) { store.setTweak("hideCallsTab", calls) }
-                    SSwitchRow(Icons.Outlined.MotionPhotosOn, "Вкладка «Истории»", stories, groupShape(1, 2), trackOn = accent) { store.setTweak("hideStoriesTab", stories) }
+                    SSwitchRow(Icons.Outlined.Call, "Вкладка «Звонки»", calls, groupShape(0, 3), trackOn = accent) { store.setTweak("hideCallsTab", calls) }
+                    SSwitchRow(Icons.Outlined.MotionPhotosOn, "Вкладка «Истории»", stories, groupShape(1, 3), trackOn = accent) { store.setTweak("hideStoriesTab", stories) }
+                    // music: an extra dock tab with the music library and player (off by default).
+                    val musicTab = store.pref(KxPrefs.MUSIC_TAB) != 0
+                    SSwitchRow(Icons.Outlined.MusicNote, "Вкладка «Музыка»", musicTab, groupShape(2, 3), trackOn = accent) { store.putPref(KxPrefs.MUSIC_TAB, if (musicTab) 0 else 1) }
                 }
 
                 // wave5: gesture / reaction / name-colour boards that had no entry.

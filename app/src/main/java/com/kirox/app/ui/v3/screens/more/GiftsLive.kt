@@ -63,6 +63,8 @@ internal fun GiftsLive(ctx: KxScreenCtx) {
                     }
                 }
             }
+            // fixer-misc4: like Telegram, a way to send a gift from here (contact picker → gift sheet on the Premium board).
+            MoPill("Отправить подарок", Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 16.dp).fillMaxWidth(), height = 50.dp, bg = Kx.accent, ink = Kx.onAccent, size = 15) { ctx.open("Premium:gift") }
         }
         confirm?.let { c -> KxConfirmDialog(c) { confirm = null } }
     }

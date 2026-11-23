@@ -190,6 +190,15 @@
         <receiver
             android:name=".notify.MessageActionReceiver"
             android:exported="false" />
+        <!-- features: «Напомнить прочитать позже» alarms; set again after a reboot or an update. -->
+        <receiver
+            android:name=".ui.v3.data.KxReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
         <service
             android:name=".push.KiroxFirebaseService"
             android:exported="false">

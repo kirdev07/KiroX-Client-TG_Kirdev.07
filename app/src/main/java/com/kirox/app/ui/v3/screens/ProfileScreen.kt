@@ -75,7 +75,9 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
                 }
                 Row(Modifier.padding(top = 12.dp).kxRise(80, 500), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(p.name, style = KxType.style(24.sp, FontWeight.ExtraBold))
-                    if (p.premium) Icon(Icons.Rounded.Star, "Premium", Modifier.size(20.dp), tint = Color(0xFFFFD27A))
+                    // compat: the Premium emoji status replaces the star, as in Telegram (real store only; the demo has none).
+                    if (p.emojiStatusId != 0L) com.kirox.app.ui.components.CustomEmojiImage(p.emojiStatusId, 22.dp, fallback = "⭐")
+                    else if (p.premium) Icon(Icons.Rounded.Star, "Premium", Modifier.size(20.dp), tint = Color(0xFFFFD27A))
                 }
                 Text(p.status, style = KxType.style(14.sp, color = if (p.online) Kx.accent else Kx.text4), modifier = Modifier.kxRise(120, 500))
             }
@@ -113,6 +115,7 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
                         autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 13.sp))
                 }
             }
+            com.kirox.app.ui.v3.features.KxProfileNote(store, p.chatId, p.name) // features: own local note on this person
             Row(Modifier.padding(top = 14.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp).kxRise(280, 500), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 KxSharedTab.entries.forEach { t ->
                     val n = p.counts[t] ?: 0

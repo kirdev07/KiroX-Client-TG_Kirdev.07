@@ -72,6 +72,9 @@ object Playlists {
         else p.copy(items = p.items.toMutableList().apply { add(to, removeAt(from)) })
     })
 
+    /** Moves the track at [from] to place [to] (drag in a v3 playlist). */
+    fun moveTo(id: Long, from: Int, to: Int) = move(id, from, to - from)
+
     fun isLiked(chatId: Long, messageId: Long) = get(LIKED)?.has(chatId, messageId) == true
 
     fun toggleLiked(item: PlaylistItem) = if (isLiked(item.chatId, item.messageId)) remove(LIKED, item.chatId, item.messageId) else add(LIKED, item)

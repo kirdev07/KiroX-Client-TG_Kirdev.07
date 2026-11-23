@@ -80,7 +80,7 @@ fun ForwardScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp, border = Color.Transparent, onClick = ctx.back)
-                if (srcHeader != null) KxAvatar(srcHeader.title, srcHeader.chatId, size = 38.dp, square = srcHeader.kind == KxChatKind.Channel, colorIndex = srcHeader.colorIndex)
+                if (srcHeader != null) KxAvatar(srcHeader.title, srcHeader.chatId, size = 38.dp, square = srcHeader.kind == KxChatKind.Channel, colorIndex = srcHeader.colorIndex, photo = srcHeader.avatar)
                 else Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).cssGradient(140f, Color(0xFF2F6E9E), Color(0xFF14243A)), contentAlignment = Alignment.Center) {
                     Text("Н", style = ts(15, W700, Color(0xFFCFE6FF)))
                 }
@@ -178,7 +178,7 @@ private fun TargetCell(c: KxChat, on: Boolean, tap: () -> Unit) {
             Box(Modifier.matchParentSize().graphicsLayer { scaleX = scale; scaleY = scale }) {
                 if (c.kind == KxChatKind.Saved) Box(Modifier.matchParentSize().clip(CircleShape).cssGradient(140f, Kx.accentMid, Kx.accentDeep), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.Bookmark, null, Modifier.size(28.dp), tint = Kx.onAccent)
-                } else KxAvatar(c.title, c.id, size = 62.dp, square = square, colorIndex = c.colorIndex)
+                } else KxAvatar(c.title, c.id, size = 62.dp, square = square, colorIndex = c.colorIndex, photo = c.avatar)
             }
             Box(Modifier.matchParentSize().graphicsLayer { scaleX = 68f / 62f; scaleY = 68f / 62f }
                 .border(2.5.dp, ring, if (square) RoundedCornerShape(23.dp) else CircleShape))

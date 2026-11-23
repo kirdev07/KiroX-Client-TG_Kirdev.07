@@ -55,7 +55,9 @@ fun AccountsScreen(ctx: KxScreenCtx) {
     }.ifEmpty { listOf(KAccs[0].copy(name = store.me.name, handle = store.me.username.let { if (it.isBlank()) "" else "@$it" }, badge = 0)) }
     val ids = accs.indices.toList()
     val cur = 0
-    var sheet by remember { mutableStateOf(true) }
+    // fixer-misc4: the switcher sheet opens by itself only on the demo board; real photos instead of letters.
+    var sheet by remember { mutableStateOf(store is com.kirox.app.ui.v3.demo.KxDemoStore) }
+    val photos = store.accounts.map { it.avatar }.ifEmpty { listOf(store.me.avatar) }
     var confirm by remember { mutableStateOf(false) }
     val reduced = LocalKxReducedMotion.current
     val swap = remember { Animatable(1f) }
@@ -78,6 +80,7 @@ fun AccountsScreen(ctx: KxScreenCtx) {
                     Box(Modifier.matchParentSize().shadow(24.dp, CircleShape, ambientColor = Color.Black, spotColor = Color.Black).clip(CircleShape)
                         .cssGradient(140f, 0f to a.a1, 1f to a.a2), contentAlignment = Alignment.Center) {
                         Text(a.name.take(1), style = KxType.style(36.sp, FontWeight.ExtraBold, a.ink))
+                        photos.getOrNull(cur)?.let { com.kirox.app.ui.v3.components.KxImage(it, Modifier.matchParentSize(), maxPx = 300) }
                     }
                     Box(Modifier.align(Alignment.BottomEnd).offset(2.dp, 2.dp).size(38.dp).clip(CircleShape).background(Kx.bg).padding(3.dp).clip(CircleShape).background(Color(0xFF1E2622)),
                         contentAlignment = Alignment.Center) { Icon(Icons.Outlined.SwapHoriz, null, Modifier.size(18.dp), tint = Kx.accent) }
@@ -121,6 +124,7 @@ fun AccountsScreen(ctx: KxScreenCtx) {
                     Box {
                         Box(Modifier.size(48.dp).clip(CircleShape).cssGradient(140f, 0f to acc.a1, 1f to acc.a2), contentAlignment = Alignment.Center) {
                             Text(acc.name.take(1), style = KxType.style(18.sp, FontWeight.ExtraBold, acc.ink))
+                            photos.getOrNull(id)?.let { com.kirox.app.ui.v3.components.KxImage(it, Modifier.matchParentSize(), maxPx = 150) }
                         }
                         if (!active && acc.badge > 0) Box(Modifier.align(Alignment.TopEnd).offset(4.dp, (-4).dp).heightIn(min = 20.dp).widthIn(min = 20.dp).clip(RoundedCornerShape(10.dp))
                             .background(Kx.surface).padding(2.dp).clip(RoundedCornerShape(8.dp)).background(Kx.accent).padding(horizontal = 3.dp), contentAlignment = Alignment.Center) {

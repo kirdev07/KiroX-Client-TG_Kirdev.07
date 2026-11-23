@@ -77,7 +77,7 @@ fun ShareInScreen(ctx: KxScreenCtx) {
             val enter = remember { Animatable(if (reduced) 1f else 0f) }
             LaunchedEffect(Unit) { enter.animateTo(1f, tween(400, easing = com.kirox.app.ui.v3.theme.KxMotion.rise)) }
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(690.dp).graphicsLayer { translationY = (1f - enter.value) * size.height }
-                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Brush.verticalGradient(listOf(Color(0xFC1E2421), Color(0xFF0C0F0D))))
+                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Color(0xFF101412)).background(Brush.verticalGradient(listOf(Color(0xFC1E2421), Color(0xFF0C0F0D))))
                 .drawBehind { drawLine(Kx.w(.16f), Offset(0f, .5f), Offset(size.width, .5f), 1.dp.toPx()) }) {
                 Box(Modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) { Box(Modifier.size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f))) }
                 Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

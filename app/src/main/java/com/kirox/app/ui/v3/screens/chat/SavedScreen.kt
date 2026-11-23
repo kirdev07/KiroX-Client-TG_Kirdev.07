@@ -113,7 +113,10 @@ fun SavedScreen(ctx: KxScreenCtx) {
                     val ink = if (on) Kx.onAccent else Kx.text2
                     Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(bg).kxClick { if (!demo) ctx.toast("Фильтр по тегам пока не переносится") else { tag = if (on) null else k; byChats = false } }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically) {
-                        Text("$e $label ", style = ts(13, W700, ink))
+                        // compat: a custom-emoji tag (Premium) is «ce:<id>» — draw the emoji, never the key.
+                        val ce = e.removePrefix("ce:").toLongOrNull()?.takeIf { e.startsWith("ce:") }
+                        if (ce != null) com.kirox.app.ui.components.CustomEmojiImage(ce, 18.dp, fallback = "🏷")
+                        Text(if (ce != null) " $label " else "$e $label ", style = ts(13, W700, ink))
                         Text("${tagCount(k)}", style = ts(13, W700, ink.copy(alpha = .7f)))
                     }
                 }

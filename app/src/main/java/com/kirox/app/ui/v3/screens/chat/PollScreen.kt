@@ -125,7 +125,7 @@ fun PollScreen(ctx: KxScreenCtx) {
             val h = ctx.arg?.toLongOrNull()?.let { ctx.store.header(it) }
             Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp) { sent = false }
-                KxAvatar(h?.title ?: "Курс английского", h?.chatId ?: 0, size = 38.dp, colorIndex = h?.colorIndex?.takeIf { it >= 0 } ?: 0)
+                KxAvatar(h?.title ?: "Курс английского", h?.chatId ?: 0, size = 38.dp, colorIndex = h?.colorIndex?.takeIf { it >= 0 } ?: 0, photo = h?.avatar)
                 Column { Text(h?.title ?: "Курс английского", style = ts(16, W800)); Text(h?.status ?: "24 участника", style = ts(12, color = Kx.text3)) }
             }
             Column(Modifier.weight(1f).fillMaxWidth().ellipseGlow(1f, 0f, .72f, .36f, Kx.accentDeep.copy(alpha = .18f)).padding(horizontal = 12.dp, vertical = 10.dp),

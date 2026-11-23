@@ -98,9 +98,11 @@ private fun StoryCard(p: KxStoryPeer, modifier: Modifier, onClick: () -> Unit) {
     Box(modifier.height(214.dp).clip(RoundedCornerShape(24.dp)).look(first.look).then(Modifier)
         .then(if (p.unseen) Modifier.border(1.dp, Kx.accent.copy(alpha = .35f), RoundedCornerShape(24.dp)) else Modifier)
         .kxClick("История: ${p.name}", onClick = onClick)) {
-        if (first.media != null) KxImage(first.media, Modifier.matchParentSize(), maxPx = 600)
+        // fixer-misc4: the film-strip / motif placeholder only while there is no decoded cover.
+        val cover = com.kirox.app.ui.v3.components.rememberKxBitmap(first.media, 600)
+        if (cover != null) androidx.compose.foundation.Image(cover, null, Modifier.matchParentSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(.45f to Color.Transparent, 1f to Color.Black.copy(alpha = .65f))))
-        Icon(Looks[first.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.16f)).size(44.dp), tint = Color.White.copy(alpha = .28f))
+        if (cover == null) Icon(Looks[first.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.16f)).size(44.dp), tint = Color.White.copy(alpha = .28f))
         Box(Modifier.padding(10.dp).size(40.dp), contentAlignment = Alignment.Center) {
             Box(Modifier.matchParentSize().graphicsLayer { rotationZ = -90f + spin.value }.clip(CircleShape).background(if (p.unseen) Kx.storyRing else Brush.linearGradient(listOf(Kx.w(.3f), Kx.w(.3f)))))
             KxAvatar(p.name, p.id, Modifier.border(2.dp, Kx.bg, CircleShape), size = 34.dp, colorIndex = p.colorIndex, photo = p.avatar)
@@ -201,7 +203,10 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
         alpha = ((zoom.value - .88f) / .12f).coerceIn(0f, 1f) * (1f - d * .5f)
     }) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))) {
-            Box(Modifier.fillMaxSize().look(s.look)) {
+            // fixer-chat4: a real story sits on black between the header (progress, avatar, pause, close) and the reply row,
+            // so the fitted picture is never covered; only demo slides without media keep the coloured look.
+            Box(if (s.media == null && !s.pending) Modifier.fillMaxSize().look(s.look)
+                else Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().padding(top = 70.dp).navigationBarsPadding().padding(bottom = 82.dp)) {
                 if (player != null) androidx.compose.ui.viewinterop.AndroidView(factory = { c -> androidx.media3.ui.PlayerView(c).apply { useController = false; keepScreenOn = true; resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT } },
                     update = { it.player = player }, modifier = Modifier.matchParentSize())
                 else if (photo != null) androidx.compose.foundation.Image(photo, null, Modifier.matchParentSize(), contentScale = StoryScale)

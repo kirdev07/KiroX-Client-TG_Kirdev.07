@@ -105,7 +105,7 @@ fun FilePickerScreen(ctx: KxScreenCtx) {
             Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = .5f)))
             val sp = moEnter(350, easing = KxMotion.rise)
             Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().height(660.dp).graphicsLayer { translationY = (1f - sp) * size.height }
-                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Brush.verticalGradient(listOf(Color(0xFC242B28), Color(0xFF101311))))
+                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Color(0xFF101412)).background(Brush.verticalGradient(listOf(Color(0xFC242B28), Color(0xFF101311))))
                 .drawBehind { drawLine(Kx.w(.16f), Offset(0f, .5f), Offset(size.width, .5f), 1.dp.toPx()) }) {
                 Column(Modifier.fillMaxSize()) {
                     Box(Modifier.align(Alignment.CenterHorizontally).padding(top = 10.dp, bottom = 8.dp).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))

@@ -116,7 +116,7 @@ fun StickersScreen(ctx: KxScreenCtx) {
     Column(Modifier.fillMaxSize().background(Kx.bg).ellipseGlow(1f, 0f, 1.2f * .6f, .6f * .6f, Kx.accentDeep.copy(alpha = .22f)).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 42.dp, onClick = ctx.back)
-            KxAvatar(h.title, chatId, size = 38.dp, colorIndex = h.colorIndex)
+            KxAvatar(h.title, chatId, size = 38.dp, colorIndex = h.colorIndex, photo = h.avatar)
             Column { Text(h.title, style = ts(16, W800), maxLines = 1); Text(h.status, style = ts(12, color = if (h.online) Kx.accent else Kx.text4), maxLines = 1) }
         }
         Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Bottom)) {

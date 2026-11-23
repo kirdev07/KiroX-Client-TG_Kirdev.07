@@ -126,7 +126,9 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
     var tab by rememberSaveable { mutableStateOf(KxTab.Chats) }
     var selecting by remember { mutableStateOf(false) }
     // wave3-account: tabs turned off in the settings (the old app's KiroxTweaks) leave the dock.
-    val hiddenTabs = buildSet { if (store.tweaks["hideCallsTab"] == true) add(KxTab.Calls); if (store.tweaks["hideStoriesTab"] == true) add(KxTab.Stories) }
+    val hiddenTabs = buildSet { if (store.tweaks["hideCallsTab"] == true) add(KxTab.Calls); if (store.tweaks["hideStoriesTab"] == true) add(KxTab.Stories)
+        // music: the «Музыка» tab is off until turned on in Кастомизация → Нижняя панель.
+        if (store.pref(com.kirox.app.ui.v3.model.KxPrefs.MUSIC_TAB) == 0) add(KxTab.Music) }
     LaunchedEffect(hiddenTabs) { if (tab in hiddenTabs) tab = KxTab.Chats }
     // New Telegram terms (popup ones): the TermsUpdate board opens once per terms id.
     val termsId = store.termsUpdate?.id
@@ -188,6 +190,8 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                             KxTab.Calls -> CallsScreen(store, onCall = { c, v -> if (c.group && !demoStore) store.joinGroupCall(c.peerId) else startCall(c.peerId, c.name, v, c.colorIndex) }, onOpen = { nav.push(KxRoute.Screen(it)) }, active = shownTab == KxTab.Calls)
                             KxTab.Stories -> StoriesScreen(store, onOpenViewer = { nav.push(KxRoute.Story(it)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                             KxTab.Settings -> SettingsScreen(store, onOpen = { nav.push(KxRoute.Screen(it)) })
+                            KxTab.Music -> com.kirox.app.ui.v3.screens.media.MusicScreen(KxScreenCtx(store, back = { tab = KxTab.Chats }, open = { nav.push(KxRoute.Screen(it)) },
+                                openChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) }, toast = toast, arg = "tab"))
                             else -> KxTabPlaceholder(t)
                         } } }
                     }

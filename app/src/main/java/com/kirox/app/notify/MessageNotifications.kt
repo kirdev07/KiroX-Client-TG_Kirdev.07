@@ -342,6 +342,28 @@ class MessageNotifications(
             else -> null
         }
 
+        /**
+         * «Проверить» in the notification settings: a real system notification on the private-chats channel.
+         * False when Android does not let kiroX post notifications (permission off / app notifications disabled).
+         */
+        fun postTest(context: Context): Boolean {
+            ensureChannel(context)
+            if (android.os.Build.VERSION.SDK_INT >= 33 && androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) return false
+            if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
+            val open = PendingIntent.getActivity(context, 0x7E57, Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            val n = NotificationCompat.Builder(context, CHANNEL)
+                .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox_v3)
+                .setContentTitle("kiroX")
+                .setContentText(com.kirox.app.i18n.I18n.t("Проверка уведомлений kiroX"))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(open)
+                .setAutoCancel(true)
+                .build()
+            return try { NotificationManagerCompat.from(context).notify("$TAG-test", 1, n); true } catch (_: SecurityException) { false }
+        }
+
         /** Channel names follow the interface language; called again when it changes. */
         fun refreshChannels(context: Context) = ensureChannel(context)
 
@@ -412,7 +434,11 @@ object AppVisibility {
             if (field == value) return
             field = value
             listener?.invoke(value)
+            watchers.forEach { runCatching { it(value) } }
             com.kirox.app.security.PasscodeLock.onVisibilityChanged(value)
         }
     @Volatile internal var listener: ((Boolean) -> Unit)? = null
+    /** compat: more listeners (the open chat reads what arrived in the background once kiroX is back on screen). */
+    private val watchers = java.util.concurrent.CopyOnWriteArrayList<(Boolean) -> Unit>()
+    fun watch(block: (Boolean) -> Unit) { watchers += block }
 }

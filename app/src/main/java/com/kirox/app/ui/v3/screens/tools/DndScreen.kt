@@ -59,6 +59,8 @@ fun DndScreen(ctx: KxScreenCtx) {
     val people: List<Pair<Long, Triple<String, String, Color>>> = if (demo) DND_PEOPLE.mapIndexed { i, t -> i.toLong() to t }
         else store.chats.filter { it.kind == KxChatKind.Private }.take(8).map { c -> c.id to Triple(c.title, c.title.take(1).uppercase(), DND_INKS[(c.colorIndex.coerceAtLeast(0)) % DND_INKS.size]) }
     val excIds = store.prefList(P.DND_PEOPLE).mapNotNull { it.toLongOrNull() }.toSet().let { if (demo && store.prefTexts[P.DND_PEOPLE] == null) setOf(0L, 2L) else it }
+    // fixer-misc4: real chat photos for the exception people (the letter stays under it until the photo is decoded).
+    val photos: Map<Long, String?> = if (demo) emptyMap() else store.chats.filter { it.kind == KxChatKind.Private }.take(8).associate { it.id to it.avatar }
     val exc = people.indices.filter { people[it].first in excIds }.toSet()
     fun toggleExc(i: Int) { val id = people[i].first; store.putPrefList(P.DND_PEOPLE, (if (id in excIds) excIds - id else excIds + id).map { it.toString() }) }
     val calls = store.prefOn(P.DND_CALLS)
@@ -147,7 +149,7 @@ fun DndScreen(ctx: KxScreenCtx) {
             Column(Modifier.fillMaxWidth().clip(gShape).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), gShape).padding(12.dp)) {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (people.isEmpty()) Text("Личных чатов пока нет", style = KxType.style(13.sp, color = Kx.text4), modifier = Modifier.padding(4.dp))
-                    people.forEachIndexed { i, (_, t) -> val (name, l, c) = t
+                    people.forEachIndexed { i, (pid, t) -> val (name, l, c) = t
                         val sel = i in exc
                         val op by animateFloatAsState(if (sel) 1f else .55f, tween(200), label = "op")
                         Column(Modifier.width(58.dp).alpha(op).kxClick(name + if (sel) ", пропускать" else "", Role.Checkbox) { toggleExc(i) },
@@ -156,6 +158,7 @@ fun DndScreen(ctx: KxScreenCtx) {
                                 Box(Modifier.matchParentSize().then(if (sel) Modifier.border(2.dp, acc, CircleShape).padding(2.dp).border(2.dp, Kx.bg, CircleShape) else Modifier)
                                     .clip(CircleShape).background(c), contentAlignment = Alignment.Center) {
                                     Text(l, style = KxType.style(18.sp, FontWeight.ExtraBold, Color.White))
+                                    photos[pid]?.let { com.kirox.app.ui.v3.components.KxImage(it, Modifier.matchParentSize(), maxPx = 150) }
                                 }
                                 if (sel) Box(Modifier.align(Alignment.BottomEnd).offset(3.dp, 3.dp).size(20.dp).clip(CircleShape).background(Kx.bg).padding(2.dp).clip(CircleShape).background(acc),
                                     contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Check, null, Modifier.size(14.dp), tint = Kx.onAccent) }

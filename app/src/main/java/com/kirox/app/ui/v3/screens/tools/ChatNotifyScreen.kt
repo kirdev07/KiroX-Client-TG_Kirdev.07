@@ -78,7 +78,7 @@ fun ChatNotifyScreen(ctx: KxScreenCtx) {
     fun setMute(i: Int) { mute = i; if (live) save() else if (chatId != null) ctx.store.setMuted(chatId, i > 0) }
     val whatOp by animateFloatAsState(if (muted) .4f else 1f, tween(300), label = "op")
 
-    TScreen("Уведомления", ctx.back, sub = if (hdr != null) "$title · ${hdr.status}" else "Kotlin-клуб · 1 284 участника", above = {
+    TScreen("Уведомления", ctx.back, sub = if (hdr != null) listOf(title, hdr.status).filter { it.isNotBlank() }.joinToString(" · ") else "Kotlin-клуб · 1 284 участника", above = {
         val pShape = RoundedCornerShape(24.dp)
         Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp).fillMaxWidth().height(132.dp).clip(pShape).background(Color(0xFF101413))
             .drawBehind { drawRect(Brush.radialGradient(0f to Kx.accentDeep.copy(alpha = .2f), .7f to Color.Transparent, center = Offset(size.width / 2, 0f), radius = size.width * .9f)) }
@@ -94,14 +94,16 @@ fun ChatNotifyScreen(ctx: KxScreenCtx) {
                     .clip(nShape).background(Brush.verticalGradient(listOf(Kx.w(.16f), Kx.w(.07f)))).border(1.dp, Kx.w(.16f), nShape).padding(horizontal = 12.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep))), contentAlignment = Alignment.Center) {
-                        Text("kX", style = KxType.style(13.sp, FontWeight.Black, Kx.onAccent))
+                        // fixer-misc4: the new X-bubble mark (the notification icon), not the old «kX» square.
+                        Icon(androidx.compose.ui.res.painterResource(com.kirox.app.R.drawable.ic_stat_kirox_v3), null, Modifier.size(20.dp), tint = Kx.onAccent)
                     }
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             KxLine(if (!preview) "kiroX" else if (hdr == null) "$title · Дмитрий" else title, KxType.style(13.sp, FontWeight.ExtraBold), Modifier.weight(1f))
                             Text("сейчас", style = KxType.style(11.sp, color = Kx.text3))
                         }
-                        KxLine(if (!preview) "Новое сообщение" else if (what == 1) "@kirill_dev, глянешь PR?" else "Собираемся в субботу в 11:00",
+                        KxLine(if (!preview) "Новое сообщение" else if (hdr != null) (if (what == 1) "Вас упомянули в сообщении" else "Здесь будет текст сообщения")
+                            else if (what == 1) "@kirill_dev, глянешь PR?" else "Собираемся в субботу в 11:00",
                             KxType.style(13.sp, color = Kx.text2), Modifier.padding(top = 2.dp))
                     }
                 }

@@ -39,6 +39,8 @@ object KxRegistry {
             putAll(com.kirox.app.ui.v3.screens.extra.ExtraScreens)
             putAll(com.kirox.app.ui.v3.screens.more.MoreScreens)
             putAll(com.kirox.app.ui.v3.screens.tools.ToolScreens)
+            putAll(com.kirox.app.ui.v3.features.FeatureScreens) // features: templates, bookmarks, notes, reminders, on-device
+            putAll(com.kirox.app.ui.v3.shield.ShieldScreens) // shield: «Защита kiroX» hub + trainer
         }
     }
 }

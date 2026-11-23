@@ -137,7 +137,7 @@ fun MSheet(visible: Boolean, onClose: () -> Unit, modifier: Modifier = Modifier,
             exit = androidx.compose.animation.slideOutVertically(androidx.compose.animation.core.tween(250)) { it }) {
             val shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
             androidx.compose.foundation.layout.Column(
-                modifier.fillMaxWidth().clip(shape).background(Brush.verticalGradient(listOf(top, bottom)))
+                modifier.fillMaxWidth().clip(shape).background(Color(0xFF101412)).background(Brush.verticalGradient(listOf(top, bottom)))
                     .border(1.dp, border, shape).then(if (highlight != null) Modifier.topHighlight(highlight) else Modifier)
                     .kxClick { }.navigationBarsPadding().padding(padding)
             ) {

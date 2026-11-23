@@ -86,6 +86,12 @@ fun MyQrScreen(ctx: KxScreenCtx) {
         if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) { handled = false; scanning = true }
         else camera.launch(android.Manifest.permission.CAMERA)
     }
+    // fixer-misc4: open("MyQr:scan") (Contacts «По QR-коду», «Новый контакт» scanner icon) starts the scanner right away;
+    // closing it then leaves the board, since the user came to scan, not to show their code.
+    val scanOnly = ctx.arg == "scan" && !demo
+    var autoScanned by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(scanOnly) { if (scanOnly && !autoScanned) { autoScanned = true; startScan() } }
+    fun closeScan() { scanning = false; if (scanOnly) ctx.back() }
     fun onCode(code: String) {
         if (handled) return
         handled = true; scanning = false
@@ -194,10 +200,10 @@ fun MyQrScreen(ctx: KxScreenCtx) {
         if (scanning) Box(Modifier.fillMaxSize().background(Color.Black)) {
             com.kirox.app.ui.home.QrCamera { code -> onCode(code) }
             Box(Modifier.align(Alignment.Center).size(240.dp).border(3.dp, Kx.accent, RoundedCornerShape(28.dp)))
-            Column(Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp)) { RoundDark(Icons.AutoMirrored.Rounded.ArrowBack, "Закрыть") { scanning = false } }
+            Column(Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp)) { RoundDark(Icons.AutoMirrored.Rounded.ArrowBack, "Закрыть") { closeScan() } }
             Text("Наведите камеру на QR-код", style = KxType.style(15.sp, FontWeight.Bold), modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 60.dp))
         }
-        androidx.activity.compose.BackHandler(scanning) { scanning = false }
+        androidx.activity.compose.BackHandler(scanning) { closeScan() }
         confirm?.let { com.kirox.app.ui.v3.components.KxConfirmDialog(it) { confirm = null } }
         if (toastAt != 0L) key(toastAt) {
             val p = remember { Animatable(0f) }

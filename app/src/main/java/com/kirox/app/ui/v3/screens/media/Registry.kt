@@ -5,6 +5,8 @@ import com.kirox.app.ui.v3.KxScreenFn
 /** Screens of this section by board name (mockup file name without .dc.html). */
 val MediaScreens: Map<String, KxScreenFn> = mapOf(
     "Music" to { ctx -> MusicScreen(ctx) },
+    // music: the full player (opened from the mini player of the Music tab / board).
+    "MusicPlayer" to { ctx -> MusicPlayerScreen(ctx) },
     "Files" to { ctx -> FilesScreen(ctx) },
     "Editor" to { ctx -> EditorScreen(ctx) },
     "StoryPost" to { ctx -> StoryPostScreen(ctx) },

@@ -16,6 +16,12 @@ class TelegramErrorsTest {
         assertEquals("Этот номер заблокирован в Telegram", humanError(TdApi.Error(400, "PHONE_NUMBER_BANNED")))
     }
 
+    @Test fun premiumOnlyAndLimitsAreHonest() {
+        assertEquals("Доступно с Telegram Premium", humanError(TdApi.Error(400, "PREMIUM_ACCOUNT_REQUIRED")))
+        assertEquals("Достигнут лимит закреплённых чатов. С Telegram Premium — больше", humanError(TdApi.Error(400, "The maximum number of pinned chats exceeded")))
+        assertEquals("Вы состоите в слишком многих группах и каналах. С Telegram Premium — больше", humanError(TdApi.Error(400, "CHANNELS_TOO_MUCH")))
+    }
+
     @Test fun unknownErrorsNeverLeakRawMessage() {
         assertEquals("Не удалось выполнить запрос", humanError(TdApi.Error(400, "SOME_INTERNAL_THING")))
         assertEquals("Telegram временно недоступен. Проверьте соединение", humanError(TdApi.Error(500, "Internal")))

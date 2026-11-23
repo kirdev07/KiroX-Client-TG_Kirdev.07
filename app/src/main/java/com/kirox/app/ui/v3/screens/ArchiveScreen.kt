@@ -139,7 +139,7 @@ private fun ArchiveRow(c: KxChat, selected: Boolean, hideBadge: Boolean, modifie
         .padding(horizontal = 8.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box {
-            KxAvatar(c.title, c.id, size = 52.dp, colorIndex = c.colorIndex, square = c.kind == KxChatKind.Channel)
+            KxAvatar(c.title, c.id, size = 52.dp, colorIndex = c.colorIndex, square = c.kind == KxChatKind.Channel, photo = c.avatar)
             if (selected) Box(Modifier.align(Alignment.BottomEnd).offset(2.dp, 2.dp).size(22.dp).clip(CircleShape).background(Kx.accent).border(2.dp, Kx.bg, CircleShape), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.Check, null, Modifier.size(15.dp), tint = Kx.onAccent)
             }

@@ -14,7 +14,9 @@ import org.json.JSONObject
  */
 object SettingsBackup {
     /** SharedPreferences files that hold user settings; nothing else is read or written. */
-    private val FILES = listOf(KiroxTweaks.PREFS, "auto_download", "storage_policy", "media_prefs", "notification_prefs", "i18n", CustomThemes.PREFS, MessageFilters.PREFS, Playlists.PREFS, "power_saver", "kirox_v3_prefs")
+    private val FILES = listOf(KiroxTweaks.PREFS, "auto_download", "storage_policy", "media_prefs", "notification_prefs", "i18n", CustomThemes.PREFS, MessageFilters.PREFS, Playlists.PREFS, "power_saver", "kirox_v3_prefs",
+        // features: reply templates and the on-device switches (bookmarks, notes and reminders stay on the phone: kirox_features).
+        "kirox_templates", "kirox_features_settings")
 
     /** Keys that never leave this phone (the backup lands in Saved Messages, readable on every device): hidden chats,
      *  recent searches, usage counts. Restore keeps the phone's own values of these. */

@@ -67,7 +67,7 @@ internal fun BSheet(visible: Boolean, onDismiss: () -> Unit, top: Color = Color(
         }
         AnimatedVisibility(visible, Modifier.align(Alignment.BottomCenter),
             enter = slideInVertically(tween(350, easing = KxMotion.rise)) { it }, exit = slideOutVertically(tween(250)) { it }) {
-            Column(Modifier.fillMaxWidth().clip(shape).background(Brush.verticalGradient(listOf(top, bottom)))
+            Column(Modifier.fillMaxWidth().clip(shape).background(Color(0xFF101412)).background(Brush.verticalGradient(listOf(top, bottom)))
                 .drawBehind { drawLine(Kx.w(borderAlpha), Offset(0f, .5f), Offset(size.width, .5f), 1.dp.toPx()) }
                 .clickable(remember { MutableInteractionSource() }, null) {}.navigationBarsPadding().padding(padding)) {
                 if (handle) Box(Modifier.fillMaxWidth().padding(bottom = handleGap), contentAlignment = Alignment.Center) {

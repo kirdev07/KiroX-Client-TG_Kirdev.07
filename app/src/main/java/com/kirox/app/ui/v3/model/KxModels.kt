@@ -144,6 +144,8 @@ data class KxMessage(
     val spoiler: Boolean = false,
     /** wave5: view-once / self-destructing media — a cover in the chat, opened once in a protected view. */
     val viewOnce: Boolean = false,
+    /** compat: deleted by its author, kept only on this phone («Сохранять удалённые»); not on Telegram any more. */
+    val deleted: Boolean = false,
 )
 
 /** What the bottom of a chat shows instead of / as the composer. */
@@ -176,6 +178,8 @@ data class KxPeer(
     val gifts: Int = 0, val commonGroups: Int = 0, val muted: Boolean = false, val avatar: String? = null, val colorIndex: Int = -1,
     val isContact: Boolean = true, val blocked: Boolean = false,
     val counts: Map<KxSharedTab, Int> = emptyMap(),
+    /** compat: Premium emoji status (custom emoji id), 0 = none; shown next to the name for everyone, free users too. */
+    val emojiStatusId: Long = 0,
 )
 
 enum class KxSharedTab(val label: String) { Media("Медиа"), Files("Файлы"), Music("Музыка"), Links("Ссылки"), Voice("Голосовые"), Gif("GIF") }
@@ -206,7 +210,8 @@ data class KxSession(val id: Long, val device: String, val app: String, val plac
                      val passwordPending: Boolean = false, val official: Boolean = true)
 
 /** Bottom dock tabs, in the mockup order. */
-enum class KxTab(val label: String) { Chats("Чаты"), Calls("Звонки"), Stories("Истории"), Settings("Настройки") }
+/** Dock tabs in dock order; «Музыка» shows only when turned on (KxPrefs.MUSIC_TAB). */
+enum class KxTab(val label: String) { Chats("Чаты"), Calls("Звонки"), Stories("Истории"), Music("Музыка"), Settings("Настройки") }
 
 // ---- Round 5 (binder, additive): settings, accounts, search, chat tools ----
 
@@ -327,12 +332,16 @@ data class KxFileState(val path: String? = null, val downloaded: Long = 0, val t
 
 /** «Проверка файлов» result before a file is opened: [level] 0 safe, 1 caution, 2 danger; [installer] = an app installer (APK…). */
 @Immutable
-data class KxFileCheck(val level: Int, val reasons: List<String> = emptyList(), val kind: String = "", val installer: Boolean = false)
+data class KxFileCheck(val level: Int, val reasons: List<String> = emptyList(), val kind: String = "", val installer: Boolean = false,
+                       /** shield: «Рентген APK» (package, signer, permissions) when the file is an installer Android can read. */
+                       val apk: com.kirox.app.security.shield.ShieldApkInfo? = null)
 
 /** A music file sent in some chat. */
 @Immutable
 data class KxTrack(val chatId: Long, val messageId: Long, val title: String, val performer: String = "", val chatTitle: String = "",
-                   val duration: Int = 0, val fileId: Int = 0, val size: Long = 0, val cover: String? = null, val date: String = "")
+                   val duration: Int = 0, val fileId: Int = 0, val size: Long = 0, val cover: String? = null, val date: String = "",
+                   /** Telegram file id of the album thumbnail (notification / lock-screen cover); 0 = none. */
+                   val coverFileId: Int = 0)
 
 /** The app's music / voice player. [repeat]: 0 off, 1 all, 2 one. */
 @Immutable

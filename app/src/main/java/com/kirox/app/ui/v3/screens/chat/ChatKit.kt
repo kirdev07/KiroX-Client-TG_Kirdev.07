@@ -150,7 +150,7 @@ internal fun ChSheet(visible: Boolean, onDismiss: () -> Unit, modifier: Modifier
         }
         AnimatedVisibility(visible, Modifier.align(Alignment.BottomCenter),
             enter = slideInVertically(tween(350, easing = KxMotion.rise)) { it }, exit = slideOutVertically(tween(250)) { it }) {
-            Column(modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(bg)
+            Column(modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Color(0xFF101412)).background(bg)
                 .border(1.dp, Kx.w(.08f), RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
                 .clickable(remember { MutableInteractionSource() }, null) {}.navigationBarsPadding()) {
                 Box(Modifier.fillMaxWidth().padding(top = 10.dp), contentAlignment = Alignment.Center) {

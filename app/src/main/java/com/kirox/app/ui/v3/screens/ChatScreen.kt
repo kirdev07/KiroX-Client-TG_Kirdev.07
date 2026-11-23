@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.rounded.Reply
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Mood
+import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.DoneAll
@@ -65,6 +66,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -112,6 +114,9 @@ private var LocalJumpTo: ((Long) -> Unit)? = null
 private class BubbleMedia(val store: KxStore, val chatId: Long)
 private var LocalBubbleMedia: BubbleMedia? = null
 
+/** fixer-chat4: height of the emoji / sticker / GIF panel under the composer. */
+private val EmojiPanelH = 320.dp
+
 private data class PendingDelete(val message: KxMessage, val forAll: Boolean, val id: Long = System.nanoTime())
 
 /** Conversation (board «Чат»): flat header + pinned bar, bubbles, glass composer, round mic/send button. */
@@ -128,6 +133,7 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
     androidx.compose.runtime.CompositionLocalProvider(LocalChatLook provides look) { ChatScreenBody(store, chatId, header, onBack, onCall, onMenu, onProfile, onOpen, onOpenChat) }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) -> Unit, onMenu: () -> Unit, onProfile: () -> Unit, onOpen: (String) -> Unit, onOpenChat: (Long) -> Unit) {
     val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
@@ -143,6 +149,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
     val look = LocalChatLook.current
     val toast = LocalKxToast.current
     val fileOpener = com.kirox.app.ui.v3.components.rememberKxFileOpener(store)
+    val shieldGate = com.kirox.app.ui.v3.shield.rememberKxShieldGate(store) // shield: «Код-щит» + «Рентген ссылки»
     LocalOpenFile = { m ->
         when {
             demo || m.fileId == 0 -> {}
@@ -169,6 +176,20 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
     // Text in the composer before an edit started: put back when the edit ends (the edited text is not a draft).
     var beforeEdit by remember(chatId) { mutableStateOf("") }
     var pending by remember(chatId) { mutableStateOf<PendingDelete?>(null) }
+    // fixer-chat4: in-place actions over this chat (on the real account they opened separate boards with a fake mini-chat).
+    var forwardIds by remember(chatId) { mutableStateOf<List<Long>?>(null) }
+    var quoteFor by remember(chatId) { mutableStateOf<KxMessage?>(null) }
+    var quote by remember(chatId) { mutableStateOf<Pair<Long, String>?>(null) }
+    var reactFor by remember(chatId) { mutableStateOf<KxMessage?>(null) }
+    var translateSheet by remember { mutableStateOf(false) }
+    var trOn by rememberSaveable(chatId) { mutableStateOf(false) }
+    var emojiPanel by rememberSaveable(chatId) { mutableStateOf(false) }
+    var diceSheet by remember { mutableStateOf(false) }
+    var checklistSheet by remember { mutableStateOf(false) }
+    val composerFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    androidx.activity.compose.BackHandler(enabled = emojiPanel) { emojiPanel = false }
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(imeVisible) { if (imeVisible) emojiPanel = false }
     androidx.activity.compose.BackHandler(enabled = editing != null || replyTo != null) { if (editing != null) text = beforeEdit; editing = null; replyTo = null }
     // fixer-final (qa-real2): «Выбрать» selects in place (checkbox per bubble, selection bar over the header), no separate board.
     val selected = remember(chatId) { mutableStateListOf<Long>() }
@@ -199,6 +220,26 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
     }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    // fixer-chat4: the quote belongs to the message being replied to; another reply target drops it.
+    val activeQuote = quote?.takeIf { it.first == replyTo?.id }?.second
+    // fixer-chat4: «Перевести чат» — incoming messages in another script than the target language are translated by Telegram
+    // (store.translate → the bubble's translation line); off shows the originals again.
+    val trLang = store.pref(KxPrefs.TRANSLATE_TO)
+    val trCode = KxTranslateLangs.getOrNull(trLang)?.first ?: "ru"
+    val trDone = remember(chatId) { mutableStateMapOf<Long, Int>() }
+    val trWant = if (trOn && !demo) messages.filter { !it.out && it.kind != KxMsgKind.Service && it.text.isNotBlank() && kxForeignTo(it.text, trCode) }.takeLast(40).map { it.id } else emptyList()
+    LaunchedEffect(trOn, trLang, trWant) {
+        if (!trOn) { trDone.keys.toList().forEach { store.translate(chatId, it, false) }; trDone.clear(); return@LaunchedEffect }
+        for (id in trWant.asReversed()) if (trDone[id] != trLang) { trDone[id] = trLang; store.translate(chatId, id, true); delay(120) }
+    }
+    // fixer-chat4: attach «Один раз» — the system photo picker, then a view-once photo (private chats only).
+    val androidContext = androidx.compose.ui.platform.LocalContext.current
+    val viewOncePick = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { u ->
+        if (u != null) scope.launch {
+            val path = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.kirox.app.ui.v3.screens.more.c3CopyUri(androidContext, u, "once") }
+            toast(if (path == null) "Не удалось прочитать фото" else store.sendViewOnce(chatId, path) ?: "Фото отправлено — его можно открыть один раз")
+        }
+    }
     // wave5: the chat's Telegram draft fills an empty composer once (old UI did the same); setDraft is not called for it.
     var draftLoaded by rememberSaveable(chatId) { mutableStateOf(false) }
     val serverDraft = store.chatDraft(chatId)
@@ -255,7 +296,10 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
         val t = KxChatLinks.target(msg.text, e)
         val why = if ((store.prefs[KxChatPrefs.LINK_WARN] ?: 1) != 0) KxChatLinks.warning(msg.text, e) else null
         if (t != null) {
-            if (why == null) openTarget(t)
+            // shield: «Рентген ссылки» (Защита kiroX) shows its card first for risky web / tg links; otherwise as before.
+            val shieldUrl = (t as? KxLinkTarget.Web)?.url ?: (t as? KxLinkTarget.External)?.uri
+            if (shieldUrl != null && shieldGate.link(KxChatLinks.part(msg.text, e).orEmpty(), shieldUrl, why) { openTarget(t) }) Unit
+            else if (why == null) openTarget(t)
             else {
                 val label = KxChatLinks.part(msg.text, e).orEmpty()
                 val address = (t as? KxLinkTarget.Web)?.url ?: e.url.orEmpty()
@@ -309,7 +353,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
         LazyColumn(
             Modifier.fillMaxSize().imePadding().then(if (menuFor != null) Modifier.blur(10.dp) else Modifier), state = listState, reverseLayout = true,
             // qa-real: room for the reply / edit bar above the composer.
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = top, bottom = if (replyTo != null || editing != null) 158.dp else 104.dp),
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = top, bottom = (if (replyTo != null || editing != null) 158.dp else 104.dp) + (if (emojiPanel) EmojiPanelH else 0.dp)),
             verticalArrangement = Arrangement.spacedBy(look.gap, Alignment.Bottom)
         ) {
             val reversed = shown.asReversed()
@@ -320,6 +364,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 if (index >= reversed.size - 10 && !store.historyComplete(chatId)) LaunchedEffect(reversed.size) { store.loadOlder(chatId) }
                 Column(Modifier.fillMaxWidth().animateItem(fadeInSpec = tween(250), fadeOutSpec = tween(350), placementSpec = tween(350, easing = KxMotion.rise))) {
                     m.dayHeader?.let { DayPill(it) }
+                    com.kirox.app.ui.v3.shield.KxShieldStrip(store, chatId, header.kind, m) // shield: scam warning strip (incoming only)
                     // wave3-account: gestures (ChatGestures board) and the word filter (KxChatGestures.kt)
                     val service = m.kind == KxMsgKind.Service
                     val isSel = selected.containsAll(rowIds)
@@ -334,7 +379,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                     Box(Modifier.weight(1f)) {
                     KxMessageSwipe(
                         onLeft = if (service) null else when (KxGestureActions.left(store)) {
-                            1 -> { { if (demo) toast("Выберите чат для пересылки") else onOpen("Forward:$chatId:${m.id}") } }
+                            1 -> { { if (demo) toast("Выберите чат для пересылки") else forwardIds = listOf(m.id) } }
                             2 -> { { store.saveToFavorites(chatId, listOf(m.id)); toast("Сохранено в Избранное") } }
                             else -> { { replyTo = m; editing = null } }
                         },
@@ -411,7 +456,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                     clipboard.setText(androidx.compose.ui.text.AnnotatedString(chosen.filter { it.canCopy && it.text.isNotBlank() }.joinToString("\n\n") { it.text }))
                     toast("Скопировано: ${chosen.size}"); selected.clear()
                 },
-                onForward = { if (demo) toast("Выберите чат для пересылки") else onOpen("Forward:$chatId:${chosen.joinToString(",") { it.id.toString() }}"); selected.clear() },
+                onForward = { if (demo) toast("Выберите чат для пересылки") else forwardIds = chosen.map { it.id }; selected.clear() },
                 onSave = { store.saveToFavorites(chatId, chosen.map { it.id }); toast("Сохранено в Избранное"); selected.clear() },
                 onDelete = { selDelete = true })
         }
@@ -419,17 +464,20 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
         // lead walk-through: selecting hides the composer / channel bar (Telegram); the keyboard and the attach sheet close.
         val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
         val focus = androidx.compose.ui.platform.LocalFocusManager.current
-        LaunchedEffect(selecting) { if (selecting) { attach = false; keyboard?.hide(); focus.clearFocus() } }
+        LaunchedEffect(selecting) { if (selecting) { attach = false; emojiPanel = false; keyboard?.hide(); focus.clearFocus() } }
         if (!selecting) when (header.composer) {
             KxComposer.Write -> Composer(
                 text = text, onText = { text = it; if (editing == null) store.setDraft(chatId, it) },
-                replyTo = replyTo ?: editing, editing = editing != null,
-                onCancelReply = { if (editing != null) text = beforeEdit; replyTo = null; editing = null },
+                replyTo = replyTo ?: editing, editing = editing != null, quote = if (editing == null) activeQuote else null,
+                onCancelReply = { if (editing != null) text = beforeEdit; replyTo = null; editing = null; quote = null },
                 onSend = {
                     val t = text.trim()
-                    if (t.isNotEmpty()) {
+                    // shield: «Код-щит» stops a fresh login code / password before it is sent (runs the block below on «Всё равно»).
+                    if (t.isNotEmpty()) shieldGate.send(chatId, header.kind, t) {
                         val e = editing
+                        val r = replyTo
                         if (e != null) { store.edit(chatId, e.id, t); toast("Сообщение изменено") }
+                        else if (r != null && activeQuote != null && !demo) { store.sendQuote(chatId, t, r.id, activeQuote); quote = null }
                         else if (undoSecs > 0 && !demo) { held?.let { store.send(chatId, it.first, it.second) }; held = t to replyTo?.id }
                         else store.send(chatId, t, replyTo?.id)
                         text = if (e != null) beforeEdit else ""; replyTo = null; editing = null
@@ -447,15 +495,30 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                     val r = recording; recording = null
                     if (r != null) store.recordStop(chatId, send, recSecs.coerceAtLeast(1))
                 },
-                modifier = Modifier.align(Alignment.BottomCenter),
-                // wave5 (fixer-media): the Stickers board (stickers / GIFs / emoji of this chat; sends through the store).
-                onStickers = { attach = false; onOpen(if (demo) "Stickers" else "Stickers:$chatId") },
+                modifier = Modifier.align(Alignment.BottomCenter).then(if (emojiPanel) Modifier.padding(bottom = EmojiPanelH) else Modifier),
+                // fixer-chat4: ☺ opens the emoji / sticker / GIF panel under this composer (the Stickers board stays for the demo);
+                // the keyboard button brings the keyboard back.
+                onStickers = {
+                    attach = false
+                    when {
+                        demo -> onOpen("Stickers")
+                        emojiPanel -> { emojiPanel = false; runCatching { composerFocus.requestFocus() }; keyboard?.show() }
+                        else -> { keyboard?.hide(); focus.clearFocus(); emojiPanel = true }
+                    }
+                },
+                panelOpen = emojiPanel, focusRequester = composerFocus,
                 onSendLong = if (editing == null && !demo) ({ sendOpts = false }) else null,
             )
             else -> ChannelBar(header.composer, Modifier.align(Alignment.BottomCenter)) {
                 if (header.composer == KxComposer.Mute || header.composer == KxComposer.Unmute) store.setMuted(chatId, header.composer == KxComposer.Mute)
                 else if (header.composer == KxComposer.Join) store.joinChat(chatId)
             }
+        }
+        if (emojiPanel && !selecting && header.composer == KxComposer.Write) Box(Modifier.align(Alignment.BottomCenter)) {
+            ChatEmojiPanel(store, chatId, replyTo?.id, EmojiPanelH,
+                onEmoji = { e -> text += e; if (editing == null) store.setDraft(chatId, text) },
+                onBackspace = { text = kxDropLastGrapheme(text); if (editing == null) store.setDraft(chatId, text) },
+                onSent = { replyTo = null; quote = null }, onOpen = onOpen)
         }
         pending?.let { p -> UndoBar(p, Modifier.align(Alignment.BottomCenter)) { pending = null } }
         // Mic hint: small bubble above the button (right 12, bottom 90), not the generic toast.
@@ -467,7 +530,18 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
         if (attach) { if (demo) AttachSheet(onClose = { attach = false }, onSend = { n -> attach = false; toast(if (n == 1) "Фото отправлено" else "Отправлено фото: $n") }, onOpen = onOpen)
             else RealAttachSheet(store, chatId, onClose = { attach = false }, toast = { toast(it) }, onRound = { roundReq++ },
                 // qa-real: «Позже» keeps the typed text — schedule it here; with an empty composer it opens the scheduled list.
-                onOpen = { b -> if (b.startsWith("SendOptions:")) { attach = false; if (text.isBlank()) onOpen("Schedule:$chatId") else sendOpts = true } else onOpen(b) }) }
+                onOpen = { b ->
+                    when {
+                        b.startsWith("SendOptions:") -> { attach = false; if (text.isBlank()) onOpen("Schedule:$chatId") else sendOpts = true }
+                        // fixer-chat4: «Игры», «Список», «Один раз» work over this chat (no separate blank chat board).
+                        b.startsWith("DiceGames:") -> diceSheet = true
+                        b.startsWith("Checklist:") -> checklistSheet = true
+                        b.startsWith("ViewOnce:") -> if (header.kind != KxChatKind.Private) toast("Фото «один раз» Telegram разрешает только в личных чатах")
+                            else runCatching { viewOncePick.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                                .onFailure { toast("Не удалось открыть галерею") }
+                        else -> onOpen(b)
+                    }
+                }) }
         sendOpts?.let { withPicker ->
             val clear = { text = ""; store.setDraft(chatId, ""); replyTo = null; sendOpts = null }
             ChatSendOptionsSheet(header, text, onDismiss = { sendOpts = null }, startWithPicker = withPicker,
@@ -493,7 +567,8 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                     else list.take(15).joinToString("\n\n") { "${it.first}\n${it.second}" } + (if (list.size > 15) "\n\n…и ещё ${list.size - 15}" else ""), "Готово", danger = false) {}
             }
         }) else emptyList()
-        if (chatMenu) ChatMenuSheet(header, onDismiss = { chatMenu = false }, onOpen = onOpen, extra = keptExtra, forum = !demo && store.chats.firstOrNull { it.id == chatId }?.forum == true,
+        // fixer-chat4: «Перевести чат» toggles translation in this chat (sheet) instead of the Translate board.
+        if (chatMenu) ChatMenuSheet(header, onDismiss = { chatMenu = false }, onOpen = { b -> if (!demo && b.startsWith("Translate:")) translateSheet = true else onOpen(b) }, extra = keptExtra + com.kirox.app.ui.v3.features.kxFeatureChatExtras(store, chatId, header) /* features: note, templates */, forum = !demo && store.chats.firstOrNull { it.id == chatId }?.forum == true,
             admin = ownChat, creator = facts?.creator == true)
         menuFor?.let { m ->
             MessageMenuSheet(
@@ -502,15 +577,16 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 onEdit = { if (editing == null) beforeEdit = text; editing = m; replyTo = null; text = store.editableText(chatId, m.id) ?: m.text; menuFor = null },
                 onReact = { react(m.id, it); menuFor = null },
                 onDelete = { forAll -> pending = PendingDelete(m, forAll); menuFor = null },
-                onForward = { menuFor = null; if (demo) toast("Выберите чат для пересылки") else onOpen("Forward:$chatId:${m.id}") },
+                onForward = { menuFor = null; if (demo) toast("Выберите чат для пересылки") else forwardIds = listOf(m.id) },
                 onPin = { store.pin(chatId, m.id, !m.pinned); menuFor = null },
                 onSave = { store.saveToFavorites(chatId, listOf(m.id)); menuFor = null; toast("Сохранено в Избранное") },
                 onSelect = { startSelect(m) },
-                onAllReactions = { menuFor = null; onOpen(if (demo) "ReactPicker" else "ReactPicker:$chatId:${m.id}") },
+                onAllReactions = { menuFor = null; if (demo) onOpen("ReactPicker") else reactFor = m },
                 more = if (demo) emptyList() else buildList {
                     val group = header.kind == KxChatKind.Group
                     // qa-real: «Сведения» opens as a sheet over this chat.
                     add(Triple(Icons.Outlined.Info, "Сведения") { menuFor = null; infoFor = m })
+                    addAll(com.kirox.app.ui.v3.features.kxFeatureMessageItems(store, chatId, header, m, { menuFor = null }, { toast(it) })) // features: bookmark, remind
                     // qa-real: speech-to-text for voice / round video right from the menu (Telegram recognition).
                     if (m.kind == KxMsgKind.Voice || m.kind == KxMsgKind.VideoNote) add(Triple(Icons.Outlined.GraphicEq, "Расшифровать") {
                         menuFor = null; toast("Расшифровываем…")
@@ -520,7 +596,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                         }
                     })
                     // wave5: quote a part of the message (Quote board, store.sendQuote).
-                    if (m.text.isNotBlank() && header.composer == KxComposer.Write) add(Triple(Icons.Outlined.FormatQuote, "Цитировать") { menuFor = null; onOpen("Quote:$chatId:${m.id}") })
+                    if (m.text.isNotBlank() && header.composer == KxComposer.Write) add(Triple(Icons.Outlined.FormatQuote, "Цитировать") { menuFor = null; quoteFor = m })
                     if (m.out && group) add(Triple(Icons.Outlined.DoneAll, "Кто прочитал") { menuFor = null; onOpen("Seen:$chatId:${m.id}") })
                     // wave5: old-UI message menu items.
                     else if (m.reactions.isNotEmpty() && header.kind != KxChatKind.Private) add(Triple(Icons.Outlined.FavoriteBorder, "Кто отреагировал") { menuFor = null; onOpen("Seen:$chatId:${m.id}") })
@@ -560,6 +636,15 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
             )
         }
         infoFor?.let { m -> ChatMsgInfoSheet(store, chatId, m, header.kind) { infoFor = null } }
+        forwardIds?.let { ids -> ChatForwardSheet(store, chatId, ids, onDismiss = { forwardIds = null }, toast = { toast(it) }) }
+        quoteFor?.let { m ->
+            ChatQuoteSheet(m, if (m.out) "Вы" else m.sender ?: header.title, onDismiss = { quoteFor = null }) { q -> quote = m.id to q; replyTo = m; editing = null; quoteFor = null }
+        }
+        reactFor?.let { m -> ChatReactionSheet(store, chatId, m, onDismiss = { reactFor = null }, onPick = { e -> react(m.id, e); reactFor = null }, toast = { toast(it) }) }
+        if (translateSheet) ChatTranslateSheet(trOn, trLang, header.kind == KxChatKind.Secret,
+            onSet = { on, l -> if (l != trLang) store.putPref(KxPrefs.TRANSLATE_TO, l); trOn = on }, onDismiss = { translateSheet = false })
+        if (diceSheet) ChatDiceSheet(onPick = { e -> store.sendDice(chatId, e); diceSheet = false; toast("$e брошен — результат появится в чате") }, onDismiss = { diceSheet = false })
+        if (checklistSheet) ChatChecklistSheet(store, chatId, onDismiss = { checklistSheet = false }, toast = { toast(it) })
         if (selDelete) {
             val chosen = messages.filter { it.id in selected }
             val first = chosen.firstOrNull()
@@ -574,8 +659,11 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                     inSaved = header.kind == KxChatKind.Saved, count = chosen.size)
             }
         }
+        // features: «/» templates, remind / note / templates sheets, on-device questions, jump from a bookmark (features/KxFeatureChat).
+        if (!selecting) com.kirox.app.ui.v3.features.KxFeatureChatLayer(store, chatId, header, text, { text = it; if (editing == null) store.setDraft(chatId, it) }, replyTo?.takeIf { !it.out }?.sender, onOpen) { toast(it) }
         linkAsk?.let { c -> KxConfirmDialog(c) { linkAsk = null } }
         fileOpener.Dialog()
+        shieldGate.Overlay() // shield
     }
     }
     browserUrl?.let { url ->
@@ -1256,12 +1344,17 @@ private fun Composer(
     onStickers: () -> Unit = {},
     /** qa-real: long-press on «Отправить» → send options (silent / schedule / when online). */
     onSendLong: (() -> Unit)? = null,
+    /** fixer-chat4: the emoji panel sits under the composer (no navigation-bar / keyboard inset here then; ☺ becomes ⌨). */
+    panelOpen: Boolean = false,
+    /** fixer-chat4: quoted part of [replyTo] («Цитата» in the reply bar). */
+    quote: String? = null,
+    focusRequester: androidx.compose.ui.focus.FocusRequester? = null,
 ) {
     val hasText = text.isNotBlank()
     val rec = recording != null
     val scale by animateFloatAsState(if (rec) 1.35f else 1f, spring(dampingRatio = .45f, stiffness = 400f), label = "act")
     val plusTurn by animateFloatAsState(if (attachOpen) 45f else 0f, spring(dampingRatio = .5f, stiffness = 500f), label = "plus")
-    Column(modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(start = 10.dp, end = 10.dp, bottom = 22.dp)) {
+    Column(modifier.fillMaxWidth().then(if (panelOpen) Modifier else Modifier.navigationBarsPadding().imePadding()).padding(start = 10.dp, end = 10.dp, bottom = if (panelOpen) 8.dp else 22.dp)) {
         if (replyTo != null) Row(
             // qa-real: opaque (the last message no longer shows through), accent tint on top.
             Modifier.padding(bottom = 8.dp).fillMaxWidth().height(46.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xFF121714)).background(Kx.accent.copy(alpha = .10f))
@@ -1270,8 +1363,8 @@ private fun Composer(
         ) {
             Icon(if (editing) Icons.Rounded.Edit else Icons.AutoMirrored.Rounded.Reply, null, Modifier.size(20.dp), tint = Kx.accent)
             Column(Modifier.weight(1f)) {
-                Text(if (editing) "Редактирование" else "Ответ", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent))
-                KxLine(replyTo.text.ifEmpty { "Медиа" }, KxType.style(13.sp, color = Kx.text2))
+                Text(if (editing) "Редактирование" else if (quote != null) "Цитата" else "Ответ", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent))
+                KxLine(quote?.let { "«$it»" } ?: replyTo.text.ifEmpty { "Медиа" }, KxType.style(13.sp, color = Kx.text2))
             }
             Box(Modifier.size(34.dp).clip(CircleShape).kxClick(if (editing) "Отменить изменение" else "Отменить ответ", onClick = onCancelReply), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.Close, null, Modifier.size(20.dp), tint = Kx.text4)
@@ -1290,9 +1383,11 @@ private fun Composer(
                         }
                         Box(Modifier.weight(1f).padding(vertical = 17.dp)) {
                             if (text.isEmpty()) Text("Сообщение", style = KxType.style(16.sp, color = Kx.text4))
-                            BasicTextField(text, onText, textStyle = KxType.style(16.sp), cursorBrush = SolidColor(Kx.accent), maxLines = 6, modifier = Modifier.fillMaxWidth())
+                            BasicTextField(text, onText, textStyle = KxType.style(16.sp), cursorBrush = SolidColor(Kx.accent), maxLines = 6,
+                                modifier = Modifier.fillMaxWidth().then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier))
                         }
-                        KxIconButton(Icons.Outlined.Mood, "Стикеры и эмодзи", size = 46.dp, filled = false, tint = Kx.text2, onClick = onStickers)
+                        KxIconButton(if (panelOpen) Icons.Outlined.Keyboard else Icons.Outlined.Mood, if (panelOpen) "Клавиатура" else "Стикеры и эмодзи", size = 46.dp, filled = false,
+                            tint = if (panelOpen) Kx.accent else Kx.text2, onClick = onStickers)
                     }
                 }
                 ActionButton(hasText, circleMode, rec, scale, onSend, onToggleMode, onRecStart, onRecEnd, onSendLong)

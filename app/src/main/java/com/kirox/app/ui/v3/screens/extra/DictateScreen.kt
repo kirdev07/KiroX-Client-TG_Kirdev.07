@@ -89,7 +89,7 @@ fun DictateScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Brush.verticalGradient(listOf(Color(0xE628302C), Color(0xFA121614))))
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Color(0xFF101412)).background(Brush.verticalGradient(listOf(Color(0xE628302C), Color(0xFA121614))))
                 .insetTop(.14f).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val ink = if (on) Kx.accent else Kx.text3

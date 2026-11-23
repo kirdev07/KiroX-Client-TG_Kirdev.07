@@ -230,14 +230,16 @@ internal class KxMediaBinder(
 
     /** wave5: «Проверка файлов» (Настройки → Функции kiroX) — the same FileGuard check the old file viewer runs. */
     suspend fun fileCheck(fileId: Int, name: String): com.kirox.app.ui.v3.model.KxFileCheck? {
-        if (!com.kirox.app.settings.KiroxTweaks.current.fileGuard) return null
         val path = pathOf(fileId) ?: return null
         val file = java.io.File(path)
         val shown = name.ifBlank { file.name }
-        val report = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { com.kirox.app.files.FileGuard.check(app, file, shown) }.getOrNull() } ?: return null
         val ext = com.kirox.app.files.FileGuard.extension(shown)
+        // shield: «Рентген APK» reads the installer itself (package, signer, permissions); the opener decides whether to show it.
+        val apk = if (ext == "apk" || file.name.endsWith(".apk", true)) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.kirox.app.security.shield.ShieldApk.read(app, file) } else null
+        if (!com.kirox.app.settings.KiroxTweaks.current.fileGuard) return apk?.let { com.kirox.app.ui.v3.model.KxFileCheck(1, emptyList(), "APK", installer = true, apk = it) }
+        val report = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { com.kirox.app.files.FileGuard.check(app, file, shown) }.getOrNull() } ?: return null
         return com.kirox.app.ui.v3.model.KxFileCheck(report.level.ordinal, report.reasons, report.kind,
-            installer = ext in setOf("apk", "xapk", "apks", "apkm") || report.kind == "APK")
+            installer = ext in setOf("apk", "xapk", "apks", "apkm") || report.kind == "APK", apk = apk)
     }
 
     suspend fun openFile(fileId: Int): String? {
@@ -253,7 +255,11 @@ internal class KxMediaBinder(
 
     private fun TelegramAudioToKx(a: com.kirox.app.telegram.TelegramAudio) = KxTrack(
         a.chatId, a.messageId, a.title, a.performer, a.chatTitle, a.duration, a.file.id, a.size, autoPath(a.cover), KxFormat.chatTime(a.date),
+        coverFileId = a.cover?.id ?: 0,
     )
+
+    /** Music tab: tracks it plays, so the player state shows their chat and cover. */
+    fun rememberTracks(tracks: List<KxTrack>) = tracks.forEach { if (it.fileId != 0) trackMap[it.fileId] = it }
 
     suspend fun musicLibrary(query: String): List<KxTrack> {
         val first = orNull { services.music.all(query.trim(), "", 100).first }.orEmpty()
@@ -261,11 +267,12 @@ internal class KxMediaBinder(
         return list.map { TelegramAudioToKx(it) }.also { tracks -> tracks.forEach { trackMap[it.fileId] = it } }
     }
 
-    private fun KxTrack.toTrack() = Track(TelegramFileRef(fileId, null), title, performer.ifBlank { "kiroX" }, duration, chatId, messageId)
+    private fun KxTrack.toTrack() = Track(TelegramFileRef(fileId, null), title, performer.ifBlank { "kiroX" }, duration, chatId, messageId,
+        coverFileId.takeIf { it != 0 }?.let { TelegramFileRef(it, null) })
 
-    fun playTracks(tracks: List<KxTrack>, index: Int) {
+    fun playTracks(tracks: List<KxTrack>, index: Int, source: String = "Музыка") {
         tracks.forEach { trackMap[it.fileId] = it }
-        VoicePlayer.playQueue(app, tracks.map { it.toTrack() }, index, "Музыка")
+        VoicePlayer.playQueue(app, tracks.map { it.toTrack() }, index, source)
     }
     fun playerToggle() = VoicePlayer.playPause()
     fun playerNext() = VoicePlayer.next(app)
