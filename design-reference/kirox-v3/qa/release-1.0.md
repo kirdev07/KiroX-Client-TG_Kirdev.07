@@ -33,8 +33,30 @@ Not in the patch (lead decides):
 - Demo app: `KX_V3_DEMO=false` outside `v3preview`. ✔
 - Signing: `kirox.properties` has all four `KIROX_RELEASE_*` keys (values not read/printed); release APK is signed by the release config.
 
-## 2. R8 / minify — see «R8 results» below
-
+## 2. R8 / minify results (14:00–14:46)
+Builds: `kxbuild.py rawfull :app:assembleRelease` GREEN 13:59 (after two red runs caused only by in-progress v3 edits; I fixed one: LocationScreen.kt `realSend` used before its declaration). `:app:assembleQarelease` GREEN 14:46 (minSdk 29, arm64-only).
+- **R8: 0 missing-class / 0 R8 warnings**, no `missing_rules.txt`. Existing `proguard-rules.pro` is sufficient — no rule changes needed:
+  - TDLib: `-keep class org.drinkless.tdlib.** { *; }` → 3 815 TdApi classes kept unrenamed (JNI builds them by name; must stay whole). `org.drinkless.tdlib.Client` kept.
+  - Call engine JNI: native code looks up `NativeCall` / `NativeGroupCall` via GetObjectClass + method names (`onEngineState`, `onSignalBars`, `onRemoteMedia`, `onSignalingData`, `onNetwork`, `onLevels`, `onJoinPayload`, `onStopped` — all primitive signatures), `com/kirox/app/voip/VideoCapturerDevice` and `org/webrtc/**` by FindClass — all kept unrenamed in mapping.txt ✔. `-keepclasseswithmembernames … native <methods>` keeps every `external fun`.
+  - kotlinx.serialization / Gson / Class.forName / getDeclared*: not used in app code. Enum `name` stays correct under R8.
+  - Compose: no extra rules needed (AndroidX ships consumer rules).
+  - `Log.v/d` stripped (assumenosideeffects).
+- Cosmetic: `TelegramClient.kt:54/105/260/262` show `error.javaClass.simpleName` to the user — for app classes it is the obfuscated name (`a`, `cb4`…); system exceptions keep their names. Low.
+- **Keep mapping.txt** (`app/build/outputs/mapping/release/mapping.txt`, ~210 MB) per release: `CrashLog.kt` stack traces are obfuscated. Retrace: `retrace mapping.txt crash.txt` (cmdline-tools).
+- Release signing: `app-release.apk` verifies, **v2 scheme, signer `CN=KiroX, O=KirDev Studio`** (release key; no v1 — fine for minSdk ≥ 24). qarelease is debug-signed.
+- **Sizes:**
+  | Build | APK | Notes |
+  |---|---|---|
+  | release 13:59 (minSdk 24, arm64 + v7a TDLib) | 33.8 MB | v7a libtdjni 8.4 MB compressed — now dropped by the owner |
+  | release, arm64-only, minSdk 24 (= 13:59 minus v7a) | ≈25.3 MB | dex compressed |
+  | qarelease 14:46 (minSdk 29, arm64-only) | **32.8 MB** | AGP stores `classes.dex` **uncompressed** (15.2 MB) when minSdk ≥ 28 |
+  Inside: libtdjni 17.7 MB raw / 8.8 MB compressed, libkiroxvoip 16.1 / 7.3 MB, classes.dex 15.2 MB (7.7 MB if compressed; most of it is TdApi), resources.arsc 0.7 MB.
+  **Recommendation (lead decides, 1 line in `android { packaging { … } }`):** `dex { useLegacyPackaging = true }` → APK back to ≈25.3 MB for the Telegram download; cost: ART extracts the dex once on install (≈15 MB more on-disk, slightly slower first start). Keep as is if on-disk size/start matter more than download.
+- **qarelease on the Xiaomi: NOT installed.** Both attempts (14:35, 14:46) ended `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user` — MIUI asks for an on-screen confirmation the first time a new package is installed over USB, and nobody tapped it. I did not change MIUI settings. So the logcat startup check, the arm64 TDLib load check (rebuilt .so from 05a87c6) and cold-start time are **still open**. To finish (someone at the phone, ~1 min):
+  1. `python design-reference/kirox-v3/qa/kxbuild.py installrel` → tap «Установить» on the Xiaomi for «kiroX rel-test» (com.kirox.app.qarel).
+  2. `adb -s 79ed61c9 logcat -c` ; `adb -s 79ed61c9 shell am start -W -n com.kirox.app.qarel/com.kirox.app.MainActivity` (record TotalTime; repeat after `am force-stop` for 3 values)
+  3. wait for the login screen (do not sign in) ; `adb -s 79ed61c9 logcat -d -b crash,main | findstr /i "FATAL ClassNotFound NoSuchMethod NoSuchField UnsatisfiedLink tdjni kiroxvoip"` — expect nothing except normal loads.
+  4. `adb -s 79ed61c9 shell am force-stop com.kirox.app.qarel` (may stay installed for the next rc check).
 ## 3. ABIs — owner decision 14:20: 1.0 = arm64-v8a only, Android 10–17 (minSdk 29, targetSdk 37)
 The lead removed `jniLibs/armeabi-v7a/libtdjni.so` and set minSdk 29; native's v7a/kiroxopus work is reverted (voip/CMakeLists.txt = HEAD). Verify before the release build:
 1. `aapt2 dump badging app-release.apk` → `minSdkVersion:'29'`, `native-code: 'arm64-v8a'` only.
@@ -49,6 +71,7 @@ The lead removed `jniLibs/armeabi-v7a/libtdjni.so` and set minSdk 29; native's v
 ## 5. Checklist for the lead (release day)
 - [ ] fixer-settings bridge merged; `kxbuild.py compile` green
 - [ ] section 3 checks (arm64-only, minSdk 29)
+- [ ] decide dex packaging (section 2: 32.8 MB uncompressed dex vs ≈25.3 MB with `dex { useLegacyPackaging = true }`)
 - [ ] `git apply -p1 design-reference/kirox-v3/qa/release-1.0.patch` (or the table by hand); compile + `test "com.kirox.app.*"` green
 - [ ] `kxbuild.py installrel` → qarelease smoke on the Xiaomi: launch, login screen, no FATAL/ClassNotFound/NoSuchMethod in logcat
 - [ ] `kxbuild.py rawfull :app:assembleRelease` → `app/build/outputs/apk/release/app-release.apk` (signed with the release key; check `apksigner verify --print-certs` shows the same cert as rc.1)
