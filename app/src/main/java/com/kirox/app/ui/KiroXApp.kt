@@ -298,11 +298,12 @@ fun KiroXApp() {
             label = "splash_to_phone"
         ) { showSplash ->
             if (showSplash) {
-                AnimatedSplashScreen2(
-                    contentReady = phoneState != null,
-                    playFullAnimation = true,
-                    onFinished = { splashVisible = false }
-                )
+                // kiroX 1.0: the start screen is the v3 «Загрузка kiroX» board; it stays at least 1.6 s
+                // (its intro animation) and until TDLib has answered.
+                com.kirox.app.ui.v3.theme.KxTheme { com.kirox.app.ui.v3.screens.extra.KxSplash() }
+                LaunchedEffect(phoneState != null) {
+                    if (phoneState != null) { kotlinx.coroutines.delay(1600); splashVisible = false }
+                }
             } else {
                 val state = requireNotNull(phoneState)
                 // «Новый дизайн»: the v3 auth boards on the same auth repository and phone state (ui/v3/data).

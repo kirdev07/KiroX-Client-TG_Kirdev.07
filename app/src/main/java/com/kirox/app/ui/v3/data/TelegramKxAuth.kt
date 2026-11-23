@@ -121,6 +121,11 @@ class TelegramKxAuth(
      */
     override fun submitPhone(digits: String, syncContacts: Boolean) {
         if (busy) return
+        // Test servers only (kiroX test build): Telegram's test numbers +99966XYYYY have no real country, so the
+        // number field takes them as typed («9996610001») and skips the country check.
+        if (com.kirox.app.BuildConfig.TELEGRAM_USE_TEST_DC && digits.startsWith("99966")) {
+            localError = null; vm.auth.clearError(); vm.auth.phone("+$digits"); return
+        }
         phone.updateNumber(digits)
         if (!phone.validate()) { localError = (phone.status as? PhoneStatus.Error)?.message; return }
         localError = null

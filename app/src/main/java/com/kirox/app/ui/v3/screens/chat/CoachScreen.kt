@@ -156,7 +156,8 @@ fun CoachScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Rounded.Celebration, null, Modifier.size(48.dp), tint = Kx.accent)
                     Text("Вы готовы!", style = ts(18, W800), modifier = Modifier.padding(top = 8.dp))
                     Text("Подсказки можно включить снова в «Помощи»", style = ts(13, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
-                    Box(Modifier.padding(top = 14.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 22.dp).padding(2.dp).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.08f))
+                    // «Макет: …» replays the board on the demo store only.
+                    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) Box(Modifier.padding(top = 14.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 22.dp).padding(2.dp).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.08f))
                         .kxClick { i = 0; done = false }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) { Text("Макет: показать снова", style = ts(13, W700, Kx.accent)) }
                 }
             }

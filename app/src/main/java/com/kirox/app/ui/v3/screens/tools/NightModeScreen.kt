@@ -125,7 +125,7 @@ fun NightModeScreen(ctx: KxScreenCtx) {
                 track = Brush.horizontalGradient(0f to Color(0xFFF2C66A), .45f to Color(0xFFC0587E), .7f to Color(0xFF2C2F6E), 1f to Color(0xFF0D0F22))) { hour = it.toInt() }
             Row {
                 Text("00:00", style = KxType.style(11.sp, color = Kx.text4)); Spacer(Modifier.weight(1f))
-                Text("Макет: время суток", style = KxType.style(11.sp, color = Kx.text4)); Spacer(Modifier.weight(1f))
+                Text(if (demo) "Макет: время суток" else "Проверка по времени", style = KxType.style(11.sp, color = Kx.text4)); Spacer(Modifier.weight(1f))
                 Text("23:00", style = KxType.style(11.sp, color = Kx.text4))
             }
         }

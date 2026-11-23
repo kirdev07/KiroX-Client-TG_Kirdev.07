@@ -167,7 +167,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                             )
                             KxTab.Calls -> CallsScreen(store, onCall = { c, v -> if (c.group && !demoStore) store.joinGroupCall(c.peerId) else startCall(c.peerId, c.name, v, c.colorIndex) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                             KxTab.Stories -> StoriesScreen(store, onOpenViewer = { nav.push(KxRoute.Story(it)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
-                            KxTab.Settings -> SettingsScreen(store, onOpen = { if (it == "Старый дизайн") KxNewDesign.set(context, false) else nav.push(KxRoute.Screen(it)) })
+                            KxTab.Settings -> SettingsScreen(store, onOpen = { nav.push(KxRoute.Screen(it)) })
                             else -> KxTabPlaceholder(t)
                         } }
                     }

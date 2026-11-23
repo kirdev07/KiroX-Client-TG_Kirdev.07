@@ -134,7 +134,7 @@ fun LoginScreen(auth: KxAuth) {
                     Box(Modifier.size(1.dp, 22.dp).background(Color(0xFF2C3430)))
                     Box(Modifier.weight(1f)) {
                         if (digits.isEmpty()) Text("700 000 00 00", style = KxType.style(16.sp, color = Kx.text4).copy(letterSpacing = .5.sp))
-                        BasicTextField(formatPhone(digits), { v -> digits = v.filter(Char::isDigit).take(12) }, singleLine = true,
+                        BasicTextField(digits, { v -> digits = v.filter(Char::isDigit).take(12) }, singleLine = true, visualTransformation = PhoneGrouping,
                             textStyle = KxType.style(16.sp).copy(letterSpacing = .5.sp), cursorBrush = SolidColor(Kx.accent),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), modifier = Modifier.fillMaxWidth())
                     }
@@ -164,6 +164,27 @@ fun LoginScreen(auth: KxAuth) {
 
 private fun formatPhone(d: String): String = buildString {
     d.forEachIndexed { i, c -> if (i == 3 || i == 6 || i == 8) append(' '); append(c) }
+}
+
+/**
+ * Shows «700 000 00 00» grouping while the field keeps only digits, so the cursor never lands before an
+ * inserted space (typing used to swap digits: 9996610001 became 999 661 00 10).
+ */
+private object PhoneGrouping : androidx.compose.ui.text.input.VisualTransformation {
+    private fun spacesBefore(n: Int) = (if (n > 3) 1 else 0) + (if (n > 6) 1 else 0) + (if (n > 8) 1 else 0)
+    override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
+        val raw = text.text
+        val out = formatPhone(raw)
+        val map = object : androidx.compose.ui.text.input.OffsetMapping {
+            override fun originalToTransformed(offset: Int) = offset + spacesBefore(offset)
+            override fun transformedToOriginal(offset: Int): Int {
+                var orig = 0
+                while (orig < raw.length && orig + spacesBefore(orig + 1) < offset) orig++
+                return orig.coerceIn(0, raw.length)
+            }
+        }
+        return androidx.compose.ui.text.input.TransformedText(androidx.compose.ui.text.AnnotatedString(out), map)
+    }
 }
 
 /** Gradient 100° button with a shine that sweeps twice (kxShine). */

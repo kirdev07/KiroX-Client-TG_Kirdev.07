@@ -34,8 +34,8 @@ android {
         // Android 10 – 17, 64-bit ARM only (owner decision for 1.0).
         minSdk = 29
         targetSdk = 37
-        versionCode = 8
-        versionName = "1.0.0-rc.1"
+        versionCode = 9
+        versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("int", "TELEGRAM_API_ID", secret("KIROX_API_ID", "kirox.apiId").toIntOrNull()?.toString() ?: "0")
         buildConfigField("boolean", "TELEGRAM_USE_TEST_DC", "false")

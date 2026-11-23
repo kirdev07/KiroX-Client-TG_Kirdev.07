@@ -5,23 +5,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * «Новый дизайн»: shows the kiroX v3 UI (ui/v3) instead of the current one after sign-in.
- * Off by default; the old UI stays until the owner confirms the new one. Kept on this phone.
+ * kiroX 1.0: the v3 UI (ui/v3) is the main UI after sign-in; functions without a v3 board open the old screens.
+ * The «Новый дизайн» / «Старый дизайн» switches are gone, so this is always on — also for phones that had
+ * turned it off in a pre-release (the old preference "new_design_v3" is ignored and left in place).
  */
 object KxNewDesign {
-    private const val PREFS = "kirox_ui"
-    private const val KEY = "new_design_v3"
-    private val state = MutableStateFlow<Boolean?>(null)
+    private val state = MutableStateFlow<Boolean?>(true)
 
-    fun enabled(context: Context): StateFlow<Boolean?> {
-        if (state.value == null) state.value = runCatching {
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, false)
-        }.getOrDefault(false)
-        return state
-    }
-
-    fun set(context: Context, on: Boolean) {
-        state.value = on
-        runCatching { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY, on).apply() }
-    }
+    @Suppress("UNUSED_PARAMETER")
+    fun enabled(context: Context): StateFlow<Boolean?> = state
 }

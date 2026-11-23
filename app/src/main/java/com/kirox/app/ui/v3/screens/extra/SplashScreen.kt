@@ -34,6 +34,12 @@ import com.kirox.app.ui.v3.theme.*
 @Composable
 fun SplashScreen(ctx: KxScreenCtx) {
     @Suppress("UNUSED_VARIABLE") val unused = ctx
+    KxSplash()
+}
+
+/** The same board as the app's start screen (KiroXApp shows it while TDLib starts). */
+@Composable
+fun KxSplash() {
     val glowRaw = kfRun(3200); val glow = tri(glowRaw)
     val spin = kfLoop(18000, label = "spin")
     val orbit = kfRun(6000)

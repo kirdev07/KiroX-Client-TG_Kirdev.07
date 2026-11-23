@@ -44,8 +44,13 @@ private val WnSlides = listOf(
 )
 
 private data class WnItem(val icon: ImageVector, val c: Color, val t: String)
-// demo: needs store (changelog of the installed build)
-private val WnLog = listOf(
+// The real changelog of the installed build (release-1.0.md); the demo store keeps the board's sample history.
+private val WnLogRelease = listOf(
+    Triple("1.0", "Первый выпуск", listOf(WnItem(Icons.Rounded.Palette, Kx.accent, "Новый дизайн kiroX: тёмный с мягким зелёным"), WnItem(Icons.Rounded.FormatPaint, Kx.accent, "Темы, свой вид для каждого чата, ночной режим"),
+        WnItem(Icons.Rounded.FolderOpen, Kx.accent, "Файлы, музыка и загрузки в одном месте"), WnItem(Icons.Rounded.ShieldMoon, Color(0xFF6FA9D8), "Проверка файлов перед открытием, код-пароль, скрытые чаты"),
+        WnItem(Icons.Rounded.GraphicEq, Kx.accent, "Голосовые, кружки и звонки прямо из чата"))),
+)
+private val WnLogDemo = listOf(
     Triple("1.0.0-rc.1", "Сегодня", listOf(WnItem(Icons.Rounded.Palette, Kx.accent, "Свой вид для отдельного чата"), WnItem(Icons.Rounded.FormatPaint, Kx.accent, "Готовые темы и конструктор"),
         WnItem(Icons.Rounded.ShieldMoon, Color(0xFF6FA9D8), "Инструменты админов"), WnItem(Icons.Rounded.BugReport, Kx.warning, "Исправлены вылеты при открытии файлов"))),
     Triple("0.9.5", "10 ноября", listOf(WnItem(Icons.Rounded.Redeem, Kx.warning, "Подарки за звёзды"), WnItem(Icons.Rounded.GraphicEq, Kx.accent, "Расшифровка голосовых"),
@@ -130,7 +135,7 @@ fun WhatsNewScreen(ctx: KxScreenCtx) {
             }
             Text("Все изменения", style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 18.dp, bottom = 8.dp))
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(20.dp))) {
-                WnLog.forEachIndexed { k, (ver, date, items) ->
+                (if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) WnLogDemo else WnLogRelease).forEachIndexed { k, (ver, date, items) ->
                     val isOpen = open == k
                     val rot by animateFloatAsState(if (isOpen) 180f else 0f, tween(250), label = "r$k")
                     if (k > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
