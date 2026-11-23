@@ -100,14 +100,24 @@ fun MessageMenuSheet(
             val preview = (m.thumb ?: m.media)?.takeIf { m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Photo || m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Video || m.kind == com.kirox.app.ui.v3.model.KxMsgKind.Gif }
             if (preview != null) KxImage(preview, Modifier.widthIn(max = 300.dp).width(220.dp).heightIn(max = 220.dp).height(if (m.aspect > 0f) (220f / m.aspect).coerceIn(90f, 220f).dp else 160.dp)
                 .clip(RoundedCornerShape(18.dp)), maxPx = 640)
-            if (m.text.isNotEmpty() || preview == null) Text(
-                menuPreviewText(m), style = KxType.style(15.sp, color = if (m.out) Color(0xFFE6F6EC) else Kx.text, lineHeight = 21.sp),
-                modifier = Modifier.widthIn(max = 300.dp).graphicsLayer { val s = .96f + .06f * appear.value; scaleX = s; scaleY = s }
+            if (m.text.isNotEmpty() || preview == null) Column(
+                Modifier.widthIn(max = 300.dp).width(IntrinsicSize.Max).graphicsLayer { val s = .96f + .06f * appear.value; scaleX = s; scaleY = s }
                     .shadow(40.dp, if (m.out) RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp) else RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp), spotColor = Color.Black.copy(alpha = .5f))
                     .clip(if (m.out) RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp) else RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp))
                     .background(if (m.out) Brush.linearGradient(listOf(Color(0xFF2E6B4B), Color(0xFF1F4D36))) else Brush.linearGradient(listOf(Color(0xFF1B211E), Color(0xFF1B211E))))
-                    .padding(start = 13.dp, end = 13.dp, top = 9.dp, bottom = 7.dp)
-            )
+            ) {
+                // fixer-final (qa-real2): a reply keeps its quoted message in the lifted preview, as in the chat bubble.
+                m.reply?.let { r ->
+                    val ink = if (m.out) Color(0xFFA8D5BC) else Kx.accent
+                    Column(Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = 6.dp).clip(RoundedCornerShape(6.dp, 12.dp, 12.dp, 6.dp)).background(Color.Black.copy(alpha = .18f))
+                        .drawBehind { drawRect(ink, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height)) }.padding(start = 13.dp, end = 10.dp, top = 5.dp, bottom = 5.dp)) {
+                        Text(r.sender, style = KxType.style(13.sp, FontWeight.Bold, ink), maxLines = 1)
+                        Text(r.text, style = KxType.style(13.sp, color = if (m.out) Color(0xFFBFDCCB) else Kx.text3), maxLines = 2)
+                    }
+                }
+                Text(menuPreviewText(m), style = KxType.style(15.sp, color = if (m.out) Color(0xFFE6F6EC) else Kx.text, lineHeight = 21.sp),
+                    modifier = Modifier.padding(start = 13.dp, end = 13.dp, top = if (m.reply != null) 6.dp else 9.dp, bottom = 7.dp))
+            }
             // Actions
             Column(
                 Modifier.width(230.dp).graphicsLayer { alpha = appear.value; translationY = (1 - appear.value) * -8.dp.toPx() }
@@ -184,7 +194,7 @@ private val EditableKinds = setOf(com.kirox.app.ui.v3.model.KxMsgKind.Text, com.
 
 @Composable
 fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCancel: () -> Unit, onDelete: (Boolean) -> Unit, modifier: Modifier = Modifier, canDeleteForMe: Boolean = true, isGroup: Boolean = false,
-                inSaved: Boolean = false) {
+                inSaved: Boolean = false, count: Int = 1) {
     // Telegram's three cases: both (checkbox), for everyone only (supergroups/channels), only for me.
     val forAllOnly = canDeleteForAll && !canDeleteForMe
     var both by remember { mutableStateOf(true) }
@@ -198,8 +208,8 @@ fun DeleteSheet(m: KxMessage, peerName: String, canDeleteForAll: Boolean, onCanc
             .navigationBarsPadding().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 24.dp)
     ) {
         Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 14.dp).size(40.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.25f)))
-        Text("Удалить сообщение?", style = KxType.style(18.sp, FontWeight.ExtraBold))
-        KxLine(m.text.ifEmpty { menuKindLabel(m) }, KxType.style(14.sp, color = Kx.text2), Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.w(.05f)).padding(horizontal = 12.dp, vertical = 10.dp))
+        Text(if (count > 1) "Удалить сообщения: $count?" else "Удалить сообщение?", style = KxType.style(18.sp, FontWeight.ExtraBold))
+        if (count == 1) KxLine(m.text.ifEmpty { menuKindLabel(m) }, KxType.style(14.sp, color = Kx.text2), Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.w(.05f)).padding(horizontal = 12.dp, vertical = 10.dp))
         if (forAllOnly) Text("Сообщение удалится у всех участников чата.", style = KxType.caption, modifier = Modifier.padding(top = 6.dp))
         else if (canDeleteForAll) Row(Modifier.padding(top = 10.dp).fillMaxWidth().heightIn(min = 52.dp).kxClick(role = androidx.compose.ui.semantics.Role.Checkbox) { both = !both },
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

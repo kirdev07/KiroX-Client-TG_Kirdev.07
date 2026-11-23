@@ -142,7 +142,8 @@ fun MoreToolsScreen(ctx: KxScreenCtx) {
                 val links = listOf(
                     Triple(Icons.Outlined.TravelExplore, "Встроенный браузер", if (t.inAppBrowser) "Включён" else "Выключен") to "BrowserSettings",
                     Triple(Icons.Outlined.EmojiEmotions, "Наборы стикеров", "Порядок, архив, поиск новых") to "StickerManage",
-                    Triple(Icons.Outlined.Translate, "Язык", "Язык интерфейса kiroX") to "Language",
+                    // qa-real2: the board holds message translation and own tab names, not an interface language choice.
+                    Triple(Icons.Outlined.Translate, "Перевод и названия", "Перевод сообщений, свои названия вкладок") to "Language",
                     Triple(Icons.Outlined.Backup, "Резервная копия настроек", "Сохранить в файл или восстановить") to "Backup",
                 )
                 links.forEachIndexed { i, (r, board) -> W6Nav(r.first, r.second, r.third, groupShape(i, links.size, 20.dp)) { ctx.open(board) } }

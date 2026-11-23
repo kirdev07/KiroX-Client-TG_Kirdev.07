@@ -69,7 +69,9 @@ data class KxStoryPeer(val id: Long, val name: String, val unseen: Boolean = tru
 
 /** One story. [media] is a local photo/video path; [look] picks a demo background when there is no media. */
 @Immutable
-data class KxStorySlide(val id: Int, val caption: String = "", val media: String? = null, val video: Boolean = false, val look: Int = 0)
+data class KxStorySlide(val id: Int, val caption: String = "", val media: String? = null, val video: Boolean = false, val look: Int = 0,
+                        /** fixer-final: the real story (or its photo / video file) is still loading — the viewer waits, its bar does not run. */
+                        val pending: Boolean = false)
 
 enum class KxMsgKind { Text, Photo, Video, Gif, Voice, VideoNote, Sticker, File, Music, Location, Poll, Contact, Dice, Service, Unsupported }
 
@@ -190,7 +192,9 @@ enum class KxCallDir { Incoming, Outgoing, Missed, Declined }
 data class KxCall(val id: Long, val peerId: Long, val name: String, val time: String, val dir: KxCallDir, val video: Boolean = false,
                   val duration: String = "", val count: Int = 1, val avatar: String? = null, val colorIndex: Int = -1,
                   /** Group voice/video chat («Видеочат»). */
-                  val group: Boolean = false)
+                  val group: Boolean = false,
+                  /** fixer-final: day caption over the group («Сегодня», «Вчера», «25 октября»); empty = derived from [time]. */
+                  val day: String = "")
 
 @Immutable
 data class KxContact(val id: Long, val name: String, val status: String, val online: Boolean = false, val hasStory: Boolean = false,

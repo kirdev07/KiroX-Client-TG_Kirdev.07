@@ -76,9 +76,43 @@ private fun cameraTarget(context: android.content.Context, video: Boolean): andr
     return androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", file)
 }
 
-/** The camera file behind a [cameraTarget] uri (cache/camera/<name>). */
-private fun cameraFile(context: android.content.Context, uri: String): java.io.File =
-    java.io.File(java.io.File(context.cacheDir, "camera"), android.net.Uri.parse(uri).lastPathSegment.orEmpty())
+/**
+ * fixer-final (qa-real2: camera video still lost on MIUI): the video target is a MediaStore row (DCIM/Camera, VID_ name)
+ * on Android 10+ — camera apps write to MediaStore uris reliably, unlike our FileProvider cache file — and the cache
+ * file on older phones.
+ */
+private fun videoTarget(context: android.content.Context): android.net.Uri {
+    if (android.os.Build.VERSION.SDK_INT >= 29) runCatching {
+        val stamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, "VID_$stamp.mp4")
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DCIM + "/Camera")
+        }
+        context.contentResolver.insert(android.provider.MediaStore.Video.Media.getContentUri(android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY), values)
+    }.getOrNull()?.let { return it }
+    return cameraTarget(context, true)
+}
+
+/** Bytes behind [uri] (0 when it cannot be opened or is empty). */
+private fun uriSize(context: android.content.Context, uri: android.net.Uri): Long =
+    runCatching { context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L }.getOrDefault(0L).coerceAtLeast(0L)
+
+/** The newest non-empty video the camera saved itself since [sinceSec] (cameras that ignore EXTRA_OUTPUT); needs gallery access, else null. */
+private fun newestVideoSince(context: android.content.Context, sinceSec: Long): android.net.Uri? = runCatching {
+    val base = android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+    context.contentResolver.query(base, arrayOf(android.provider.MediaStore.MediaColumns._ID, android.provider.MediaStore.MediaColumns.SIZE),
+        "${android.provider.MediaStore.MediaColumns.DATE_ADDED} >= ?", arrayOf((sinceSec - 2).toString()),
+        "${android.provider.MediaStore.MediaColumns.DATE_ADDED} DESC")?.use { c ->
+        while (c.moveToNext()) if (c.getLong(1) > 0) return@runCatching android.content.ContentUris.withAppendedId(base, c.getLong(0))
+        null
+    }
+}.getOrNull()
+
+/** Removes an empty MediaStore row we created for the camera (the cache file is cleaned up by age). */
+private fun dropEmptyTarget(context: android.content.Context, uri: android.net.Uri) {
+    if (uri.authority == android.provider.MediaStore.AUTHORITY && uriSize(context, uri) == 0L) runCatching { context.contentResolver.delete(uri, null, null) }
+}
 
 /**
  * qa-real (fixer-real-media): system video capture that also returns the camera's own result uri. Some camera apps
@@ -133,29 +167,37 @@ internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, 
     // The camera app may outlive this activity: the target uri survives recreation.
     var camUri by rememberSaveable { mutableStateOf<String?>(null) }
     var camVideo by rememberSaveable { mutableStateOf(false) }
+    var camSince by rememberSaveable { mutableStateOf(0L) }
     val takePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
         val u = camUri
         if (ok && u != null) addPicked(listOf(KxDeviceMedia(u, false)))
     }
     val takeVideo = rememberLauncherForActivityResult(CaptureVideoKeepingResult()) { (ok, returned) ->
         val u = camUri ?: return@rememberLauncherForActivityResult
+        val target = android.net.Uri.parse(u)
+        val since = camSince
         scope.launch {
-            // Our file when the camera wrote it (even if it said «cancelled»), else the camera's own uri when it answered OK.
-            val written = withContext(Dispatchers.IO) { runCatching { cameraFile(context, u).length() > 0 }.getOrDefault(false) }
-            val source = when {
-                written -> android.net.Uri.parse(u)
-                ok && returned != null && returned.toString() != u -> returned
-                else -> null
+            // The size is checked, not the result code: our target when the camera wrote it (even if it said «cancelled»),
+            // else the camera's own returned uri, else the newest video it saved by itself since the launch.
+            val source = withContext(Dispatchers.IO) {
+                when {
+                    uriSize(context, target) > 0 -> target
+                    returned != null && returned != target && uriSize(context, returned) > 0 -> returned
+                    else -> newestVideoSince(context, since)
+                }.also { if (it != target) dropEmptyTarget(context, target) }
             }
             if (source != null) addPicked(listOf(describeUri(context, source, forceVideo = true)))
-            else if (ok) toast("Камера не вернула видео — попробуйте выбрать его в «Галерее»")
+            else if (ok || System.currentTimeMillis() / 1000 - since > 3) toast("Камера не вернула видео — попробуйте выбрать его в «Галерее»")
         }
     }
     fun launchCamera(video: Boolean) {
-        val uri = runCatching { cameraTarget(context, video) }.getOrNull()
+        val uri = runCatching { if (video) videoTarget(context) else cameraTarget(context, false) }.getOrNull()
         if (uri == null) { toast("Не удалось подготовить файл для камеры"); return }
-        camUri = uri.toString(); camVideo = video
-        runCatching { if (video) takeVideo.launch(uri) else takePhoto.launch(uri) }.onFailure { toast("На телефоне нет приложения камеры") }
+        camUri = uri.toString(); camVideo = video; camSince = System.currentTimeMillis() / 1000
+        runCatching { if (video) takeVideo.launch(uri) else takePhoto.launch(uri) }.onFailure {
+            if (video) scope.launch(Dispatchers.IO) { dropEmptyTarget(context, uri) }
+            toast("На телефоне нет приложения камеры")
+        }
     }
     val camPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         if (ok) launchCamera(camVideo) else toast("Нет доступа к камере")

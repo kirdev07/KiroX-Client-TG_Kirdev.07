@@ -1,6 +1,7 @@
 package com.kirox.app.ui.v3.screens
 
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.animation.*
@@ -10,6 +11,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -168,12 +170,33 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
     var beforeEdit by remember(chatId) { mutableStateOf("") }
     var pending by remember(chatId) { mutableStateOf<PendingDelete?>(null) }
     androidx.activity.compose.BackHandler(enabled = editing != null || replyTo != null) { if (editing != null) text = beforeEdit; editing = null; replyTo = null }
+    // fixer-final (qa-real2): «Выбрать» selects in place (checkbox per bubble, selection bar over the header), no separate board.
+    val selected = remember(chatId) { mutableStateListOf<Long>() }
+    val selecting = selected.isNotEmpty()
+    var selDelete by remember(chatId) { mutableStateOf(false) }
+    // An album row counts as selected only when all its messages are: selecting one album item selects the album.
+    val albumOf: (KxMessage) -> List<Long> = { m -> if (m.albumId == 0L) listOf(m.id) else store.messages(chatId).filter { it.albumId == m.albumId }.map { it.id } }
+    val startSelect: (KxMessage) -> Unit = { m -> menuFor = null; if (m.kind != KxMsgKind.Service) albumOf(m).forEach { id -> if (id !in selected) selected.add(id) } }
+    androidx.activity.compose.BackHandler(enabled = selecting) { selected.clear() }
     var attach by remember { mutableStateOf(false) }
     var sendOpts by remember { mutableStateOf<Boolean?>(null) } // null = closed, true = straight to the date/time picker
     var circleMode by rememberSaveable { mutableStateOf(false) }
     var recording by remember { mutableStateOf<Boolean?>(null) } // null = no, false = voice, true = circle
     var recSecs by remember { mutableIntStateOf(0) }
     val messages = store.messages(chatId).filter { it.id != pending?.message?.id }
+    // fixer-final (qa-real2): consecutive messages of one media album become one row (keyed by its oldest message).
+    val albums = HashMap<Long, List<KxMessage>>()
+    val shown = ArrayList<KxMessage>(messages.size)
+    run {
+        var i = 0
+        while (i < messages.size) {
+            val m0 = messages[i]
+            var j = i + 1
+            if (m0.albumId != 0L) while (j < messages.size && messages[j].albumId == m0.albumId) j++
+            if (j - i > 1) albums[m0.id] = messages.subList(i, j).toList()
+            shown += m0; i = j
+        }
+    }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     // wave5: the chat's Telegram draft fills an empty composer once (old UI did the same); setDraft is not called for it.
@@ -184,7 +207,9 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
     val jump = store.jumpTarget(chatId)
     LaunchedEffect(jump, messages.size) {
         if (jump == 0L) return@LaunchedEffect
-        val idx = messages.asReversed().indexOfFirst { it.id == jump }
+        // An album member scrolls to its album row.
+        val target = albums.entries.firstOrNull { (_, list) -> list.any { it.id == jump } }?.key ?: jump
+        val idx = shown.asReversed().indexOfFirst { it.id == target }
         if (idx >= 0) { listState.animateScrollToItem(idx); store.jumpDone() }
     }
     LocalJumpTo = { id -> if (id != 0L) store.jumpTo(chatId, id) }
@@ -287,14 +312,26 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = top, bottom = if (replyTo != null || editing != null) 158.dp else 104.dp),
             verticalArrangement = Arrangement.spacedBy(look.gap, Alignment.Bottom)
         ) {
-            val reversed = messages.asReversed()
+            val reversed = shown.asReversed()
             itemsIndexed(reversed, key = { _, it -> it.id }) { index, m ->
+                val album = albums[m.id]
+                val rowIds = album?.map { it.id } ?: listOf(m.id)
                 // Older history: ask for the next page when the top 10 come into view (real store; demo has everything).
                 if (index >= reversed.size - 10 && !store.historyComplete(chatId)) LaunchedEffect(reversed.size) { store.loadOlder(chatId) }
                 Column(Modifier.fillMaxWidth().animateItem(fadeInSpec = tween(250), fadeOutSpec = tween(350), placementSpec = tween(350, easing = KxMotion.rise))) {
                     m.dayHeader?.let { DayPill(it) }
                     // wave3-account: gestures (ChatGestures board) and the word filter (KxChatGestures.kt)
                     val service = m.kind == KxMsgKind.Service
+                    val isSel = selected.containsAll(rowIds)
+                    Box(Modifier.fillMaxWidth().then(if (isSel) Modifier.clip(RoundedCornerShape(16.dp)).background(Kx.accent.copy(alpha = .10f)) else Modifier)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    AnimatedVisibility(selecting && !service, enter = fadeIn(tween(200)) + expandHorizontally(tween(200)), exit = fadeOut(tween(150)) + shrinkHorizontally(tween(200))) {
+                        Box(Modifier.padding(start = 2.dp, end = 8.dp).size(24.dp).clip(CircleShape).background(if (isSel) Kx.accent else Color.Transparent)
+                            .border(2.dp, if (isSel) Kx.accent else Kx.w(.35f), CircleShape), contentAlignment = Alignment.Center) {
+                            if (isSel) Icon(Icons.Rounded.Check, null, Modifier.size(16.dp), tint = Kx.onAccent)
+                        }
+                    }
+                    Box(Modifier.weight(1f)) {
                     KxMessageSwipe(
                         onLeft = if (service) null else when (KxGestureActions.left(store)) {
                             1 -> { { if (demo) toast("Выберите чат для пересылки") else onOpen("Forward:$chatId:${m.id}") } }
@@ -304,8 +341,10 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                         onRight = if (service) null else when (KxGestureActions.right(store)) { 0 -> onBack; 1 -> { { replyTo = m; editing = null } }; else -> null },
                     ) {
                         KxFilteredMessage(store, header.kind, m) {
-                            MessageBubble(m, isGroup = header.kind == KxChatKind.Group,
-                                onLongPress = { when (KxGestureActions.hold(store)) { 1 -> if (demo) toast("Выбрано: 1") else onOpen("MultiSelect:$chatId:${m.id}"); 2 -> store.translate(chatId, m.id, m.translation == null); else -> menuFor = m } },
+                            if (album != null) AlbumBubble(album, onLongPress = { a -> when (KxGestureActions.hold(store)) { 1 -> rowIds.forEach { id -> if (id !in selected) selected.add(id) }; else -> menuFor = a } },
+                                onReact = { e -> react(m.id, e) })
+                            else MessageBubble(m, isGroup = header.kind == KxChatKind.Group,
+                                onLongPress = { when (KxGestureActions.hold(store)) { 1 -> startSelect(m); 2 -> store.translate(chatId, m.id, m.translation == null); else -> menuFor = m } },
                                 onReact = { react(m.id, it) },
                                 onReply = { replyTo = m; editing = null }, onMenu = { menuFor = m },
                                 onDoubleTap = when (KxGestureActions.double(store)) {
@@ -315,6 +354,13 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                                     else -> null
                                 })
                         }
+                    }
+                    }
+                    }
+                    // While selecting, a tap anywhere on the row toggles it (the bubble's own gestures and swipes are off).
+                    if (selecting) Box(Modifier.matchParentSize().clickable(interactionSource = null, indication = null) {
+                        if (!service) { if (isSel) selected.removeAll(rowIds) else rowIds.forEach { id -> if (id !in selected) selected.add(id) } }
+                    }.semantics { contentDescription = if (isSel) "Выбрано" else "Не выбрано" })
                     }
                 }
             }
@@ -353,6 +399,22 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
             if (ownChat && header.kind == KxChatKind.Channel) ({ onOpen("ChannelSettings:$chatId") }) else onProfile, stranger = stranger,
             onStranger = { block -> if (block) linkAsk = KxConfirm("Заблокировать ${header.title}?", "Пользователь не сможет писать и звонить вам.", "Заблокировать") { store.block(chatId, true) } else onOpen("ContactBar:$chatId") }) { header.pinned?.let { store.pin(chatId, it.messageId, false) } }
 
+        if (selecting) {
+            val chosen = messages.filter { it.id in selected }
+            SelectionBar(chosen.size, Modifier.align(Alignment.TopCenter),
+                canCopy = chosen.any { it.canCopy && it.text.isNotBlank() },
+                canForward = chosen.all { it.canForward },
+                canSave = header.kind != KxChatKind.Saved && chosen.all { it.canForward },
+                canDelete = chosen.all { it.canDeleteForMe || it.canDeleteForAll },
+                onClose = { selected.clear() },
+                onCopy = {
+                    clipboard.setText(androidx.compose.ui.text.AnnotatedString(chosen.filter { it.canCopy && it.text.isNotBlank() }.joinToString("\n\n") { it.text }))
+                    toast("Скопировано: ${chosen.size}"); selected.clear()
+                },
+                onForward = { if (demo) toast("Выберите чат для пересылки") else onOpen("Forward:$chatId:${chosen.joinToString(",") { it.id.toString() }}"); selected.clear() },
+                onSave = { store.saveToFavorites(chatId, chosen.map { it.id }); toast("Сохранено в Избранное"); selected.clear() },
+                onDelete = { selDelete = true })
+        }
         if (recording == true) CircleRecording(recSecs)
         when (header.composer) {
             KxComposer.Write -> Composer(
@@ -439,7 +501,7 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
                 onForward = { menuFor = null; if (demo) toast("Выберите чат для пересылки") else onOpen("Forward:$chatId:${m.id}") },
                 onPin = { store.pin(chatId, m.id, !m.pinned); menuFor = null },
                 onSave = { store.saveToFavorites(chatId, listOf(m.id)); menuFor = null; toast("Сохранено в Избранное") },
-                onSelect = { menuFor = null; if (demo) toast("Выбрано: 1") else onOpen("MultiSelect:$chatId:${m.id}") },
+                onSelect = { startSelect(m) },
                 onAllReactions = { menuFor = null; onOpen(if (demo) "ReactPicker" else "ReactPicker:$chatId:${m.id}") },
                 more = if (demo) emptyList() else buildList {
                     val group = header.kind == KxChatKind.Group
@@ -493,6 +555,20 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
             )
         }
         infoFor?.let { m -> ChatMsgInfoSheet(store, chatId, m, header.kind) { infoFor = null } }
+        if (selDelete) {
+            val chosen = messages.filter { it.id in selected }
+            val first = chosen.firstOrNull()
+            if (first == null) selDelete = false
+            else Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .5f)).clickable(interactionSource = null, indication = null) { selDelete = false }) {
+                androidx.activity.compose.BackHandler { selDelete = false }
+                val forAll = header.kind != KxChatKind.Saved && chosen.all { it.canDeleteForAll }
+                DeleteSheet(first, header.title, forAll, onCancel = { selDelete = false }, onDelete = { both ->
+                    store.delete(chatId, chosen.map { it.id }, both); toast("Удалено: ${chosen.size}"); selDelete = false; selected.clear()
+                }, modifier = Modifier.align(Alignment.BottomCenter).clickable(interactionSource = null, indication = null) {},
+                    canDeleteForMe = chosen.all { it.canDeleteForMe }, isGroup = header.kind == KxChatKind.Group || header.kind == KxChatKind.Channel,
+                    inSaved = header.kind == KxChatKind.Saved, count = chosen.size)
+            }
+        }
         linkAsk?.let { c -> KxConfirmDialog(c) { linkAsk = null } }
         fileOpener.Dialog()
     }
@@ -551,6 +627,23 @@ private fun ChatHeader(h: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) ->
                 Text("Заблокировать", style = KxType.style(13.sp, FontWeight.Bold, Kx.danger), maxLines = 1)
             }
         }
+    }
+}
+
+/** In-place selection bar over the chat header (MultiSelect mockup): ✕, «Выбрано: N», copy / forward / save / delete. */
+@Composable
+private fun SelectionBar(count: Int, modifier: Modifier, canCopy: Boolean, canForward: Boolean, canSave: Boolean, canDelete: Boolean,
+                         onClose: () -> Unit, onCopy: () -> Unit, onForward: () -> Unit, onSave: () -> Unit, onDelete: () -> Unit) {
+    Row(modifier.fillMaxWidth().background(Color(0xFF0D100E)).background(Kx.accent.copy(alpha = .06f))
+        .drawBehind { drawLine(Kx.accent.copy(alpha = .2f), Offset(0f, size.height - .5f), Offset(size.width, size.height - .5f), 1f) }
+        .statusBarsPadding().padding(start = 6.dp, end = 6.dp, top = 4.dp, bottom = 8.dp).height(56.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        KxIconButton(Icons.Rounded.Close, "Закончить выбор", size = 48.dp, filled = false, tint = Kx.text, onClick = onClose)
+        Text("Выбрано: $count", style = KxType.style(18.sp, FontWeight.ExtraBold), modifier = Modifier.weight(1f).padding(start = 4.dp), maxLines = 1)
+        if (canCopy) KxIconButton(Icons.Rounded.ContentCopy, "Копировать", size = 44.dp, filled = false, tint = Kx.text, onClick = onCopy)
+        if (canForward) KxIconButton(Icons.AutoMirrored.Rounded.Reply, "Переслать", Modifier.graphicsLayer { scaleX = -1f }, size = 44.dp, filled = false, tint = Kx.text, onClick = onForward)
+        if (canSave) KxIconButton(Icons.Rounded.BookmarkBorder, "В Избранное", size = 44.dp, filled = false, tint = Kx.text, onClick = onSave)
+        if (canDelete) KxIconButton(Icons.Rounded.DeleteOutline, "Удалить", size = 44.dp, filled = false, tint = Kx.danger, onClick = onDelete)
     }
 }
 
@@ -616,10 +709,10 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
             KxMsgKind.Service -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(m.text, style = KxType.style(12.sp, FontWeight.SemiBold, Kx.text3), modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Kx.fill).padding(horizontal = 12.dp, vertical = 4.dp))
             }
-            KxMsgKind.VideoNote -> Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = press.padding(vertical = 2.dp)) {
-                if (m.out) MetaText(m, Kx.text4)
+            // fixer-final (qa-real2): the time sits on the round / sticker itself (a pill at its corner), not beside it.
+            KxMsgKind.VideoNote -> Box(press.padding(vertical = 2.dp)) {
                 VideoNoteCircle(m, roundPlay) { roundPlay = false }
-                if (!m.out) Text(m.time, style = KxType.style(11.sp, color = Kx.text4), modifier = Modifier.padding(bottom = 6.dp))
+                MediaTimePill(m, Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = 4.dp))
             }
             KxMsgKind.Voice -> if (m.out && m.played == 0f && m.status != KxOutState.Read) Row(
                 press.width(220.dp).clip(OutShape).outBubble().padding(start = 10.dp, end = 10.dp, top = 9.dp, bottom = 7.dp),
@@ -668,10 +761,9 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
                 Row { Text(time, style = KxType.style(11.sp, color = OutMeta), modifier = Modifier.weight(1f)); MetaText(m, OutMeta) }
             }
             // qa-real (fixer-real-media): the sticker itself (was an empty bubble) and a map preview for a shared location.
-            KxMsgKind.Sticker -> Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = press.padding(vertical = 2.dp)) {
-                if (m.out) MetaText(m, Kx.text4)
+            KxMsgKind.Sticker -> Box(press.padding(vertical = 2.dp)) {
                 KxStickerBubble(m, bm?.store)
-                if (!m.out) Text(m.time, style = KxType.style(11.sp, color = Kx.text4), modifier = Modifier.padding(bottom = 6.dp))
+                MediaTimePill(m, Modifier.align(Alignment.BottomEnd))
             }
             KxMsgKind.Location -> if (kxLocationOf(m.text) != null) Column(press.clip(if (m.out) OutShape else InShape).bubble(m.out)) {
                 KxLocationPreview(m, m.out)
@@ -717,6 +809,8 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
                         if (st?.downloading == true) androidx.compose.material3.CircularProgressIndicator(progress = { st.fraction.coerceAtLeast(.02f) }, modifier = Modifier.size(40.dp), color = Kx.accentLight, strokeWidth = 3.dp, trackColor = Kx.w(.15f))
                         else if (!gifPlays) Icon(Icons.Rounded.Gif, "GIF", Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = .45f)).padding(4.dp), tint = Kx.text)
                     } else if (pic == null || m.kind != KxMsgKind.Photo) Icon(if (m.kind == KxMsgKind.Photo) Icons.Rounded.Image else Icons.Rounded.PlayCircle, null, Modifier.size(36.dp), tint = Kx.accentLight.copy(alpha = .7f))
+                    // fixer-final (qa-real2): a photo / video without a caption had no time at all.
+                    if (m.text.isEmpty()) MediaTimePill(m, Modifier.align(Alignment.BottomEnd).padding(6.dp))
                 }
                 if (m.text.isNotEmpty()) TextWithMeta(m, Modifier.padding(start = 9.dp, end = 9.dp, top = 7.dp, bottom = 4.dp))
               }
@@ -740,13 +834,108 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
                 if (m.kind == KxMsgKind.File || m.kind == KxMsgKind.Music) FileLine(m)
                 val poll = m.poll
                 val pad = when { m.reply != null -> PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 7.dp); m.out -> PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 7.dp); else -> PaddingValues(start = 13.dp, end = 13.dp, top = 9.dp, bottom = 7.dp) }
-                if (m.kind == KxMsgKind.Poll && poll != null) PollBlock(m, poll) else TextWithMeta(m, Modifier.padding(pad))
+                if (m.kind == KxMsgKind.Poll && poll != null) PollBlock(m, poll)
+                else if (m.kind == KxMsgKind.Text && m.text.startsWith("☑ ")) ChecklistBlock(m, Modifier.padding(pad))
+                else TextWithMeta(m, Modifier.padding(pad))
             }
         }
         }
         if (m.buttons.isNotEmpty()) InlineButtons(m)
         if (m.reactions.isNotEmpty()) Row(Modifier.padding(top = 1.dp, bottom = 2.dp, start = 6.dp, end = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             m.reactions.forEach { r ->
+                Text("${r.emoji} ${r.count}", style = KxType.style(13.sp),
+                    modifier = Modifier.clip(RoundedCornerShape(11.dp))
+                        .then(if (r.mine) Modifier.background(Kx.accent.copy(alpha = .16f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(11.dp)) else Modifier.background(Kx.fill))
+                        .kxClick("${r.emoji} ${r.count}") { onReact(r.emoji) }.padding(horizontal = 8.dp, vertical = 2.dp))
+            }
+        }
+    }
+}
+
+/**
+ * fixer-final: a Telegram checklist (mapped by the repository to «☑ title / ✓ done / ○ open» lines) drawn as a list:
+ * bold title, a round check per task (done = filled, struck through), «N из M» + time. A tap opens the Checklist board.
+ */
+@Composable
+private fun ChecklistBlock(m: KxMessage, modifier: Modifier) {
+    val lines = m.text.lines()
+    val title = lines.first().removePrefix("☑ ")
+    val tasks = lines.drop(1).filter { it.isNotBlank() }.map { l -> l.startsWith("✓ ") to l.removePrefix("✓ ").removePrefix("○ ") }
+    val ink = if (m.out) OutText else Kx.text
+    val sub = if (m.out) OutMeta else Kx.text4
+    Column(modifier.widthIn(min = 200.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title, style = KxType.style(15.sp, FontWeight.Bold, ink))
+        tasks.forEach { (done, t) ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.size(20.dp).clip(CircleShape).background(if (done) Kx.accent else Color.Transparent).border(1.5.dp, if (done) Kx.accent else sub, CircleShape),
+                    contentAlignment = Alignment.Center) { if (done) Icon(Icons.Rounded.Check, null, Modifier.size(14.dp), tint = Kx.onAccent) }
+                Text(t, style = KxType.style(14.sp, color = if (done) sub else ink).copy(textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null),
+                    modifier = Modifier.weight(1f, fill = false))
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("${tasks.count { it.first }} из ${tasks.size}", style = KxType.style(12.sp, color = sub), modifier = Modifier.weight(1f))
+            MetaText(m, sub)
+        }
+    }
+}
+
+/** Time (+ ticks) as a dark pill over media: stickers, rounds, captionless photos / albums. */
+@Composable
+private fun MediaTimePill(m: KxMessage, modifier: Modifier = Modifier) {
+    Box(modifier.clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(alpha = .45f)).padding(start = 7.dp, end = 7.dp, top = 2.dp, bottom = 1.dp)) {
+        MetaText(m, Color.White.copy(alpha = .92f))
+    }
+}
+
+/** Album rows (Telegram-like): 2 → [2], 3 → [1, 2], 4 → [2, 2], 5 → [2, 3] … at most 3 per row. */
+private fun albumRows(n: Int): List<Int> = when (n) {
+    1 -> listOf(1); 2 -> listOf(2); 3 -> listOf(1, 2); 4 -> listOf(2, 2); 5 -> listOf(2, 3); 6 -> listOf(3, 3)
+    7 -> listOf(2, 2, 3); 8 -> listOf(2, 3, 3); 9 -> listOf(3, 3, 3); else -> List(n / 3) { 3 }.let { if (n % 3 == 0) it else listOf(n % 3) + it }
+}
+
+/**
+ * fixer-final (qa-real2): messages of one media album (same albumId, oldest first) as ONE bubble — a grid of the
+ * photos / videos, the caption (from whichever item has it) and the time once. Tap a tile → viewer at that item;
+ * long press a tile → that item's menu.
+ */
+@Composable
+internal fun AlbumBubble(items: List<KxMessage>, onLongPress: (KxMessage) -> Unit, onReact: (String) -> Unit) {
+    val last = items.last()
+    val out = last.out
+    val captioned = items.firstOrNull { it.text.isNotEmpty() }
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = if (out) Alignment.End else Alignment.Start) {
+        Column(Modifier.width(260.dp).clip(if (out) OutShape else RoundedCornerShape(22.dp, 22.dp, 22.dp, 6.dp)).bubble(out).padding(3.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            var at = 0
+            val rows = albumRows(items.size)
+            rows.forEachIndexed { r, cols ->
+                val rowItems = items.subList(at, (at + cols).coerceAtMost(items.size)); at += cols
+                Row(Modifier.fillMaxWidth().height(if (cols == 1) 200.dp else if (cols == 2) 140.dp else 100.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    rowItems.forEach { m ->
+                        var unveiled by remember(m.id) { mutableStateOf(false) }
+                        val hidden = m.spoiler && !unveiled
+                        Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(if (rows.size == 1) 18.dp else 8.dp))
+                            .drawBehind { drawRect(Brush.linearGradient(listOf(Color(0xFF355E49), Color(0xFF0F1712)))) }
+                            .combinedClickable(interactionSource = null, indication = null, onLongClick = { onLongPress(m) },
+                                onClick = { if (hidden) unveiled = true else LocalOpenMedia?.invoke(m) }),
+                            contentAlignment = Alignment.Center) {
+                            val pic = m.media?.takeIf { m.kind == KxMsgKind.Photo } ?: m.thumb
+                            if (pic != null && !m.viewOnce && (!hidden || android.os.Build.VERSION.SDK_INT >= 31))
+                                KxImage(pic, Modifier.matchParentSize().then(if (hidden) Modifier.blur(28.dp) else Modifier), maxPx = 720)
+                            if (hidden) Icon(Icons.Rounded.VisibilityOff, "Спойлер", Modifier.size(26.dp), tint = Kx.text)
+                            else if (m.kind == KxMsgKind.Video || m.kind == KxMsgKind.Gif) Icon(Icons.Rounded.PlayCircle, null, Modifier.size(34.dp), tint = Color.White.copy(alpha = .85f))
+                            else if (pic == null) Icon(Icons.Rounded.Image, null, Modifier.size(30.dp), tint = Kx.accentLight.copy(alpha = .7f))
+                            if (m.id == last.id && captioned == null) MediaTimePill(last, Modifier.align(Alignment.BottomEnd).padding(6.dp))
+                        }
+                    }
+                }
+            }
+            if (captioned != null) TextWithMeta(captioned.copy(time = last.time, status = last.status, edited = captioned.edited), Modifier.padding(start = 9.dp, end = 9.dp, top = 5.dp, bottom = 4.dp))
+        }
+        val reactions = items.flatMap { it.reactions }
+        if (reactions.isNotEmpty()) Row(Modifier.padding(top = 1.dp, bottom = 2.dp, start = 6.dp, end = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            reactions.forEach { r ->
                 Text("${r.emoji} ${r.count}", style = KxType.style(13.sp),
                     modifier = Modifier.clip(RoundedCornerShape(11.dp))
                         .then(if (r.mine) Modifier.background(Kx.accent.copy(alpha = .16f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(11.dp)) else Modifier.background(Kx.fill))

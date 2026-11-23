@@ -211,6 +211,7 @@ internal fun tCycles(durMs: Int, times: Int = 2, delayMs: Int = 0, rest: Float =
 /** Bottom sheet: backdrop .55, r30 top, solid #1B211E, grabber 40x4, slide .38s. */
 @Composable
 internal fun BoxScope.TSheet(onClose: () -> Unit, label: String? = null, bg: Brush = TSheetBg, grabberGap: Dp = 16.dp, bottomPad: Dp = 22.dp, content: @Composable ColumnScope.() -> Unit) {
+    androidx.activity.compose.BackHandler(onBack = onClose) // fixer-final: Back closes the sheet, not the board
     val reduced = LocalKxReducedMotion.current
     val p = remember { Animatable(if (reduced) 1f else 0f) }
     val fade = remember { Animatable(if (reduced) 1f else 0f) }

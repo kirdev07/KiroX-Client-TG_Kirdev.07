@@ -40,9 +40,18 @@ import com.kirox.app.ui.v3.theme.*
 
 /** Calls tab (board "Звонки"): segmented All/Missed, call-link card, call rows. */
 @Composable
-fun CallsScreen(store: KxStore, onCall: (KxCall, Boolean) -> Unit, onOpen: (String) -> Unit, bottomPadding: Dp = 110.dp) {
+fun CallsScreen(store: KxStore, onCall: (KxCall, Boolean) -> Unit, onOpen: (String) -> Unit, bottomPadding: Dp = 110.dp, active: Boolean = true) {
     var missed by rememberSaveable { mutableStateOf(false) }
     val calls = if (missed) store.calls.filter { it.dir == KxCallDir.Missed } else store.calls
+    // fixer-final (qa-real2): the tab itself asks for the call log whenever it is shown (the dock pager
+    // keeps pages composed, and the store's start-up request could run before TDLib was ready) and
+    // pages on while scrolling.
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    LaunchedEffect(active) { if (active) store.loadMoreCalls() }
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.let { (it.visibleItemsInfo.lastOrNull()?.index ?: 0) >= it.totalItemsCount - 6 } }
+            .collect { near -> if (near && active) store.loadMoreCalls() }
+    }
     Box(Modifier.fillMaxSize()) {
         KxGlow(diameter = 380.dp, x = (-90).dp, y = (-110).dp, alpha = .18f, alignEnd = true)
         Column(Modifier.fillMaxSize()) {
@@ -64,11 +73,11 @@ fun CallsScreen(store: KxStore, onCall: (KxCall, Boolean) -> Unit, onOpen: (Stri
                 }
                 Icon(Icons.Rounded.ChevronRight, null, tint = Kx.accent)
             }
-            LazyColumn(Modifier.fillMaxSize().padding(top = 10.dp), contentPadding = PaddingValues(bottom = bottomPadding)) {
+            LazyColumn(Modifier.fillMaxSize().padding(top = 10.dp), state = listState, contentPadding = PaddingValues(bottom = bottomPadding)) {
                 // qa-real: a day caption per group («Сегодня», «Вчера», «пн», «25 окт»), not «Сегодня» over everything.
                 itemsIndexed(calls, key = { _, c -> c.id }) { i, c ->
-                    val day = callDay(c.time)
-                    if (i == 0 || callDay(calls[i - 1].time) != day)
+                    val day = callDay(c)
+                    if (i == 0 || callDay(calls[i - 1]) != day)
                         Text(day, style = KxType.style(13.sp, FontWeight.Bold, Kx.text4), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp))
                     CallRow(c, Modifier.kxRise(i * 50, 450)) { onCall(c, c.video) }
                 }
@@ -79,6 +88,8 @@ fun CallsScreen(store: KxStore, onCall: (KxCall, Boolean) -> Unit, onOpen: (Stri
 }
 
 /** Day caption from the row time (KxFormat.chatTime: «14:20» today, «вчера», weekday, «25 окт», «01.02.25»). */
+private fun callDay(c: KxCall): String = c.day.ifEmpty { callDay(c.time) }
+
 private fun callDay(time: String): String = when {
     time.isBlank() || Regex("""^\d{1,2}:\d{2}$""").matches(time) -> "Сегодня"
     time == "вчера" -> "Вчера"

@@ -152,6 +152,8 @@ internal fun SSwitchRow(icon: ImageVector?, label: String, on: Boolean, shape: S
 @Composable
 internal fun BoxScope.SSheet(onClose: () -> Unit, label: String? = null, top: Color = Color(34, 44, 39).copy(alpha = .94f), bottom: Color = Color(16, 20, 18).copy(alpha = .97f),
                              bottomPad: Dp = 24.dp, grabberGap: Dp = 14.dp, content: @Composable ColumnScope.() -> Unit) {
+    // fixer-final (qa-real): system Back closes the sheet, not the whole board under it (Privacy → «Время захода»).
+    androidx.activity.compose.BackHandler(onBack = onClose)
     val reduced = LocalKxReducedMotion.current
     val p = remember { Animatable(if (reduced) 1f else 0f) }
     val fade = remember { Animatable(if (reduced) 1f else 0f) }

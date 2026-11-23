@@ -143,6 +143,7 @@ internal fun ChCaption(text: String, modifier: Modifier = Modifier) =
 internal fun ChSheet(visible: Boolean, onDismiss: () -> Unit, modifier: Modifier = Modifier, scrim: Color = Color.Black.copy(alpha = .55f),
                      bg: Brush = Brush.verticalGradient(listOf(Color(0xFF1B211E), Color(0xFF131715))),
                      content: @Composable ColumnScope.() -> Unit) {
+    androidx.activity.compose.BackHandler(enabled = visible, onBack = onDismiss) // fixer-final: Back closes the sheet, not the board
     Box(Modifier.fillMaxSize()) {
         AnimatedVisibility(visible, enter = fadeIn(tween(250)), exit = fadeOut(tween(200))) {
             Box(Modifier.fillMaxSize().background(scrim).clickable(remember { MutableInteractionSource() }, null, onClick = onDismiss))

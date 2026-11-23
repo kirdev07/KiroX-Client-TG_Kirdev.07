@@ -187,6 +187,7 @@ fun AccountsScreen(ctx: KxScreenCtx) {
 /** Solid #121614 sheet (r30, top line .08, grabber 36x4 #3A4540), kxSheet .32s. */
 @Composable
 internal fun BoxScope.AccSheet(onClose: () -> Unit, scrim: Float = .5f, content: @Composable ColumnScope.() -> Unit) {
+    androidx.activity.compose.BackHandler(onBack = onClose) // fixer-final: Back closes the sheet, not the board
     val p = remember { Animatable(0f) }
     val fade = remember { Animatable(0f) }
     LaunchedEffect(Unit) { launch { fade.animateTo(1f, tween(250)) }; p.animateTo(1f, tween(320, easing = CubicBezierEasing(.2f, .9f, .3f, 1f))) }

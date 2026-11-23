@@ -4,6 +4,10 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.launch
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.*
@@ -112,31 +116,44 @@ private fun StoryCard(p: KxStoryPeer, modifier: Modifier, onClick: () -> Unit) {
 
 private class BiasAlignment(h: Float, v: Float) : Alignment by androidx.compose.ui.BiasAlignment(h, v)
 
-/** Full-screen viewer: progress bars, 5s per story, tap left/right, reply field, flying reactions. */
+/**
+ * Full-screen viewer, Telegram-like (fixer-final): a photo stays ~6 s, a video for its own length (the bar follows
+ * playback); the bar starts only once the photo is decoded / the video is ready (a real story whose file is still
+ * downloading waits with a spinner instead of being skipped); press and hold pauses and, after a moment, hides the
+ * UI; tap left/right = previous/next; swipe down closes; the reply field pauses. No auto-zoom of the photo. The
+ * person order is taken when the viewer opens, so a story turning «seen» (TDLib moves the person down the list)
+ * does not make the viewer jump to someone else.
+ */
 @Composable
 fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
-    val peers = store.stories.filter { !it.mine && it.slides.isNotEmpty() }
-    var open by remember { mutableIntStateOf(startIndex.coerceIn(0, (peers.size - 1).coerceAtLeast(0))) }
+    val order = remember { store.stories.filter { !it.mine && it.slides.isNotEmpty() }.map { it.id } }
+    val peers = order.mapNotNull { id -> store.stories.firstOrNull { it.id == id && it.slides.isNotEmpty() } }
+    var openId by remember { mutableStateOf(order.getOrNull(startIndex.coerceIn(0, (order.size - 1).coerceAtLeast(0)))) }
     var slide by remember { mutableIntStateOf(0) }
     val progress = remember { Animatable(0f) }
     val flying = remember { mutableStateListOf<Pair<Long, String>>() }
     var paused by remember { mutableStateOf(false) }
+    var held by remember { mutableStateOf(false) }
+    var hideUi by remember { mutableStateOf(false) }
     var reply by remember { mutableStateOf("") }
     var replyFocused by remember { mutableStateOf(false) }
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     val toast = LocalKxToast.current
-    if (peers.isEmpty()) { LaunchedEffect(Unit) { onClose() }; return }
+    val open = peers.indexOfFirst { it.id == openId }
+    if (open < 0) { LaunchedEffect(Unit) { onClose() }; return }
     val peer = peers[open]
-    val s = peer.slides[slide.coerceIn(0, peer.slides.lastIndex)]
+    val slideAt = slide.coerceIn(0, peer.slides.lastIndex)
+    val s = peer.slides[slideAt]
     fun advance(dir: Int) {
-        var sl = slide + dir; var op = open
+        var sl = slideAt + dir; var op = open
         if (sl >= peer.slides.size) { op += 1; sl = 0 }
         if (sl < 0) { if (op > 0) { op -= 1; sl = peers[op].slides.lastIndex } else sl = 0 }
         if (op >= peers.size) { onClose(); return }
-        open = op; slide = sl
+        openId = peers[op].id; slide = sl
     }
-    LaunchedEffect(open, slide) { store.viewStory(peer.id, s.id); progress.snapTo(0f) }
+    LaunchedEffect(openId, slideAt) { store.viewStory(peer.id, s.id); progress.snapTo(0f) }
     DisposableEffect(Unit) { onDispose { store.closeStory() } }
+    LaunchedEffect(held) { if (held) { delay(250); hideUi = true } else hideUi = false }
     // wave5 (fixer-media): a video story plays (with sound) once its file is on the phone; the bar follows the video's length.
     val videoPath = s.media?.takeIf { s.video }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -146,46 +163,73 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
             androidx.media3.exoplayer.ExoPlayer.Builder(context.applicationContext)
                 .setAudioAttributes(androidx.media3.common.AudioAttributes.Builder().setUsage(androidx.media3.common.C.USAGE_MEDIA).setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
                 .setHandleAudioBecomingNoisy(true).build().apply {
-                    setMediaItem(androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(java.io.File(p)))); playWhenReady = true; prepare()
+                    setMediaItem(androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(java.io.File(p)))); playWhenReady = false; prepare()
                 }
         }
     }
     DisposableEffect(player) { onDispose { player?.release() } }
-    LaunchedEffect(open, slide, paused, player) {
+    val photo = if (player == null) rememberKxBitmap(s.media) else null
+    // Waiting for the media: nothing loaded yet, or a photo still decoding. Demo slides (no media, not pending) run at once.
+    val waiting = s.pending || (player == null && s.media != null && photo == null)
+    val running = !paused && !held && !replyFocused && !waiting
+    LaunchedEffect(openId, slideAt, running, player) {
         val p = player
         if (p != null) {
-            p.playWhenReady = !paused
-            if (!paused) while (true) {
+            p.playWhenReady = running
+            if (running) while (true) {
+                if (p.playerError != null) { // unplayable file: behave like a photo
+                    progress.animateTo(1f, tween(((1f - progress.value) * 6000).toInt().coerceAtLeast(1), easing = LinearEasing)); advance(1); break
+                }
                 val d = p.duration
-                if (d > 0) progress.snapTo((p.currentPosition.toFloat() / d).coerceIn(0f, 1f))
-                if (p.playbackState == androidx.media3.common.Player.STATE_ENDED) { advance(1); break }
-                delay(100)
+                if (d > 0 && p.playbackState != androidx.media3.common.Player.STATE_IDLE) progress.snapTo((p.currentPosition.toFloat() / d).coerceIn(0f, 1f))
+                if (p.playbackState == androidx.media3.common.Player.STATE_ENDED) { progress.snapTo(1f); advance(1); break }
+                delay(50)
             }
         }
-        else if (!paused) { progress.animateTo(1f, tween(((1f - progress.value) * 5000).toInt().coerceAtLeast(1), easing = LinearEasing)); advance(1) }
+        else if (running) { progress.animateTo(1f, tween(((1f - progress.value) * 6000).toInt().coerceAtLeast(1), easing = LinearEasing)); advance(1) }
         else progress.stop()
     }
     val zoom = remember { Animatable(.88f) }
     LaunchedEffect(Unit) { zoom.animateTo(1f, tween(300, easing = KxMotion.rise)) }
-    val ken = remember(open, slide) { Animatable(1f) }
-    val reduced = LocalKxReducedMotion.current
-    LaunchedEffect(open, slide) { if (!reduced) ken.animateTo(1.12f, tween(6000, easing = LinearOutSlowInEasing)) }
+    val drag = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    val uiAlpha by animateFloatAsState(if (hideUi) 0f else 1f, tween(200), label = "storyUi")
 
-    Box(Modifier.fillMaxSize().background(Color.Black).graphicsLayer { scaleX = zoom.value; scaleY = zoom.value; alpha = ((zoom.value - .88f) / .12f).coerceIn(0f, 1f) }) {
+    Box(Modifier.fillMaxSize().background(Color.Black).graphicsLayer {
+        val d = (drag.value / size.height.coerceAtLeast(1f)).coerceIn(0f, 1f)
+        scaleX = zoom.value * (1f - d * .15f); scaleY = scaleX; translationY = drag.value
+        alpha = ((zoom.value - .88f) / .12f).coerceIn(0f, 1f) * (1f - d * .5f)
+    }) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))) {
-            Box(Modifier.fillMaxSize().graphicsLayer { scaleX = ken.value; scaleY = ken.value }.look(s.look)) {
+            Box(Modifier.fillMaxSize().look(s.look)) {
                 if (player != null) androidx.compose.ui.viewinterop.AndroidView(factory = { c -> androidx.media3.ui.PlayerView(c).apply { useController = false; keepScreenOn = true } },
                     update = { it.player = player }, modifier = Modifier.matchParentSize())
-                else if (s.media != null) KxImage(s.media, Modifier.matchParentSize())
+                else if (photo != null) androidx.compose.foundation.Image(photo, null, Modifier.matchParentSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
             }
-            Icon(Looks[s.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.1f)).size(90.dp), tint = Color.White.copy(alpha = .22f))
-            Box(Modifier.fillMaxWidth().height(140.dp).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = .55f), Color.Transparent))))
-            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(200.dp).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .6f)))))
-            Column(Modifier.statusBarsPadding().padding(horizontal = 12.dp, vertical = 12.dp)) {
+            if (s.media == null && !s.pending) Icon(Looks[s.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.1f)).size(90.dp), tint = Color.White.copy(alpha = .22f))
+            if (waiting) androidx.compose.material3.CircularProgressIndicator(Modifier.align(Alignment.Center).size(44.dp), color = Color.White, strokeWidth = 3.dp)
+            // Gestures over the story (under the header / reply row): tap left/right, hold = pause, drag down = close.
+            Box(Modifier.fillMaxSize()
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onDragEnd = { scope.launch { if (drag.value > 140.dp.toPx()) onClose() else drag.animateTo(0f, tween(200)) } },
+                        onDragCancel = { scope.launch { drag.animateTo(0f, tween(200)) } },
+                    ) { change, dy -> change.consume(); scope.launch { drag.snapTo((drag.value + dy).coerceAtLeast(0f)) } }
+                }
+                .pointerInput(replyFocused) {
+                    detectTapGestures(
+                        onPress = { held = true; try { tryAwaitRelease() } finally { held = false } },
+                        onTap = { o -> if (replyFocused) focus.clearFocus() else advance(if (o.x < size.width * .35f) -1 else 1) },
+                    )
+                }
+                .semantics { contentDescription = "История: нажмите слева — назад, справа — дальше" })
+            Box(Modifier.fillMaxWidth().height(140.dp).graphicsLayer { alpha = uiAlpha }.background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = .55f), Color.Transparent))))
+            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(200.dp).graphicsLayer { alpha = uiAlpha }.background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .6f)))))
+            Column(Modifier.statusBarsPadding().padding(horizontal = 12.dp, vertical = 12.dp).graphicsLayer { alpha = uiAlpha }) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     peer.slides.indices.forEach { i ->
                         Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Kx.w(.3f))) {
-                            Box(Modifier.fillMaxHeight().fillMaxWidth(when { i < slide -> 1f; i == slide -> progress.value; else -> 0f }).background(Color.White))
+                            Box(Modifier.fillMaxHeight().fillMaxWidth(when { i < slideAt -> 1f; i == slideAt -> progress.value; else -> 0f }).background(Color.White))
                         }
                     }
                 }
@@ -195,29 +239,28 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
                         Text(peer.name, style = KxType.style(15.sp, FontWeight.Bold))
                         Text(peer.time, style = KxType.style(12.sp, color = Color.White.copy(alpha = .75f)))
                     }
-                    Box(Modifier.size(40.dp).kxClick("Ещё") { paused = !paused }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.MoreHoriz, null, tint = Color.White) }
+                    Box(Modifier.size(40.dp).kxClick(if (paused) "Продолжить" else "Пауза") { paused = !paused }, contentAlignment = Alignment.Center) {
+                        Icon(if (paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause, null, tint = Color.White)
+                    }
                     Box(Modifier.size(40.dp).kxClick("Закрыть", onClick = onClose), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Close, null, tint = Color.White) }
                 }
             }
             Text(s.caption, style = KxType.style(18.sp, FontWeight.Bold).copy(shadow = androidx.compose.ui.graphics.Shadow(Color.Black.copy(alpha = .5f), blurRadius = 20f)),
-                modifier = Modifier.align(Alignment.BottomStart).navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 120.dp))
-            Row(Modifier.fillMaxSize().padding(top = 80.dp, bottom = 100.dp)) {
-                Box(Modifier.weight(.35f).fillMaxHeight().clickable(interactionSource = null, indication = null) { if (replyFocused) focus.clearFocus() else advance(-1) }.semantics { contentDescription = "Назад" })
-                Box(Modifier.weight(.65f).fillMaxHeight().clickable(interactionSource = null, indication = null) { if (replyFocused) focus.clearFocus() else advance(1) }.semantics { contentDescription = "Дальше" })
-            }
+                modifier = Modifier.align(Alignment.BottomStart).navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 120.dp).graphicsLayer { alpha = uiAlpha })
             flying.forEach { (id, e) -> key(id) { FlyingEmoji(e) { flying.removeAll { it.first == id } } } }
         }
-        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding().padding(start = 10.dp, end = 10.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding().padding(start = 10.dp, end = 10.dp, bottom = 22.dp).graphicsLayer { alpha = uiAlpha }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Reply field: typing pauses the story; «Отправить» sends the reply to the author (store.replyStory).
             Box(Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Kx.w(.12f)).border(1.dp, Kx.w(.2f), RoundedCornerShape(25.dp))
                 .padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
                 if (reply.isEmpty()) Text("Ответить…", style = KxType.style(15.sp, color = Color.White.copy(alpha = .8f)), maxLines = 1)
-                androidx.compose.foundation.text.BasicTextField(reply, { reply = it; if (it.isNotEmpty()) paused = true }, Modifier.fillMaxWidth()
-                    .onFocusChanged { replyFocused = it.isFocused; if (it.isFocused) paused = true },
+                // The field pauses the story while it has focus (replyFocused); leaving it resumes.
+                androidx.compose.foundation.text.BasicTextField(reply, { reply = it }, Modifier.fillMaxWidth()
+                    .onFocusChanged { replyFocused = it.isFocused },
                     singleLine = true, textStyle = KxType.style(15.sp, color = Color.White), cursorBrush = androidx.compose.ui.graphics.SolidColor(Kx.accent))
             }
             if (reply.isNotBlank()) Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.accent).kxClick("Отправить") {
-                store.replyStory(peer.id, s.id, reply.trim()); reply = ""; paused = false; focus.clearFocus(); toast("Ответ отправлен")
+                store.replyStory(peer.id, s.id, reply.trim()); reply = ""; focus.clearFocus(); toast("Ответ отправлен")
             }, contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(20.dp), tint = Kx.onAccent) }
             else listOf("❤️", "🔥", "😂").forEach { e ->
                 Box(Modifier.size(44.dp).clip(CircleShape).background(Kx.w(.12f)).border(1.dp, Kx.w(.2f), CircleShape)

@@ -119,6 +119,7 @@ class KxDemoStore : KxStore {
     override fun setMuted(chatId: Long, muted: Boolean) = update(chatId) { it.copy(muted = muted) }
     override fun markRead(chatId: Long) = update(chatId) { it.copy(unread = 0, unreadMention = false, unreadReaction = false, markedUnread = false) }
     override fun markUnread(chatId: Long) = update(chatId) { it.copy(markedUnread = true) }
+    override fun openChat(chatId: Long) = update(chatId) { it.copy(markedUnread = false) }
     override fun setArchived(chatId: Long, archived: Boolean) {
         if (archived) list.firstOrNull { it.id == chatId }?.let { list.remove(it); archive.add(0, it.copy(archived = true)) }
         else archive.firstOrNull { it.id == chatId }?.let { archive.remove(it); list.add(it.copy(archived = false)) }
@@ -309,7 +310,7 @@ class KxDemoStore : KxStore {
     private var demoPattern by mutableStateOf(false)
     private var demoAuto by mutableStateOf(60)
     private var demoBio by mutableStateOf(true)
-    private var demoHide by mutableStateOf(true)
+    private var demoHide by mutableStateOf(false)
     override val passcodeSet: Boolean get() = demoCode != null
     override val passcodePattern: Boolean get() = demoPattern
     override val passcodeBiometric: Boolean get() = demoBio

@@ -59,6 +59,7 @@ internal fun BSheet(visible: Boolean, onDismiss: () -> Unit, top: Color = Color(
                     borderAlpha: Float = .16f, handleAlpha: Float = .25f, scrim: Color = Color.Black.copy(alpha = .55f),
                     padding: PaddingValues = PaddingValues(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 24.dp),
                     handleGap: Dp = 14.dp, handle: Boolean = true, radius: Dp = 30.dp, content: @Composable ColumnScope.() -> Unit) {
+    androidx.activity.compose.BackHandler(enabled = visible, onBack = onDismiss) // fixer-final: Back closes the sheet, not the board
     val shape = RoundedCornerShape(topStart = radius, topEnd = radius)
     Box(Modifier.fillMaxSize()) {
         AnimatedVisibility(visible, enter = fadeIn(tween(200)), exit = fadeOut(tween(180))) {

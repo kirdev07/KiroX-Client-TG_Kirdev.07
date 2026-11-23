@@ -317,6 +317,8 @@ class TelegramKxStore(
 
     override fun openChat(chatId: Long) {
         vm.messages.open(chatId)
+        // qa-real2: a chat marked unread by hand loses the mark when it is opened (badge / «Все · 1» too).
+        vm.chats.clearMarkedUnread(chatId)
         // Shared media and the profile are read again for this chat (new messages since).
         reloadNext("shared:$chatId:"); reloadNext("peer:$chatId")
         fillAskedAt = -1
@@ -532,6 +534,7 @@ class TelegramKxStore(
     // ---- Calls -------------------------------------------------------------------------------
 
     /** [peerId] is a user id (a private chat's id equals its user's id in TDLib). */
+    override fun loadMoreCalls() = vm.calls.loadMore(retry = true)
     override fun call(peerId: Long, video: Boolean) = startCall(peerId, video) {
         vm.groupCalls.leave()
         vm.voip.start(peerId, video && granted(android.Manifest.permission.CAMERA)) // camera refused → voice call
@@ -806,8 +809,8 @@ class TelegramKxStore(
             if (prev != null && prev.peerId == c.chatId && prev.dir == dir && prev.video == c.isVideo && KxFormat.sameDay(lastDate, c.date)) {
                 rows[rows.lastIndex] = prev.copy(count = prev.count + 1)
             } else {
-                rows += KxCall(c.messageId, c.chatId, c.peerName, KxFormat.chatTime(c.date), dir, c.isVideo, KxFormat.callDuration(c.durationSeconds),
-                    avatar = avatarOf(c.photo, known), colorIndex = items[c.chatId]?.accentColorId ?: -1)
+                rows += KxCall(c.messageId, c.chatId, c.peerName, KxFormat.messageTime(c.date), dir, c.isVideo, KxFormat.callDuration(c.durationSeconds),
+                    avatar = avatarOf(c.photo, known), colorIndex = items[c.chatId]?.accentColorId ?: -1, day = KxFormat.dayHeader(c.date))
                 lastDate = c.date
             }
         }
@@ -843,8 +846,9 @@ class TelegramKxStore(
                 val image = autoPath(st.image, known)
                 // A video plays once its file is on disk (viewStory downloads it); until then the cover is shown as a photo.
                 val video = if (st.isVideo) knownPath(st.video, known) else null
-                KxStorySlide(id, st.caption, media = video ?: image, video = video != null)
-            } ?: KxStorySlide(id) })
+                KxStorySlide(id, st.caption, media = video ?: image, video = video != null,
+                    pending = if (st.isVideo) video == null else image == null)
+            } ?: KxStorySlide(id, pending = true) })
     }
 
     private val storyFailures = HashMap<Pair<Long, Int>, Int>()

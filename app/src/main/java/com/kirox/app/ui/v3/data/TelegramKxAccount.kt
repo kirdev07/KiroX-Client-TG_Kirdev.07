@@ -40,8 +40,14 @@ internal object KxAccountMapping {
     }
 
     /** Built-in accent colours 0..6 are free; the rest need Premium. ARGB of the dark theme. */
-    fun accent(c: TdApi.AccentColor) = KxAccent(c.id, c.darkThemeColors.toList().ifEmpty { c.lightThemeColors.toList() }, premium = c.id > 6)
-    fun profileAccent(c: TdApi.ProfileAccentColor) = KxAccent(c.id, (c.darkThemeColors?.paletteColors?.toList()).orEmpty() + (c.darkThemeColors?.backgroundColors?.toList()).orEmpty(), premium = true)
+    // qa-real («Мой цвет» without swatches): TDLib colours are 0xRRGGBB without alpha — Color(int) drew them fully
+    // transparent (only the check mark showed). Alpha is added here; a colour list TDLib leaves empty falls back to the
+    // built-in Telegram colour of that id.
+    private val builtInAccents = intArrayOf(0xCC5049, 0xD67722, 0x955CDB, 0x40A920, 0x309EBA, 0x368AD1, 0xC7508B)
+    private fun opaque(list: List<Int>) = list.map { it or 0xFF000000.toInt() }
+    fun accent(c: TdApi.AccentColor) = KxAccent(c.id, opaque(c.darkThemeColors.toList().ifEmpty { c.lightThemeColors.toList() }
+        .ifEmpty { listOf(builtInAccents[c.builtInAccentColorId.coerceIn(0, builtInAccents.lastIndex)]) }), premium = c.id > 6)
+    fun profileAccent(c: TdApi.ProfileAccentColor) = KxAccent(c.id, opaque((c.darkThemeColors?.paletteColors?.toList()).orEmpty() + (c.darkThemeColors?.backgroundColors?.toList()).orEmpty()), premium = true)
 
     fun country(c: TdApi.CountryInfo) = KxCountry(c.countryCode, c.name.ifBlank { c.englishName }, c.callingCodes.firstOrNull().orEmpty(), flag(c.countryCode))
     /** Regional indicator letters → flag emoji. */

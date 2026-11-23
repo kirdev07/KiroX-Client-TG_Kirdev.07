@@ -186,6 +186,7 @@ internal fun MoInput(value: String, onValue: (String) -> Unit, placeholder: Stri
 internal fun BoxScope.MoSheet(onClose: () -> Unit, pad: PaddingValues = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp),
                               grabGap: Dp = 14.dp, scrim: Float = .55f, durMs: Int = 300,
                               colors: List<Color> = listOf(Color(0xF828302C), Color(0xFC121614)), line: Color = Kx.w(.16f), between: @Composable () -> Unit = {}, content: @Composable ColumnScope.() -> Unit) {
+    androidx.activity.compose.BackHandler(onBack = onClose) // fixer-final: Back closes the sheet, not the board
     val p = moEnter(durMs, easing = KxMotion.rise)
     val f = moEnter(200)
     Box(Modifier.matchParentSize().graphicsLayer { alpha = f }.background(Color.Black.copy(alpha = scrim)).kxClick("Закрыть", onClick = onClose))

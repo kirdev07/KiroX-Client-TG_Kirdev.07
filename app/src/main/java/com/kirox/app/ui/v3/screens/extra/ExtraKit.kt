@@ -245,6 +245,7 @@ internal fun ExPill(text: String, modifier: Modifier = Modifier, height: Dp = 44
 @Composable
 internal fun BoxScope.ExSheet(onClose: () -> Unit, bg: Color = Color(0xFF121614), scrim: Float = .5f, pad: PaddingValues = PaddingValues(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 28.dp),
                               grabber: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
+    androidx.activity.compose.BackHandler(onBack = onClose) // fixer-final: Back closes the sheet, not the board
     val reduced = LocalKxReducedMotion.current
     val p = remember { Animatable(if (reduced) 1f else 0f) }
     val fade = remember { Animatable(if (reduced) 1f else 0f) }
@@ -311,6 +312,7 @@ private fun BoxScope.ExToastBody(state: ExToastState, bottom: Dp, durMs: Int) {
 @Composable
 internal fun BoxScope.ExGlassSheet(onClose: () -> Unit, pad: PaddingValues = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 22.dp),
                                    grabGap: Dp = 14.dp, content: @Composable ColumnScope.() -> Unit) {
+    androidx.activity.compose.BackHandler(onBack = onClose) // fixer-final: Back closes the sheet, not the board
     val p = enter(300, easing = KxMotion.rise)
     val f = enter(200)
     Box(Modifier.matchParentSize().graphicsLayer { alpha = f }.background(Color.Black.copy(alpha = .55f)).kxClick("Закрыть", onClick = onClose))

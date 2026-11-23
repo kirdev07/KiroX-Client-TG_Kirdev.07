@@ -296,6 +296,11 @@ class TelegramChatRepository(private val client: TelegramClient) {
         if (chat.isMarkedAsUnread) act(TdApi.ToggleChatIsMarkedAsUnread(chatId, false))
     }
 
+    /** fixer-final: opening a chat clears its manual «unread» mark, as Telegram does (only the mark: no read receipts). */
+    fun clearMarkedUnread(chatId: Long) = client.post {
+        if (chatsById[chatId]?.isMarkedAsUnread == true) act(TdApi.ToggleChatIsMarkedAsUnread(chatId, false))
+    }
+
     fun clearError() { _error.value = null }
 
     /** «Прочитать» from the list as Telegram does it: the messages, and also the unread mentions and reactions. */

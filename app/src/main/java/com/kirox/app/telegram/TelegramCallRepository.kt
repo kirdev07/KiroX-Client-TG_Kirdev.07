@@ -16,6 +16,7 @@ class TelegramCallRepository(private val client: TelegramClient, private val cha
     private var complete = false
     private var started = false
     private var failures = 0
+    private var failed = false
 
     private val _state = MutableStateFlow(TelegramCallsState())
     val state: StateFlow<TelegramCallsState> = _state.asStateFlow()
@@ -32,17 +33,23 @@ class TelegramCallRepository(private val client: TelegramClient, private val cha
                 is TdApi.UpdateAuthorizationState -> if (update.authorizationState is TdApi.AuthorizationStateClosed) {
                     // Pending requests died with the client; a background pause keeps the list.
                     if (client.paused) { loading = false; return@addUpdateHandler }
-                    calls.clear(); nextOffset = ""; loading = false; complete = false; started = false; failures = 0
+                    calls.clear(); nextOffset = ""; loading = false; complete = false; started = false; failures = 0; failed = false
                     _state.value = TelegramCallsState()
                 }
             }
         }
     }
 
-    /** Loads the next page; the first call also starts listening for new calls. */
-    fun loadMore(): Unit = client.post {
+    /**
+     * Loads the next page; the first call also starts listening for new calls. [retry] (a screen
+     * showing the log) also restarts a log whose earlier requests failed, e.g. sent before sign-in.
+     */
+    fun loadMore(retry: Boolean = false): Unit = client.post {
         started = true
-        if (loading || complete) return@post
+        if (retry && failed) { failed = false; failures = 0 }
+        // An empty «complete» log may come from a search that ran too early: the screen asks once more.
+        if (retry && complete && calls.isEmpty()) { complete = false; nextOffset = "" }
+        if (loading || complete || failed) return@post
         loading = true
         publish()
         client.send(TdApi.SearchCallMessages(nextOffset, PAGE_SIZE, false)) { result ->
@@ -55,7 +62,9 @@ class TelegramCallRepository(private val client: TelegramClient, private val cha
                     if (nextOffset.isEmpty() || result.messages.isEmpty()) complete = true
                 }
                 // A network failure is retried a few times instead of ending the history for the session.
-                is TdApi.Error -> if (++failures <= 3) client.post(3_000L * failures) { loadMore() } else complete = true
+                // fixer-final: no longer ends the log for good (it stayed «Звонков пока не было» when the
+                // first request went out before TDLib was ready); the Calls tab retries.
+                is TdApi.Error -> if (++failures <= 3) client.post(3_000L * failures) { loadMore() } else failed = true
             }
             publish()
         }

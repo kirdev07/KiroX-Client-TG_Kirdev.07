@@ -185,7 +185,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                                 onOpen = { nav.push(KxRoute.Screen(it)) },
                                 active = shownTab == KxTab.Chats && !tabPager.isScrollInProgress,
                             )
-                            KxTab.Calls -> CallsScreen(store, onCall = { c, v -> if (c.group && !demoStore) store.joinGroupCall(c.peerId) else startCall(c.peerId, c.name, v, c.colorIndex) }, onOpen = { nav.push(KxRoute.Screen(it)) })
+                            KxTab.Calls -> CallsScreen(store, onCall = { c, v -> if (c.group && !demoStore) store.joinGroupCall(c.peerId) else startCall(c.peerId, c.name, v, c.colorIndex) }, onOpen = { nav.push(KxRoute.Screen(it)) }, active = shownTab == KxTab.Calls)
                             KxTab.Stories -> StoriesScreen(store, onOpenViewer = { nav.push(KxRoute.Story(it)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                             KxTab.Settings -> SettingsScreen(store, onOpen = { nav.push(KxRoute.Screen(it)) })
                             else -> KxTabPlaceholder(t)

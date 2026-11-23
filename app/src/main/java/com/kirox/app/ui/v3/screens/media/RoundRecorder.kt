@@ -104,11 +104,13 @@ private fun RoundRecorderBody(onDone: (RecordedVideoNote) -> Unit, onCancel: () 
             }
             T(when { processing -> "Готовим кружок…"; recording -> "%d:%02d".format(elapsed / 60_000, elapsed / 1000 % 60); else -> "0:00" }, 16.sp, FontWeight.SemiBold)
         }
-        T(when {
+        // qa-real2: the hint is centred under the circle / timer (it was left-aligned and wrapped).
+        androidx.compose.material3.Text(when {
             processing -> "Ещё секунду — обрезаем видео в кружок"
             recording -> "Нажмите на кнопку — кружок отправится"
             else -> "Нажмите на кнопку, чтобы записать кружок · до 1 минуты"
-        }, 13.sp, color = Color(0xFF9AA59F), modifier = Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp))
+        }, style = ts(13.sp, FontWeight.Normal, Color(0xFF9AA59F)).copy(textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 24.dp, end = 24.dp))
         Spacer(Modifier.weight(1f))
         Row(Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, bottom = 40.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(52.dp).clip(CircleShape).background(Color(0xFFE5534B).copy(alpha = .12f)).border(1.dp, Color(0xFFE5534B).copy(alpha = .3f), CircleShape)

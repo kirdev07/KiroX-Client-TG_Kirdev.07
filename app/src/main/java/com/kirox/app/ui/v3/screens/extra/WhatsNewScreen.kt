@@ -46,7 +46,7 @@ private val WnSlides = listOf(
 private data class WnItem(val icon: ImageVector, val c: Color, val t: String)
 // The real changelog of the installed build (release-1.0.md); the demo store keeps the board's sample history.
 private val WnLogRelease = listOf(
-    Triple("1.0", "Первый выпуск", listOf(WnItem(Icons.Rounded.Palette, Kx.accent, "Новый дизайн kiroX: тёмный с мягким зелёным"), WnItem(Icons.Rounded.FormatPaint, Kx.accent, "Темы, свой вид для каждого чата, ночной режим"),
+    Triple("1.0", "Первый выпуск", listOf(WnItem(Icons.Rounded.Palette, Kx.accent, "Новый дизайн kiroX: тёмный с мягким зелёным"), WnItem(Icons.Rounded.FormatPaint, Kx.accent, "Темы и свой вид для каждого чата"),
         WnItem(Icons.Rounded.FolderOpen, Kx.accent, "Файлы, музыка и загрузки в одном месте"), WnItem(Icons.Rounded.ShieldMoon, Color(0xFF6FA9D8), "Проверка файлов перед открытием, код-пароль, скрытые чаты"),
         WnItem(Icons.Rounded.GraphicEq, Kx.accent, "Голосовые, кружки и звонки прямо из чата"))),
 )

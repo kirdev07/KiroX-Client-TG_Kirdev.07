@@ -97,6 +97,8 @@ interface KxStore {
 
     // Calls
     fun call(peerId: Long, video: Boolean) {}
+    /** fixer-final: the Calls tab is shown / scrolled near its end — load (or retry) the next page of the call log. */
+    fun loadMoreCalls() {}
 
     // ---- Round 5 (binder, additive). Lists load on first read and fill in; suspend funs answer
     // null on success / a human Russian error text, unless they return data. ----
@@ -342,7 +344,7 @@ interface KxStore {
     /** «Автоблокировка» delay in seconds: 0, 60, 300, 3600 or 18000. */
     val passcodeAutoLock: Int get() = 60
     /** Blank in recents and no screenshots while the code is on. */
-    val passcodeHideContent: Boolean get() = true
+    val passcodeHideContent: Boolean get() = false
     /** Checks the code without unlocking or counting tries (to change / turn it off). */
     suspend fun passcodeMatches(code: String): Boolean = false
     /** Turns the code on or changes it ([pattern] = graphic key). */

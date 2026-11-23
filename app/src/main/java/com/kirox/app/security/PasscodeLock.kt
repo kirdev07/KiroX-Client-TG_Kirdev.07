@@ -27,8 +27,8 @@ data class PasscodeSettings(
     val autoLock: AutoLock = AutoLock.Minute,
     /** Unlock with the fingerprint (or face) the phone already knows; the code always works too. */
     val biometric: Boolean = true,
-    /** Blank in the recent apps list and no screenshots while the code is on. */
-    val hideContent: Boolean = true,
+    /** Blank in the recent apps list and no screenshots while the code is on. Off until chosen (qa-real2: turning the code on must not block screenshots by itself). */
+    val hideContent: Boolean = false,
     /** The code is a graphic key (dots joined on a 3×3 grid) instead of 4 digits. */
     val pattern: Boolean = false
 )
@@ -57,7 +57,8 @@ object PasscodeLock {
             enabled = prefs.contains(HASH_KEY),
             autoLock = AutoLock.entries.firstOrNull { it.name == prefs.getString(AUTO_KEY, null) } ?: AutoLock.Minute,
             biometric = prefs.getBoolean(BIOMETRIC_KEY, true),
-            hideContent = prefs.getBoolean(HIDE_KEY, true),
+            // Codes set before 1.0 never stored the switch and blocked screenshots: keep that for them; a new code stores false.
+            hideContent = prefs.getBoolean(HIDE_KEY, prefs.contains(HASH_KEY)),
             pattern = prefs.getBoolean(PATTERN_KEY, false)
         )
         // A fresh process always starts locked.
@@ -128,6 +129,8 @@ object PasscodeLock {
 
     /** Turns the code on, or changes it; [pattern] — it is a graphic key. The app stays unlocked. */
     fun setCode(code: String, pattern: Boolean = _settings.value.pattern) {
+        // A brand-new code starts with screenshots allowed (the owner can turn «Скрывать содержимое» on).
+        if (!prefs.contains(HASH_KEY) && !prefs.contains(HIDE_KEY)) { prefs.edit { putBoolean(HIDE_KEY, false) }; _settings.value = _settings.value.copy(hideContent = false) }
         prefs.edit { putBoolean(PATTERN_KEY, pattern) }
         _settings.value = _settings.value.copy(pattern = pattern)
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
