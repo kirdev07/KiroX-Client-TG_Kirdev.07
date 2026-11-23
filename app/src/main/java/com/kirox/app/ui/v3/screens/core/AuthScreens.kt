@@ -244,7 +244,9 @@ fun CodeScreen(auth: KxAuth) {
     var left by remember { mutableIntStateOf(auth.resendIn) }
     // wave6: a code sent as words / a phrase (or of a length the cells can't show) is typed into one text field.
     val textMode = auth.codeIsWords || auth.codeLength !in 3..8
-    LaunchedEffect(auth.resendIn) { left = auth.resendIn; while (left > 0) { delay(1000); left-- } }
+    // Restarts per sent code too: after «Отправить код снова» TDLib often returns the same timeout, so resendIn alone doesn't change.
+    var resends by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(auth.resendIn, auth.codeVia, resends) { left = auth.resendIn; while (left > 0) { delay(1000); left-- } }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     LaunchedEffect(code) { if (!textMode && code.length == auth.codeLength) auth.submitCode(code) }
     val sentTo = when {
@@ -316,8 +318,8 @@ fun CodeScreen(auth: KxAuth) {
             Text(buildAnnotatedString {
                 if (left > 0) { append("Отправить снова через "); withStyle(SpanStyle(color = Kx.accent, fontWeight = FontWeight.SemiBold)) { append("${left / 60}:${(left % 60).toString().padStart(2, '0')}") } }
                 else withStyle(SpanStyle(color = Kx.accent, fontWeight = FontWeight.SemiBold)) { append("Отправить код снова") }
-            }, style = KxType.style(14.sp, color = Kx.text3), modifier = Modifier.padding(top = 24.dp).clip(RoundedCornerShape(10.dp)).kxClick(enabled = left == 0) { auth.resend() }.padding(6.dp))
-            if (auth.codeInApp) Box(Modifier.padding(top = 8.dp).height(40.dp).clip(RoundedCornerShape(12.dp)).kxClick(enabled = left == 0) { auth.resend() }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+            }, style = KxType.style(14.sp, color = Kx.text3), modifier = Modifier.padding(top = 24.dp).clip(RoundedCornerShape(10.dp)).kxClick(enabled = left == 0) { resends++; auth.resend() }.padding(6.dp))
+            if (auth.codeInApp) Box(Modifier.padding(top = 8.dp).height(40.dp).clip(RoundedCornerShape(12.dp)).kxClick(enabled = left == 0) { resends++; auth.resend() }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
                 Text(if (left == 0) "Получить по СМС" else "Получить по СМС через ${left / 60}:${(left % 60).toString().padStart(2, '0')}",
                     style = KxType.style(14.sp, FontWeight.Medium, if (left == 0) Kx.accent else Kx.text4))
             }

@@ -86,7 +86,7 @@ fun ProxyScreen(ctx: KxScreenCtx) {
     val c = list.getOrNull(cur)
     val ok = !use || (c != null && (c.ping > 0 || !isDemo))
     val (title, sub) = if (!use) "Напрямую" to "Подключено без прокси" else if (ok && c != null) "Через прокси" to (if (c.ping > 0) "${c.host} · ${c.ping} мс" else c.host)
-        else "Прокси недоступен" to (if (auto) "Ищем рабочий прокси…" else "Выберите другой прокси")
+        else "Прокси недоступен" to (if (auto && isDemo) "Ищем рабочий прокси…" else "Выберите другой прокси")
     val heroA by animateColorAsState(if (ok) Kx.accentDeep.copy(alpha = .18f) else Kx.danger.copy(alpha = .12f), tween(400), label = "ha")
     val heroB by animateColorAsState(if (ok) Kx.accent.copy(alpha = .22f) else Kx.danger.copy(alpha = .3f), tween(400), label = "hb")
     val dot = if (ok) Kx.accent else Kx.danger
@@ -134,6 +134,8 @@ fun ProxyScreen(ctx: KxScreenCtx) {
                 }
                 Column(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(TileBg)) {
                     listOf(Triple("Использовать прокси", "Весь трафик kiroX пойдёт через выбранный сервер", use), Triple("Переключать автоматически", "Если прокси перестал работать, взять самый быстрый из списка", auto))
+                        // review: auto-switch has no behaviour on a real account yet — the row is shown in the demo only.
+                        .let { if (isDemo) it else it.take(1) }
                         .forEachIndexed { i, (label, s, on) ->
                             Row(Modifier.fillMaxWidth().drawBehind { if (i > 0) drawLine(Kx.w(.06f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }
                                 .kxClick(role = Role.Switch) { if (i == 0) setUse(!use) else auto = !auto }.padding(horizontal = 16.dp, vertical = 13.dp),

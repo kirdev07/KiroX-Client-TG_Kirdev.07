@@ -54,6 +54,7 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
         else KxAvatarPalette.Swatch(androidx.compose.ui.graphics.lerp(base.from, Color.White, .18f), base.to, base.ink)
     var tab by rememberSaveable { mutableStateOf(KxSharedTab.Media) }
     val toast = LocalKxToast.current
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     var peerMenu by remember { mutableStateOf(false) }
     var peerConfirm by remember { mutableStateOf<KxConfirm?>(null) }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -67,7 +68,8 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
                         drawCircle(Brush.radialGradient(listOf(Color(0x598F78E6), Color.Transparent), radius = size.minDimension / 2 * 1.41f * .65f))
                     })
                     // lead walk-through: an active story → ring around the avatar; a tap opens the stories.
-                    val storyIndex = store.stories.indexOfFirst { it.id == chatId && !it.mine && it.slides.isNotEmpty() }
+                    // Same list StoryViewer walks (other people with slides), so the index points at this person.
+                    val storyIndex = store.stories.filter { !it.mine && it.slides.isNotEmpty() }.indexOfFirst { it.id == chatId }
                     KxAvatar(p.name, p.id, Modifier.shadow(40.dp, CircleShape, spotColor = Color.Black.copy(alpha = .5f))
                         .then(if (storyIndex >= 0) Modifier.kxClick("Истории: ${p.name}") { onOpenStory(storyIndex) } else Modifier),
                         size = 112.dp, swatch = sw, letterWeight = FontWeight.ExtraBold, letterSize = 44.sp, photo = p.avatar, story = storyIndex >= 0)
@@ -93,7 +95,7 @@ fun ProfileScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boo
             Column(Modifier.padding(start = 14.dp, end = 14.dp, top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.045f)).padding(horizontal = 14.dp, vertical = 4.dp).kxRise(200, 500)) {
                 if (p.bio.isNotEmpty()) InfoLine(p.bio, "О себе", divider = true)
                 if (p.username.isNotEmpty()) Row(Modifier.fillMaxWidth().drawBehind { drawLine(Kx.w(.06f), Offset(0f, size.height), Offset(size.width, size.height), 1f) }
-                    .kxClick("Скопировать имя пользователя") { toast("Имя пользователя скопировано") }.padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                    .kxClick("Скопировать имя пользователя") { clipboard.setText(androidx.compose.ui.text.AnnotatedString("@${p.username}")); toast("Имя пользователя скопировано") }.padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { Text("@${p.username}", style = KxType.style(15.sp, color = Kx.accent)); Text("Имя пользователя", style = KxType.caption) }
                     Icon(Icons.Rounded.QrCode2, null, Modifier.size(20.dp), tint = Kx.text4)
                 }

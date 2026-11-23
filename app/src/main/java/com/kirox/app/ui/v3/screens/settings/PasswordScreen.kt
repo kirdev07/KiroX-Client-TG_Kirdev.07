@@ -235,7 +235,6 @@ internal fun Spinner(size: androidx.compose.ui.unit.Dp, ink: Color = Kx.onAccent
 
 @Composable
 private fun BoxScope.RecoverySheet(step: String, mail: String, auth: com.kirox.app.ui.v3.model.KxAuth?, onClose: () -> Unit, onStep: (String) -> Unit, onMail: () -> Unit) {
-    val toast = LocalKxToast.current
     val p = remember { Animatable(0f) }
     val fade = remember { Animatable(0f) }
     LaunchedEffect(Unit) { launch { fade.animateTo(1f, tween(250)) }; p.animateTo(1f, tween(320, easing = CubicBezierEasing(.2f, .9f, .3f, 1f))) }
@@ -264,16 +263,14 @@ private fun BoxScope.RecoverySheet(step: String, mail: String, auth: com.kirox.a
             }
             "reset" -> {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Rounded.Warning, null, tint = Kx.danger); Text("Сброс аккаунта", style = KxType.style(20.sp, FontWeight.ExtraBold))
+                    Icon(Icons.Rounded.Warning, null, tint = Kx.danger); Text("Нет почты для восстановления", style = KxType.style(20.sp, FontWeight.ExtraBold))
                 }
-                Text("Все чаты, сообщения и файлы будут удалены. Сбросить можно через 7 дней после запроса, если за это время вы не войдёте с паролем.",
+                // review: was a «Запросить сброс» button that only toasted — kiroX doesn't reset accounts, so say what does work.
+                Text("Без почты пароль здесь не восстановить. Что можно сделать:",
                     style = KxType.style(14.sp, color = Kx.text2, lineHeight = 21.sp), modifier = Modifier.padding(top = 10.dp))
-                Box(Modifier.padding(top = 20.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(Color(229, 83, 75).copy(alpha = .14f))
-                    .border(1.dp, Color(229, 83, 75).copy(alpha = .35f), RoundedCornerShape(16.dp))
-                    // wave6: was a dead button — honest about what kiroX can't do at sign-in yet.
-                    .kxClick { toast("Сброс аккаунта при входе kiroX пока не делает: войдите с паролем или восстановите его через почту") }, contentAlignment = Alignment.Center) {
-                    Text("Запросить сброс", style = KxType.style(15.sp, FontWeight.Bold, Kx.danger))
-                }
+                Text("• Если аккаунт уже открыт на другом устройстве, смените или отключите там пароль: Настройки → Конфиденциальность → Облачный пароль." + (if (auth != null) " Затем войдите здесь снова." else "") + "\n" +
+                    "• Или откройте вход в официальном приложении Telegram: там можно запросить сброс аккаунта. Сброс удалит все чаты и сообщения и наступает только через несколько дней ожидания.",
+                    style = KxType.style(14.sp, color = Kx.text2, lineHeight = 21.sp), modifier = Modifier.padding(top = 10.dp))
                 if (auth == null) BackLink { onStep("choose") } else BackLink(onClose)
             }
             else -> {

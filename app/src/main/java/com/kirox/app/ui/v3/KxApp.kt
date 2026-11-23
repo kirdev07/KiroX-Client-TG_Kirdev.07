@@ -142,7 +142,12 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
         store.call(peerId, video)
         if (demoStore) nav.push(KxRoute.Call(peerId, name, video, colorIndex))
     }
-    BackHandler(enabled = nav.stack.size > 1 || tab != KxTab.Chats) { if (!nav.pop()) tab = KxTab.Chats }
+    // System Back from a chat closes it like the on-screen back (TDLib CloseChat, typing cleared). Not on dispose:
+    // screens under the top one are not kept composed, so a push (profile, viewer) would close the chat too.
+    BackHandler(enabled = nav.stack.size > 1 || tab != KxTab.Chats) {
+        (nav.current as? KxRoute.Chat)?.let { store.closeChat(it.chatId) }
+        if (!nav.pop()) tab = KxTab.Chats
+    }
     KxScreen(modifier) { KxToastHost {
         val toast = com.kirox.app.ui.v3.components.LocalKxToast.current
         AnimatedContent(

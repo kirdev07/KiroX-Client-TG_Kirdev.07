@@ -120,7 +120,7 @@ private fun StoryCard(p: KxStoryPeer, modifier: Modifier, onClick: () -> Unit) {
         // fixer-misc4: the film-strip / motif placeholder only while there is no decoded cover.
         val cover = com.kirox.app.ui.v3.components.rememberKxBitmap(first.media, 600)
         if (cover != null) androidx.compose.foundation.Image(cover, null, Modifier.matchParentSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
-        Box(Modifier.matchParentSize().background(Brush.verticalGradient(.45f to Color.Transparent, 1f to Color.Black.copy(alpha = .65f))))
+        Box(Modifier.matchParentSize().background(Brush.verticalGradient(.4f to Color.Transparent, .7f to Color.Black.copy(alpha = .55f), 1f to Color.Black.copy(alpha = .88f))))
         if (cover == null) Icon(Looks[first.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.16f)).size(44.dp), tint = Color.White.copy(alpha = .28f))
         Box(Modifier.padding(10.dp).size(40.dp), contentAlignment = Alignment.Center) {
             Box(Modifier.matchParentSize().graphicsLayer { rotationZ = -90f + spin.value }.clip(CircleShape).background(if (p.unseen) Kx.storyRing else Brush.linearGradient(listOf(Kx.w(.3f), Kx.w(.3f)))))
@@ -162,16 +162,20 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
     var replyFocused by remember { mutableStateOf(false) }
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     val toast = LocalKxToast.current
+    // Set once the viewer closes: during the exit animation the timer stops and nothing advances (no second onClose).
+    var closing by remember { mutableStateOf(false) }
+    fun close() { if (closing) return; closing = true; onClose() }
     val open = peers.indexOfFirst { it.id == openId }
-    if (open < 0) { LaunchedEffect(Unit) { onClose() }; return }
+    if (open < 0) { LaunchedEffect(Unit) { close() }; return }
     val peer = peers[open]
     val slideAt = slide.coerceIn(0, peer.slides.lastIndex)
     val s = peer.slides[slideAt]
     fun advance(dir: Int) {
+        if (closing) return
         var sl = slideAt + dir; var op = open
         if (sl >= peer.slides.size) { op += 1; sl = 0 }
         if (sl < 0) { if (op > 0) { op -= 1; sl = peers[op].slides.lastIndex } else sl = 0 }
-        if (op >= peers.size) { onClose(); return }
+        if (op >= peers.size) { close(); return }
         openId = peers[op].id; slide = sl
     }
     LaunchedEffect(openId, slideAt) { store.viewStory(peer.id, s.id); progress.snapTo(0f) }
@@ -195,7 +199,7 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
     val photo = if (player == null) rememberKxBitmap(s.media) else null
     // Waiting for the media: nothing loaded yet, or a photo still decoding. Demo slides (no media, not pending) run at once.
     val waiting = s.pending || (player == null && s.media != null && photo == null)
-    val running = !paused && !held && !replyFocused && !waiting && !storyMenu
+    val running = !paused && !held && !replyFocused && !waiting && !storyMenu && !closing
     LaunchedEffect(openId, slideAt, running, player) {
         val p = player
         if (p != null) {
@@ -239,7 +243,7 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
             Box(Modifier.fillMaxSize()
                 .pointerInput(Unit) {
                     detectVerticalDragGestures(
-                        onDragEnd = { scope.launch { if (drag.value > 140.dp.toPx()) onClose() else drag.animateTo(0f, tween(200)) } },
+                        onDragEnd = { scope.launch { if (drag.value > 140.dp.toPx()) close() else drag.animateTo(0f, tween(200)) } },
                         onDragCancel = { scope.launch { drag.animateTo(0f, tween(200)) } },
                     ) { change, dy -> change.consume(); scope.launch { drag.snapTo((drag.value + dy).coerceAtLeast(0f)) } }
                 }
@@ -274,12 +278,12 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
                         Icon(if (muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp, null, tint = Color.White)
                     }
                     Box(Modifier.size(40.dp).kxClick("Ещё") { storyMenu = !storyMenu }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.MoreVert, null, tint = Color.White) }
-                    Box(Modifier.size(40.dp).kxClick("Закрыть", onClick = onClose), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Close, null, tint = Color.White) }
+                    Box(Modifier.size(40.dp).kxClick("Закрыть") { close() }, contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Close, null, tint = Color.White) }
                 }
                 if (storyMenu) Column(Modifier.align(Alignment.End).padding(top = 6.dp).width(230.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xF21E2421))
                     .border(1.dp, Kx.w(.14f), RoundedCornerShape(18.dp)).padding(6.dp)) {
                     Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(12.dp)).kxClick("Скрыть истории ${peer.name}") {
-                        storyMenu = false; store.hideStories(peer.id, true); toast("Истории ${peer.name} скрыты"); onClose()
+                        storyMenu = false; store.hideStories(peer.id, true); toast("Истории ${peer.name} скрыты"); close()
                     }.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(Icons.Outlined.VisibilityOff, null, Modifier.size(20.dp), tint = Kx.text2)
                         Text("Скрыть истории автора", style = KxType.style(14.sp, FontWeight.SemiBold))

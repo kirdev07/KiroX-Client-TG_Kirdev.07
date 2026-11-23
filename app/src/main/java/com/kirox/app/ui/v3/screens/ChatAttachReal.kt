@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -265,7 +266,11 @@ internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, 
             if (list == null && extra.isEmpty()) Box(Modifier.fillMaxWidth().height(108.dp), contentAlignment = Alignment.Center) { Text("Загрузка…", style = KxType.style(14.sp, color = Kx.text4)) }
             else {
                 val shown = (extra + list.orEmpty()).distinctBy { it.uri }
-                LazyRow(Modifier.clip(RoundedCornerShape(18.dp)), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                // The no-access tile fills the rest of the row next to the camera (was a fixed 216 dp leaving a gap on wide phones).
+                var rowPx by remember { mutableIntStateOf(0) }
+                val density = androidx.compose.ui.platform.LocalDensity.current
+                val restW = with(density) { (rowPx.toDp() - 112.dp).coerceAtLeast(216.dp) }
+                LazyRow(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).onSizeChanged { rowPx = it.width }, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     // critique-C P2: the camera is one tap — the big area takes a photo, the strip below records a video.
                     item(key = "camera") {
                         Column(Modifier.size(108.dp).background(Color(0xFF151A17))) {
@@ -302,7 +307,7 @@ internal fun RealAttachSheet(store: KxStore, chatId: Long, onClose: () -> Unit, 
                     // critique-A: two honest states — no permission (ask) vs. an empty gallery.
                     if (list != null && list.isEmpty()) item(key = "access") {
                         val canRead = granted(context, *galleryPermissions())
-                        Column(Modifier.size(216.dp, 108.dp).background(Kx.w(.05f)).then(if (canRead) Modifier else Modifier.kxClick("Разрешить доступ к галерее") { ask.launch(galleryPermissions()) }),
+                        Column(Modifier.size(restW, 108.dp).background(Kx.w(.05f)).then(if (canRead) Modifier else Modifier.kxClick("Разрешить доступ к галерее") { ask.launch(galleryPermissions()) }),
                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                             Icon(Icons.Rounded.PhotoLibrary, null, tint = if (canRead) Kx.text4 else Kx.accent)
                             Text(if (canRead) "В галерее пока нет фото" else "Нет доступа к галерее", style = KxType.style(12.sp, color = Kx.text2), modifier = Modifier.padding(top = 6.dp, start = 8.dp, end = 8.dp))

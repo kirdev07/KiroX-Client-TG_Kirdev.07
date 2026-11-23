@@ -305,10 +305,12 @@ internal class KxAccountBinder(private val app: Context, private val services: T
 
     // ---- change number ----
     suspend fun changeNumberSendCode(phone: String): String = try {
-        KxAccountMapping.codeSent(client.query(TdApi.SendPhoneNumberCode(phone.filter { it.isDigit() || it == '+' }, TdApi.PhoneNumberAuthenticationSettings(), TdApi.PhoneNumberCodeTypeChange())).type)
+        client.query(TdApi.SendPhoneNumberCode(phone.filter { it.isDigit() || it == '+' }, TdApi.PhoneNumberAuthenticationSettings(), TdApi.PhoneNumberCodeTypeChange())).type
+            .also { changeNumberCodeLength = codeLength(it) }.let(KxAccountMapping::codeSent)
     } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { "!" + KxExtrasMapping.errorText(e) }
     suspend fun changeNumberResend(): String = try {
-        KxAccountMapping.codeSent(client.query(TdApi.ResendPhoneNumberCode(TdApi.ResendCodeReasonUserRequest())).type)
+        client.query(TdApi.ResendPhoneNumberCode(TdApi.ResendCodeReasonUserRequest())).type
+            .also { changeNumberCodeLength = codeLength(it) }.let(KxAccountMapping::codeSent)
     } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { "!" + KxExtrasMapping.errorText(e) }
     suspend fun changeNumberCheck(code: String): String? = attempt { services.account.confirmChangeNumber(code.trim()) }
 
@@ -397,5 +399,15 @@ internal class KxAccountBinder(private val app: Context, private val services: T
         private const val USAGE_SINCE_KEY = "usage.sinceDay"
         /** The Word filter board's ready-made sets, in its order (Реклама, Крипта, Спойлеры). */
         val FILTER_PRESET_WORDS = listOf(listOf("скидка", "промокод", "подпишись"), listOf("airdrop", "x100", "памп"), listOf("финал", "спойлер"))
+        /** Digits in the last change-number code TDLib sent (5 until known); the «Сменить номер» board sizes its cells from it. */
+        @Volatile var changeNumberCodeLength: Int = 5
+        private fun codeLength(t: TdApi.AuthenticationCodeType?): Int = when (t) {
+            is TdApi.AuthenticationCodeTypeTelegramMessage -> t.length
+            is TdApi.AuthenticationCodeTypeSms -> t.length
+            is TdApi.AuthenticationCodeTypeCall -> t.length
+            is TdApi.AuthenticationCodeTypeFragment -> t.length
+            is TdApi.AuthenticationCodeTypeMissedCall -> t.length
+            else -> 0
+        }.takeIf { it in 3..8 } ?: 5
     }
 }

@@ -61,6 +61,8 @@ class TelegramVoipRepository(
     private var localSink: VideoSink? = null
     /** Hang up was pressed before TDLib gave the outgoing call an id: discard it as soon as it has one. */
     private var cancelOutgoing = false
+    /** review: the call hung up before it had an id; its later updates (Discarded) must not show «Звонок завершён». */
+    private var canceledCallId = 0
     /** Signaling that arrived before the engine of that call started; fed to it on start. */
     private val earlySignaling = ArrayList<Pair<Int, ByteArray>>()
 
@@ -144,11 +146,13 @@ class TelegramVoipRepository(
 
     private fun discardCanceled(callId: Int, isVideo: Boolean) {
         cancelOutgoing = false
+        canceledCallId = callId
         client.send(TdApi.DiscardCall(callId, false, "", 0, isVideo, 0))
     }
 
     private fun onCall(call: TdApi.Call) {
         val current = _call.value
+        if (call.id == canceledCallId && current == null) return
         // Our outgoing call that was hung up before it had an id.
         if (cancelOutgoing && call.isOutgoing && current == null) {
             if (call.state is TdApi.CallStatePending) discardCanceled(call.id, call.isVideo)

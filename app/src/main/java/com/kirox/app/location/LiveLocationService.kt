@@ -115,6 +115,8 @@ class LiveLocationService : Service(), LocationListener {
         /** Chats where your location is being shared now. */
         val active: StateFlow<Map<Long, LiveShare>> = _active.asStateFlow()
         @Volatile private var handlerAdded = false
+        /** review: SendSucceeded can arrive before the send result — temporary id → real id, read when the result comes. */
+        private val sentEarly = java.util.concurrent.ConcurrentHashMap<Long, Long>()
 
         private fun Location.toTd() = TdApi.Location(latitude, longitude, accuracy.toDouble())
 
@@ -126,8 +128,10 @@ class LiveLocationService : Service(), LocationListener {
                 handlerAdded = true
                 // The sent message gets its real id from Telegram; the share follows it.
                 client.addUpdateHandler { update ->
-                    if (update is TdApi.UpdateMessageSendSucceeded) _active.value.values.firstOrNull { it.messageId == update.oldMessageId }?.let { share ->
-                        _active.value = _active.value + (share.chatId to share.copy(messageId = update.message.id))
+                    if (update is TdApi.UpdateMessageSendSucceeded && update.message.content is TdApi.MessageLocation) {
+                        val share = _active.value.values.firstOrNull { it.messageId == update.oldMessageId }
+                        if (share != null) _active.value = _active.value + (share.chatId to share.copy(messageId = update.message.id))
+                        else sentEarly[update.oldMessageId] = update.message.id
                     }
                 }
             }
@@ -140,7 +144,8 @@ class LiveLocationService : Service(), LocationListener {
                 runCatching {
                     client.query(TdApi.SendMessage(chatId, null, null, null, null, TdApi.InputMessageLiveLocation(TdApi.LiveLocation(location.toTd(), seconds, 0, 0))))
                 }.onSuccess { message ->
-                    if (_active.value.containsKey(chatId)) _active.value = _active.value + (chatId to LiveShare(chatId, message.id, until))
+                    val id = sentEarly.remove(message.id) ?: message.id
+                    if (_active.value.containsKey(chatId)) _active.value = _active.value + (chatId to LiveShare(chatId, id, until))
                 }.onFailure {
                     if (_active.value[chatId]?.messageId == 0L) stop(context, chatId)
                 }

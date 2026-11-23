@@ -78,11 +78,14 @@ fun AutoDeleteScreen(ctx: KxScreenCtx) {
     var all by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var defaultSecs by remember { mutableStateOf<Int?>(null) }
+    // review: Save stays off until the chat's real timer is read, so the 1-day placeholder can't be written over it.
+    var loaded by remember { mutableStateOf(!live) }
     if (live) LaunchedEffect(chatId) {
         val cur = ctx.store.autoDeleteOf(chatId!!) ?: 0
         val i = AD_SECS.indexOf(cur)
         if (i in 0..4) opt = i else if (cur > 0) { opt = 5; customVal = AD_CUSTOM_SECS.indices.minByOrNull { kotlin.math.abs(AD_CUSTOM_SECS[it] - cur) } ?: 7 } else opt = 0
         defaultSecs = ctx.store.defaultAutoDelete(); all = (defaultSecs ?: 0) > 0
+        loaded = true
     }
     var tick by remember { mutableIntStateOf(0) }
     LaunchedEffect(opt) { tick = 0; while (true) { delay(1000); tick++ } }
@@ -206,7 +209,8 @@ fun AutoDeleteScreen(ctx: KxScreenCtx) {
                     modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp))
             }
         }
-        TSaveBar("Сохранить", Icons.Rounded.Done) {
+        TSaveBar("Сохранить", Icons.Rounded.Done, enabled = loaded) {
+            if (!loaded) return@TSaveBar
             if (live) {
                 val secs = if (opt == 5) AD_CUSTOM_SECS[customVal] else AD_SECS[opt]
                 ctx.store.setAutoDelete(chatId!!, secs)

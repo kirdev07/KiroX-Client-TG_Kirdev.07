@@ -92,9 +92,15 @@ class MainActivity : ComponentActivity() {
                         else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
                     }
                     // wave6: the lock in the v3 Lock board look (the old PasscodeLockScreen stays unused).
-                    if (locked) com.kirox.app.ui.v3.screens.settings.KxAppLock(onForgot = {
-                        com.kirox.app.security.PasscodeLock.disable()
-                        (application as KiroXApplication).telegram.auth.logOut()
+                    // review: a ringing or running call is answered without the code (as in Telegram); the lock returns when it ends.
+                    val call by (application as KiroXApplication).telegram.voip.call.collectAsStateWithLifecycle()
+                    val callLive = call?.phase?.let { it !is com.kirox.app.telegram.CallPhase.Ended && it !is com.kirox.app.telegram.CallPhase.Failed } == true
+                    if (locked && !callLive) com.kirox.app.ui.v3.screens.settings.KxAppLock(onForgot = {
+                        val tg = (application as KiroXApplication).telegram
+                        // review: «Забыли код?» signs out the open account only; with several accounts on the phone the code stays
+                        // on (the next account opens still locked), so a forgotten code never unlocks the other accounts.
+                        if (tg.client.accounts.accounts.value.size <= 1) com.kirox.app.security.PasscodeLock.disable()
+                        tg.auth.logOut()
                     })
                 }
             }

@@ -112,8 +112,8 @@ class TelegramKxStore(
     private val writeAccess = mutableStateMapOf<Long, com.kirox.app.telegram.TelegramWriteAccess>()
     private var onlineMembers by mutableStateOf(emptyMap<Long, Int>())
     /** Reactions allowed per message, fetched on first ask. */
-    private val reactionChoices = mutableStateMapOf<Long, List<String>>()
-    private val reactionAsked = HashSet<Long>()
+    private val reactionChoices = mutableStateMapOf<Pair<Long, Long>, List<String>>()
+    private val reactionAsked = HashSet<Pair<Long, Long>>()
 
     // Inputs of the off-main mapping besides the repositories' own flows.
     /** fileId → local path of files that finished downloading. */
@@ -124,6 +124,8 @@ class TelegramKxStore(
     @OptIn(kotlinx.coroutines.FlowPreview::class)
     private val pathsDaily = combine(paths.debounce(150), day) { p, _ -> p }
     private val watched = ConcurrentHashMap.newKeySet<Int>()
+    /** Collectors of [watched] files still waiting for a path; dropped when TDLib restarts so the files are asked for again. */
+    private val watchJobs = ConcurrentHashMap<Int, Job>()
     /** messageId → what the menu may offer, for the open chat. */
     private val rights = MutableStateFlow<Map<Long, TelegramMessageRights>>(emptyMap())
     private val rightsAsked = HashSet<Long>()
@@ -300,10 +302,12 @@ class TelegramKxStore(
     }
 
     override fun availableReactions(chatId: Long, messageId: Long): List<String> {
-        reactionChoices[messageId]?.let { return it }
+        // review: message ids repeat across channels/supergroups, so the cache is keyed by (chat, message).
+        val k = chatId to messageId
+        reactionChoices[k]?.let { return it }
         // Asked during composition: answer the default set now, the chat's own set when it arrives.
-        if (reactionAsked.add(messageId)) scope.launch {
-            vm.messages.availableReactionsIn(chatId, messageId)?.takeIf { it.isNotEmpty() }?.let { reactionChoices[messageId] = it }
+        if (reactionAsked.add(k)) scope.launch {
+            vm.messages.availableReactionsIn(chatId, messageId)?.takeIf { it.isNotEmpty() }?.let { reactionChoices[k] = it }
         }
         return DEFAULT_REACTIONS
     }
@@ -320,6 +324,8 @@ class TelegramKxStore(
     )
 
     override fun openChat(chatId: Long) {
+        // review: translations are keyed by message id, which repeats across chats — start each chat clean.
+        if (history.chatId != chatId) translations.value = emptyMap()
         vm.messages.open(chatId)
         // qa-real2: a chat marked unread by hand loses the mark when it is opened (badge / «Все · 1» too).
         vm.chats.clearMarkedUnread(chatId)
@@ -557,7 +563,7 @@ class TelegramKxStore(
         ref.localPath?.let { return it }
         known[ref.id]?.let { return it }
         // One collector per file until its path is known, then it ends.
-        if (watched.add(ref.id)) scope.launch { val p = vm.files.observe(ref).first { it != null }!!; paths.update { it + (ref.id to p) } }
+        if (watched.add(ref.id)) watchJobs[ref.id] = scope.launch { val p = vm.files.observe(ref).first { it != null }!!; paths.update { it + (ref.id to p) }; watchJobs.remove(ref.id) }
         return null
     }
 
@@ -890,6 +896,8 @@ class TelegramKxStore(
      * load is retried no sooner than 5 s, then 30 s later — not on every recomposition while offline.
      */
     private val loaded = HashSet<String>()
+    /** review: another account became active — loaded-once data (stars, gifts, sessions…) and stories belong to the old one. */
+    private fun resetPerAccountCaches() { loaded.clear(); retryAt.clear(); storyCache.value = emptyMap() }
     private val retryAt = HashMap<String, Pair<Long, Int>>() // key → (earliest retry ms, failures)
     private fun loadOnce(key: String, block: suspend () -> Unit) {
         val now = android.os.SystemClock.elapsedRealtime()
@@ -1456,6 +1464,25 @@ class TelegramKxStore(
 
     private fun initRound5() {
         scope.launch { services.client.accounts.accounts.collect { accountSlots = it } }
+        // review: TDLib restarted (background pause) or another account became active. Files still downloading are asked for
+        // again (the repository forgot its requests on pause); on an account switch every per-database cache is dropped, since
+        // file / folder / message ids of one account mean something else in another.
+        scope.launch {
+            var session: String? = null
+            services.client.ready.collect { ready ->
+                if (!ready) return@collect
+                val now = services.client.activeSession
+                watchJobs.values.forEach { it.cancel() }
+                watchJobs.keys.forEach { watched.remove(it) }
+                watchJobs.clear()
+                if (session != null && session != now) {
+                    watched.clear(); paths.value = emptyMap(); requestedFolders.clear()
+                    translations.value = emptyMap(); reactionChoices.clear(); reactionAsked.clear()
+                    resetPerAccountCaches()
+                }
+                session = now
+            }
+        }
         scope.launch { com.kirox.app.settings.KiroxTweaks.state.collect { tweakState = KxExtrasMapping.tweaks(it) } }
     }
 

@@ -140,11 +140,11 @@ private fun TemplatesScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             KxTopBar("Шаблоны ответов", onBack = ctx.back)
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item {
+                if (f.templates.isNotEmpty()) item {
                     Row(Modifier.padding(bottom = 4.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.accent.copy(alpha = .07f)).border(1.dp, Kx.accent.copy(alpha = .18f), RoundedCornerShape(18.dp))
                         .padding(horizontal = 14.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Outlined.Bolt, null, Modifier.size(20.dp), tint = Kx.accent)
-                        Text("Наберите «/» в любом чате или откройте ⋮ → «Шаблоны ответов». {имя} подставит имя собеседника, {время} — время сейчас (все подстановки — в редакторе). Нажмите на шаблон, чтобы изменить или удалить; порядок меняется перетаскиванием за ручку. Шаблоны хранятся на телефоне и попадают в резервную копию настроек.",
+                        Text("Наберите «/» в чате. Нажмите на шаблон, чтобы изменить; порядок — перетаскиванием за ручку.",
                             style = ts(13, color = Kx.text2, lh = 18.sp))
                     }
                 }

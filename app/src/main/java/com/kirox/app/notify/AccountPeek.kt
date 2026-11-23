@@ -108,6 +108,15 @@ class AccountPeek(context: Context) {
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setAutoCancel(true)
             .setContentIntent(open)
+            // review: on a secure lock screen only «Новое сообщение», as for the open account.
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(
+                NotificationCompat.Builder(appContext, MessageNotifications.CHANNEL)
+                    .setSmallIcon(com.kirox.app.R.drawable.ic_stat_kirox_v3)
+                    .setContentTitle("kiroX")
+                    .setContentText(com.kirox.app.i18n.I18n.t("Новое сообщение"))
+                    .build()
+            )
             .build()
         // Without the notification permission (Android 13+) the other account's messages simply wait in the app.
         if (androidx.core.content.ContextCompat.checkSelfPermission(appContext, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED &&

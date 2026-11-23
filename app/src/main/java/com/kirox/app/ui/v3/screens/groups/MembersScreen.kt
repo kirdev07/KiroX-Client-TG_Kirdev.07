@@ -32,6 +32,9 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.screens.settings.StoreErrorToasts
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
+import com.kirox.app.ui.v3.model.KxMember
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // Board demo (no chat id). With "Members:<chatId>": store.members + promote / demote / restrict (read-only) / removeMember.
 // demo: needs store (bot flag, «recently joined» and custom admin titles are not in KxMember yet)
@@ -66,12 +69,20 @@ fun MembersScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val chatId = gxChatId(ctx.arg)
     val real = gxLoad(chatId) { chatId?.let { store.members(it) } }
+    // review: on a real account role changes are not assumed — the list is re-read after the call and the tip shows only if it took effect.
+    val live = chatId != null && store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    var fresh by remember { mutableStateOf<List<KxMember>?>(null) }
+    val members = fresh ?: real
+    val co = rememberCoroutineScope()
     val palette = MPeople.map { it.c }
-    val people = if (chatId == null) MPeople else real.orEmpty().mapIndexed { i, m ->
+    val people = if (chatId == null) MPeople else members.orEmpty().mapIndexed { i, m ->
         val r = when (m.role) { "Создатель" -> "owner"; "Администратор" -> "admin"; "Только чтение", "Заблокирован" -> "restricted"; else -> "member" }
         MP(i + 1, m.name, m.name.take(1).uppercase().ifEmpty { "?" }, palette[i % palette.size], r, m.status == "в сети", m.status.ifEmpty { m.role })
     }
-    fun uid(p: MP): Long? = if (chatId == null) null else real?.getOrNull(p.id - 1)?.userId
+    fun uid(p: MP): Long? = if (chatId == null) null else members?.getOrNull(p.id - 1)?.userId
+    fun isMe(p: MP) = chatId != null && members?.getOrNull(p.id - 1)?.userId == store.me.id
+    /** Admin actions: the board demo — anyone but the owner; a real chat — only members TDLib says your rights reach, never yourself. */
+    fun canAct(p: MP) = if (chatId == null) p.role != "owner" else members?.getOrNull(p.id - 1)?.let { it.canEdit && it.userId != store.me.id } == true
     val filters = if (chatId == null) MFilters else listOf(
         "all" to "Все · ${people.size}", "admins" to "Админы · ${people.count { it.role == "admin" || it.role == "owner" }}", "recent" to "Новые · ${people.count { it.recent }}",
         "bots" to "Боты", "restricted" to "Ограничены · ${people.count { it.role == "restricted" }}")
@@ -88,6 +99,20 @@ fun MembersScreen(ctx: KxScreenCtx) {
         f == "all" || (f == "admins" && (r == "admin" || r == "owner")) || (f == "recent" && p.recent) || (f == "bots" && p.bot) || (f == "restricted" && r == "restricted")
     }.filter { q.isBlank() || it.n.contains(q.trim(), ignoreCase = true) }
     fun done(t: String) { sel = null; tip.say(t) }
+    /** Demo: local change + tip right away. Real: call the store, re-read members, tip only when [ok] holds for the fresh row (errors come via StoreErrorToasts). */
+    fun act(p: MP, text: String, local: () -> Unit, call: (Long, Long) -> Unit, ok: (KxMember?) -> Boolean) {
+        val u = uid(p)
+        if (u != null && chatId != null) call(chatId, u)
+        if (!live || u == null || chatId == null) { local(); done(text); return }
+        sel = null
+        co.launch {
+            delay(1500)
+            val list = store.members(chatId)
+            if (list.isEmpty()) return@launch
+            fresh = list
+            if (ok(list.firstOrNull { it.userId == u })) tip.say(text)
+        }
+    }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
@@ -121,7 +146,7 @@ fun MembersScreen(ctx: KxScreenCtx) {
                 items(list, key = { "${it.id}-$k" }) { x ->
                     val r = role(x); val tg = tag(r, x)
                     val sub = if (r == "restricted" && !x.role.startsWith("restr")) "без медиа на 1 день" else x.seen
-                    Row(Modifier.fillMaxWidth().gxRise(0, 200, 6.dp).clip(RoundedCornerShape(16.dp)).kxClick(x.n) { if (x.role != "owner") sel = x }.padding(8.dp),
+                    Row(Modifier.fillMaxWidth().gxRise(0, 200, 6.dp).clip(RoundedCornerShape(16.dp)).kxClick(x.n) { if (if (chatId == null) x.role != "owner" else !isMe(x)) sel = x }.padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(Modifier.size(46.dp)) {
                             Box(Modifier.fillMaxSize().clip(CircleShape).background(x.c), contentAlignment = Alignment.Center) { Text(x.l, style = KxType.style(16.sp, FontWeight.ExtraBold)) }
@@ -156,24 +181,26 @@ fun MembersScreen(ctx: KxScreenCtx) {
                 }
                 Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     MAct(Icons.Outlined.Chat, "Написать") { val u = uid(p); if (u != null) { sel = null; ctx.openChat(u) } else done("Открываем чат: ${p.n}") }
+                    if (canAct(p)) {
                     if (pr == "admin") MAct(Icons.Outlined.RemoveModerator, "Снять права админа") {
-                        uid(p)?.let { u -> chatId?.let { store.demote(it, u) } }; roles[p.id] = "member"; done("${p.n} больше не админ")
+                        cf = Triple("Снять права админа?", "Участник останется в группе, но больше не сможет управлять ею.", "Снять")
+                        cfAction = { act(p, "${p.n} больше не админ", { roles[p.id] = "member" }, store::demote) { it != null && it.role != "Администратор" && it.role != "Создатель" } }
                     }
                     else MAct(Icons.Outlined.AddModerator, "Назначить админом") {
                         cf = Triple("Назначить админом?", "Будут выданы стандартные права админа без права назначать других. Права можно изменить позже.", "Назначить")
-                        cfAction = { uid(p)?.let { u -> chatId?.let { store.promote(it, u) } }; roles[p.id] = "admin"; done("${p.n} теперь админ") }
+                        cfAction = { act(p, "${p.n} теперь админ", { roles[p.id] = "admin" }, store::promote) { it?.role == "Администратор" } }
                     }
                     if (pr == "restricted") MAct(Icons.Outlined.LockOpen, "Снять ограничения") {
-                        uid(p)?.let { u -> chatId?.let { store.restrict(it, u, false) } }; roles[p.id] = "member"; done("Ограничения сняты")
+                        act(p, "Ограничения сняты", { roles[p.id] = "member" }, { c, u -> store.restrict(c, u, false) }) { it != null && it.role != "Только чтение" && it.role != "Заблокирован" }
                     }
                     else MAct(Icons.Outlined.Block, "Ограничить") {
-                        val u = uid(p)
-                        if (u != null && chatId != null) { store.restrict(chatId, u, true); roles[p.id] = "restricted"; done("${p.n}: только чтение") }
-                        else { roles[p.id] = "restricted"; done("${p.n}: без медиа на 1 день") }
+                        cf = Triple("Ограничить участника?", "Участник сможет только читать группу. Снять ограничение можно в любой момент.", "Ограничить")
+                        cfAction = { act(p, if (uid(p) != null) "${p.n}: только чтение" else "${p.n}: без медиа на 1 день", { roles[p.id] = "restricted" }, { c, u -> store.restrict(c, u, true) }) { it?.role == "Только чтение" } }
                     }
                     MAct(Icons.Outlined.PersonRemove, "Удалить из группы", Kx.danger) {
                         cf = Triple("Удалить из группы?", "Участник больше не будет в группе. Вернуть можно по ссылке-приглашению.", "Удалить")
-                        cfAction = { uid(p)?.let { u -> chatId?.let { store.removeMember(it, u) } }; gone.add(p.id); done("${p.n} больше не в группе") }
+                        cfAction = { act(p, "${p.n} больше не в группе", { gone.add(p.id) }, store::removeMember) { it == null || it.role == "Заблокирован" } }
+                    }
                     }
                 }
             }

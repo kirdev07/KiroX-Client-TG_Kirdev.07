@@ -46,7 +46,7 @@ import kotlinx.coroutines.launch
 
 private fun cnFmt(d: String) = listOf(d.take(3), d.drop(3).take(3), d.drop(6).take(2), d.drop(8).take(2)).filter { it.isNotEmpty() }.joinToString(" ")
 
-/** Board «Сменить номер»: 4 steps — intro with the flying SIM, new number field, 5-digit code with keypad + resend timer, done. */
+/** Board «Сменить номер»: 4 steps — intro with the flying SIM, new number field, code (length from TDLib, 5 in the demo) with keypad + resend timer, done. */
 @Composable
 fun ChangeNumberScreen(ctx: KxScreenCtx) {
     // wave3: real store — sendPhoneNumberCode(change) → checkPhoneNumberCode / resend, asked through KxConfirm first; demo accepts 24680
@@ -61,6 +61,9 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
     var step by rememberSaveable { mutableIntStateOf(0) }
     var digits by rememberSaveable { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
+    // Code length from TDLib's code type (SMS / Telegram / call); the demo and unknown types use 5.
+    var codeLen by rememberSaveable { mutableIntStateOf(5) }
+    fun readCodeLen() { if (!demo) codeLen = com.kirox.app.ui.v3.data.KxAccountBinder.changeNumberCodeLength }
     var bad by remember { mutableStateOf(false) }
     var sec by remember { mutableIntStateOf(45) }
     var timerId by remember { mutableIntStateOf(0) }
@@ -85,9 +88,9 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
     val canNext = step == 0 || (step == 1 && full && !same) || step == 3
     fun typeKey(k: String) {
         if (k == "del") { code = code.dropLast(1); bad = false; return }
-        if (code.length >= 5) return
+        if (code.length >= codeLen) return
         val c = code + k; code = c; bad = false
-        if (c.length == 5) co.launch {
+        if (c.length == codeLen) co.launch {
             delay(350)
             val wrong = if (demo) (if (c == "24680") null else "Неверный код") else store.changeNumberCheck(c)
             if (wrong == null) step = 3
@@ -154,12 +157,12 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
                     2 -> Column(Modifier.fillMaxSize().cnIn(2).padding(start = 20.dp, end = 20.dp, top = 30.dp)) {
                         Text("Код подтверждения", style = KxType.style(22.sp, FontWeight.ExtraBold))
                         Text("Отправили на +$cc ${cnFmt(digits)}", style = KxType.style(14.sp, color = Kx.text3), modifier = Modifier.padding(top = 6.dp))
-                        Row(Modifier.padding(top = 24.dp).fillMaxWidth().graphicsLayer { translationX = shakeX(shakeC.value) * density }, horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)) {
+                        Row(Modifier.padding(top = 24.dp).fillMaxWidth().graphicsLayer { translationX = shakeX(shakeC.value) * density }, horizontalArrangement = Arrangement.spacedBy(if (codeLen > 6) 6.dp else 10.dp, Alignment.CenterHorizontally)) {
                             val blink by rememberInfiniteTransition(label = "caret").animateFloat(0f, 1f, infiniteRepeatable(tween(1000, easing = LinearEasing)), label = "b")
-                            repeat(5) { i ->
+                            repeat(codeLen) { i ->
                                 val bd by animateColorAsState(if (bad) Kx.dangerSolid.copy(alpha = .6f) else if (i == code.length) Kx.accent else if (i < code.length) Kx.accent.copy(alpha = .4f) else Kx.w(.12f), tween(200), label = "cb")
                                 val sh = RoundedCornerShape(18.dp)
-                                Box(Modifier.size(52.dp, 62.dp).clip(sh).background(Kx.w(.05f)).border(1.5.dp, bd, sh), contentAlignment = Alignment.Center) {
+                                Box(Modifier.size(when { codeLen <= 5 -> 52.dp; codeLen == 6 -> 44.dp; else -> 34.dp }, 62.dp).clip(sh).background(Kx.w(.05f)).border(1.5.dp, bd, sh), contentAlignment = Alignment.Center) {
                                     if (i < code.length) Text(code[i].toString(), style = KxType.style(26.sp, FontWeight.ExtraBold))
                                     else if (i == code.length && !bad && blink < .5f) Box(Modifier.size(2.dp, 26.dp).background(Kx.accent))
                                 }
@@ -183,7 +186,7 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
                         Text(if (sec > 0) "Отправить снова через 0:" + sec.toString().padStart(2, '0') else "Отправить код снова",
                             style = KxType.style(13.sp, FontWeight.Bold, if (sec > 0) Kx.text4 else Kx.accent), textAlign = TextAlign.Center,
                             modifier = Modifier.padding(top = 14.dp).align(Alignment.CenterHorizontally).kxClick(enabled = sec == 0) {
-                                if (demo) timerId++ else co.launch { val r = store.changeNumberResend(); if (r.startsWith("!")) ctx.toast(r.drop(1)) else { sentHint = r; timerId++ } }
+                                if (demo) timerId++ else co.launch { val r = store.changeNumberResend(); if (r.startsWith("!")) ctx.toast(r.drop(1)) else { sentHint = r; readCodeLen(); code = ""; timerId++ } }
                             }.padding(8.dp))
                     }
                     else -> Column(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 60.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -214,7 +217,7 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
                             busy = true
                             co.launch {
                                 val r = store.changeNumberSendCode("+$cc$digits"); busy = false
-                                if (r.startsWith("!")) ctx.toast(r.drop(1)) else { sentHint = r; step = 2; code = ""; timerId++ }
+                                if (r.startsWith("!")) ctx.toast(r.drop(1)) else { sentHint = r; readCodeLen(); step = 2; code = ""; timerId++ }
                             }
                         }
                         else if (!canNext) co.launch { shakeN.snapTo(0f); shakeN.animateTo(1f, tween(350, easing = TEase)); shakeN.snapTo(0f) }
