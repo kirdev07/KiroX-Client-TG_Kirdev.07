@@ -29,7 +29,7 @@ import com.kirox.app.ui.v3.components.cssAngleStart
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — the next channel with unread posts (getChats filtered by unread, folder order) to jump to at the end of a channel.
+// Demo channels. Real account: NextUnreadLive (channels with unread posts in list order, posts via store.peekHistory).
 private data class NuPost(val t: String, val e: String = "", val img: List<Pair<Float, Color>>? = null, val deg: Float = 160f, val meta: String)
 private data class NuChan(val n: String, val l: String, val c: Color, val sub: String, val posts: List<NuPost>)
 private val NU = listOf(
@@ -50,6 +50,7 @@ private val NU = listOf(
 /** NextUnread board: at the end of a channel, pull up to jump to the next one with unread posts (ring fills, release opens it). */
 @Composable
 fun NextUnreadScreen(ctx: KxScreenCtx) {
+    if (ctx.c3Live) { NextUnreadLive(ctx); return }
     var i by remember { mutableIntStateOf(0) }
     var p by remember { mutableIntStateOf(0) }
     var k by remember { mutableIntStateOf(0) }

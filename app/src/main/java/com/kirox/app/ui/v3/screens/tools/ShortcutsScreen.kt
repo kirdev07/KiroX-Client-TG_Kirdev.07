@@ -1,5 +1,8 @@
 package com.kirox.app.ui.v3.screens.tools
 
+import com.kirox.app.ui.v3.model.togglePref
+import com.kirox.app.ui.v3.model.prefOn
+import com.kirox.app.ui.v3.data.KxShortcuts
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -42,14 +45,29 @@ private val SC_ACTS = listOf(Icons.Outlined.EditNote to "Новое сообще
 /** Board «Ярлыки на иконке»: fake home screen, kiroX icon with its long-press menu (people + actions), pinning a shortcut, menu settings. */
 @Composable
 fun ShortcutsScreen(ctx: KxScreenCtx) {
-    // demo: needs ShortcutManager dynamic shortcuts (frequent chats + actions), requestPinShortcut, launcher badge pref
+    // wave3: real store — ShortcutManager: the first private chats as the icon's long-press menu, «закрепить» = requestPinShortcut,
+    // the icon counter = the app's notification badge setting. Quick actions stay demo (no action intents in the app yet).
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val frequent = if (demo) emptyList() else store.chats.filter { it.kind == com.kirox.app.ui.v3.model.KxChatKind.Private }.take(4)
+    val peopleList = if (demo) SC_PEOPLE else frequent.mapIndexed { i, c -> ScPin(c.title, c.title.take(1).uppercase(), SC_PEOPLE[i % SC_PEOPLE.size].c, null) }
     var menu by remember { mutableStateOf(false) }
     var pinned by remember { mutableStateOf(listOf<ScPin>()) }
-    var people by rememberSaveable { mutableStateOf(true) }
-    var acts by rememberSaveable { mutableStateOf(true) }
-    var unread by rememberSaveable { mutableStateOf(true) }
+    var people by rememberSaveable { mutableStateOf(demo || KxShortcuts.hasFrequent(context)) }
+    var acts by rememberSaveable { mutableStateOf(demo) }
+    val unread = store.prefOn(com.kirox.app.ui.v3.model.KxPrefsAccount.SHORTCUT_BADGE)
     var last by remember { mutableStateOf("") }
-    fun pin(p: ScPin) { if (pinned.none { it.name == p.name }) { pinned = (pinned + p).takeLast(4); last = p.name }; menu = false }
+    fun pin(p: ScPin) {
+        menu = false
+        if (!demo) {
+            val chat = frequent.firstOrNull { it.title == p.name } ?: return
+            if (!KxShortcuts.pin(context, chat)) ctx.toast("Этот лаунчер не умеет закреплять ярлыки")
+            return
+        }
+        if (pinned.none { it.name == p.name }) { pinned = (pinned + p).takeLast(4); last = p.name }
+    }
+    LaunchedEffect(people, frequent.map { it.id }) { if (!demo) KxShortcuts.setFrequent(context, if (people) frequent else emptyList()) }
 
     TScreen("Ярлыки на иконке", ctx.back, titleSize = 20, above = {
         val hShape = RoundedCornerShape(28.dp)
@@ -104,7 +122,7 @@ fun ShortcutsScreen(ctx: KxScreenCtx) {
                             Text("kX", style = KxType.style(18.sp, FontWeight.Black, Kx.onAccent))
                         }
                         if (unread) Box(Modifier.align(Alignment.TopEnd).offset(5.dp, (-5).dp).heightIn(min = 20.dp).widthIn(min = 20.dp).clip(RoundedCornerShape(10.dp)).background(Kx.dangerSolid)
-                            .padding(horizontal = 5.dp), contentAlignment = Alignment.Center) { Text("16", style = KxType.style(11.sp, FontWeight.ExtraBold, Color.White)) }
+                            .padding(horizontal = 5.dp), contentAlignment = Alignment.Center) { Text(if (demo) "16" else store.unreadTotal.coerceAtMost(999).toString(), style = KxType.style(11.sp, FontWeight.ExtraBold, Color.White)) }
                     }
                 }
                 Text("kiroX", style = KxType.style(11.sp, color = Kx.w(.9f)))
@@ -120,14 +138,14 @@ fun ShortcutsScreen(ctx: KxScreenCtx) {
                     .shadow(20.dp, mShape).clip(mShape).background(TSheetBg).border(1.dp, Kx.w(.14f), mShape).padding(6.dp)) {
                     if (people) Row(Modifier.fillMaxWidth().drawBehind { drawLine(Kx.w(.08f), Offset(0f, size.height - .5f), Offset(size.width, size.height - .5f), 1f) }
                         .padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        SC_PEOPLE.forEach { p ->
+                        peopleList.forEach { p ->
                             Column(Modifier.weight(1f).kxClick("Закрепить чат ${p.name}") { pin(p) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Box(Modifier.size(40.dp).clip(CircleShape).background(p.c), contentAlignment = Alignment.Center) { Text(p.l, style = KxType.style(15.sp, FontWeight.ExtraBold, Color.White)) }
                                 Text(p.name, style = KxType.style(11.sp, color = Kx.text2), maxLines = 1)
                             }
                         }
                     }
-                    if (acts) SC_ACTS.forEach { (ic, l) ->
+                    if (acts && demo) SC_ACTS.forEach { (ic, l) ->
                         Row(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(14.dp)).kxClick { pin(ScPin(l, "", Color.Transparent, ic)) }.padding(horizontal = 10.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Icon(ic, null, Modifier.size(24.dp), tint = Kx.accent)
@@ -147,7 +165,7 @@ fun ShortcutsScreen(ctx: KxScreenCtx) {
                 Triple(Icons.Outlined.Filter9, "Счётчик на иконке", "Число непрочитанных")).forEachIndexed { i, (ic, l, s) ->
                 val on = when (i) { 0 -> people; 1 -> acts; else -> unread }
                 TRow(ic, l, s, Modifier.bottomLine(), iconTint = if (on) Kx.accent else Kx.text3, subColor = Kx.text4, vPad = 12.dp,
-                    onClick = { when (i) { 0 -> people = !people; 1 -> acts = !acts; else -> unread = !unread } }) { TSmallSwitch(on) }
+                    onClick = { when (i) { 0 -> people = !people; 1 -> if (demo) acts = !acts else ctx.toast("Быстрые действия на иконке пока не готовы"); else -> store.togglePref(com.kirox.app.ui.v3.model.KxPrefsAccount.SHORTCUT_BADGE) } }) { TSmallSwitch(on) }
             }
         }
     }

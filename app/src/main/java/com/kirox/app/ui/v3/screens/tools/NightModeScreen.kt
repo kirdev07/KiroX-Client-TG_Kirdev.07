@@ -39,7 +39,8 @@ import com.kirox.app.ui.v3.theme.*
 @Composable
 fun NightModeScreen(ctx: KxScreenCtx) {
     // Mode / schedule / night theme: KxPrefs («По расписанию» is the app's auto theme). The hour slider only
-    // previews the sky (real store starts at the current hour). Sunset times: fixed 8–17 as on the board.
+    // previews the sky (real store starts at the current hour). wave3: real sunset/sunrise (NOAA formula; the last known
+    // location when the app already has location access, else roughly by the time zone) and the system's own night mode.
     val store = ctx.store
     val mode = store.pref(KxPrefs.NIGHT_MODE).coerceIn(0, 3)
     val from = store.pref(KxPrefs.NIGHT_FROM).mod(24)
@@ -47,7 +48,27 @@ fun NightModeScreen(ctx: KxScreenCtx) {
     var hour by rememberSaveable { mutableIntStateOf(if (store is com.kirox.app.ui.v3.demo.KxDemoStore) 23 else java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)) }
     val theme = store.pref(KxPrefs.NIGHT_THEME)
     fun inRange(x: Int, a: Int, b: Int) = if (a <= b) x in a until b else (x >= a || x < b)
-    val night = when (mode) { 0 -> true; 1 -> inRange(hour, from, to); 2 -> !inRange(hour, 8, 17); else -> hour >= 20 || hour < 7 }
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val sun = remember {
+        val tz = java.util.TimeZone.getDefault(); val now = System.currentTimeMillis()
+        val tzH = tz.getOffset(now) / 3_600_000.0
+        val loc = runCatching {
+            val ok = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!ok) null else context.getSystemService(android.location.LocationManager::class.java)?.let { lm ->
+                listOf(android.location.LocationManager.NETWORK_PROVIDER, android.location.LocationManager.PASSIVE_PROVIDER, android.location.LocationManager.GPS_PROVIDER)
+                    .firstNotNullOfOrNull { p -> runCatching { lm.getLastKnownLocation(p) }.getOrNull() }
+            }
+        }.getOrNull()
+        val lat = loc?.latitude ?: 45.0; val lon = loc?.longitude ?: (tz.rawOffset / 3_600_000.0 * 15)
+        Triple(com.kirox.app.ui.v3.data.KxAccountMapping.sunTimes(lat, lon, java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR), tzH), loc != null, Unit)
+    }
+    val rise = sun.first?.first ?: 8.0; val set = sun.first?.second ?: 17.0
+    fun hm(h: Double) = "%02d:%02d".format((h.toInt()) % 24, ((h - h.toInt()) * 60).toInt())
+    val sunLabel = if (demo) "Сегодня с 17:12 до 08:04" else if (sun.first == null) "Сегодня солнце не садится или не встаёт" else
+        "Сегодня с ${hm(set)} до ${hm(rise)}" + if (sun.second) "" else " · примерно, по часовому поясу"
+    val night = when (mode) { 0 -> true; 1 -> inRange(hour, from, to); 2 -> if (demo) !inRange(hour, 8, 17) else (hour + .5 < rise || hour + .5 >= set); else -> if (demo) hour >= 20 || hour < 7 else systemDark }
     val isDay = inRange(hour, 7, 18); val dusk = hour == 17 || hour == 18 || hour == 6
     fun pad(n: Int) = n.toString().padStart(2, '0') + ":00"
 
@@ -114,8 +135,8 @@ fun NightModeScreen(ctx: KxScreenCtx) {
             listOf(
                 Triple(Icons.Outlined.DarkMode, "Всегда тёмная", "Без переключений"),
                 Triple(Icons.Outlined.Schedule, "По расписанию", "С ${pad(from)} до ${pad(to)}"),
-                Triple(Icons.Outlined.WbTwilight, "От заката до рассвета", "Сегодня с 17:12 до 08:04"),
-                Triple(Icons.Outlined.Smartphone, "Как в системе", "Следовать настройке Android"),
+                Triple(Icons.Outlined.WbTwilight, "От заката до рассвета", sunLabel),
+                Triple(Icons.Outlined.Smartphone, "Как в системе", if (demo) "Следовать настройке Android" else "Следовать настройке Android · сейчас " + if (systemDark) "тёмная" else "светлая"),
             ).forEachIndexed { i, (ic, label, sub) ->
                 TRow(ic, label, sub, Modifier.topLine(i > 0), onClick = { store.putPref(KxPrefs.NIGHT_MODE, i) }) { TRadio(i == mode) }
             }

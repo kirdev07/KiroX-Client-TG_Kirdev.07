@@ -32,7 +32,8 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — reaction sets (recent / all / themed / custom emoji) beyond store.availableReactions.
+// Demo sets. Real chat (arg = chat id[:message id], else the last incoming message): store.reactionPanel (top / recent / popular,
+// Premium-only marked) and store.react; custom-emoji reactions need their own picker and are not offered here.
 private val RP_QUICK = listOf("❤️", "👍", "🔥", "🥰", "👏", "😁", "🎉")
 private val RP_SETS = mapOf(
     "recent" to listOf("🎉", "❤️", "🔥", "😂", "👍", "🥳", "🙏", "💯", "😍", "🤩", "👏", "🚗", "🏆", "✨"),
@@ -45,22 +46,39 @@ private val RP_TABS = listOf("recent" to "Недавние", "all" to "Все", 
 /** ReactPicker board: quick reaction strip over the dim, expandable full picker with tabs; the reaction lands under the bubble. */
 @Composable
 fun ReactPickerScreen(ctx: KxScreenCtx) {
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live && chatId == null) { C3NeedChat(ctx, "Реакции"); return }
+    val live = chatId != null
+    val header = chatId?.let { ctx.store.header(it) }
+    val peek = c3Peek(ctx.store, chatId, 30)
+    val wantId = ctx.c3Msg
+    val target = if (!live) null else (ctx.store.messages(chatId!!) + peek).let { all -> if (wantId != null) all.firstOrNull { it.id == wantId } else all.lastOrNull { !it.out && it.kind != com.kirox.app.ui.v3.model.KxMsgKind.Service } }
+    val targetId = wantId ?: target?.id
+    if (live && targetId == null) { C3NeedChat(ctx, "Реакции", if (peek.isEmpty()) "Загрузка…" else "Здесь нет сообщения для реакции."); return }
+    val panel = if (live) c3Load(chatId, targetId) { ctx.store.reactionPanel(chatId!!, targetId!!) } else null
+    val quick = if (live) panel?.top?.take(7).orEmpty() else RP_QUICK
+    val sets = if (!live) RP_SETS else mapOf("recent" to panel?.recent.orEmpty(), "all" to (panel?.top.orEmpty() + panel?.popular.orEmpty()).distinct())
+    val tabs = if (!live) RP_TABS else RP_TABS.filter { it.first in sets }
     var mode by remember { mutableStateOf("strip") }
-    var tab by remember { mutableStateOf("recent") }
-    var react by remember { mutableStateOf("") }
+    var tab by remember { mutableStateOf(if (live && panel?.recent.isNullOrEmpty()) "all" else "recent") }
+    var react by remember(target?.id) { mutableStateOf(target?.reactions?.firstOrNull { it.mine }?.emoji ?: "") }
     var rk by remember { mutableIntStateOf(0) }
     val rootL = remember { MoLift() }
     val bubL = remember { MoLift() }
-    fun pick(e: String) { react = if (react == e) "" else e; mode = "none"; rk++ }
+    fun pick(e: String) {
+        if (live && e in panel?.premiumOnly.orEmpty() && !ctx.store.me.premium) { ctx.toast("Эта реакция — с Premium"); return }
+        if (live) ctx.store.react(chatId!!, targetId!!, e)
+        react = if (react == e) "" else e; mode = "none"; rk++
+    }
     val custom = tab == "custom"
 
     Box(Modifier.fillMaxSize().background(Kx.bg).moTrack(rootL)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            MoChatHeader(ctx.back, "Л", Color(0xFF6A4C9C), null, "Лиза", "в сети", Kx.accent)
+            MoChatHeader(ctx.back, (header?.title ?: "Л").take(1).uppercase(), Color(0xFF6A4C9C), null, header?.title ?: "Лиза", header?.status ?: "в сети", if (header == null || header.online) Kx.accent else MoSub)
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(14.dp)) {
                 val w = maxWidth
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)) {
-                    Box(Modifier.widthIn(max = w * .8f).moTrack(bubL)) { RpMessage(react, rk) { mode = "strip" } }
+                    Box(Modifier.widthIn(max = w * .8f).moTrack(bubL)) { RpMessage(react, rk, target?.text?.ifBlank { "Сообщение" }, target?.time) { mode = "strip" } }
                     if (mode == "none" && react.isEmpty()) Text("нажмите на сообщение", style = mts(11, color = MoMuted), modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
             }
@@ -72,7 +90,7 @@ fun ReactPickerScreen(ctx: KxScreenCtx) {
 
         if (mode != "none") {
             Box(Modifier.matchParentSize().moFade(200).background(Color.Black.copy(alpha = .55f)).kxClick("Закрыть") { mode = "none" })
-            MoLifted(bubL, rootL) { RpMessage(react, rk) { mode = "strip" } }
+            MoLifted(bubL, rootL) { RpMessage(react, rk, target?.text?.ifBlank { "Сообщение" }, target?.time) { mode = "strip" } }
         }
 
         if (mode == "strip") {
@@ -82,7 +100,8 @@ fun ReactPickerScreen(ctx: KxScreenCtx) {
             }.shadow(20.dp, RoundedCornerShape(30.dp), ambientColor = Color.Black, spotColor = Color.Black).clip(RoundedCornerShape(30.dp)).background(Color(0xFF1C2220))
                 .background(Brush.verticalGradient(listOf(Kx.w(.18f), Kx.w(.08f)))).border(1.dp, Kx.w(.18f), RoundedCornerShape(30.dp)).padding(6.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                RP_QUICK.forEach { e ->
+                if (live && panel == null) Text("…", style = mts(20), modifier = Modifier.padding(horizontal = 12.dp))
+                quick.forEach { e ->
                     Box(Modifier.size(40.dp).clip(CircleShape).kxClick(e) { pick(e) }, contentAlignment = Alignment.Center) { Text(e, style = mts(26)) }
                 }
                 Box(Modifier.size(36.dp).clip(CircleShape).background(Kx.w(.1f)).kxClick("Все реакции") { mode = "full" }, contentAlignment = Alignment.Center) {
@@ -105,7 +124,7 @@ fun ReactPickerScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    RP_TABS.forEach { (k, t) ->
+                    tabs.forEach { (k, t) ->
                         val on = tab == k
                         Row(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(if (on) Kx.accent.copy(alpha = .16f) else Kx.w(.05f))
                             .kxClick { tab = k }.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -116,7 +135,7 @@ fun ReactPickerScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    RP_SETS.getValue(tab).chunked(7).forEach { row ->
+                    sets[tab].orEmpty().chunked(7).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                             row.forEach { e ->
                                 Box(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(12.dp)).kxClick(e) { if (!custom) pick(e) }, contentAlignment = Alignment.Center) {
@@ -137,12 +156,12 @@ fun ReactPickerScreen(ctx: KxScreenCtx) {
 }
 
 @Composable
-private fun RpMessage(react: String, rk: Int, onTap: () -> Unit) {
+private fun RpMessage(react: String, rk: Int, text: String? = null, time: String? = null, onTap: () -> Unit) {
     Column {
         Box(Modifier.clip(RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)).background(Kx.w(.1f)).kxClick(onClick = onTap).padding(horizontal = 12.dp, vertical = 8.dp)) {
             Text(buildAnnotatedString {
-                append("Права получены с первого раза!!! 🚗🎉")
-                withStyle(SpanStyle(fontSize = 11.sp, color = Kx.text.copy(alpha = .6f))) { append("  20:14") }
+                append(text ?: "Права получены с первого раза!!! 🚗🎉")
+                withStyle(SpanStyle(fontSize = 11.sp, color = Kx.text.copy(alpha = .6f))) { append("  " + (if (text == null) "20:14" else time.orEmpty())) }
             }, style = mts(15, lh = 1.4f))
         }
         if (react.isNotEmpty()) Box(Modifier.padding(start = 10.dp).offset(y = (-6).dp)) {

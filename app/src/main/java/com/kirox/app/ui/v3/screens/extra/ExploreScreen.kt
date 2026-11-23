@@ -53,6 +53,7 @@ private val ExpList = listOf(
 /** Board «Каналы и группы» (discover): featured card, category chips, list with subscribe / join toggles, search. */
 @Composable
 fun ExploreScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { com.kirox.app.ui.v3.screens.more.ExploreLive(ctx, ctx.arg?.substringBefore(":")?.toLongOrNull()); return }
     var q by remember { mutableStateOf("") }
     var cat by remember { mutableStateOf("all") }
     val joined = remember { mutableStateListOf<Int>() }

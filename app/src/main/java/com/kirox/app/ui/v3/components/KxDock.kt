@@ -40,9 +40,11 @@ import com.kirox.app.ui.v3.theme.KxType
  * tab, labels always visible (11sp), badges on Chats (green) and Calls (red).
  */
 @Composable
-fun KxDock(current: KxTab, onPick: (KxTab) -> Unit, modifier: Modifier = Modifier, chatsBadge: Int = 0, callsBadge: Int = 0, names: Map<Int, String> = emptyMap()) {
-    val tabs = KxTab.entries
-    val lensX by animateDpAsState((current.ordinal * 78).dp, tween(450, easing = KxMotion.lens), label = "lens")
+fun KxDock(current: KxTab, onPick: (KxTab) -> Unit, modifier: Modifier = Modifier, chatsBadge: Int = 0, callsBadge: Int = 0, names: Map<Int, String> = emptyMap(),
+           /** Tabs turned off in the settings (old app: «Вкладка Звонки / Истории»). */
+           hidden: Set<KxTab> = emptySet()) {
+    val tabs = KxTab.entries.filter { it !in hidden || it == current }
+    val lensX by animateDpAsState((tabs.indexOf(current).coerceAtLeast(0) * 78).dp, tween(450, easing = KxMotion.lens), label = "lens")
     val shape = RoundedCornerShape(32.dp)
     Box(
         modifier.shadow(34.dp, shape, ambientColor = Color.Black, spotColor = Color.Black.copy(alpha = .55f))

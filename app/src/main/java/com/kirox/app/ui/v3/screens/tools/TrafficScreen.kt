@@ -40,6 +40,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val TR_NETS = listOf(Triple("Мобильная", Icons.Outlined.SignalCellularAlt, Icons.Rounded.SignalCellularAlt),
     Triple("Wi-Fi", Icons.Outlined.Wifi, Icons.Rounded.Wifi), Triple("Роуминг", Icons.Outlined.Public, Icons.Rounded.Public))
@@ -59,7 +60,12 @@ private fun trFmt(mb: Float): String = if (mb >= 1000) String.format(java.util.L
 /** Board «Использование сети»: network tabs, animated donut by category, live speed sparkline, period chips, category list, reset with confirm. */
 @Composable
 fun TrafficScreen(ctx: KxScreenCtx) {
-    // demo: needs store (network statistics per network type / category, reset)
+    // wave3-media: real account → GetNetworkStatistics (since the last reset, all networks) + ResetNetworkStatistics
+    val real = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val scope = rememberCoroutineScope()
+    var stats by remember { mutableStateOf<com.kirox.app.ui.v3.model.KxTraffic?>(null) }
+    var statsKey by remember { mutableIntStateOf(0) }
+    if (real) LaunchedEffect(statsKey) { while (true) { stats = ctx.store.networkStats(); delay(5000) } }
     var net by rememberSaveable { mutableIntStateOf(0) }
     var per by rememberSaveable { mutableIntStateOf(1) }
     var sel by remember { mutableIntStateOf(-1) }
@@ -69,7 +75,11 @@ fun TrafficScreen(ctx: KxScreenCtx) {
     LaunchedEffect(Unit) { while (true) { delay(700); tick++ } }
     val toast = remember { TToast() }
     val k = if (reset[net]) 0f else TR_PER[per].second
-    val rows = TR_DATA[net].map { (i, o) -> i * k to o * k }
+    val rows = if (!real) TR_DATA[net].map { (i, o) -> i * k to o * k } else List(6) { n ->
+        val keys = when (n) { 0 -> setOf("video"); 1 -> setOf("photo"); 2 -> setOf("voice", "music"); 3 -> setOf("calls"); 4 -> setOf("files", "stickers"); else -> setOf("messages", "other") }
+        val r = stats?.rows.orEmpty().filter { it.network == net && it.category in keys }
+        r.sumOf { it.received } / 1_000_000f to r.sumOf { it.sent } / 1_000_000f
+    }
     val tot = rows.sumOf { (i, o) -> (i + o).toDouble() }.toFloat()
     val tin = rows.sumOf { it.first.toDouble() }.toFloat(); val tout = tot - tin
     val selRow = if (sel >= 0) rows[sel] else null
@@ -122,7 +132,7 @@ fun TrafficScreen(ctx: KxScreenCtx) {
                         }
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(if (selRow != null) TR_CATS[sel].first else "Всего за " + TR_PER[per].first.lowercase(), style = KxType.style(12.sp, color = Kx.text3), textAlign = TextAlign.Center)
+                        Text(if (selRow != null) TR_CATS[sel].first else if (real) "Всего" else "Всего за " + TR_PER[per].first.lowercase(), style = KxType.style(12.sp, color = Kx.text3), textAlign = TextAlign.Center)
                         Text(trFmt(selRow?.let { it.first + it.second } ?: tot), style = KxType.style(30.sp, FontWeight.ExtraBold).copy(letterSpacing = (-.5).sp), modifier = Modifier.padding(top = 2.dp))
                         Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -134,9 +144,9 @@ fun TrafficScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                // Live speed
+                // Live speed (simulated → demo only)
                 val sShape = RoundedCornerShape(18.dp)
-                Row(Modifier.padding(top = 2.dp).fillMaxWidth().clip(sShape).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), sShape).padding(horizontal = 14.dp, vertical = 10.dp),
+                if (!real) Row(Modifier.padding(top = 2.dp).fillMaxWidth().clip(sShape).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), sShape).padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     val reduced = LocalKxReducedMotion.current
                     val pulse by rememberInfiniteTransition(label = "p").animateFloat(.35f, 1f, infiniteRepeatable(tween(700, easing = TEaseInOut), RepeatMode.Reverse), label = "pa")
@@ -153,8 +163,8 @@ fun TrafficScreen(ctx: KxScreenCtx) {
                     Text(if (spd < 1) "${Math.round(spd * 1000)} КБ/с" else String.format(java.util.Locale.US, "%.1f", spd).replace('.', ',') + " МБ/с",
                         style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), textAlign = TextAlign.End, modifier = Modifier.width(74.dp))
                 }
-                // Period
-                Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Period (Telegram counts only since the last reset → demo only)
+                if (!real) Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     TR_PER.forEachIndexed { i, (label, _) ->
                         val on = per == i
                         val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f), tween(200), label = "pb")
@@ -193,13 +203,16 @@ fun TrafficScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Outlined.RestartAlt, null, Modifier.size(24.dp), tint = Kx.danger)
                     Text("Сбросить статистику", style = KxType.style(15.sp, FontWeight.Bold, Kx.danger))
                 }
-                Text(if (reset[net]) "Статистика сброшена только что." else "Считается с 3 сентября. kiroX считает только свой трафик — у оператора цифры могут отличаться.",
+                Text(if (real) (stats?.since?.takeIf { it.isNotBlank() }?.let { "Считается с $it (с последнего сброса). " } ?: "") + "kiroX считает только свой трафик — у оператора цифры могут отличаться."
+                    else if (reset[net]) "Статистика сброшена только что." else "Считается с 3 сентября. kiroX считает только свой трафик — у оператора цифры могут отличаться.",
                     style = KxType.style(12.sp, color = Kx.text4, lineHeight = 17.sp), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp))
             }
         }
         if (confirm) TConfirmSheet(Icons.Outlined.RestartAlt, "Сбросить статистику?",
-            "Счётчики для сети «${TR_NETS[net].first}» начнутся с нуля. Сами файлы и сообщения не удалятся.", "Сбросить", { confirm = false }) {
-            sel = -1; reset = reset.mapIndexed { i, v -> if (i == net) true else v }; toast.show("Статистика сброшена", Icons.Rounded.Done)
+            if (real) "Telegram обнулит счётчики сразу для всех сетей. Сами файлы и сообщения не удалятся." else "Счётчики для сети «${TR_NETS[net].first}» начнутся с нуля. Сами файлы и сообщения не удалятся.", "Сбросить", { confirm = false }) {
+            sel = -1
+            if (real) scope.launch { val err = ctx.store.resetNetworkStats(); statsKey++; toast.show(err ?: "Статистика сброшена", Icons.Rounded.Done) }
+            else { reset = reset.mapIndexed { i, v -> if (i == net) true else v }; toast.show("Статистика сброшена", Icons.Rounded.Done) }
         }
         TToastHost(toast, 34.dp)
     }

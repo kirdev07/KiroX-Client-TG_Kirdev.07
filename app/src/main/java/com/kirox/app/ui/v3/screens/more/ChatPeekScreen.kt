@@ -38,7 +38,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — peeking at a chat without marking it read (getChatHistory without viewMessages) from the chat list.
+/// Demo chats. Real account: ChatPeekLive (store.peekHistory, no read mark; markRead / markUnread / pin / mute / archive).
 private data class PkChat(val name: String, val l: String, val c: Color, val t: String, val status: String, val msgs: List<Triple<String, Boolean, String>>)
 private val PK_CH = listOf(
     PkChat("Анна", "А", Color(0xFFC0443C), "19:40", "в сети", listOf(Triple("Новый трейлер вышел, смотрим?", false, "19:31"), Triple("Ещё нет, скинь", true, "19:33"), Triple("Вот, смотри 🍿", false, "19:38"), Triple("Завтра вместе в кино?", false, "19:40"))),
@@ -53,6 +53,7 @@ private data class PkAct(val icon: @Composable () -> Unit, val t: String, val in
 /** ChatPeek board: long-press a chat to peek at it without marking it read; quick actions under the preview. */
 @Composable
 fun ChatPeekScreen(ctx: KxScreenCtx) {
+    if (ctx.c3Live) { ChatPeekLive(ctx); return }
     var open by remember { mutableIntStateOf(-1) }
     val unread = remember { mutableStateMapOf(0 to 3, 1 to 2, 2 to 5, 3 to 1) }
     val muted = remember { mutableStateMapOf(4 to true) }

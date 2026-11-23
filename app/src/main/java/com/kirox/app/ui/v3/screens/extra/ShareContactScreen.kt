@@ -34,7 +34,7 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
 private class ScC(val name: String, val l: String, val a: Color, val b: Color, val ph: String, val tg: String)
-// demo: needs store (send contact message: inputMessageContact with chosen fields; incoming contact → importContacts / open chat)
+// Demo chat. Real chat (arg = chat id): ShareContactLive (own card or a contact, store.sendContact).
 private val ScList = listOf(
     ScC("Мастер по ремонту", "М", Color(0xFF5C6661), Color(0xFF5C6661), "+7 700 ••• •• 61", "нет в Telegram"),
     ScC("Ерлан, сосед", "Е", Color(0xFF2F6E9E), Color(0xFF2F6E9E), "+7 777 ••• •• 18", "в Telegram"),
@@ -47,6 +47,7 @@ private class ScSent(val name: String, val l: String, val sub: String, val note:
 /** Board «Поделиться контактом»: incoming contact card (add / write), share sheet (my contact / contacts → choose fields → send), sent contact bubble. */
 @Composable
 fun ShareContactScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { val c = ctx.arg?.substringBefore(":")?.toLongOrNull(); if (c == null) com.kirox.app.ui.v3.screens.more.C3NeedChat(ctx, "Отправить контакт") else com.kirox.app.ui.v3.screens.more.ShareContactLive(ctx, c); return }
     var sheet by remember { mutableStateOf(true) }
     var pick by remember { mutableIntStateOf(-1) }
     var me by remember { mutableStateOf(false) }

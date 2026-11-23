@@ -41,6 +41,7 @@ private val MtLong = listOf("пятницу, 27 ноября", "субботу, 
 /** Board «Удобное время»: day × time availability grid (heat by votes, your cells outlined, crown on the best), best slot card, voters, fix the meeting. */
 @Composable
 fun MeetTimeScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { val c = ctx.arg?.substringBefore(":")?.toLongOrNull(); if (c == null) com.kirox.app.ui.v3.screens.more.C3NeedChat(ctx, "Выбрать время") else com.kirox.app.ui.v3.screens.more.MeetTimeLive(ctx, c); return }
     // demo: needs store (multi-answer poll as a time grid: votes per option, voters, schedule the event)
     val mine = remember { mutableStateMapOf("2-1" to true) }
     var fixed by remember { mutableStateOf(false) }

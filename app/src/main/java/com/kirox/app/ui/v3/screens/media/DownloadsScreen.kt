@@ -34,7 +34,22 @@ import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
 private data class Dl(val name: String, val size: Double, val icon: ImageVector, val c: Color, val from: String, val got: Double, val done: Boolean = false,
-                      val paused: Boolean = false, val gone: Boolean = false)
+                      val paused: Boolean = false, val gone: Boolean = false, val fileId: Int = 0)
+
+/** wave3-media: a real TDLib download → board row (sizes in MB, icon/colour by type). */
+private fun realDl(d: com.kirox.app.ui.v3.model.KxDownload): Dl {
+    val (icon, c) = when (d.kind) {
+        com.kirox.app.ui.v3.model.KxMsgKind.Video, com.kirox.app.ui.v3.model.KxMsgKind.Gif, com.kirox.app.ui.v3.model.KxMsgKind.VideoNote -> Icons.Rounded.Movie to Color(0xFF2F6E9E)
+        com.kirox.app.ui.v3.model.KxMsgKind.Music, com.kirox.app.ui.v3.model.KxMsgKind.Voice -> Icons.Rounded.GraphicEq to Color(0xFF6A4C9C)
+        com.kirox.app.ui.v3.model.KxMsgKind.Photo -> Icons.Rounded.Image to Color(0xFF3F9A6C)
+        else -> when (d.name.substringAfterLast('.', "").lowercase()) {
+            "pdf" -> Icons.Rounded.PictureAsPdf to Color(0xFFC0443C); "zip", "rar", "7z" -> Icons.Rounded.FolderZip to Color(0xFFB07A2E)
+            "apk" -> Icons.Rounded.Android to Color(0xFF3F9A6C); else -> Icons.Rounded.Description to Color(0xFF5C6661)
+        }
+    }
+    val mb = maxOf(d.size, 1L) / 1_000_000.0
+    return Dl(d.name, mb, icon, c, d.chatTitle, if (d.done) mb else d.downloaded / 1_000_000.0, d.done, d.paused, fileId = d.fileId)
+}
 
 // demo: needs store (TDLib file downloads: progress, pause/resume, cancel)
 private val DlSeed = listOf(
@@ -51,9 +66,26 @@ private fun fmtMb(mb: Double): String = if (mb >= 1000) String.format(java.util.
 /** Board «Загрузки»: summary bar, active/done tabs, striped progress, pause/resume/cancel. */
 @Composable
 fun DownloadsScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → Telegram's download list (SearchFileDownloads), refreshed while something downloads.
+    val real = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
     var tab by remember { mutableIntStateOf(0) }
-    val list = remember { mutableStateListOf(*DlSeed.toTypedArray()) }
-    LaunchedEffect(Unit) {
+    val list = remember { mutableStateListOf(*(if (real) emptyArray() else DlSeed.toTypedArray())) }
+    var speedReal by remember { mutableDoubleStateOf(0.0) }
+    var loaded by remember { mutableStateOf(!real) }
+    var bump by remember { mutableIntStateOf(0) }
+    if (real) LaunchedEffect(bump) {
+        var lastGot = -1.0
+        while (true) {
+            val fresh = ctx.store.downloads().map(::realDl)
+            val got = fresh.filter { !it.done }.sumOf { it.got }
+            speedReal = if (lastGot >= 0 && got >= lastGot) (got - lastGot) / 1.5 else 0.0
+            lastGot = got
+            list.clear(); list.addAll(fresh); loaded = true
+            if (fresh.none { !it.done && !it.paused }) break
+            delay(1500)
+        }
+    }
+    if (!real) LaunchedEffect(Unit) {
         while (true) {
             delay(500)
             list.indices.forEach { i ->
@@ -69,7 +101,17 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
     val active = live.filter { !it.done }
     val running = active.filter { !it.paused }
     val tot = active.sumOf { it.size }; val got = active.sumOf { it.got }
-    val speedMb = if (running.isNotEmpty()) 4.2 else 0.0
+    val speedMb = if (real) speedReal else if (running.isNotEmpty()) 4.2 else 0.0
+    fun toggle(i: Int) {
+        val f = list[i]
+        if (real) { ctx.store.pauseDownload(f.fileId, !f.paused); bump++ }
+        list[i] = f.copy(paused = !f.paused)
+    }
+    fun cancel(i: Int) {
+        val f = list[i]
+        if (real) ctx.store.removeDownloads(listOf(f.fileId))
+        list[i] = f.copy(gone = true)
+    }
     val shown = live.map { it to list.indexOf(it) }.filter { (f, _) -> if (tab == 0) !f.done else f.done }
     val allPaused = running.isEmpty() && active.isNotEmpty()
 
@@ -78,7 +120,7 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
             MRoundBtn(Icons.AutoMirrored.Rounded.ArrowBack, "Назад") { ctx.back() }
             T("Загрузки", 22.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f))
             Row(Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).background(Kx.w(.06f))
-                .kxClick { list.indices.forEach { i -> if (!list[i].done) list[i] = list[i].copy(paused = !allPaused) } }.padding(horizontal = 14.dp),
+                .kxClick { list.indices.forEach { i -> if (!list[i].done && list[i].paused == allPaused) toggle(i) } }.padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(if (allPaused) Icons.Outlined.PlayArrow else Icons.Outlined.Pause, null, Modifier.size(18.dp), tint = Kx.text)
                 T(if (allPaused) "Продолжить все" else "Пауза для всех", 13.sp, FontWeight.Bold)
@@ -88,14 +130,14 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
             .border(1.dp, Kx.accent.copy(alpha = .2f), RoundedCornerShape(22.dp)).padding(horizontal = 16.dp, vertical = 14.dp)) {
             Row(verticalAlignment = Alignment.Bottom) {
                 T(if (active.isNotEmpty()) "Скачивается ${active.size} из ${live.size}" else "Всё скачано", 15.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f).alignByBaseline())
-                T(if (running.isNotEmpty()) String.format(java.util.Locale.US, "%.1f", speedMb) + " МБ/с" else if (active.isNotEmpty()) "на паузе" else "", 13.sp, FontWeight.Bold, Kx.accent, modifier = Modifier.alignByBaseline())
+                T(if (running.isNotEmpty() && (!real || speedMb > 0)) String.format(java.util.Locale.US, "%.1f", speedMb) + " МБ/с" else if (active.isNotEmpty()) "на паузе" else "", 13.sp, FontWeight.Bold, Kx.accent, modifier = Modifier.alignByBaseline())
             }
             val pct by animateFloatAsState(if (tot > 0) (got / tot).toFloat() else 1f, tween(500, easing = LinearEasing), label = "tot")
             Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Kx.w(.08f))) {
                 Box(Modifier.fillMaxHeight().fillMaxWidth(pct).clip(RoundedCornerShape(4.dp)).background(Brush.horizontalGradient(listOf(Kx.accentMid, Kx.accentDeep))))
             }
             T(if (active.isNotEmpty()) "${fmtMb(got)} из ${fmtMb(tot)}" + (if (running.isNotEmpty()) " · осталось ~${maxOf(1, Math.round((tot - got) / maxOf(speedMb, 1.0) / 60).toInt())} мин" else "")
-              else "Файлы лежат в папке kiroX", 12.sp, color = Kx.text3, modifier = Modifier.padding(top = 6.dp))
+              else if (real) "Скачанные файлы — в «Файлы Telegram»" else "Файлы лежат в папке kiroX", 12.sp, color = Kx.text3, modifier = Modifier.padding(top = 6.dp))
         }
         Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("Активные" to 0, "Готово" to 1).forEach { (label, i) ->
@@ -108,11 +150,11 @@ fun DownloadsScreen(ctx: KxScreenCtx) {
         }
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 30.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())) {
             itemsIndexed(shown, key = { _, (f, i) -> "$tab/$i/${f.done}" }) { k, (f, i) -> DlRow(f, Modifier.kxRise(k * 40, 250),
-                onToggle = { list[i] = list[i].copy(paused = !list[i].paused) }, onCancel = { list[i] = list[i].copy(gone = true) }) }
+                onToggle = { toggle(i) }, onCancel = { cancel(i) }) }
             if (shown.isEmpty()) item {
                 Column(Modifier.fillMaxWidth().padding(start = 30.dp, end = 30.dp, top = 60.dp).kxRise(0, 300), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Outlined.DownloadDone, null, Modifier.size(54.dp), tint = Kx.dashed)
-                    T(if (tab == 0) "Нет активных загрузок" else "Пока ничего не скачано", 16.sp, FontWeight.Bold, modifier = Modifier.padding(top = 10.dp))
+                    T(if (!loaded) "Загрузка…" else if (tab == 0) "Нет активных загрузок" else "Пока ничего не скачано", 16.sp, FontWeight.Bold, modifier = Modifier.padding(top = 10.dp))
                 }
             }
         }

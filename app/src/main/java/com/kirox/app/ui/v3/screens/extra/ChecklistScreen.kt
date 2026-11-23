@@ -42,6 +42,7 @@ private data class ClItem(val t: String, val who: String)
 /** Board «Чек-лист в чате»: shared checklist message with progress, tick + who avatar, add item, confetti when all done. */
 @Composable
 fun ChecklistScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { val c = ctx.arg?.substringBefore(":")?.toLongOrNull(); if (c == null) com.kirox.app.ui.v3.screens.more.C3NeedChat(ctx, "Список задач") else com.kirox.app.ui.v3.screens.more.ChecklistLive(ctx, c, ctx.arg?.split(":")?.getOrNull(1)?.toLongOrNull()); return }
     // demo: needs store (checklist messages: TDLib inputMessageChecklist / toggle task / add tasks)
     val items = remember { mutableStateListOf(ClItem("Мангал и уголь", "П"), ClItem("Мясо для шашлыка", ""), ClItem("Овощи и зелень", "М"), ClItem("Пледы", ""), ClItem("Настолки", "Л"), ClItem("Колонка", "")) }
     var draft by remember { mutableStateOf("") }

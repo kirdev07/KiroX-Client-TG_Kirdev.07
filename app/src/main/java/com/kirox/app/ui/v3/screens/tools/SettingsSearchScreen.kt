@@ -40,6 +40,8 @@ import com.kirox.app.ui.v3.components.KxIconButton
 import com.kirox.app.ui.v3.components.KxLine
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
+import com.kirox.app.ui.v3.model.prefList
+import com.kirox.app.ui.v3.model.putPrefList
 
 private data class SsItem(val title: String, val path: String, val icon: ImageVector, val c: Color, val keys: String, val board: String)
 private val SS_ITEMS = listOf(
@@ -59,14 +61,17 @@ private val SS_TRIES = listOf("звук", "пароль", "тема", "памя�
 /** Board «Поиск по настройкам»: search field, quick tries, recent, results with the hit highlighted, help answers, nothing found. */
 @Composable
 fun SettingsSearchScreen(ctx: KxScreenCtx) {
-    // demo: recent searches kept per screen session; needs store for persistence
+    // wave3: recent searches persist in store prefTexts (SEARCH_RECENT); the demo starts with the board's three
     var q by rememberSaveable { mutableStateOf("") }
-    var recent by remember { mutableStateOf(listOf("Тема оформления", "Очистить кэш", "Код-пароль")) }
+    val store = ctx.store
+    val recent = if (store is com.kirox.app.ui.v3.demo.KxDemoStore && store.prefTexts[com.kirox.app.ui.v3.model.KxPrefsAccount.SEARCH_RECENT] == null)
+        listOf("Тема оформления", "Очистить кэш", "Код-пароль") else store.prefList(com.kirox.app.ui.v3.model.KxPrefsAccount.SEARCH_RECENT)
+    fun saveRecent(list: List<String>) = store.putPrefList(com.kirox.app.ui.v3.model.KxPrefsAccount.SEARCH_RECENT, list)
     var k by remember { mutableIntStateOf(0) }
     val qq = q.trim().lowercase()
     val res = if (qq.isEmpty()) emptyList() else SS_ITEMS.filter { it.title.lowercase().contains(qq) || it.keys.contains(qq) }
     val faq = if (qq.isEmpty()) emptyList() else SS_FAQ.entries.firstOrNull { it.key.startsWith(qq) || qq.startsWith(it.key) }?.value ?: emptyList()
-    fun openItem(x: SsItem) { recent = (listOf(x.title) + recent.filter { it != x.title }).take(3); ctx.open(x.board) }
+    fun openItem(x: SsItem) { saveRecent((listOf(x.title) + recent.filter { it != x.title }).take(3)); ctx.open(x.board) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
 
@@ -96,7 +101,7 @@ fun SettingsSearchScreen(ctx: KxScreenCtx) {
             if (qq.isEmpty()) {
                 Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Недавние", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.weight(1f))
-                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).kxClick { recent = emptyList() }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).kxClick { saveRecent(emptyList()) }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                         Text("Очистить", style = KxType.style(12.sp, FontWeight.Bold, Kx.text3))
                     }
                 }

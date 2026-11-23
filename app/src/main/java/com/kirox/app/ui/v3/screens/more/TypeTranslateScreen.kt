@@ -45,6 +45,7 @@ private data class TtSent(val id: Int, val tr: String, val orig: String, val sho
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TypeTranslateScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { val c = ctx.arg?.substringBefore(":")?.toLongOrNull(); if (c == null) C3NeedChat(ctx, "Перевод при наборе") else TypeTranslateLive(ctx, c); return }
     var on by remember { mutableStateOf(true) }
     var lang by remember { mutableStateOf("it") }
     var n by remember { mutableIntStateOf(0) }

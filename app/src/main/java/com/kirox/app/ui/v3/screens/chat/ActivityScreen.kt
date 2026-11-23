@@ -48,6 +48,7 @@ private val ARows = listOf(
 /** Board «Что делает собеседник»: header preview of every activity indicator, state picker, live chat list, hide-my-typing switch. */
 @Composable
 fun ActivityScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { com.kirox.app.ui.v3.screens.more.ActivityLive(ctx); return }
     val store = ctx.store
     val demo = store is KxDemoStore
     var i by remember { mutableIntStateOf(0) }

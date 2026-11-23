@@ -88,7 +88,8 @@ fun HelpScreen(ctx: KxScreenCtx) {
                 if (ql.isEmpty()) Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     HelpTile(Icons.Rounded.BugReport, Kx.danger, Kx.dangerSolid.copy(alpha = .16f), Kx.dangerSolid.copy(alpha = .25f), "Сообщить об ошибке", "С отчётом и скриншотом") { bug = true }
                     HelpTile(Icons.Rounded.Lightbulb, Kx.accent, Kx.accentDeep.copy(alpha = .2f), Kx.accent.copy(alpha = .25f), "Предложить идею", "Чего не хватает в kiroX") {
-                        toast.show("Откроется чат с разработчиком", Icons.Rounded.Lightbulb)
+                        if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) toast.show("Откроется чат с разработчиком", Icons.Rounded.Lightbulb)
+                        else com.kirox.app.ui.v3.data.KxBugReport.share(context, "Идея для kiroX", "", false)
                     }
                 }
                 Text(if (ql.isNotEmpty()) "Найдено: ${list.size}" else "Частые вопросы", style = ts(13.sp, FontWeight.Bold, Kx.accent),
@@ -158,7 +159,9 @@ fun HelpScreen(ctx: KxScreenCtx) {
             }
         }
         if (bug) HelpBugSheet(area, { area = it }, bugText, { bugText = it }, logs, { logs = !logs }, shot, { shot = !shot }, onClose = { bug = false }) {
-            bug = false; toast.show("Отчёт отправлен. Спасибо!", Icons.Rounded.CheckCircle)
+            bug = false
+            if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) toast.show("Отчёт отправлен. Спасибо!", Icons.Rounded.CheckCircle)
+            else com.kirox.app.ui.v3.data.KxBugReport.share(context, "Ошибка в kiroX: " + HelpAreas[area], bugText, logs) // wave3: share sheet, no report server
         }
         ExToast(toast)
     }

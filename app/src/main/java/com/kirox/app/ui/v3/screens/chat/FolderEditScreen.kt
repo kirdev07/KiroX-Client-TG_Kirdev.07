@@ -1,5 +1,7 @@
 package com.kirox.app.ui.v3.screens.chat
 
+import kotlinx.coroutines.launch
+import com.kirox.app.ui.v3.model.KxFolderInfo
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,13 +43,25 @@ private val FeIcons: List<Pair<ImageVector, ImageVector>> = listOf(
 private val FeColors = listOf(Triple("Без цвета", Kx.w(.12f), Kx.text2), Triple("Зелёный", Kx.accent, Kx.accent), Triple("Голубой", hex("#7FB8E0"), hex("#7FB8E0")),
     Triple("Фиолетовый", Kx.premium, Kx.premium), Triple("Розовый", hex("#F5A3C0"), hex("#F5A3C0")), Triple("Янтарный", Kx.warning, Kx.warning), Triple("Красный", Kx.danger, Kx.danger))
 private val FeNames = listOf("Код", "Работа", "Учёба", "Хобби")
+/** TDLib ChatFolderIcon names for the 16 board icons (same order). */
+private val FeIconNames = listOf("Custom", "Work", "Home", "Study", "Love", "Game", "Airplane", "Trade", "Groups", "Channels", "Bots", "Favorite", "Note", "Cat", "Sport", "Party")
+/** TDLib folder colour ids for the board colours (-1 = none): green 3, cyan 4, purple 2, pink 6, orange 1, red 0. */
+private val FeColorIds = listOf(-1, 3, 4, 2, 6, 1, 0)
 
 /** Board «Папка» (edit chat folder): live preview of the tab + chat label, name presets, 16 icons, label colour, include/exclude switches. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FolderEditScreen(ctx: KxScreenCtx) {
     val demo = ctx.store is KxDemoStore
+    // wave3: real store edits folder ctx.arg (id; none = a new folder) through store.folderInfo / saveFolder.
+    val folderId = ctx.arg?.toIntOrNull() ?: 0
+    var loaded by remember { mutableStateOf<KxFolderInfo?>(null) }
+    var ready by remember { mutableStateOf(demo || folderId == 0) }
+    var saving by remember { mutableStateOf(false) }
+    val co = rememberCoroutineScope()
     var name by remember { mutableIntStateOf(0) }
+    /** Real store: the folder's own title as an extra first chip (index -1). */
+    var ownTitle by remember { mutableStateOf("") }
     var icon by remember { mutableIntStateOf(0) }
     var color by remember { mutableIntStateOf(1) }
     val inc = remember { mutableStateMapOf("groups" to true, "channels" to true, "contacts" to false, "bots" to true) }
@@ -60,7 +74,30 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
     val tagBg = if (color == 0) Kx.w(.08f) else col.second.copy(alpha = .15f)
     val tagInk = col.third
     // demo: needs store (editFolder(id, title, icon, colour, include flags, exclude flags) + per-folder unread count for the preview)
-    val count = maxOf(0, (if (inc["groups"] == true) 4 else 0) + (if (inc["channels"] == true) 3 else 0) + (if (inc["contacts"] == true) 6 else 0) +
+    LaunchedEffect(folderId) {
+        if (demo || folderId == 0) return@LaunchedEffect
+        val f = ctx.store.folderInfo(folderId)
+        loaded = f; ready = true
+        if (f != null) {
+            val ni = FeNames.indexOf(f.title); if (ni >= 0) name = ni else { ownTitle = f.title; name = -1 }
+            icon = FeIconNames.indexOf(f.icon).coerceAtLeast(0)
+            color = FeColorIds.indexOf(f.colorId).coerceAtLeast(0)
+            inc["groups"] = f.groups; inc["channels"] = f.channels; inc["contacts"] = f.contacts; inc["bots"] = f.bots
+            exc["muted"] = f.excludeMuted; exc["read"] = f.excludeRead; exc["arch"] = f.excludeArchived
+        }
+    }
+    val title = if (name < 0) ownTitle else FeNames[name]
+    fun save() {
+        if (demo) { toast = "Папка «$title» сохранена"; tk++; return }
+        if (!ready || saving) return
+        val base = loaded ?: KxFolderInfo(title)
+        val info = base.copy(title = title, icon = FeIconNames[icon], colorId = FeColorIds[color],
+            groups = inc["groups"] == true, channels = inc["channels"] == true, contacts = inc["contacts"] == true, bots = inc["bots"] == true,
+            excludeMuted = exc["muted"] == true, excludeRead = exc["read"] == true, excludeArchived = exc["arch"] == true)
+        saving = true
+        co.launch { val e = ctx.store.saveFolder(folderId, info); saving = false; if (e == null) { ctx.toast("Папка «$title» сохранена"); ctx.back() } else ctx.toast(e) }
+    }
+    val count = if (!demo) (loaded?.unread ?: 0) else maxOf(0, (if (inc["groups"] == true) 4 else 0) + (if (inc["channels"] == true) 3 else 0) + (if (inc["contacts"] == true) 6 else 0) +
         (if (inc["bots"] == true) 1 else 0) - (if (exc["read"] == true) 2 else 0) - (if (exc["muted"] == true) 1 else 0))
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -69,8 +106,8 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
                 ChRound(Icons.Outlined.Close, "Закрыть", 44.dp, border = Color.Transparent, onClick = ctx.back)
                 Text("Папка", style = ts(20, W800), modifier = Modifier.weight(1f))
                 Box(Modifier.height(38.dp).clip(RoundedCornerShape(19.dp)).cssGradient(135f, Kx.accentMid, Kx.accentDeep).kxClick {
-                    if (demo) { toast = "Папка «${FeNames[name]}» сохранена"; tk++ } else ctx.toast("Изменение папок пока недоступно")
-                }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) { Text("Сохранить", style = ts(14, W800, Kx.onAccent)) }
+                    save()
+                }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) { Text(if (saving) "Сохраняем…" else "Сохранить", style = ts(14, W800, Kx.onAccent)) }
             }
             // Preview
             Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp)).padding(12.dp)) {
@@ -81,7 +118,7 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
                         Row(Modifier.then(if (pk > 0) Modifier.popScale() else Modifier).height(34.dp).clip(RoundedCornerShape(17.dp)).background(tagBg).padding(start = 8.dp, end = 12.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(FeIcons[icon].second, null, Modifier.size(18.dp), tint = tagInk)
-                            Text(FeNames[name], style = ts(13, W800, tagInk))
+                            Text(title, style = ts(13, W800, tagInk))
                             Box(Modifier.heightIn(min = 18.dp).widthIn(min = 18.dp).clip(RoundedCornerShape(9.dp)).background(tagInk).padding(horizontal = 5.dp), contentAlignment = Alignment.Center) {
                                 Text("$count", style = ts(11, W800, Kx.bg))
                             }
@@ -95,7 +132,7 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("Kotlin-клуб", style = ts(14, W700))
                             if (color != 0) Box(Modifier.height(18.dp).clip(RoundedCornerShape(9.dp)).background(tagBg).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
-                                Text(FeNames[name], style = ts(11, W800, tagInk))
+                                Text(title, style = ts(11, W800, tagInk))
                             }
                         }
                         Text("Дмитрий: PR готов", style = ts(12, color = Kx.text3))
@@ -105,7 +142,7 @@ fun FolderEditScreen(ctx: KxScreenCtx) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 20.dp)) {
                 Text("Название", style = ts(13, W700, Kx.accent))
                 FlowRow(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FeNames.forEachIndexed { i, t ->
+                    (if (ownTitle.isNotEmpty()) listOf(-1 to ownTitle) else emptyList()).plus(FeNames.withIndex().map { it.index to it.value }).forEach { (i, t) ->
                         val on = name == i
                         Box(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (on) Kx.accent.copy(alpha = .16f) else Kx.w(.05f))
                             .border(1.dp, if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), RoundedCornerShape(17.dp)).kxClick(t) { name = i; pk++ }.padding(horizontal = 12.dp),

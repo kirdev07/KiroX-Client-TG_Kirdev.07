@@ -335,4 +335,275 @@ interface KxStore {
     suspend fun storyStats(storyId: Int): KxPostStats? = null
     /** Deletes an own story — only after the user confirmed. */
     suspend fun deleteStory(storyId: Int): String? = null
+
+    // wave3-media ---------------------------------------------------------------------------
+    // Viewer / Album / VideoPlayer
+    /** Photos and videos of [chatId] around [aroundMessageId] (0 = newest), oldest first. */
+    suspend fun chatMedia(chatId: Long, aroundMessageId: Long): List<KxMediaItem> = emptyList()
+    /** The album (same media album id) that holds [messageId], oldest first; one item when it is not an album. */
+    suspend fun albumOf(chatId: Long, messageId: Long): List<KxMediaItem> = emptyList()
+    /** Download progress of a file (snapshot state, starts watching on first read). */
+    fun fileState(fileId: Int): KxFileState = KxFileState()
+    fun cancelDownload(fileId: Int) {}
+    /** Copies a downloaded photo/video into the phone gallery (Pictures/kiroX); null = saved. */
+    suspend fun saveToGallery(fileId: Int, video: Boolean): String? = "Недоступно"
+    /** Opens the system share sheet for a downloaded file; null = shown. */
+    suspend fun shareFile(fileId: Int): String? = "Недоступно"
+    /** Opens a downloaded file in another app (copy via FileProvider); null = opened. */
+    suspend fun openFile(fileId: Int): String? = "Недоступно"
+
+    // Music (old music library + VoicePlayer)
+    /** Music sent in all chats (newest first); [query] filters by title / performer on Telegram's side. */
+    suspend fun musicLibrary(query: String = ""): List<KxTrack> = emptyList()
+    val player: KxPlayerState get() = KxPlayerState()
+    fun playTracks(tracks: List<KxTrack>, index: Int) {}
+    fun playerToggle() {}
+    fun playerNext() {}
+    fun playerPrevious() {}
+    fun playerSeek(fraction: Float) {}
+    fun playerShuffle() {}
+    fun playerRepeat() {}
+    /** Plays (or pauses) one voice message. */
+    fun playVoice(fileId: Int) {}
+
+    // Downloads / files
+    /** Telegram's download list, newest first. */
+    suspend fun downloads(query: String = ""): List<KxDownload> = emptyList()
+    fun pauseDownload(fileId: Int, paused: Boolean) {}
+    /** Removes files from the list and from the phone (they stay in Telegram) — after a confirm. */
+    fun removeDownloads(fileIds: List<Int>) {}
+
+    // Voice + Transcribe
+    /** Voice and round video messages of a chat, newest first. */
+    suspend fun voiceMessages(chatId: Long): List<KxVoiceItem> = emptyList()
+    /** Marks a voice message listened (OpenMessageContent). */
+    fun markListened(chatId: Long, messageId: Long) {}
+    /** Telegram's speech recognition (Premium or a few free tries a week); [onPartial] gets the growing text. */
+    suspend fun transcribe(chatId: Long, messageId: Long, onPartial: (String) -> Unit = {}): KxTextResult = KxTextResult(error = "Недоступно")
+
+    // Own stories
+    suspend fun storyArchive(): List<KxStoryItem> = emptyList()
+    /** Stories shown on the profile page. */
+    suspend fun profileStories(): List<KxStoryItem> = emptyList()
+    suspend fun setStoryOnProfile(storyId: Int, on: Boolean): String? = null
+    /** Up to 3 own stories pinned to the top of the profile. */
+    suspend fun pinnedStoryIds(): List<Int> = emptyList()
+    /** How many stories Telegram lets pin (option pinned_story_count_max). */
+    suspend fun pinnedStoryMax(): Int = 3
+    /** Pins exactly [ids] (≤ 3; they are put on the profile first). */
+    suspend fun pinStories(ids: List<Int>): String? = null
+    /** Recent photos and videos of the phone; empty without gallery access. */
+    suspend fun deviceMedia(limit: Int = 60): List<KxDeviceMedia> = emptyList()
+    /** Posts a 24 h story from a picked item; [audience] 0 everyone, 1 contacts, 2 close friends. */
+    suspend fun postStory(media: KxDeviceMedia, caption: String, audience: Int): String? = null
+    /** Sends a picked photo/video to a chat (VideoTrim / Editor «Отправить»). */
+    suspend fun sendDeviceMedia(chatId: Long, media: KxDeviceMedia, caption: String = ""): String? = null
+    /** User ids of the «Близкие друзья» list. */
+    suspend fun closeFriends(): Set<Long> = emptySet()
+    /** Private chat with a user (created if TDLib does not know it yet); null on failure. */
+    suspend fun privateChat(userId: Long): Long? = userId
+
+    // Calls (old call service state)
+    val activeCall: KxCallState? get() = null
+    val groupCall: KxGroupCallState? get() = null
+    /** Last finished one-to-one call (CallEnd board); null when none in this session. */
+    val lastCall: KxCallState? get() = null
+    fun answerCall() {}
+    fun hangUp() {}
+    fun muteCallMic(muted: Boolean) {}
+    fun turnCallCamera(on: Boolean) {}
+    fun flipCallCamera() {}
+    /** WebRTC video sinks (org.webrtc.VideoSink, typed Any to keep the model free of WebRTC) for the call video; nulls detach. */
+    fun attachCallVideo(remote: Any?, local: Any?) {}
+    fun joinGroupCall(chatId: Long) {}
+    fun leaveGroupCall() {}
+    fun muteGroupMic(muted: Boolean) {}
+    fun turnGroupCamera(on: Boolean) {}
+    /** [problems]: echo, noise, interruptions, distorted, silentLocal, silentRemote, dropped, video. */
+    suspend fun rateCall(callId: Int, rating: Int, comment: String, problems: List<String>): String? = null
+    /** Schedules a video chat in a group/channel at [startAt] (unix); 0 starts now. */
+    suspend fun planVideoChat(chatId: Long, title: String, startAt: Int, rtmp: Boolean = false): String? = null
+
+    // Traffic / space / network / sounds
+    suspend fun networkStats(): KxTraffic? = null
+    suspend fun resetNetworkStats(): String? = null
+    /** (free, total) bytes of the phone storage. */
+    suspend fun deviceSpace(): Pair<Long, Long>? = null
+    suspend fun netCheck(): KxNetCheck? = null
+    /** 0 = no sound, 1 = default, then Telegram's saved notification sounds. */
+    suspend fun notificationSounds(): List<KxSound> = emptyList()
+    /** Sound id of a scope (private / groups / channels), -1 unknown. */
+    suspend fun scopeSound(key: String): Long = -1
+    suspend fun changeScopeSound(key: String, soundId: Long): String? = null
+    fun previewSound(soundId: Long) {}
+
+    // ---- wave3-account (binder-account, additive). Errors: suspend funs answer null = ok / the human error text. ----
+
+    /** kiroX-local text settings (lists joined by '\n'), keys in [KxPrefsAccount]. */
+    val prefTexts: Map<String, String> get() = emptyMap()
+    fun putPrefText(key: String, value: String) {}
+
+    // Folders: [id] 0 = a new folder.
+    suspend fun folderInfo(id: Int): KxFolderInfo? = null
+    suspend fun saveFolder(id: Int, info: KxFolderInfo): String? = null
+    /** Shareable chats of the folder (ids) for an invite link. */
+    suspend fun folderShareableChats(id: Int): List<Long> = emptyList()
+    suspend fun folderLinks(id: Int): List<KxInviteLink> = emptyList()
+    /** Creates a t.me/addlist link; null when it failed (the reason in [error]). */
+    suspend fun createFolderLink(id: Int, chatIds: List<Long>): String? = null
+    fun deleteFolderLink(id: Int, link: String) {}
+
+    // Personal channel in the own profile
+    suspend fun personalChannels(): KxPersonalChannels = KxPersonalChannels()
+    /** 0 removes it from the profile. */
+    suspend fun choosePersonalChannel(chatId: Long): String? = null
+
+    // Change number (sendPhoneNumberCode for a change → checkPhoneNumberCode)
+    /** Sends the code to [phone]: the answer is where it went («Код отправлен по SMS») or an error starting with "!". */
+    suspend fun changeNumberSendCode(phone: String): String = "!Недоступно"
+    suspend fun changeNumberResend(): String = "!Недоступно"
+    suspend fun changeNumberCheck(code: String): String? = null
+
+    // Login e-mail
+    /** Masked login e-mail («a***@gmail.com»), empty when none. */
+    suspend fun loginEmailPattern(): String = ""
+    suspend fun loginEmailSendCode(email: String): String? = null
+    suspend fun loginEmailResend(): String? = null
+    suspend fun loginEmailCheck(code: String): String? = null
+
+    /** «Это я» on a new sign-in alert (ConfirmSession). Terminating is [terminateSession]. */
+    fun confirmSession(id: Long) {}
+
+    /** New Telegram terms waiting for acceptance (updateTermsOfService), null when none. */
+    val termsUpdate: KxTerms? get() = null
+    suspend fun acceptTerms(id: String): String? = null
+
+    // Group anti-spam (supergroups where the user may toggle it); null = not available here.
+    suspend fun antiSpam(chatId: Long): Boolean? = null
+    fun switchAntiSpam(chatId: Long, on: Boolean) {}
+    fun reportAntiSpamMistake(chatId: Long, messageId: Long) {}
+    /** Group: new members see the earlier history. */
+    fun switchHistoryForNew(chatId: Long, on: Boolean) {}
+
+    /** Chat id of a public username (@SpamBot…), null when not found. */
+    suspend fun publicChat(username: String): Long? = null
+
+    // Contacts uploaded from this phone's address book (Telegram keeps them on the server).
+    suspend fun importedContactCount(): Int? = null
+    /** Deletes them from Telegram — only after the user confirmed. */
+    suspend fun clearImportedContacts(): String? = null
+
+    // Name / profile colours (TDLib accent colours)
+    val accentColors: List<KxAccent> get() = emptyList()
+    val profileColors: List<KxAccent> get() = emptyList()
+    /** Own current colour ids: name colour and profile colour (-1 = none). */
+    val myColors: Pair<Int, Int> get() = 0 to -1
+    suspend fun applyNameColor(accentId: Int): String? = null
+    suspend fun applyProfileColor(accentId: Int): String? = null
+
+    // Emoji status (Premium)
+    suspend fun emojiStatuses(): List<KxEmojiStatus> = emptyList()
+    /** [until] unix seconds, 0 = forever; [customEmojiId] 0 removes the status. */
+    suspend fun applyEmojiStatus(customEmojiId: Long, until: Int): String? = null
+
+    // Countries for phone input
+    suspend fun countries(): List<KxCountry> = emptyList()
+    /** Two-letter code by IP (GetCountryCode), empty when unknown. */
+    suspend fun myCountry(): String = ""
+    /** Turns a basic group into a supergroup (needed for slow mode, join requests, history switch); the new chat id or null. */
+    suspend fun upgradeGroup(chatId: Long): Long? = null
+
+    // ---- wave3-chat (binder-chat, additive). suspend funs answer null = ok / the human error text, unless they return data. ----
+
+    /** Text with options (silent, scheduled, effect, formatting, link preview). */
+    fun sendWith(chatId: Long, text: String, options: KxSendOptions) { send(chatId, text, options.replyTo) }
+    /** Who the user may write as in [chatId] (the current one has selected = true); empty when there is no choice. */
+    suspend fun sendAsOptions(chatId: Long): List<KxSender> = emptyList()
+    suspend fun chooseSendAs(chatId: Long, senderId: Long): String? = null
+    /** Effects Telegram offers for messages in private chats. */
+    suspend fun messageEffects(): List<KxEffect> = emptyList()
+    /** Telegram chat themes by name (the name is an emoji). */
+    val chatThemes: List<String> get() = emptyList()
+    /** Sets the chat theme for both sides; empty name removes it. */
+    suspend fun applyChatTheme(chatId: Long, name: String): String? = null
+    /** Results of «@bot query» in [chatId]; null when the bot is not found or not inline. */
+    suspend fun inlineQuery(chatId: Long, bot: String, query: String, offset: String = ""): KxInlineResults? = null
+    fun sendInlineResult(chatId: Long, queryId: Long, resultId: String) {}
+    /** Pinned chats of the main list in this order. */
+    suspend fun reorderPinned(chatIds: List<Long>): String? = null
+    /** How many chats may be pinned in the main list (5, Premium 10). */
+    val pinnedLimit: Int get() = 5
+    suspend fun messageInfo(chatId: Long, messageId: Long): KxMsgInfo? = null
+    /** Who read an own message in a small group (Telegram keeps it 7 days), with reactions; newest first. */
+    suspend fun messageViewers(chatId: Long, messageId: Long): List<KxViewer> = emptyList()
+    suspend fun reactionPanel(chatId: Long, messageId: Long): KxReactionPanel? = null
+    /** The double-tap reaction; null while unknown. */
+    val quickReaction: String? get() = null
+    fun changeQuickReaction(emoji: String) {}
+    /** Replaces the photo/video of an own message with the local file [path]. */
+    suspend fun replaceMedia(chatId: Long, messageId: Long, path: String, video: Boolean): String? = null
+    /** Unread mentions ([reactions] = unread reactions) of [chatId], newest first. */
+    suspend fun unreadMentions(chatId: Long, reactions: Boolean = false): List<KxFound> = emptyList()
+    /** Last messages of a chat without opening it (nothing is marked read); oldest first. */
+    suspend fun peekHistory(chatId: Long, limit: Int = 20): List<KxMessage> = emptyList()
+    suspend fun linkPreview(text: String): KxLinkPreview? = null
+    /** The last message of the local day starting at [unix]; null when nothing was sent that day. */
+    suspend fun messageAtDate(chatId: Long, unix: Int): Long? = null
+    /** Sticker set by its short name (t.me/addstickers/<name>) or id. */
+    suspend fun stickerSetByName(name: String): KxStickerSetInfo? = null
+    suspend fun stickerSetInfo(setId: Long): KxStickerSetInfo? = null
+    suspend fun installedStickerSets(): List<KxStickerSetInfo> = emptyList()
+    suspend fun archivedStickerSets(): List<KxStickerSetInfo> = emptyList()
+    suspend fun changeStickerSet(setId: Long, installed: Boolean, archived: Boolean): String? = null
+    suspend fun reorderStickerSets(ids: List<Long>): String? = null
+    /** [stickerId]: KxSticker.id. */
+    suspend fun favoriteSticker(stickerId: String, favorite: Boolean): String? = null
+    fun sendDice(chatId: Long, emoji: String) {}
+    /** Gifts on the own profile, newest first. */
+    suspend fun receivedGifts(): List<KxReceivedGift> = emptyList()
+    suspend fun keepGift(giftId: String, saved: Boolean): String? = null
+    /** Converts a gift to stars for good — only after the user confirmed. */
+    suspend fun sellGift(giftId: String): String? = null
+    /** Sends a contact card ([userId] 0 = not on Telegram). */
+    fun sendContact(chatId: Long, userId: Long, phone: String, first: String, last: String) {}
+    /** Private note about a user (only you see it); null when unknown. */
+    suspend fun userNote(userId: Long): String? = null
+    suspend fun saveUserNote(userId: Long, text: String): String? = null
+    /** Adds a Telegram user to contacts under your own name for them. */
+    suspend fun addContactById(userId: Long, first: String, last: String, sharePhone: Boolean): String? = null
+    suspend fun sharePhone(userId: Long): String? = null
+    /** Telegram's report flow: call with empty [optionId] first, then with the picked option / the text. */
+    suspend fun reportChat(chatId: Long, messageIds: List<Long>, optionId: String = "", text: String = ""): KxReportStep = KxReportStep(error = "Недоступно")
+    /** Leaves a group or channel (the chat stays only if it is public) — only after the user confirmed. */
+    suspend fun leaveChat(chatId: Long): String? = null
+    /** Current auto-delete timer of [chatId] in seconds (0 = off); null when unknown. */
+    suspend fun autoDeleteOf(chatId: Long): Int? = null
+    /** Timer for new chats you start (0 = off); null when unknown. */
+    suspend fun defaultAutoDelete(): Int? = null
+    suspend fun changeDefaultAutoDelete(seconds: Int): String? = null
+    suspend fun loadChatNotify(chatId: Long): KxChatNotify? = null
+    suspend fun saveChatNotify(chatId: Long, value: KxChatNotify): String? = null
+    suspend fun checklist(chatId: Long, messageId: Long): KxChecklist? = null
+    /** Needs Premium: TDLib answers an error otherwise. */
+    suspend fun sendChecklist(chatId: Long, title: String, tasks: List<String>, othersCanAdd: Boolean, othersCanMark: Boolean): String? = null
+    suspend fun markChecklist(chatId: Long, messageId: Long, done: List<Int>, notDone: List<Int>): String? = null
+    /** Photos and videos sent on this day in earlier years (newest year first). */
+    suspend fun memories(): List<KxFound> = emptyList()
+    suspend fun recommendedChats(): List<KxPublicChat> = emptyList()
+    suspend fun searchPublicChats(query: String): List<KxPublicChat> = emptyList()
+    suspend fun similarChats(chatId: Long): List<KxPublicChat> = emptyList()
+    /** Contacts' birthdays, the nearest first. */
+    suspend fun birthdays(): List<KxBirthday> = emptyList()
+    /** Tap on a big animated emoji: Telegram plays the effect on both sides. */
+    fun clickBigEmoji(chatId: Long, messageId: Long) {}
+    /** «Показывать чувствительное» (18+): null when Telegram does not let this account change it. */
+    val sensitiveAllowed: Boolean? get() = null
+    fun allowSensitive(on: Boolean) {}
+    /** Any text translated into [toLang]; null when it failed. */
+    suspend fun translateText(text: String, toLang: String): String? = null
+    /** Links, mentions, hashtags, e-mails, phone numbers… found in [text] by Telegram. */
+    suspend fun textEntities(text: String): List<KxEntity> = emptyList()
+    suspend fun chatFacts(chatId: Long): KxChatFacts? = null
+    /** Sends a photo that can be opened once (private chats only: elsewhere the answer is «Только в личных чатах»). */
+    suspend fun sendViewOnce(chatId: Long, path: String): String? = null
 }

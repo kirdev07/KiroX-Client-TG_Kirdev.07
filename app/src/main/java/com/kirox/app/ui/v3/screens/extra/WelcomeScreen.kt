@@ -38,6 +38,27 @@ fun WelcomeScreen(ctx: KxScreenCtx) {
     val last = 3
     var i by rememberSaveable { mutableIntStateOf(0) }
     var perms by remember { mutableStateOf(listOf(false, false, false)) }
+    // wave3: on the real app the buttons ask Android for the permission (only when tapped). Contacts: kiroX has no READ_CONTACTS — honest toast.
+    val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val context = androidx.compose.ui.platform.LocalContext.current
+    fun granted(p: String) = androidx.core.content.ContextCompat.checkSelfPermission(context, p) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    val notifPerm = if (android.os.Build.VERSION.SDK_INT >= 33) android.Manifest.permission.POST_NOTIFICATIONS else null
+    LaunchedEffect(Unit) { if (!demo) perms = listOf(notifPerm?.let { granted(it) } ?: true, false, granted(android.Manifest.permission.RECORD_AUDIO)) }
+    var asking by remember { mutableIntStateOf(-1) }
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { ok ->
+        val k = asking
+        if (k >= 0) perms = perms.toMutableList().also { it[k] = ok }
+        if (!ok) ctx.toast("Можно включить позже в настройках Android")
+    }
+    fun ask(k: Int) {
+        if (demo) { perms = perms.toMutableList().also { it[k] = !it[k] }; return }
+        if (perms[k]) return
+        when (k) {
+            0 -> if (notifPerm == null) perms = perms.toMutableList().also { it[0] = true } else { asking = 0; launcher.launch(notifPerm) }
+            1 -> ctx.toast("kiroX не загружает контакты телефона — друзей покажет официальный Telegram")
+            else -> { asking = 2; launcher.launch(android.Manifest.permission.RECORD_AUDIO) }
+        }
+    }
     var done by rememberSaveable { mutableStateOf(false) }
     val reduced = LocalKxReducedMotion.current
     Box(Modifier.fillMaxSize().background(ExBg)) {
@@ -49,7 +70,7 @@ fun WelcomeScreen(ctx: KxScreenCtx) {
                     WSlide(w) { WelcomeArt() ; WText("Добро пожаловать в kiroX", "Все ваши чаты из Telegram уже здесь. Тот же аккаунт, новый вид.") }
                     WSlide(w) { ThemesArt(); WText("Сделайте под себя", "Темы, обои для каждого чата, свой цвет и стеклянная нижняя панель.") }
                     WSlide(w) { FeatsArt(); WText("Больше возможностей", "Код-пароль, музыка, переводчик и функции, которых нет в обычном клиенте.") }
-                    WSlide(w) { Perms(perms) { k -> perms = perms.toMutableList().also { it[k] = !it[k] } } }
+                    WSlide(w) { Perms(perms) { k -> ask(k) } }
                 }
             }
             if (i < last) ExPill("Пропустить", Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp), height = 36.dp, bg = Kx.w(.06f), ink = Kx.text2,

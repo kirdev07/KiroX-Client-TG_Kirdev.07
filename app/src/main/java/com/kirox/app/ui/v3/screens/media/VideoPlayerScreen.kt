@@ -42,6 +42,12 @@ private fun mm2(n: Float) = "${(n / 60).toInt().toString().padStart(2, '0')}:${(
 /** Board «Видеоплеер»: video placeholder (slow pan), double-tap skip zones, chapter segments, speed, chapter list. */
 @Composable
 fun VideoPlayerScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → the video of ctx.arg = "chatId:messageId", chapters from caption
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoVideoPlayerScreen(ctx) else RealVideoPlayer(ctx)
+}
+
+@Composable
+private fun DemoVideoPlayerScreen(ctx: KxScreenCtx) {
     var t by remember { mutableFloatStateOf(262f) }
     var play by remember { mutableStateOf(true) }
     var sp by remember { mutableIntStateOf(1) }

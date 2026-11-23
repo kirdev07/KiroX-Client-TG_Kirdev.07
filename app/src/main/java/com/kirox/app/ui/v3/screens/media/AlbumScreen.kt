@@ -60,6 +60,12 @@ val AlbumPhotos = listOf(
 /** Board «Альбом»: chat with an album bubble (2+1 grid, +N), album grid with select, save/forward. */
 @Composable
 fun AlbumScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → the album of ctx.arg = "chatId:messageId"
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoAlbumScreen(ctx) else RealAlbum(ctx)
+}
+
+@Composable
+private fun DemoAlbumScreen(ctx: KxScreenCtx) {
     val P = AlbumPhotos
     var grid by remember { mutableStateOf(false) }
     var selecting by remember { mutableStateOf(false) }

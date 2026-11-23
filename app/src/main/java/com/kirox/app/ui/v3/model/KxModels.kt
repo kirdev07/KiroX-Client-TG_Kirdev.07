@@ -293,3 +293,224 @@ data class KxPostStats(val views: Int, val forwards: Int, val reactions: Int, va
 /** [type]: "SOCKS5", "HTTP" or "MTProto". */
 @Immutable
 data class KxProxy(val id: Int, val server: String, val port: Int, val type: String, val enabled: Boolean = false)
+
+// wave3-media ---------------------------------------------------------------------------------
+
+/** A photo or video of a chat (viewer, album, video player). [media]: full photo / downloaded video path. */
+@Immutable
+data class KxMediaItem(
+    val chatId: Long, val messageId: Long, val video: Boolean = false,
+    val media: String? = null, val thumb: String? = null, val fileId: Int = 0,
+    /** Seconds of a video. */
+    val duration: Int = 0, val aspect: Float = 0f, val size: Long = 0,
+    val sender: String = "", val time: String = "", val caption: String = "", val albumId: Long = 0,
+    val canDelete: Boolean = false, val canDeleteForAll: Boolean = false, val canForward: Boolean = true, val canSave: Boolean = true,
+    /** Video chapters from caption timecodes («0:00 Вступление»): (second, title). */
+    val chapters: List<Pair<Int, String>> = emptyList(),
+)
+
+/** Download state of one file; [path] once the whole file is on the phone. */
+@Immutable
+data class KxFileState(val path: String? = null, val downloaded: Long = 0, val total: Long = 0, val downloading: Boolean = false) {
+    val fraction: Float get() = if (total > 0) (downloaded.toFloat() / total).coerceIn(0f, 1f) else 0f
+}
+
+/** A music file sent in some chat. */
+@Immutable
+data class KxTrack(val chatId: Long, val messageId: Long, val title: String, val performer: String = "", val chatTitle: String = "",
+                   val duration: Int = 0, val fileId: Int = 0, val size: Long = 0, val cover: String? = null, val date: String = "")
+
+/** The app's music / voice player. [repeat]: 0 off, 1 all, 2 one. */
+@Immutable
+data class KxPlayerState(val track: KxTrack? = null, val playing: Boolean = false, val positionMs: Long = 0, val durationMs: Long = 0,
+                         val shuffle: Boolean = false, val repeat: Int = 0, val loading: Boolean = false, val source: String = "",
+                         val queue: List<KxTrack> = emptyList())
+
+/** A file in Telegram's download list (SearchFileDownloads). */
+@Immutable
+data class KxDownload(val fileId: Int, val chatId: Long, val messageId: Long, val name: String, val kind: KxMsgKind, val size: Long,
+                      val downloaded: Long = 0, val paused: Boolean = false, val done: Boolean = false, val path: String? = null,
+                      val thumb: String? = null, val chatTitle: String = "", val time: String = "", val addedAt: Int = 0)
+
+/** A voice (or round video) message of a chat. */
+@Immutable
+data class KxVoiceItem(val chatId: Long, val messageId: Long, val sender: String, val out: Boolean, val time: String, val seconds: Int,
+                       val waveform: List<Float> = emptyList(), val listened: Boolean = true, val fileId: Int = 0, val path: String? = null,
+                       val transcript: String? = null, val video: Boolean = false, val date: Int = 0)
+
+/** An own story (archive / profile). [month] for grouping («Ноябрь 2026»). */
+@Immutable
+data class KxStoryItem(val id: Int, val date: String, val media: String? = null, val video: Boolean = false, val caption: String = "",
+                       val views: Int = 0, val reactions: Int = 0, val onProfile: Boolean = false, val active: Boolean = false,
+                       val month: String = "", val unix: Int = 0, val fileId: Int = 0)
+
+/** A photo or video on the phone (MediaStore). [uri]: content uri as text. */
+@Immutable
+data class KxDeviceMedia(val uri: String, val video: Boolean, val durationMs: Long = 0)
+
+enum class KxCallPhase { Calling, Ringing, Incoming, Connecting, Active, Ended, Failed }
+
+/** The current one-to-one call. [sinceMs]: System.currentTimeMillis when media started (0 = not yet). */
+@Immutable
+data class KxCallState(val id: Int, val peerId: Long, val name: String, val avatar: String? = null, val video: Boolean = false,
+                       val outgoing: Boolean = true, val phase: KxCallPhase = KxCallPhase.Calling, val sinceMs: Long = 0,
+                       val endedSeconds: Int = 0, val emojis: List<String> = emptyList(), val micMuted: Boolean = false,
+                       val cameraOn: Boolean = false, val remoteVideo: Boolean = false, val remoteMuted: Boolean = false,
+                       val signalBars: Int = 4, val reconnecting: Boolean = false, val endReason: String = "", val failure: String = "")
+
+@Immutable
+data class KxCallMember(val key: String, val name: String, val avatar: String? = null, val self: Boolean = false, val speaking: Boolean = false,
+                        val muted: Boolean = true, val hand: Boolean = false, val video: Boolean = false)
+
+/** The video chat this account is in. */
+@Immutable
+data class KxGroupCallState(val chatId: Long, val title: String, val members: List<KxCallMember> = emptyList(), val count: Int = 0,
+                            val muted: Boolean = true, val canUnmute: Boolean = true, val cameraOn: Boolean = false,
+                            val connected: Boolean = false, val reconnecting: Boolean = false, val failure: String = "")
+
+/** Traffic since [since]; [network] 0 mobile, 1 Wi-Fi, 2 roaming; [category] photo/video/voice/music/files/messages/calls/other. */
+@Immutable
+data class KxTrafficRow(val network: Int, val category: String, val sent: Long, val received: Long)
+@Immutable
+data class KxTraffic(val since: String, val rows: List<KxTrafficRow> = emptyList())
+
+/** Result of a network check: [pingMs] to Telegram (null = no answer). */
+@Immutable
+data class KxNetCheck(val online: Boolean, val network: String, val connection: String, val pingMs: Int? = null, val proxy: String? = null,
+                      val proxyPingMs: Int? = null, val dnsOk: Boolean? = null)
+
+/** A notification sound: id 0 = no sound, 1 = default; others are Telegram's saved sounds. */
+@Immutable
+data class KxSound(val id: Long, val title: String, val seconds: Int = 0, val fileId: Int = 0)
+
+/** Text or a human error (transcription). */
+@Immutable
+data class KxTextResult(val text: String? = null, val error: String? = null)
+
+// wave3-account ---------------------------------------------------------------------------------
+
+/** A Telegram chat folder for editing. [colorId] -1 = no colour; include/exclude flags as in TDLib. */
+@Immutable
+data class KxFolderInfo(
+    val title: String, val icon: String = "", val colorId: Int = -1, val chatIds: List<Long> = emptyList(), val excludedIds: List<Long> = emptyList(),
+    val contacts: Boolean = false, val nonContacts: Boolean = false, val groups: Boolean = false, val channels: Boolean = false, val bots: Boolean = false,
+    val excludeMuted: Boolean = false, val excludeRead: Boolean = false, val excludeArchived: Boolean = false,
+    /** Unread chats of the folder right now (preview). */
+    val unread: Int = 0, val shareable: Boolean = false,
+)
+
+/** A channel that can be shown in the own profile. */
+@Immutable
+data class KxPersonalChannel(val chatId: Long, val title: String, val subscribers: Int = 0, val lastPost: String = "", val avatar: String? = null, val colorIndex: Int = -1)
+
+/** [current] chat id shown in the profile (0 = none) and the channels Telegram allows. */
+@Immutable
+data class KxPersonalChannels(val current: Long = 0, val channels: List<KxPersonalChannel> = emptyList())
+
+/** New terms of service: [id] for acceptTerms, [minAge] 0 = none. */
+@Immutable
+data class KxTerms(val id: String, val text: String, val minAge: Int = 0)
+
+/** A Telegram accent colour: [colors] ARGB for the dark theme (1–3 stripes), [premium] = not a built-in one. */
+@Immutable
+data class KxAccent(val id: Int, val colors: List<Int>, val premium: Boolean = false)
+
+/** An emoji status (custom emoji); [sticker] path when downloaded, [emoji] the plain fallback. */
+@Immutable
+data class KxEmojiStatus(val customEmojiId: Long, val emoji: String, val sticker: String? = null)
+
+/** A country for the phone field: ISO [code], [name], [callingCode] without «+», [flag] emoji. */
+@Immutable
+data class KxCountry(val code: String, val name: String, val callingCode: String, val flag: String = "")
+
+// wave3-chat (binder-chat) -----------------------------------------------------------------------
+
+/** How a message goes out. [at]: 0 = now, unix time = scheduled, -1 = when the other person comes online.
+ *  [effectId]: KxEffect.id (private chats). [previewLarge]: null = Telegram decides. */
+@Immutable
+data class KxSendOptions(
+    val replyTo: Long? = null, val silent: Boolean = false, val at: Int = 0, val effectId: Long = 0,
+    val entities: List<KxEntity> = emptyList(),
+    val noPreview: Boolean = false, val previewAbove: Boolean = false, val previewLarge: Boolean? = null, val previewUrl: String = "",
+)
+
+/** Who a message can be sent as in a group/channel (yourself, the channel, an anonymous admin). */
+@Immutable
+data class KxSender(val id: Long, val name: String, val sub: String = "", val premiumOnly: Boolean = false, val selected: Boolean = false,
+                    val avatar: String? = null, val channel: Boolean = false)
+
+/** Message effect of private chats ([premium] = only with Premium). */
+@Immutable
+data class KxEffect(val id: Long, val emoji: String, val premium: Boolean = false)
+
+/** Inline bot results: send one with sendInlineResult(chatId, [queryId], result.id). */
+@Immutable
+data class KxInlineResults(val queryId: Long, val bot: String, val results: List<KxInlineResult>, val nextOffset: String = "")
+
+/** [kind]: "gif", "sticker", "photo", "video", "article", "other". [thumb] is a local path when downloaded. */
+@Immutable
+data class KxInlineResult(val id: String, val kind: String, val title: String = "", val sub: String = "", val thumb: String? = null)
+
+/** Facts of one message for «Информация». [read]: «Прочитано сегодня в 14:02», empty when unknown; [readNote] explains why not. */
+@Immutable
+data class KxMsgInfo(val sent: String, val edited: String = "", val read: String = "", val readNote: String = "", val views: Int = 0,
+                     val forwards: Int = 0, val via: String = "", val autoDeleteIn: Int = 0)
+
+/** A member who read a message (small groups, last 7 days) and the reaction they left. */
+@Immutable
+data class KxViewer(val userId: Long, val name: String, val time: String, val reaction: String = "", val avatar: String? = null)
+
+/** Reactions to offer for a message. Custom-emoji reactions are left out (they need their own picker). */
+@Immutable
+data class KxReactionPanel(val top: List<String>, val recent: List<String> = emptyList(), val popular: List<String> = emptyList(),
+                           val premiumOnly: Set<String> = emptySet(), val customAllowed: Boolean = false)
+
+@Immutable
+data class KxLinkPreview(val url: String, val site: String, val title: String, val description: String = "", val hasLargeMedia: Boolean = false)
+
+@Immutable
+data class KxStickerSetInfo(val id: Long, val name: String, val title: String, val count: Int, val animated: Boolean = false,
+                            val installed: Boolean = false, val archived: Boolean = false, val official: Boolean = false,
+                            val stickers: List<KxSticker> = emptyList())
+
+/** A gift on the own profile. [id] = receivedGiftId; [stars] = what converting gives (0 = cannot convert). */
+@Immutable
+data class KxReceivedGift(val id: String, val emoji: String, val from: String, val text: String = "", val date: String = "", val stars: Long = 0,
+                          val saved: Boolean = false, val sticker: String? = null)
+
+/** One step of Telegram's report flow: choose one of [options] (id, text), write [textNeeded] text, or [done]. */
+@Immutable
+data class KxReportStep(val done: Boolean = false, val title: String = "", val options: List<Pair<String, String>> = emptyList(),
+                        val textNeeded: Boolean = false, val textOptional: Boolean = false, val optionId: String = "", val error: String? = null)
+
+/** Notification settings of one chat. [muteFor]: seconds left, 0 = sound on; [mentions]/[pinned]: notify about them. */
+@Immutable
+data class KxChatNotify(val muteFor: Int, val preview: Boolean = true, val mentions: Boolean = true, val pinned: Boolean = true, val useDefault: Boolean = true)
+
+@Immutable
+data class KxChecklistTask(val id: Int, val text: String, val done: Boolean = false, val doneBy: String = "")
+
+@Immutable
+data class KxChecklist(val title: String, val tasks: List<KxChecklistTask>, val canAdd: Boolean = false, val canMark: Boolean = false)
+
+/** A public channel / group (recommendations, search, similar). */
+@Immutable
+data class KxPublicChat(val id: Long, val title: String, val username: String = "", val members: Int = 0, val channel: Boolean = true,
+                        val joined: Boolean = false, val avatar: String? = null, val verified: Boolean = false)
+
+/** A contact's birthday; [daysLeft] 0 = today. [year] 0 = hidden. */
+@Immutable
+data class KxBirthday(val userId: Long, val name: String, val day: Int, val month: Int, val year: Int = 0, val daysLeft: Int = 0, val avatar: String? = null)
+
+/** Own role and marks of a group/channel. [linkedChatId]: discussion group of a channel (0 = none). */
+@Immutable
+data class KxChatFacts(val creator: Boolean = false, val admin: Boolean = false, val verified: Boolean = false, val scam: Boolean = false,
+                       val fake: Boolean = false, val linkedChatId: Long = 0)
+
+/** kiroX-local chat settings (KxStore.prefs / putPref). */
+object KxChatPrefs {
+    /** Seconds a sent text waits so «Отменить» can take it back (0 = off). */
+    const val UNDO_SEND = "c3.undoSend"
+    /** 1 = ask before opening a link whose text and address differ. */
+    const val LINK_WARN = "c3.linkWarn"
+}

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,7 +29,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — chat.availableMessageSenders / setChatMessageSender for groups that allow sending as a channel.
+// Demo identities. Real chat (arg = chat id): store.sendAsOptions / chooseSendAs (GetChatAvailableMessageSenders / SetChatMessageSender), real send.
 private data class SaId(val n: String, val l: String, val a: Color, val b: Color?, val sub: String, val ch: Boolean, val ok: Boolean)
 
 private val SA_IDS = listOf(
@@ -43,23 +44,43 @@ private data class SaSent(val id: Int, val text: String, val who: SaId)
 /** SendAs board: the avatar left of the composer picks who writes to the group (you or one of your channels). */
 @Composable
 fun SendAsScreen(ctx: KxScreenCtx) {
-    var cur by remember { mutableIntStateOf(1) }
-    var menu by remember { mutableStateOf(true) }
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live && chatId == null) { C3NeedChat(ctx, "Отправка от имени"); return }
+    val live = chatId != null
+    val peek = c3Peek(ctx.store, chatId)
+    val scope = rememberCoroutineScope()
+    var reload by remember { mutableIntStateOf(0) }
+    val senders = if (live) c3Load(chatId, reload) { ctx.store.sendAsOptions(chatId!!) } else null
+    val premium = ctx.store.me.premium
+    val palette = listOf(Kx.accentMid, Color(0xFF2F6E9E), Color(0xFF3F9A6C), Color(0xFFB07A2E), Color(0xFF6A4C9C))
+    val ids = if (!live) SA_IDS else senders.orEmpty().mapIndexed { i, s ->
+        SaId(if (s.id == ctx.store.me.id) "Вы" else s.name, s.name.take(1).uppercase().ifEmpty { "?" }, palette[i % palette.size], if (i == 0) Kx.accentDeep else null,
+            if (s.premiumOnly && !premium) "${s.sub} · нужен Premium" else s.sub.replaceFirstChar { it.uppercase() }, s.channel || s.id < 0, !s.premiumOnly || premium)
+    }
+    var curDemo by remember { mutableIntStateOf(1) }
+    var picked by remember { mutableStateOf<Int?>(null) }
+    val cur = if (live) picked ?: senders.orEmpty().indexOfFirst { it.selected }.coerceAtLeast(0) else curDemo
+    var menu by remember { mutableStateOf(!live) }
     val sent = remember { mutableStateListOf<SaSent>() }
     var k by remember { mutableIntStateOf(0) }
     var n by remember { mutableIntStateOf(0) }
-    val c = SA_IDS[cur]
+    var draft by remember { mutableStateOf("") }
+    if (live && senders != null && ids.isEmpty()) { C3NeedChat(ctx, "Отправка от имени", "В этом чате можно писать только от своего имени."); return }
+    if (live && senders == null) { C3NeedChat(ctx, "Отправка от имени", "Загрузка…"); return }
+    val c = ids[cur.coerceIn(0, ids.lastIndex)]
     val ringC = if (c.ch) Color(0xFF7FB8E0) else Kx.accent
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            MoChatHeader(ctx.back, "A", Color(0xFFB07A2E), null, "Android Dev KZ", "4 820 участников")
+            val h = chatId?.let { ctx.store.header(it) }
+            MoChatHeader(ctx.back, (h?.title ?: "A").take(1).uppercase(), Color(0xFFB07A2E), null, h?.title ?: "Android Dev KZ", h?.status ?: "4 820 участников")
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val w = maxWidth
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Bottom)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
-                        MoLetter("С", Color(0xFF6A4C9C), size = 32.dp, fontSize = 13)
-                        MoIncoming("Кто-нибудь пишет про KMP на русском? Посоветуйте канал", author = "Сергей", authorColor = Kx.premium, modifier = Modifier.widthIn(max = (w - 68.dp) * .78f))
+                    val last = if (live) peek.lastOrNull { !it.out && it.text.isNotBlank() } else null
+                    if (!live || last != null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
+                        MoLetter((last?.sender ?: "С").take(1), Color(0xFF6A4C9C), size = 32.dp, fontSize = 13)
+                        MoIncoming(last?.text ?: "Кто-нибудь пишет про KMP на русском? Посоветуйте канал", last?.time ?: "", author = last?.sender ?: "Сергей", authorColor = Kx.premium, modifier = Modifier.widthIn(max = (w - 68.dp) * .78f))
                     }
                     sent.forEach { m ->
                         key(m.id) {
@@ -94,21 +115,33 @@ fun SendAsScreen(ctx: KxScreenCtx) {
                 Column(Modifier.weight(1f).heightIn(min = 46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.07f)).padding(horizontal = 14.dp, vertical = 6.dp),
                     verticalArrangement = Arrangement.Center) {
                     Text("от имени: ${c.n}", style = mts(11, W7, ringC))
-                    Text(SA_DRAFTS[n % SA_DRAFTS.size], style = mts(14))
+                    if (live) MoInput(draft, { draft = it }, "Сообщение", Modifier.fillMaxWidth(), size = 14, singleLine = false)
+                    else Text(SA_DRAFTS[n % SA_DRAFTS.size], style = mts(14))
                 }
                 Box(Modifier.size(46.dp).clip(CircleShape).moAccent().kxClick("Отправить") {
-                    sent.add(SaSent(n, SA_DRAFTS[n % SA_DRAFTS.size], c)); while (sent.size > 3) sent.removeAt(0); n++; menu = false
+                    val t = if (live) draft.trim() else SA_DRAFTS[n % SA_DRAFTS.size]
+                    if (live && t.isEmpty()) { ctx.toast("Сначала напишите сообщение"); return@kxClick }
+                    if (live) { ctx.store.send(chatId!!, t); draft = "" }
+                    sent.add(SaSent(n, t, c)); while (sent.size > 3) sent.removeAt(0); n++; menu = false
                 }, contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(24.dp), tint = MoInk) }
             }
         }
 
         if (menu) MoPopup({ menu = false }, width = 300.dp, bottom = 84.dp, end = false) {
             Text("Писать в группу от имени", style = mts(13, W8, Kx.text2), modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp))
-            SA_IDS.forEachIndexed { i, x ->
+            ids.forEachIndexed { i, x ->
                 val on = cur == i
                 Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).graphicsLayer { alpha = if (x.ok) 1f else .6f }.clip(RoundedCornerShape(16.dp))
                     .background(if (on) Kx.accent.copy(alpha = .12f) else Color.Transparent)
-                    .kxClick(x.n, role = Role.RadioButton) { if (x.ok) { cur = i; menu = false; k++ } }.padding(horizontal = 8.dp, vertical = 6.dp),
+                    .kxClick(x.n, role = Role.RadioButton) {
+                        if (!x.ok) return@kxClick
+                        menu = false; k++
+                        if (!live) curDemo = i else {
+                            picked = i
+                            val id = senders.orEmpty()[i].id
+                            scope.launch { ctx.store.chooseSendAs(chatId!!, id)?.let { ctx.toast(it); picked = null }; reload++ }
+                        }
+                    }.padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     MoLetter(x.l, x.a, x.b, size = 40.dp, square = if (x.ch) 12.dp else null)
                     Column(Modifier.weight(1f)) {

@@ -45,9 +45,16 @@ import kotlinx.coroutines.launch
 /** Board «Почта для входа»: e-mail with domain chips → 6-digit code with keypad, shake, resend timer → confirmed. */
 @Composable
 fun LoginEmailScreen(ctx: KxScreenCtx) {
-    // demo: needs store (setLoginEmailAddress / checkLoginEmailAddressCode / resendLoginEmailAddressCode; ctx.auth email step) — demo accepts 482915
+    // wave3: real store — setLoginEmailAddress / checkLoginEmailAddressCode / resendLoginEmailAddressCode. Telegram lets you
+    // change the login e-mail only when one exists (it asks for the first one during sign-in).
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    var current by remember { mutableStateOf<String?>(null) } // null = loading
+    LaunchedEffect(Unit) { current = store.loginEmailPattern() }
+    val canChange = demo || !current.isNullOrEmpty()
+    var busy by remember { mutableStateOf(false) }
     var st by remember { mutableIntStateOf(0) }
-    var email by remember { mutableStateOf("alex.codes") }
+    var email by remember { mutableStateOf(if (demo) "alex.codes" else "") }
     var code by remember { mutableStateOf("") }
     var err by remember { mutableStateOf("") }
     var left by remember { mutableIntStateOf(59) }
@@ -65,8 +72,9 @@ fun LoginEmailScreen(ctx: KxScreenCtx) {
         if (c.length == 6) {
             code = c
             co.launch {
-                if (c == "482915") { delay(350); st = 2 }
-                else { err = "Неверный код — попробуйте ещё раз"; launch { shake.snapTo(0f); shake.animateTo(1f, tween(400, easing = TEase)); shake.snapTo(0f) }; delay(500); code = "" }
+                val bad = if (demo) (if (c == "482915") null else "Неверный код — попробуйте ещё раз") else store.loginEmailCheck(c)
+                if (bad == null) { delay(350); st = 2 }
+                else { err = bad; launch { shake.snapTo(0f); shake.animateTo(1f, tween(400, easing = TEase)); shake.snapTo(0f) }; delay(500); code = "" }
             }
         } else { code = c; err = "" }
     }
@@ -96,7 +104,9 @@ fun LoginEmailScreen(ctx: KxScreenCtx) {
                 }
             }
             Text(listOf("Почта для входа", "Введите код из письма", "Почта подтверждена")[st], style = KxType.style(22.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 18.dp))
-            Text(listOf("Telegram просит почту, чтобы присылать коды для входа на этот номер.", "Отправили 6 цифр на $masked", "Теперь коды для входа будут приходить на почту.")[st],
+            Text(listOf(if (demo) "Telegram просит почту, чтобы присылать коды для входа на этот номер." else when { current == null -> "Проверяем почту для входа…"
+                    current.isNullOrEmpty() -> "Почты для входа нет. Telegram спрашивает её только при входе в аккаунт — сменить можно будет потом здесь."
+                    else -> "Сейчас коды приходят на $current. Введите новую почту." }, "Отправили 6 цифр на $masked", "Теперь коды для входа будут приходить на почту.")[st],
                 style = KxType.style(14.sp, color = Kx.text3, lineHeight = 20.sp), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
             when (st) {
                 0 -> {
@@ -130,7 +140,7 @@ fun LoginEmailScreen(ctx: KxScreenCtx) {
                                 .border(1.5.dp, bd, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) { Text(v, style = KxType.style(24.sp, FontWeight.ExtraBold)) }
                         }
                     }
-                    Text(err.ifEmpty { "Для демо: код 482915" }, style = KxType.style(13.sp, color = if (err.isNotEmpty()) Kx.danger else Kx.text4), modifier = Modifier.padding(top = 12.dp).heightIn(min = 18.dp))
+                    Text(err.ifEmpty { if (demo) "Для демо: код 482915" else "" }, style = KxType.style(13.sp, color = if (err.isNotEmpty()) Kx.danger else Kx.text4), modifier = Modifier.padding(top = 12.dp).heightIn(min = 18.dp))
                     Column(Modifier.padding(top = 16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del").chunked(3).forEach { row ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -145,18 +155,25 @@ fun LoginEmailScreen(ctx: KxScreenCtx) {
                         }
                     }
                     Text(if (left > 0) "Прислать снова через 0:" + left.toString().padStart(2, '0') else "Прислать код ещё раз", style = KxType.style(13.sp, FontWeight.Bold, if (left > 0) Kx.text4 else Kx.accent),
-                        modifier = Modifier.padding(top = 12.dp).kxClick(enabled = left == 0) { timerId++ }.padding(6.dp))
+                        modifier = Modifier.padding(top = 12.dp).kxClick(enabled = left == 0) { if (demo) timerId++ else co.launch { val e = store.loginEmailResend(); if (e == null) timerId++ else err = e } }.padding(6.dp))
                 }
-                else -> Box(Modifier.padding(top = 28.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 25.dp).padding(2.dp)) {
+                else -> if (!demo) Box(Modifier.padding(top = 28.dp).height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.08f)).kxClick { ctx.back() }.padding(horizontal = 20.dp), contentAlignment = Alignment.Center) {
+                    Text("Готово", style = KxType.style(14.sp, FontWeight.Bold, Kx.accent))
+                } else Box(Modifier.padding(top = 28.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 25.dp).padding(2.dp)) {
                     Box(Modifier.height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.08f)).kxClick { st = 0; email = user; code = ""; err = "" }.padding(horizontal = 20.dp), contentAlignment = Alignment.Center) {
                         Text("Макет: показать снова", style = KxType.style(14.sp, FontWeight.Bold, Kx.accent))
                     }
                 }
             }
         }
-        if (st == 0) Box(Modifier.navigationBarsPadding().imePadding().padding(start = 24.dp, end = 24.dp, bottom = 28.dp)) {
-            TPill("Прислать код", Modifier.fillMaxWidth(), h = 56.dp, bg = if (valid) Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)) else solid(Kx.w(.07f)),
-                ink = if (valid) Kx.onAccent else Kx.text4, size = 16) { if (valid) { st = 1; code = ""; err = ""; timerId++ } }
+        if (st == 0 && canChange) Box(Modifier.navigationBarsPadding().imePadding().padding(start = 24.dp, end = 24.dp, bottom = 28.dp)) {
+            TPill(if (busy) "Отправляем…" else "Прислать код", Modifier.fillMaxWidth(), h = 56.dp, bg = if (valid) Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)) else solid(Kx.w(.07f)),
+                ink = if (valid) Kx.onAccent else Kx.text4, size = 16) {
+                if (valid && !busy) {
+                    if (demo) { st = 1; code = ""; err = ""; timerId++ }
+                    else { busy = true; co.launch { val e = store.loginEmailSendCode(email); busy = false; if (e == null) { st = 1; code = ""; err = ""; timerId++ } else ctx.toast(e) } }
+                }
+            }
         }
     }
 }

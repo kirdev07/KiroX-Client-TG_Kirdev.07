@@ -51,6 +51,12 @@ fun DriftGlow(color: Color, diameter: Dp, modifier: Modifier, periodMs: Int, dx:
 /** Board «Входящий звонок»: ringing (rings, slide-to-answer, decline, text reply, remind) → result. */
 @Composable
 fun IncomingScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → incoming call of the call service (answer / decline)
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoIncomingScreen(ctx) else RealCallBoard(ctx, CallBoard.Incoming)
+}
+
+@Composable
+private fun DemoIncomingScreen(ctx: KxScreenCtx) {
     // demo: needs store (incoming call: peer, kind; answer/decline/remind/reply actions)
     var phase by remember { mutableStateOf("ring") }
     var video by remember { mutableStateOf(false) }

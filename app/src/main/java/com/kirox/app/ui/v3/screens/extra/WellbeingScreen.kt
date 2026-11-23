@@ -1,5 +1,8 @@
 package com.kirox.app.ui.v3.screens.extra
 
+import com.kirox.app.ui.v3.model.togglePref
+import com.kirox.app.ui.v3.model.prefOn
+import com.kirox.app.ui.v3.model.pref
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -41,7 +44,8 @@ private fun hm(m: Int) = if (m >= 60) (if (m % 60 == 0) "${m / 60} ч" else "${m
 /** Board «Время в kiroX»: today card (leaf), 7 day bars growing in with the dashed limit line, time per chat, daily limit chips, two switches. */
 @Composable
 fun WellbeingScreen(ctx: KxScreenCtx) {
-    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { com.kirox.app.ui.v3.screens.KxNotYet(ctx, "Цифровой баланс", "kiroX начнёт считать время в приложении на этом телефоне, когда функция будет подключена. Пока данных нет."); return }
+    // wave3: the real store counts minutes kiroX is on screen, per day, on this phone (KxPrefsAccount.USAGE_DAYS); no per-chat split.
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { WellbeingReal(ctx); return }
     // demo: needs store (local usage tracking per day/chat; limit + break reminder + quiet after 23:00 prefs)
     var day by remember { mutableIntStateOf(6) }
     var limit by remember { mutableIntStateOf(60) }
@@ -124,6 +128,61 @@ fun WellbeingScreen(ctx: KxScreenCtx) {
                 Column(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp))) {
                     ExSwitchRow(Icons.Outlined.SelfImprovement, "Напоминать о перерыве", "Мягкое уведомление после 30 минут подряд", breakR, 13) { breakR = !breakR }
                     ExSwitchRow(Icons.Outlined.Bedtime, "Тише после 23:00", "Уведомления без звука, экран чатов приглушён", night, 13) { night = !night }
+                }
+                Text("Считается только на этом телефоне. kiroX никуда не отправляет эти данные.", style = ts(12.sp, color = Kx.text4, lh = 17.4.sp), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 12.dp))
+            }
+        }
+    }
+}
+
+/** wave3: honest local counting — only minutes kiroX was open, from the day counting started. */
+@Composable
+private fun WellbeingReal(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val P = com.kirox.app.ui.v3.model.KxPrefsAccount
+    val mins = (store.prefTexts[P.USAGE_DAYS] ?: "").split(',').mapNotNull { it.trim().toIntOrNull() }.let { if (it.size == 7) it else List(7) { 0 } }
+    val since = store.prefTexts[P.USAGE_SINCE].orEmpty()
+    val names = (6 downTo 0).map { back -> java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -back) } }
+        .map { c -> java.text.SimpleDateFormat("EE", java.util.Locale("ru")).format(c.time).replaceFirstChar { it.uppercase() }.take(2) }
+    var day by remember { mutableIntStateOf(6) }
+    val limit = store.pref(P.WELL_LIMIT)
+    val quiet = store.prefOn(P.WELL_QUIET)
+    val max = (mins.maxOrNull() ?: 0).coerceAtLeast(maxOf(limit, 30)).toFloat() * 1.1f
+    Box(Modifier.fillMaxSize().background(Kx.bg)) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            ExBar("Время в kiroX", { ctx.back() })
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 30.dp)) {
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Kx.w(.04f)).border(1.dp, Kx.accent.copy(alpha = .2f), RoundedCornerShape(24.dp)).padding(16.dp)) {
+                    Text(if (day == 6) "Сегодня" else names[day], style = ts(12.sp, color = Kx.text3))
+                    Text(hm(mins[day]), style = ts(34.sp, FontWeight.ExtraBold, ls = (-1).sp), modifier = Modifier.padding(top = 2.dp))
+                    Text("За неделю: " + hm(mins.sum()), style = ts(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 4.dp))
+                    Row(Modifier.padding(top = 16.dp).fillMaxWidth().height(130.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
+                        mins.forEachIndexed { i, m ->
+                            val over = limit > 0 && m > limit; val on = day == i
+                            Column(Modifier.weight(1f).fillMaxHeight().kxClick("${names[i]}: ${hm(m)}") { day = i }, verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Bottom),
+                                horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(Modifier.fillMaxWidth().height((m / max * 106).coerceAtLeast(2f).dp).clip(RoundedCornerShape(4.dp, 4.dp, 2.dp, 2.dp))
+                                    .background(if (over) Kx.warning.copy(alpha = if (on) 1f else .4f) else Kx.accent.copy(alpha = if (on) 1f else .35f)))
+                                Text(names[i], style = ts(11.sp, if (on) FontWeight.ExtraBold else FontWeight.Medium, if (on) Kx.text else Kx.text4))
+                            }
+                        }
+                    }
+                    Text(if (since.isEmpty()) "Считаем с этого дня: минута засчитывается, когда kiroX открыт на экране." else "Считаем с $since, только пока kiroX на экране.",
+                        style = ts(11.sp, color = Kx.text4), modifier = Modifier.padding(top = 6.dp))
+                }
+                Text("Дневной лимит", style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    WbLimits.forEach { (label, v) ->
+                        val on = limit == v
+                        Box(Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(14.dp)).background(if (on) Kx.accent.copy(alpha = .16f) else Kx.w(.05f))
+                            .border(1.dp, if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), RoundedCornerShape(14.dp)).kxClick(label) { store.putPref(P.WELL_LIMIT, v) }, contentAlignment = Alignment.Center) {
+                            Text(label, style = ts(13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text2))
+                        }
+                    }
+                }
+                Text("Лимит отмечается на графике; kiroX ничего не блокирует.", style = ts(11.sp, color = Kx.text4), modifier = Modifier.padding(start = 4.dp, top = 6.dp))
+                Column(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp))) {
+                    ExSwitchRow(Icons.Outlined.Bedtime, "Тише после 23:00", "Уведомления kiroX без звука до 07:00 (как «Не беспокоить»)", quiet, 13) { store.togglePref(P.WELL_QUIET) }
                 }
                 Text("Считается только на этом телефоне. kiroX никуда не отправляет эти данные.", style = ts(12.sp, color = Kx.text4, lh = 17.4.sp), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 12.dp))
             }

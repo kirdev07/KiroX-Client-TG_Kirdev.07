@@ -169,7 +169,11 @@ fun WidgetsScreen(ctx: KxScreenCtx) {
                 Text("Фон только для примера", style = KxType.style(11.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
             }
         }
-        TSaveBar("Добавить на главный экран", Icons.Rounded.AddToHomeScreen) { toast.show("Android спросит, куда поставить виджет", Icons.Rounded.AddToHomeScreen) }
+        // wave3: stays demo on the real store — kiroX has no home-screen widget (AppWidgetProvider) yet, so nothing to pin.
+        TSaveBar("Добавить на главный экран", Icons.Rounded.AddToHomeScreen) {
+            if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) toast.show("Android спросит, куда поставить виджет", Icons.Rounded.AddToHomeScreen)
+            else toast.show("Виджета kiroX пока нет — это предпросмотр", Icons.Rounded.AddToHomeScreen)
+        }
         TToastHost(toast, 96.dp)
     }
 }

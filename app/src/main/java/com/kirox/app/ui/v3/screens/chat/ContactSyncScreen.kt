@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.chat
 
+import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
@@ -45,7 +46,8 @@ import kotlinx.coroutines.delay
 import kotlin.math.cos
 import kotlin.math.sin
 
-// demo: needs store (contact sync: enabled flag, phone/Telegram counts, last check, recently joined, delete synced contacts, joined/frequent settings)
+// demo values. Real store (wave3): contacts uploaded to Telegram (importedContactCount), Telegram contacts, delete through KxConfirm
+// (clearImportedContacts). kiroX does not upload the phone book itself (no READ_CONTACTS), so the sync switches stay off there.
 private val CsOrb = listOf("А" to "#C0443C", "М" to "#B07A2E", "Л" to "#6A4C9C", "О" to "#5C6661", "Д" to "#2F6E9E", "Е" to "#3F9A6C")
 private val CsFresh = listOf(listOf("Ерлан", "Е", "#3F9A6C", "Сегодня"), listOf("Дана", "Д", "#2F6E9E", "Вчера"), listOf("Сергей Петрович", "С", "#B07A2E", "3 дня назад"))
 
@@ -62,8 +64,18 @@ fun ContactSyncScreen(ctx: KxScreenCtx) {
     val hi = remember { mutableStateListOf<Int>() }
     var sk by remember { mutableIntStateOf(0) }
     LaunchedEffect(sk) { if (sk > 0) { delay(1800); syncing = false } }
-    val on = sync && !wiped
-    val notYet = { ctx.toast("Синхронизация контактов пока недоступна") }
+    var imported by remember { mutableStateOf<Int?>(null) }
+    var confirm by remember { mutableStateOf<com.kirox.app.ui.v3.components.KxConfirm?>(null) }
+    val co = rememberCoroutineScope()
+    LaunchedEffect(Unit) { if (!demo) imported = ctx.store.importedContactCount() }
+    val on = if (demo) sync && !wiped else (imported ?: 0) > 0
+    val notYet = { ctx.toast("kiroX пока не загружает контакты из телефона — это делает официальный Telegram") }
+    fun askWipe() {
+        if (demo) { dialog = true; return }
+        confirm = com.kirox.app.ui.v3.components.KxConfirm("Удалить с серверов?", "Загруженные контакты (${imported ?: 0}) удалятся из Telegram. Контакты в телефоне останутся.", "Удалить") {
+            co.launch { val e = ctx.store.clearImportedContacts(); if (e == null) { imported = 0; ctx.toast("Загруженные контакты удалены") } else ctx.toast(e) }
+        }
+    }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -74,12 +86,13 @@ fun ContactSyncScreen(ctx: KxScreenCtx) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
                 Orbit(on, syncing)
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(if (syncing) "Синхронизируем…" else if (on) "Контакты синхронизированы" else "Синхронизация выключена", style = ts(20, W800))
+                    Text(if (syncing) "Синхронизируем…" else if (!demo) (if (on) "Контакты загружены в Telegram" else "Контактов на серверах нет") else if (on) "Контакты синхронизированы" else "Синхронизация выключена", style = ts(20, W800))
                     Text(if (on) "Номера из телефона сверяются с Telegram, чтобы вы видели знакомых по именам" else "Включите, чтобы находить знакомых и видеть их имена из телефона",
                         style = ts(13, color = Kx.text3, lh = 18.2.sp), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
                 }
                 Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(Triple(if (on) "142" else "—", "в телефоне", Kx.text), Triple(if (on) "38" else "—", "в Telegram", Kx.accent), Triple(if (on) "2 мин" else "—", "с проверки", Kx.text)).forEach { (v, t, c) ->
+                    (if (demo) listOf(Triple(if (on) "142" else "—", "в телефоне", Kx.text), Triple(if (on) "38" else "—", "в Telegram", Kx.accent), Triple(if (on) "2 мин" else "—", "с проверки", Kx.text))
+                    else listOf(Triple(imported?.toString() ?: "…", "загружено", Kx.text), Triple(ctx.store.contacts.size.toString(), "контактов в Telegram", Kx.accent))).forEach { (v, t, c) ->
                         Column(Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(horizontal = 8.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(v, style = ts(22, W800, c)); Text(t, style = ts(11, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
                         }
@@ -89,7 +102,7 @@ fun ContactSyncScreen(ctx: KxScreenCtx) {
                     val rows = listOf(Triple(Icons.Outlined.Sync, "Синхронизировать контакты" to "Нужен доступ к контактам телефона", on),
                         Triple(Icons.Outlined.PersonAdd, "Кто присоединился" to "Сообщать, когда знакомый появится в Telegram", joined),
                         Triple(Icons.Outlined.StarBorder, "Частые контакты" to "Показывать в поиске и при пересылке", suggest))
-                    rows.forEachIndexed { i, (ic, tt, v) ->
+                    rows.let { if (demo) it else it.take(1) }.forEachIndexed { i, (ic, tt, v) ->
                         Row(Modifier.fillMaxWidth().heightIn(min = 62.dp).kxClick(tt.first, role = androidx.compose.ui.semantics.Role.Switch) {
                             if (!demo) { notYet(); return@kxClick }
                             when (i) { 0 -> if (on) sync = false else { sync = true; wiped = false; syncing = true; sk++ }; 1 -> joined = !joined; else -> suggest = !suggest }
@@ -117,7 +130,7 @@ fun ContactSyncScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Row(Modifier.padding(top = 18.dp).fillMaxWidth().heightIn(min = 54.dp).clip(RoundedCornerShape(18.dp)).background(Kx.dangerSolid.copy(alpha = .08f)).kxClick { dialog = true }
+                Row(Modifier.padding(top = 18.dp).fillMaxWidth().heightIn(min = 54.dp).clip(RoundedCornerShape(18.dp)).background(Kx.dangerSolid.copy(alpha = .08f)).kxClick { askWipe() }
                     .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Outlined.DeleteSweep, null, tint = Kx.danger); Text("Удалить загруженные контакты", style = ts(15, W700, Kx.danger), modifier = Modifier.weight(1f))
                 }
@@ -136,12 +149,13 @@ fun ContactSyncScreen(ctx: KxScreenCtx) {
                         Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(24.dp)).background(Kx.w(.08f)).kxClick { dialog = false }, contentAlignment = Alignment.Center) { Text("Отмена", style = ts(15, W700)) }
                         Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(24.dp)).background(Kx.dangerSolid).kxClick {
                             dialog = false
-                            if (demo) { wiped = true; sync = false; hi.clear() } else notYet()
+                            wiped = true; sync = false; hi.clear()
                         }, contentAlignment = Alignment.Center) { Text("Удалить", style = ts(15, W800, Color.White)) }
                     }
                 }
             }
         }
+        confirm?.let { com.kirox.app.ui.v3.components.KxConfirmDialog(it) { confirm = null } }
     }
 }
 

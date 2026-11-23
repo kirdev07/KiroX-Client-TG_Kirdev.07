@@ -51,6 +51,12 @@ private enum class AudioOut(val icon: ImageVector, val label: String, val sheetL
 /** Board «Видеозвонок»: calling → live (remote video placeholder, own PiP, controls, key) → ended. */
 @Composable
 fun VideoCallScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → the app call service (store.activeCall), WebRTC video
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoVideoCallScreen(ctx) else RealCallBoard(ctx, CallBoard.Video)
+}
+
+@Composable
+private fun DemoVideoCallScreen(ctx: KxScreenCtx) {
     // demo: needs store (call state: phase, duration, remote camera, emoji key) — peer «Анна»
     var phase by remember { mutableStateOf("calling") }
     var sec by remember { mutableIntStateOf(0) }

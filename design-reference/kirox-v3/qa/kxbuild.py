@@ -46,7 +46,9 @@ def main():
     gradlew = os.path.join(ROOT, 'gradlew.bat' if os.name == 'nt' else 'gradlew')
     acquire()
     try:
-        p = subprocess.run([gradlew] + args + (['--offline'] if cmd == 'rawfull' else ['--offline', '-q']), cwd=ROOT, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+        # The v3 module outgrew a 2 GB daemon (OOM in compileDebugKotlin): bigger heap for team builds only.
+        mem = ['-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8', '-Pkotlin.daemon.jvmargs=-Xmx3g']
+        p = subprocess.run([gradlew] + mem + args + (['--offline'] if cmd == 'rawfull' else ['--offline', '-q']), cwd=ROOT, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
         out = (p.stdout or '') + (p.stderr or '')
         ol = out.splitlines(); lines = []
         for i, l in enumerate(ol):

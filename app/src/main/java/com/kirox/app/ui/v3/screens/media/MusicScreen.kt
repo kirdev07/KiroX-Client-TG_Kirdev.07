@@ -32,6 +32,8 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 
 private class MusicTrack(val title: String, val artist: String, val secs: Int, val c1: Color, val c2: Color, val glow: Color, val full: Color)
 
@@ -49,6 +51,12 @@ private fun Modifier.cover(t: MusicTrack) = cssGrad(150f, t.c1, t.c2)
 /** Board «Музыка»: library, track list with equalizer, mini player and the full player. */
 @Composable
 fun MusicScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → music from all chats + the app's player (VoicePlayer)
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoMusicScreen(ctx) else RealMusicScreen(ctx)
+}
+
+@Composable
+private fun DemoMusicScreen(ctx: KxScreenCtx) {
     val L = MusicTracks
     var cur by remember { mutableIntStateOf(0) }
     var playing by remember { mutableStateOf(true) }
@@ -166,7 +174,7 @@ private fun Equalizer(clock: Long) {
 }
 
 @Composable
-private fun MiniPlayer(c: MusicTrack, playing: Boolean, progress: Float, clock: Long, modifier: Modifier, onExpand: () -> Unit, onToggle: () -> Unit, onNext: () -> Unit) {
+private fun MiniPlayer(c: MusicTrack, playing: Boolean, progress: Float, clock: Long, modifier: Modifier, onExpand: () -> Unit, onToggle: () -> Unit, onNext: () -> Unit, coverPath: String? = null) {
     val shape = RoundedCornerShape(24.dp)
     // kxBreath 3s × 2, paused with the music.
     val breath = if (clock >= 6000) 1f else pingPong(clock, 3000, 0, 1f, 1.03f)
@@ -175,7 +183,7 @@ private fun MiniPlayer(c: MusicTrack, playing: Boolean, progress: Float, clock: 
         .clip(shape).background(Kx.surface).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
         .border(1.dp, Kx.w(.16f), shape).topHighlight(Kx.w(.35f)).kxClick("Открыть плеер", onClick = onExpand)) {
         Row(Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(50.dp).graphicsLayer { scaleX = breath; scaleY = breath }.clip(RoundedCornerShape(14.dp)).cover(c))
+            Box(Modifier.size(50.dp).graphicsLayer { scaleX = breath; scaleY = breath }.clip(RoundedCornerShape(14.dp)).cover(c)) { KxImage(coverPath, Modifier.matchParentSize(), maxPx = 160) }
             Column(Modifier.weight(1f)) {
                 T(c.title, 14.sp, FontWeight.Bold, maxLines = 1)
                 T(c.artist, 12.sp, color = Color(0xFFA6B5AC))
@@ -194,7 +202,8 @@ private fun MiniPlayer(c: MusicTrack, playing: Boolean, progress: Float, clock: 
 @Composable
 private fun FullPlayer(c: MusicTrack, playing: Boolean, progress: Float, pos: Int, liked: Boolean, shuffle: Boolean, repeat: Int,
                        onCollapse: () -> Unit, onToggle: () -> Unit, onNext: () -> Unit, onPrev: () -> Unit,
-                       onLike: () -> Unit, onShuffle: () -> Unit, onRepeat: () -> Unit) {
+                       onLike: () -> Unit, onShuffle: () -> Unit, onRepeat: () -> Unit,
+                       coverPath: String? = null, source: String = "Вся музыка", showLike: Boolean = true, onSeek: ((Float) -> Unit)? = null) {
     val coverScale by animateFloatAsState(if (playing) 1f else .9f, tween(500, easing = EaseOutBack), label = "cover")
     val playScale by animateFloatAsState(if (playing) 1f else .94f, tween(250, easing = CubicBezierEasing(.34f, 1.5f, .5f, 1f)), label = "play")
     val heart = remember { Animatable(1f) }
@@ -208,7 +217,7 @@ private fun FullPlayer(c: MusicTrack, playing: Boolean, progress: Float, pos: In
             MRoundBtn(Icons.Rounded.KeyboardArrowDown, "Свернуть", bg = Kx.w(.08f), border = null, onClick = onCollapse)
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 androidx.compose.material3.Text("ИГРАЕТ ИЗ", style = ts(11.sp, color = Color.White.copy(alpha = .65f)).copy(letterSpacing = 1.sp))
-                T("Вся музыка", 14.sp, FontWeight.Bold)
+                T(source, 14.sp, FontWeight.Bold, maxLines = 1)
             }
             MRoundBtn(Icons.Rounded.MoreHoriz, "Ещё", bg = Kx.w(.08f), border = null)
         }
@@ -216,19 +225,21 @@ private fun FullPlayer(c: MusicTrack, playing: Boolean, progress: Float, pos: In
             .shadow(60.dp, RoundedCornerShape(34.dp), ambientColor = Color.Black.copy(alpha = .55f), spotColor = Color.Black.copy(alpha = .55f))
             .clip(RoundedCornerShape(34.dp)).cover(c), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Album, null, Modifier.size(90.dp), tint = Color.White.copy(alpha = .25f))
+            KxImage(coverPath, Modifier.matchParentSize(), maxPx = 600)
         }
         Row(Modifier.padding(top = 30.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(Modifier.weight(1f)) {
                 T(c.title, 22.sp, FontWeight.ExtraBold, maxLines = 1)
                 T(c.artist, 15.sp, color = dim)
             }
-            Box(Modifier.size(46.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("В любимое", onClick = onLike), contentAlignment = Alignment.Center) {
+            if (showLike) Box(Modifier.size(46.dp).clip(CircleShape).background(Kx.w(.08f)).kxClick("В любимое", onClick = onLike), contentAlignment = Alignment.Center) {
                 Icon(if (liked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder, null,
                     Modifier.size(24.dp).graphicsLayer { scaleX = heart.value; scaleY = heart.value }, tint = if (liked) Color(0xFFFF8A9A) else Color.White)
             }
         }
         Column(Modifier.padding(top = 20.dp)) {
-            BoxWithConstraints(Modifier.fillMaxWidth().height(14.dp), contentAlignment = Alignment.CenterStart) {
+            BoxWithConstraints(Modifier.fillMaxWidth().height(14.dp).then(if (onSeek != null) Modifier.pointerInput(Unit) {
+                detectTapGestures { o -> onSeek((o.x / size.width).coerceIn(0f, 1f)) } } else Modifier), contentAlignment = Alignment.CenterStart) {
                 val p = progress.coerceIn(0f, 1f)
                 Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color.White.copy(alpha = .18f))) {
                     Box(Modifier.fillMaxWidth(p).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(Color.White))
@@ -260,7 +271,7 @@ private fun FullPlayer(c: MusicTrack, playing: Boolean, progress: Float, pos: In
             }
         }
         Spacer(Modifier.weight(1f))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (showLike) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.10f)).kxClick { }.padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(Icons.Outlined.PhoneAndroid, null, Modifier.size(18.dp), tint = Kx.text)
@@ -273,3 +284,115 @@ private fun FullPlayer(c: MusicTrack, playing: Boolean, progress: Float, pos: In
     }
 }
 
+
+
+/** wave3-media: Music on the real account — tracks from all chats (TelegramMusic), played by the app's VoicePlayer. */
+@Composable
+private fun RealMusicScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    var query by remember { mutableStateOf("") }
+    var searching by remember { mutableStateOf(false) }
+    var filter by remember { mutableIntStateOf(0) }
+    var tracks by remember { mutableStateOf<List<com.kirox.app.ui.v3.model.KxTrack>?>(null) }
+    LaunchedEffect(query) { if (query.isNotEmpty()) delay(400); tracks = store.musicLibrary(query) }
+    val p = store.player
+    var expanded by remember { mutableStateOf(false) }
+    val list = tracks.orEmpty()
+    fun look(t: com.kirox.app.ui.v3.model.KxTrack?): MusicTrack {
+        val base = MusicTracks[(((t?.fileId ?: 0) % MusicTracks.size) + MusicTracks.size) % MusicTracks.size]
+        val secs = if (p.durationMs > 0 && t != null && p.track?.fileId == t.fileId) (p.durationMs / 1000).toInt() else t?.duration ?: 1
+        return MusicTrack(t?.title.orEmpty(), t?.performer?.ifBlank { t.chatTitle }.orEmpty(), maxOf(1, secs), base.c1, base.c2, base.glow, base.full)
+    }
+    val cur = p.track
+    val c = look(cur)
+    val progress = if (p.durationMs > 0) p.positionMs.toFloat() / p.durationMs else 0f
+    val eqClock by rememberPlayClock(p.playing)
+    val byChat = remember(list) { list.groupBy { it.chatTitle.ifBlank { "Чат" } }.toList() }
+
+    Box(Modifier.fillMaxSize().background(Kx.bg)) {
+        Box(Modifier.fillMaxWidth().height(320.dp).ellipseGlow(c.glow, .3f, 0f, .9f, .7f, .7f))
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MRoundBtn(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", highlight = Kx.w(.14f)) { ctx.back() }
+                if (searching) {
+                    androidx.compose.foundation.text.BasicTextField(query, { query = it },
+                        Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.07f)).padding(horizontal = 16.dp, vertical = 12.dp),
+                        singleLine = true, textStyle = ts(15.sp), cursorBrush = androidx.compose.ui.graphics.SolidColor(Kx.accent),
+                        decorationBox = { inner -> if (query.isEmpty()) T("Название или исполнитель", 15.sp, color = Kx.text4); inner() })
+                } else Column(Modifier.weight(1f)) {
+                    T("Из ваших чатов", 12.sp, color = Kx.text4)
+                    T("Музыка", 22.sp, FontWeight.ExtraBold)
+                }
+                MRoundBtn(if (searching) Icons.Outlined.Close else Icons.Outlined.Search, if (searching) "Закрыть поиск" else "Поиск", tint = Kx.text2) {
+                    if (searching) query = ""
+                    searching = !searching
+                }
+            }
+            Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Все", "Чаты").forEachIndexed { i, s ->
+                    val on = i == filter
+                    Box(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (on) Kx.accent else Kx.w(.06f)).kxClick { filter = i }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
+                        T(s, 13.sp, if (on) FontWeight.Bold else FontWeight.SemiBold, if (on) Kx.onAccent else Kx.text2)
+                    }
+                }
+            }
+            if (tracks == null) Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator(color = Kx.accent) }
+            else if (list.isEmpty()) Column(Modifier.fillMaxWidth().padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Rounded.MusicNote, null, Modifier.size(44.dp), tint = Kx.text4)
+                T(if (query.isBlank()) "В чатах пока нет музыки" else "Ничего не нашлось", 15.sp, FontWeight.Bold)
+                T("Здесь появятся аудиофайлы из ваших чатов", 13.sp, color = Kx.text4)
+            }
+            else androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 110.dp)) {
+                item {
+                    Box(Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(26.dp)).cssGrad(150f, 0f to Color(0xFF3E7A5A), .75f to Color(0xFF10241A))
+                        .kxClick { if (!p.shuffle) store.playerShuffle(); store.playTracks(list, list.indices.random()) }.padding(14.dp)) {
+                        Column(Modifier.align(Alignment.BottomStart).padding(end = 44.dp)) {
+                            T("Вся музыка", 17.sp, FontWeight.ExtraBold)
+                            T("${list.size} ${musicPlural(list.size)} · Перемешать", 12.sp, color = Color(0xFFBFDCCB))
+                        }
+                        Box(Modifier.align(Alignment.BottomEnd).size(40.dp).clip(CircleShape).background(Kx.accent), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.Shuffle, null, Modifier.size(24.dp), tint = Kx.onAccent)
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+                val groups = if (filter == 0) listOf("Все треки" to list) else byChat
+                groups.forEach { (title, group) ->
+                    item(key = "h:$title") { T(title, 16.sp, FontWeight.ExtraBold, modifier = Modifier.padding(top = 6.dp, bottom = 6.dp), maxLines = 1) }
+                    items(group.size, key = { "t:$title:${group[it].chatId}:${group[it].messageId}" }) { k ->
+                        val t = group[k]
+                        val active = cur?.fileId == t.fileId
+                        Row(Modifier.fillMaxWidth().height(60.dp).clip(RoundedCornerShape(16.dp)).background(if (active) Kx.accent.copy(alpha = .08f) else Color.Transparent)
+                            .kxClick("${t.title}, ${t.performer}") { store.playTracks(group, k) }.padding(horizontal = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Box(Modifier.size(46.dp).clip(RoundedCornerShape(12.dp)).cover(look(t)), contentAlignment = Alignment.Center) {
+                                KxImage(t.cover, Modifier.matchParentSize(), maxPx = 160)
+                                if (active && p.playing) Equalizer(eqClock)
+                            }
+                            Column(Modifier.weight(1f)) {
+                                T(t.title, 15.sp, FontWeight.SemiBold, if (active) Kx.accent else Kx.text, maxLines = 1)
+                                T(listOf(t.performer, fmtSec(t.duration), if (filter == 0) t.chatTitle else "").filter { it.isNotBlank() }.joinToString(" · "), 12.sp, color = Kx.text4, maxLines = 1)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (!expanded && cur != null) MiniPlayer(c, p.playing, progress, eqClock, Modifier.align(Alignment.BottomCenter),
+            onExpand = { expanded = true }, onToggle = { store.playerToggle() }, onNext = { store.playerNext() }, coverPath = cur.cover)
+        AnimatedVisibility(expanded && cur != null, enter = slideInVertically(tween(450, easing = CubicBezierEasing(.2f, .9f, .25f, 1f))) { it },
+            exit = slideOutVertically(tween(300)) { it }) {
+            androidx.activity.compose.BackHandler { expanded = false }
+            FullPlayer(c, p.playing, progress, (p.positionMs / 1000).toInt(), false, p.shuffle, p.repeat,
+                onCollapse = { expanded = false }, onToggle = { store.playerToggle() }, onNext = { store.playerNext() },
+                onPrev = { store.playerPrevious() }, onLike = {}, onShuffle = { store.playerShuffle() }, onRepeat = { store.playerRepeat() },
+                coverPath = cur?.cover, source = cur?.chatTitle?.ifBlank { null } ?: p.source.ifBlank { "Музыка" }, showLike = false,
+                onSeek = { store.playerSeek(it) })
+        }
+    }
+}
+
+private fun musicPlural(n: Int): String {
+    val a = n % 100; val b = n % 10
+    return if (a in 11..14) "треков" else when (b) { 1 -> "трек"; 2, 3, 4 -> "трека"; else -> "треков" }
+}

@@ -1,5 +1,7 @@
 package com.kirox.app.ui.v3.screens.extra
 
+import com.kirox.app.ui.v3.model.putPrefList
+import com.kirox.app.ui.v3.model.prefList
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -46,7 +48,8 @@ import kotlinx.coroutines.launch
 private const val HdPin = "1990"
 private val HdSubs = mapOf("2" to "ABC", "3" to "DEF", "4" to "GHI", "5" to "JKL", "6" to "MNO", "7" to "PQRS", "8" to "TUV", "9" to "WXYZ")
 private class HdChat(val name: String, val l: String, val c: Color, val time: String, val msg: String, val n: Int)
-// demo: needs store (hidden chat list + local passcode; the pin is the board's example)
+// demo chats + pin. Real store (wave3): the app's passcode (checkPasscode, fingerprint via BiometricPrompt) and the hidden ids in
+// prefTexts[HIDDEN_CHATS]; the v3 chat list leaves them out.
 private val HdChats = listOf(
     HdChat("Лиза", "Л", Color(0xFFC0443C), "21:40", "Сюрприз для мамы готов 🎁", 2),
     HdChat("Банк — поддержка", "Б", Color(0xFF2F6E9E), "вчера", "Ваша заявка рассмотрена", 0),
@@ -65,14 +68,26 @@ fun HiddenScreen(ctx: KxScreenCtx) {
     var search by remember { mutableStateOf(true) }
     var finger by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val realIds = if (demo) emptyList() else store.prefList(com.kirox.app.ui.v3.model.KxPrefsAccount.HIDDEN_CHATS).mapNotNull { it.toLongOrNull() }
+    val realChats = realIds.mapNotNull { id -> (store.chats + store.archivedChats).firstOrNull { it.id == id } ?: store.header(id).takeIf { it.title.isNotBlank() }?.let { h -> com.kirox.app.ui.v3.model.KxChat(id, h.title) } }
+    fun saveIds(ids: List<Long>) = store.putPrefList(com.kirox.app.ui.v3.model.KxPrefsAccount.HIDDEN_CHATS, ids.map { it.toString() })
+    var picking by remember { mutableStateOf(false) }
+    val canFinger = if (demo) finger else store.passcodeSet && store.passcodeBiometric
     fun unlock() { st = "opening"; scope.launch { delay(650); st = "open"; code = ""; tries = 0 } }
     fun press(k: String) {
         if (st != "locked") return
         if (k == "del") { code = code.dropLast(1); bad = 0; return }
-        if (k == "fp") { unlock(); return }
+        if (k == "fp") { if (demo) unlock() else com.kirox.app.ui.auth.askBiometric(context) { unlock() }; return }
         if (code.length >= 4) return
         val c = code + k; code = c; bad = 0
-        if (c.length == 4) scope.launch { delay(250); if (c == HdPin) unlock() else { bad++; tries++; code = "" } }
+        if (c.length == 4) scope.launch {
+            delay(250)
+            val ok = if (demo) c == HdPin else store.passcodeWait() == 0 && store.checkPasscode(c)
+            if (ok) unlock() else { bad++; tries++; code = "" }
+        }
     }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         if (st != "open") {
@@ -112,7 +127,7 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Text("Скрытые чаты", style = ts(22.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 18.dp))
-                Text(if (opening) "Открываем…" else if (bad > 0) (if (tries >= 3) "Неверно. Подсказка: год рождения" else "Неверный код") else "Введите код, чтобы открыть",
+                Text(if (opening) "Открываем…" else if (bad > 0) (if (tries >= 3 && demo) "Неверно. Подсказка: год рождения" else "Неверный код") else "Введите код, чтобы открыть",
                     style = ts(14.sp, color = if (bad > 0) Kx.danger else if (opening) Kx.accent else Kx.text3), modifier = Modifier.padding(top = 6.dp))
                 key(bad) {
                     val sk = if (bad > 0) enter(400) else 1f
@@ -137,12 +152,12 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                         Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                             row.forEach { k ->
                                 val ico = k == "fp" || k == "del"
-                                val label = when (k) { "fp" -> if (finger) "Открыть по отпечатку" else "Пусто"; "del" -> "Стереть"; else -> k }
+                                val label = when (k) { "fp" -> if (canFinger) "Открыть по отпечатку" else "Пусто"; "del" -> "Стереть"; else -> k }
                                 Column(Modifier.weight(1f).height(70.dp).clip(RoundedCornerShape(35.dp)).background(if (ico) Color.Transparent else Kx.w(.06f))
                                     .border(1.dp, if (ico) Color.Transparent else Kx.w(.08f), RoundedCornerShape(35.dp))
-                                    .kxClick(label, enabled = k != "fp" || (finger && ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore)) { press(k) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                    .kxClick(label, enabled = k != "fp" || canFinger) { press(k) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                                     when (k) {
-                                        "fp" -> if (finger) Icon(Icons.Outlined.Fingerprint, null, Modifier.size(34.dp), tint = Kx.accent)
+                                        "fp" -> if (canFinger) Icon(Icons.Outlined.Fingerprint, null, Modifier.size(34.dp), tint = Kx.accent)
                                         "del" -> Icon(Icons.AutoMirrored.Outlined.Backspace, null, Modifier.size(26.dp), tint = Kx.text)
                                         else -> {
                                             Text(k, style = ts(28.sp, FontWeight.Medium, lh = 28.sp))
@@ -154,7 +169,10 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Text("Для примера код 1 9 9 0", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 14.dp))
+                if (demo) Text("Для примера код 1 9 9 0", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 14.dp))
+                else if (!store.passcodeSet) Text("Сначала задайте код-пароль kiroX", style = ts(13.sp, FontWeight.Bold, Kx.accent),
+                    modifier = Modifier.padding(top = 14.dp).kxClick { ctx.open("Lock") }.padding(6.dp))
+                else Text("Код — тот же, что для входа в kiroX", style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 14.dp))
             }
         } else Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.exIn(300, dy = 10.dp).fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -170,9 +188,36 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                     .border(1.dp, Kx.accent.copy(alpha = .2f), RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Outlined.Timer, null, Modifier.size(20.dp), tint = Kx.accent)
-                    Text("Закроются сами через 1 минуту после выхода из kiroX", style = ts(12.sp, color = Kx.text2))
+                    Text(if (demo) "Закроются сами через 1 минуту после выхода из kiroX" else "Закроются, как только вы уйдёте с этого экрана. В общем списке чатов их нет.", style = ts(12.sp, color = Kx.text2))
                 }
-                hidden.toList().forEachIndexed { k, i ->
+                if (!demo) {
+                    if (realChats.isEmpty()) Text("Скрытых чатов нет", style = ts(14.sp, color = Kx.text3), modifier = Modifier.padding(10.dp))
+                    realChats.forEach { c ->
+                        key(c.id) {
+                            Row(Modifier.padding(horizontal = 6.dp, vertical = 10.dp).kxClick(c.title) { ctx.openChat(c.id) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                KxAvatar(c.title, c.id, size = 52.dp, colorIndex = c.colorIndex, photo = c.avatar)
+                                Column(Modifier.weight(1f)) {
+                                    Text(c.title, style = ts(15.sp, FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(c.preview, style = ts(14.sp, color = Kx.text3), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Box(Modifier.size(38.dp).clip(CircleShape).background(Kx.w(.06f)).kxClick("Вернуть ${c.title} в общий список") { saveIds(realIds - c.id) }, contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Outlined.Visibility, null, Modifier.size(20.dp), tint = Kx.text3)
+                                }
+                            }
+                        }
+                    }
+                    Row(Modifier.padding(top = 8.dp).fillMaxWidth().height(48.dp).clip(RoundedCornerShape(24.dp)).background(Kx.accent.copy(alpha = .12f)).kxClick { picking = true },
+                        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) { Text("+ Скрыть чат", style = ts(14.sp, FontWeight.Bold, Kx.accent)) }
+                    if (picking) Column(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.04f))) {
+                        store.chats.filter { it.id !in realIds }.take(40).forEach { c ->
+                            Row(Modifier.fillMaxWidth().kxClick(c.title) { saveIds(realIds + c.id); picking = false }.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                KxAvatar(c.title, c.id, size = 36.dp, colorIndex = c.colorIndex, photo = c.avatar); Text(c.title, style = ts(14.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+                if (demo) hidden.toList().forEachIndexed { k, i ->
                     val c = HdChats[i]
                     key(i) {
                         Row(Modifier.exIn(300, 80 + k * 50, 10.dp).padding(horizontal = 6.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -193,7 +238,7 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Column(Modifier.padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp))) {
+                if (demo) Column(Modifier.padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp))) {
                     listOf(
                         Triple(Icons.Outlined.SearchOff, "Не показывать в поиске" to "Скрытые чаты не найдутся в общем поиске", search) to { search = !search },
                         Triple(Icons.Outlined.NotificationsPaused, "Тихие уведомления" to "Без имени и текста: «Новое сообщение»", fake) to { fake = !fake },

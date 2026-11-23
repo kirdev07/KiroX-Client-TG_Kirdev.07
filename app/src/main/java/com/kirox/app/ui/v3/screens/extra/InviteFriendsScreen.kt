@@ -38,7 +38,8 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store (invite link + phone contacts that are not in Telegram)
+// demo link + people. Real store (wave3): the link is t.me/<username> (or Telegram's download page without one); kiroX does not read the
+// phone book (no READ_CONTACTS), so the «not in Telegram» list stays demo.
 private const val InviteLink = "t.me/+Kx7pQ2mZr4"
 private val InvPeople = listOf(
     listOf("Бабушка", "Б", "B07A2E", "+7 701 ••• •• 44"), listOf("Сосед Ерлан", "Е", "2F6E9E", "+7 777 ••• •• 18"), listOf("Тётя Галя", "Г", "C0443C", "+7 705 ••• •• 90"),
@@ -49,6 +50,10 @@ private const val InvText = "Привет! Я пользуюсь kiroX — эт�
 /** Board «Пригласить друзей»: invite link (copy, SMS / mail / QR / share), phone contacts not in Telegram, invite selected by SMS. */
 @Composable
 fun InviteFriendsScreen(ctx: KxScreenCtx) {
+    val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val username = ctx.store.me.username
+    val link = if (demo) InviteLink else if (username.isNotBlank()) "t.me/$username" else "telegram.org/dl"
+    val text = if (demo) InvText else if (username.isNotBlank()) "Привет! Я в Telegram — пиши мне: https://$link" else "Привет! Я в Telegram, присоединяйся: https://$link"
     val sel = remember { mutableStateMapOf(0 to true) }
     val sent = remember { mutableStateMapOf<Int, Boolean>() }
     var q by remember { mutableStateOf("") }
@@ -78,9 +83,9 @@ fun InviteFriendsScreen(ctx: KxScreenCtx) {
                         Row(Modifier.padding(top = 14.dp).fillMaxWidth().height(48.dp).clip(RoundedCornerShape(16.dp)).background(Color.Black.copy(alpha = .3f)).padding(start = 14.dp, end = 6.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Outlined.Link, null, Modifier.size(20.dp), tint = Kx.accent)
-                            KxLine(InviteLink, ts(14.sp, FontWeight.Bold), Modifier.weight(1f))
+                            KxLine(link, ts(14.sp, FontWeight.Bold), Modifier.weight(1f))
                             ExPill(if (copied > 0) "Готово" else "Копировать", height = 36.dp, size = 13.sp, padH = 12.dp, icon = if (copied > 0) Icons.Outlined.Check else Icons.Outlined.ContentCopy) {
-                                clip.setText(AnnotatedString("https://$InviteLink")); copied++
+                                clip.setText(AnnotatedString("https://$link")); copied++
                             }
                         }
                         Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -88,10 +93,10 @@ fun InviteFriendsScreen(ctx: KxScreenCtx) {
                                 Triple("QR-код", Icons.Rounded.QrCode2, Color(0xFF5C6661)), Triple("Ещё", Icons.Rounded.Share, Color(0xFF6A4C9C))).forEach { (label, ic, c) ->
                                 Column(Modifier.weight(1f).height(62.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.06f)).kxClick(label) {
                                     when (label) {
-                                        "SMS" -> exStart(context, Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")).putExtra("sms_body", InvText))
-                                        "Почта" -> exStart(context, Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).putExtra(Intent.EXTRA_SUBJECT, "kiroX").putExtra(Intent.EXTRA_TEXT, InvText))
-                                        "Ещё" -> exShare(context, InvText)
-                                        else -> toast.show("Откроется «QR-код»", ic)
+                                        "SMS" -> exStart(context, Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")).putExtra("sms_body", text))
+                                        "Почта" -> exStart(context, Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).putExtra(Intent.EXTRA_SUBJECT, "kiroX").putExtra(Intent.EXTRA_TEXT, text))
+                                        "Ещё" -> exShare(context, text)
+                                        else -> if (demo) toast.show("Откроется «QR-код»", ic) else ctx.open("MyQr")
                                     }
                                 }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
                                     Box(Modifier.size(30.dp).clip(RoundedCornerShape(10.dp)).background(c), contentAlignment = Alignment.Center) { Icon(ic, null, Modifier.size(18.dp), tint = Color.White) }
@@ -101,7 +106,9 @@ fun InviteFriendsScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Row(Modifier.padding(top = 14.dp).fillMaxWidth().height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(23.dp))
+                if (!demo) Text("kiroX не читает контакты телефона, поэтому не знает, кого из знакомых ещё нет в Telegram. Отправьте ссылку сами — SMS, почтой или в любом приложении.",
+                    style = ts(13.sp, color = Kx.text3, lh = 18.sp), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp))
+                if (demo) Row(Modifier.padding(top = 14.dp).fillMaxWidth().height(46.dp).clip(RoundedCornerShape(23.dp)).background(Kx.w(.05f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(23.dp))
                     .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Outlined.Search, null, Modifier.size(24.dp), tint = Kx.text3)
                     Box(Modifier.weight(1f)) {
@@ -109,8 +116,8 @@ fun InviteFriendsScreen(ctx: KxScreenCtx) {
                         BasicTextField(q, { q = it }, singleLine = true, textStyle = ts(15.sp), cursorBrush = SolidColor(Kx.accent), modifier = Modifier.fillMaxWidth())
                     }
                 }
-                Text("Ещё не в Telegram · ${pending.size}", style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 6.dp))
-                list.forEachIndexed { k, (i, p) ->
+                if (demo) Text("Ещё не в Telegram · ${pending.size}", style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 6.dp))
+                if (demo) list.forEachIndexed { k, (i, p) ->
                     val isSent = sent[i] == true; val on = sel[i] == true && !isSent
                     Row(Modifier.exIn(250, k * 30, 8.dp).fillMaxWidth().graphicsLayer { alpha = if (isSent) .5f else 1f }.clip(RoundedCornerShape(16.dp))
                         .kxClick(p[0], role = androidx.compose.ui.semantics.Role.Checkbox) { if (!isSent) sel[i] = !(sel[i] ?: false) }.padding(horizontal = 6.dp, vertical = 8.dp),
@@ -128,11 +135,12 @@ fun InviteFriendsScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                if (list.isEmpty()) Text("Никого не нашли", style = ts(14.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 30.dp))
+                if (demo && list.isEmpty()) Text("Никого не нашли", style = ts(14.sp, color = Kx.text4), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 30.dp))
             }
         }
         ExBottom {
-            ExPillCta(if (n > 0) "Пригласить · $n" else "Выберите, кого пригласить", n > 0, Icons.Rounded.Sms) {
+            if (!demo) ExPillCta("Поделиться приглашением", true, Icons.Rounded.Share) { exShare(context, text) }
+            else ExPillCta(if (n > 0) "Пригласить · $n" else "Выберите, кого пригласить", n > 0, Icons.Rounded.Sms) {
                 if (n == 0) return@ExPillCta
                 sel.filter { it.value }.keys.forEach { sent[it] = true }; sel.clear()
                 toast.show(if (n == 1) "Откроется SMS — отправите сами" else "Откроется SMS с $n получателями — отправите сами", Icons.Rounded.Sms)

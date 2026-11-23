@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -114,7 +115,8 @@ fun FoldersScreen(ctx: KxScreenCtx) {
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     list.forEachIndexed { i, f ->
-                        key(f.id) { FolderRow(f, i == 0, i == list.lastIndex, moved?.takeIf { it.first == f.id }?.second, { move(i, -1) }, { move(i, 1) }) }
+                        key(f.id) { FolderRow(f, i == 0, i == list.lastIndex, moved?.takeIf { it.first == f.id }?.second, { move(i, -1) }, { move(i, 1) },
+                            onOpen = { ctx.open("FolderEdit:${f.id}") }, onShare = { ctx.open("FolderShare:${f.id}") }) }
                     }
                     Row(Modifier.fillMaxWidth().height(56.dp).dashedBorder(Kx.accent.copy(alpha = .4f), 18.dp).clip(RoundedCornerShape(18.dp))
                         .kxClick { editing = true; newName = ""; newIcon = "folder" }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
@@ -185,12 +187,12 @@ fun FoldersScreen(ctx: KxScreenCtx) {
 }
 
 @Composable
-private fun FolderRow(f: FFolder, first: Boolean, last: Boolean, flashKey: Long?, onUp: () -> Unit, onDown: () -> Unit) {
+private fun FolderRow(f: FFolder, first: Boolean, last: Boolean, flashKey: Long?, onUp: () -> Unit, onDown: () -> Unit, onOpen: () -> Unit = {}, onShare: () -> Unit = {}) {
     // kxFlash .6s on the moved row, kxRise .3s (8dp) otherwise.
     val flash = remember { Animatable(0f) }
     LaunchedEffect(flashKey) { if (flashKey != null) { flash.snapTo(1f); flash.animateTo(0f, tween(600, easing = CssEase)) } }
     val bg = androidx.compose.ui.graphics.lerp(TileBg, Kx.accent.copy(alpha = .25f), flash.value)
-    Row(Modifier.sRise(0, 300, 8.dp).fillMaxWidth().height(62.dp).clip(RoundedCornerShape(18.dp)).background(bg).padding(start = 12.dp, end = 6.dp),
+    Row(Modifier.sRise(0, 300, 8.dp).fillMaxWidth().height(62.dp).clip(RoundedCornerShape(18.dp)).background(bg).kxClick(f.title, onClick = onOpen).padding(start = 12.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(f.bg), contentAlignment = Alignment.Center) {
             Icon(FolderIcons[f.icon] ?: Icons.Rounded.Folder, null, Modifier.size(21.dp), tint = f.ink)
@@ -198,6 +200,9 @@ private fun FolderRow(f: FFolder, first: Boolean, last: Boolean, flashKey: Long?
         Column(Modifier.weight(1f)) {
             Text(f.title, style = KxType.style(15.sp, FontWeight.SemiBold), maxLines = 1)
             Text(f.sub, style = KxType.style(12.sp, color = Kx.text4), maxLines = 1)
+        }
+        Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).kxClick("Поделиться папкой", onClick = onShare), contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.Share, null, Modifier.size(19.dp), tint = Kx.text2)
         }
         Box(Modifier.size(34.dp).clip(RoundedCornerShape(17.dp)).kxClick("Выше", onClick = onUp), contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.KeyboardArrowUp, null, tint = if (first) Kx.dashed else Kx.text2)

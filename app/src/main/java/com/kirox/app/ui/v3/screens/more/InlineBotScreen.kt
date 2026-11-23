@@ -30,7 +30,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — inline bot queries (getInlineQueryResults / sendInlineQueryResultMessage) with GIF/sticker/article results.
+// Demo bots and results. Real chat (arg = chat id): InlineBotLive asks the real bot (store.inlineQuery / sendInlineResult).
 private val IB_GRADS = listOf(
     listOf(Color(0xFF3F9A6C), Color(0xFF2F6E9E), Color(0xFF6A4C9C)), listOf(Color(0xFFC0443C), Color(0xFFE8B04A), Color(0xFFC0443C)),
     listOf(Color(0xFF2F6E9E), Color(0xFF7FB8E0), Color(0xFF1B2A3A)), listOf(Color(0xFF6A4C9C), Color(0xFFC0443C), Color(0xFF2A1630)),
@@ -50,6 +50,8 @@ private data class IbSent(val id: Int, val via: String, val e: String = "", val 
 /** InlineBot board: «@gif понедельник» in the composer shows inline results above it; tap one to send «через @bot». */
 @Composable
 fun InlineBotScreen(ctx: KxScreenCtx) {
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live) { if (chatId == null) C3NeedChat(ctx, "Инлайн-боты") else InlineBotLive(ctx, chatId); return }
     var bot by remember { mutableStateOf("gif") }
     var open by remember { mutableStateOf(true) }
     val sent = remember { mutableStateListOf<IbSent>() }

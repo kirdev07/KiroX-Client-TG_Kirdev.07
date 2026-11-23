@@ -46,8 +46,32 @@ private val SC_ITEMS = listOf(
 /** Board «Проверка безопасности»: progress ring with verdict, checklist; each step's button opens the screen that fixes it. */
 @Composable
 fun SecurityCheckScreen(ctx: KxScreenCtx) {
-    // demo: needs store (has 2FA password, recovery e-mail pattern, passcode on, stale sessions count, phone privacy) — states are demo
-    val ok = remember { mutableStateMapOf("phone" to true) }
+    // wave3: real store — cloudPassword, passcodeSet, sessions (unconfirmed ones), phone privacy rule; demo keeps the board's states.
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val demoOk = remember { mutableStateMapOf("phone" to true) }
+    val pw = if (demo) null else store.cloudPassword
+    val sessions = if (demo) emptyList() else store.sessions
+    val phoneRule = if (demo) null else store.privacy.firstOrNull { it.key == "PhoneNumber" }
+    val pending = sessions.count { it.passwordPending && !it.current }
+    val ok: Map<String, Boolean> = if (demo) demoOk else mapOf(
+        "twofa" to (pw?.has == true), "mail" to (pw?.hasRecoveryEmail == true), "pass" to store.passcodeSet,
+        "sess" to (sessions.isNotEmpty() && pending == 0), "phone" to (phoneRule != null && phoneRule.level != 0))
+    // Real texts for the ok / to-do lines (null = the board's own).
+    fun okText(x: ScItem): String = if (demo) x.ok else when (x.k) {
+        "mail" -> "Почта добавлена"
+        "pass" -> if (store.passcodeBiometric) "Включён, с отпечатком" else "Включён"
+        "sess" -> "Сеансов: ${sessions.size}, все подтверждены"
+        "phone" -> if (phoneRule?.level == 1) "Только контакты" else "Никто"
+        else -> x.ok
+    }
+    fun todoText(x: ScItem): String = if (demo) x.todo else when (x.k) {
+        "twofa" -> if (pw == null) "Проверяем…" else x.todo
+        "mail" -> if (pw?.has != true) "Сначала включите облачный пароль" else x.todo
+        "sess" -> if (sessions.isEmpty()) "Загружаем сеансы…" else "Неподтверждённых входов: $pending"
+        "phone" -> if (phoneRule == null) "Загружаем…" else "Номер видят все"
+        else -> x.todo
+    }
     val total = SC_ITEMS.size
     val done = SC_ITEMS.count { ok[it.k] == true }
     val pct = done.toFloat() / total
@@ -90,9 +114,9 @@ fun SecurityCheckScreen(ctx: KxScreenCtx) {
                         TIconTile(if (isOk) Icons.Rounded.CheckCircle else x.icon, ic, ic.copy(alpha = .14f), 38.dp, 13.dp)
                         Column(Modifier.weight(1f)) {
                             Text(x.t, style = KxType.style(15.sp, FontWeight.Bold))
-                            Text(if (isOk) x.ok else x.todo, style = KxType.style(12.sp, color = if (isOk) Kx.accent else Kx.text3))
+                            Text(if (isOk) okText(x) else todoText(x), style = KxType.style(12.sp, color = if (isOk) Kx.accent else Kx.text3))
                         }
-                        if (!isOk) TPill(x.btn, h = 34.dp, bg = if (warn) Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)) else solid(Kx.w(.08f)),
+                        if (!isOk) TPill(x.btn.ifEmpty { "Открыть" }, h = 34.dp, bg = if (warn) Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)) else solid(Kx.w(.08f)),
                             ink = if (warn) Kx.onAccent else Kx.text, size = 12) { ctx.open(x.board) }
                     }
                 }

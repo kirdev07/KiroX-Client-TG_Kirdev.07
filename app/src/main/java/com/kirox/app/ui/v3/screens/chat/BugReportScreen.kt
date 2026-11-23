@@ -47,6 +47,7 @@ private val BrKinds: List<Triple<String, ImageVector, String>> = listOf(Triple("
 @Composable
 fun BugReportScreen(ctx: KxScreenCtx) {
     val demo = ctx.store is KxDemoStore
+    val context = androidx.compose.ui.platform.LocalContext.current
     var kind by remember { mutableStateOf("send") }
     var shot by remember { mutableStateOf(true) }
     var mark by remember { mutableStateOf(true) }
@@ -122,8 +123,9 @@ fun BugReportScreen(ctx: KxScreenCtx) {
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 20.dp).fillMaxWidth().height(54.dp).clip(RoundedCornerShape(27.dp)).cssGradient(135f, Kx.accentMid, Kx.accentDeep)
                 .kxClick {
-                    // demo: needs store (send bug report: kind, text, redacted screenshot, tech log) → report id
-                    if (demo) flying = true else ctx.toast("Отправка отчётов пока недоступна")
+                    // wave3: no report server — the real app hands the report (+ crash journal) to Android's share sheet; screenshots are not attached.
+                    if (demo) flying = true
+                    else com.kirox.app.ui.v3.data.KxBugReport.share(context, "Ошибка в kiroX: " + (BrKinds.firstOrNull { it.first == kind }?.third ?: ""), note, log)
                 }, horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                 val fp = remember { Animatable(0f) }
                 LaunchedEffect(flying) { if (flying && !reduced) fp.animateTo(1f, tween(500, easing = FastOutLinearInEasing)) else fp.snapTo(0f) }

@@ -42,7 +42,10 @@ private val NC_DCS = listOf("DC1" to 186, "DC2" to 48, "DC3" to 192, "DC4" to 61
 /** Board «Проверка соединения»: phone → internet → Telegram path, 4 step checks with spinners, data-centre latency bars, verdict; demo toggle norm / blocked. */
 @Composable
 fun NetCheckScreen(ctx: KxScreenCtx) {
-    // demo: needs store (network check: connectivity, DNS, testProxy/pingProxy per DC, download speed, current DC) — results are demo
+    // wave3-media: real account → network type, DNS lookup, TDLib PingProxy (direct + enabled proxy); no speed test, no per-DC list
+    val real = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    var res by remember { mutableStateOf<com.kirox.app.ui.v3.model.KxNetCheck?>(null) }
+    val steps = if (real) NC_STEPS.take(3) else NC_STEPS
     var step by remember { mutableIntStateOf(-1) }
     var bad by remember { mutableStateOf(false) }
     var dc by remember { mutableStateOf(false) }
@@ -50,12 +53,33 @@ fun NetCheckScreen(ctx: KxScreenCtx) {
     LaunchedEffect(runId) {
         if (runId == 0) return@LaunchedEffect
         step = 0; dc = false
-        for (k in 0 until 4) { delay(900); step = k + 1; dc = k + 1 >= 3 }
+        if (real) {
+            res = null
+            val r = ctx.store.netCheck()
+            res = r
+            for (k in 0 until 3) { delay(300); step = k + 1 }
+        } else for (k in 0 until 4) { delay(900); step = k + 1; dc = k + 1 >= 3 }
     }
-    val done = step >= 4
-    val failAt = if (bad) 2 else 99
+    val done = step >= steps.size
+    val r = res
+    val failAt = if (!real) (if (bad) 2 else 99) else when {
+        r == null -> 99
+        !r.online -> 0
+        r.dnsOk == false -> 1
+        r.pingMs == null && r.proxyPingMs == null -> 2
+        else -> 99
+    }
     fun st(i: Int) = if (step < 0 || i > step) "wait" else if (i == step && !done) "run" else if (i >= failAt) "fail" else "ok"
-    val subs = if (bad) listOf("Wi-Fi «Home_5G» · сигнал отличный", "Работает", "Сервер не отвечает — возможно, блокировка", "Не проверялось")
+    val subs = if (real) listOf(
+        r?.let { if (it.online) it.network else "Нет подключения к сети" } ?: "",
+        if (r?.dnsOk == false) "Не удалось найти telegram.org — проблема с DNS" else "Работает",
+        when {
+            r == null -> ""
+            r.pingMs != null -> "Ответ сервера за ${r.pingMs} мс · ${r.connection.lowercase()}"
+            r.proxyPingMs != null -> "Через прокси ${r.proxy} за ${r.proxyPingMs} мс"
+            else -> "Сервер не отвечает — возможно, блокировка"
+        },
+    ) else if (bad) listOf("Wi-Fi «Home_5G» · сигнал отличный", "Работает", "Сервер не отвечает — возможно, блокировка", "Не проверялось")
         else listOf("Wi-Fi «Home_5G» · сигнал отличный", "Работает", "Подключено к DC2 за 48 мс", "18,4 Мбит/с — фото и видео грузятся быстро")
     val running = step >= 0 && !done
     val reduced = LocalKxReducedMotion.current
@@ -97,7 +121,7 @@ fun NetCheckScreen(ctx: KxScreenCtx) {
             }
             Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 110.dp)) {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp))) {
-                    NC_STEPS.forEachIndexed { i, label ->
+                    steps.forEachIndexed { i, label ->
                         val v = st(i)
                         Row(Modifier.fillMaxWidth().bottomLine().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
@@ -118,7 +142,7 @@ fun NetCheckScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                if (dc && !bad) Column(Modifier.tRise(0, 300, 8.dp)) {
+                if (dc && !bad && !real) Column(Modifier.tRise(0, 300, 8.dp)) {
                     TCap("Серверы Telegram · задержка", top = 16.dp)
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp)).padding(horizontal = 14.dp, vertical = 12.dp)) {
                         NC_DCS.forEach { (name, ms) ->
@@ -137,13 +161,14 @@ fun NetCheckScreen(ctx: KxScreenCtx) {
                     }
                 }
                 if (done) {
+                    val bad = if (real) failAt < 99 else bad
                     val c = if (bad) Kx.danger else Kx.accent
                     Row(Modifier.padding(top = 14.dp).tRise(0, 300, 8.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(if (bad) Kx.dangerSolid.copy(alpha = .08f) else Kx.accent.copy(alpha = .08f))
                         .border(1.dp, if (bad) Kx.dangerSolid.copy(alpha = .3f) else Kx.accent.copy(alpha = .3f), RoundedCornerShape(22.dp))
                         .then(if (bad) Modifier.kxClick { ctx.open("Proxy") } else Modifier).padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(if (bad) Icons.Rounded.VpnLock else Icons.Rounded.Verified, null, Modifier.size(28.dp), tint = c)
                         Column(Modifier.weight(1f)) {
-                            Text(if (bad) "Telegram недоступен в этой сети" else "Всё в порядке", style = KxType.style(15.sp, FontWeight.ExtraBold))
+                            Text(if (bad) (if (real && failAt == 0) "Нет интернета" else "Telegram недоступен в этой сети") else "Всё в порядке", style = KxType.style(15.sp, FontWeight.ExtraBold))
                             Text(if (bad) "Включите прокси в «Данные и память → Прокси» или попробуйте мобильный интернет." else "Соединение быстрое и стабильное. Если что-то не грузится — дело не в сети.",
                                 style = KxType.style(13.sp, color = Kx.text2, lineHeight = 19.sp), modifier = Modifier.padding(top = 2.dp))
                         }
@@ -153,7 +178,7 @@ fun NetCheckScreen(ctx: KxScreenCtx) {
         }
         Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(0f to Kx.bg.copy(alpha = 0f), .4f to Kx.bg)).navigationBarsPadding()
             .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.height(54.dp).clip(RoundedCornerShape(27.dp)).background(Kx.w(.06f)).kxClick { bad = !bad; step = -1; dc = false; runId = 0 }.padding(horizontal = 14.dp),
+            if (!real) Row(Modifier.height(54.dp).clip(RoundedCornerShape(27.dp)).background(Kx.w(.06f)).kxClick { bad = !bad; step = -1; dc = false; runId = 0 }.padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Icon(if (bad) Icons.Outlined.WifiOff else Icons.Outlined.Wifi, null, Modifier.size(18.dp), tint = Kx.text3)
                 Text(if (bad) "Пример: блок" else "Пример: норма", style = KxType.style(12.sp, FontWeight.Bold, Kx.text3))

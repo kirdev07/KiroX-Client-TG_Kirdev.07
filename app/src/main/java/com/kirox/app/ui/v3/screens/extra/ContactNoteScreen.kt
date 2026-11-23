@@ -37,7 +37,8 @@ private val CnTags = listOf(Icons.Outlined.Build to "Мастер", Icons.Outlin
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ContactNoteScreen(ctx: KxScreenCtx) {
-    // demo: needs store (addContact with own first/last name; private note = TDLib setUserNote / userFullInfo.note; emoji/tags are local)
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { val u = ctx.arg?.substringBefore(":")?.toLongOrNull(); if (u == null) com.kirox.app.ui.v3.screens.more.C3NeedChat(ctx, "Заметка о контакте", "Откройте это из профиля человека.") else com.kirox.app.ui.v3.screens.more.ContactNoteLive(ctx, u); return }
+    // Demo card. Real account (arg = user / private chat id): ContactNoteLive (own name via addContactById, Telegram private note via userNote / saveUserNote).
     var nick by remember { mutableStateOf("Ерлан сантехник") }
     var emo by remember { mutableIntStateOf(1) }
     val tags = remember { mutableStateListOf(true, false, false, false) }

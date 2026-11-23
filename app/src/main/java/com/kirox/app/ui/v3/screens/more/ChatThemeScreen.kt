@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,7 +29,8 @@ import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store — chat themes (setChatTheme for both / a local per-chat look) and the «тема изменена» service message.
+// Demo themes. Real chat (arg = chat id): Telegram's emoji themes (store.chatThemes) set for both sides with store.applyChatTheme;
+// Telegram has no «only for me» theme, so that switch is hidden on the real account.
 private data class CTheme(val e: String, val name: String, val bgA: Color, val bgB: Color, val outA: Color, val outB: Color, val ink: Color,
                           val inBg: Color, val acc: Color, val motif: List<String>)
 
@@ -45,14 +47,24 @@ private val CT = listOf(
 /** ChatTheme board: pick a theme for one chat (live preview + floating motif), for both or only for me, apply. */
 @Composable
 fun ChatThemeScreen(ctx: KxScreenCtx) {
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live && chatId == null) { C3NeedChat(ctx, "Тема чата"); return }
+    val live = chatId != null
+    val header = chatId?.let { ctx.store.header(it) }
+    val peek = c3Peek(ctx.store, chatId)
+    val scope = rememberCoroutineScope()
+    val names = if (live) ctx.store.chatThemes else emptyList()
+    val looks = CT.drop(1)
+    val themes = if (!live) CT else listOf(CT[0]) + names.mapIndexed { i, n -> CT.firstOrNull { it.e == n }?.copy(name = "Тема $n") ?: looks[i % looks.size].copy(e = n, name = "Тема $n", motif = listOf(n, "✨", n)) }
+    if (live && names.isEmpty()) { C3NeedChat(ctx, "Тема чата", "Telegram пока не прислал список тем. Откройте позже."); return }
     var t by remember { mutableIntStateOf(0) }
-    var cur by remember { mutableIntStateOf(0) }
+    var cur by remember { mutableIntStateOf(if (live) -1 else 0) }
     var both by remember { mutableStateOf(true) }
     var curBoth by remember { mutableStateOf(true) }
     var k by remember { mutableIntStateOf(0) }
     var toast by remember { mutableStateOf("") }
     var tk by remember { mutableIntStateOf(0) }
-    val th = CT[t]
+    val th = themes[t.coerceIn(0, themes.lastIndex)]
     val changed = t != cur
     val bgA by animateColorAsState(th.bgA, tween(500), label = "bgA")
     val bgB by animateColorAsState(th.bgB, tween(500), label = "bgB")
@@ -67,22 +79,28 @@ fun ChatThemeScreen(ctx: KxScreenCtx) {
             Row(Modifier.fillMaxWidth().background(Color(0xFF0D100E)).statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MoRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", bg = Kx.w(.08f), border = null, onClick = ctx.back)
-                MoLetter("А", Color(0xFFC0443C))
+                MoLetter((header?.title ?: "А").take(1).uppercase(), Color(0xFFC0443C))
                 Column(Modifier.weight(1f)) {
-                    Text("Анна", style = mts(16, W8))
-                    Text("в сети", style = mts(12, color = th.acc))
+                    Text(header?.title ?: "Анна", style = mts(16, W8), maxLines = 1)
+                    Text(header?.status ?: "в сети", style = mts(12, color = th.acc), maxLines = 1)
                 }
             }
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(14.dp)) {
                 val w = maxWidth
                 val f = moEnter(400, key = k)
                 Column(Modifier.fillMaxSize().graphicsLayer { alpha = .2f + .8f * f }, verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
-                    if (cur != 0 && curBoth) Box(Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(12.dp)).background(Color.Black.copy(alpha = .3f))
-                        .padding(horizontal = 12.dp, vertical = 4.dp)) { Text("Вы поставили тему ${CT[cur].e} «${CT[cur].name}»", style = mts(12, color = Color(0xFFDDE5E0))) }
-                    MoIncoming("Смотри, можно поставить тему на наш чат 😍", bg = th.inBg, modifier = Modifier.widthIn(max = w * .78f))
-                    Box(Modifier.align(Alignment.End).widthIn(max = w * .78f).clip(RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp)).moLin(135f, th.outA, th.outB)
-                        .padding(horizontal = 12.dp, vertical = 8.dp)) { Text("Давай что-нибудь весёлое!", style = mts(15, color = th.ink)) }
-                    MoIncoming("Выбирай ты 🙂", bg = th.inBg, modifier = Modifier.widthIn(max = w * .78f))
+                    if (cur > 0 && curBoth) Box(Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(12.dp)).background(Color.Black.copy(alpha = .3f))
+                        .padding(horizontal = 12.dp, vertical = 4.dp)) { Text("Вы поставили тему ${themes[cur].e} «${themes[cur].name}»", style = mts(12, color = Color(0xFFDDE5E0))) }
+                    if (!live) {
+                        MoIncoming("Смотри, можно поставить тему на наш чат 😍", bg = th.inBg, modifier = Modifier.widthIn(max = w * .78f))
+                        Box(Modifier.align(Alignment.End).widthIn(max = w * .78f).clip(RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp)).moLin(135f, th.outA, th.outB)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)) { Text("Давай что-нибудь весёлое!", style = mts(15, color = th.ink)) }
+                        MoIncoming("Выбирай ты 🙂", bg = th.inBg, modifier = Modifier.widthIn(max = w * .78f))
+                    } else peek.filter { it.text.isNotBlank() }.takeLast(3).forEach { m ->
+                        if (m.out) Box(Modifier.align(Alignment.End).widthIn(max = w * .78f).clip(RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp)).moLin(135f, th.outA, th.outB)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)) { Text(m.text, style = mts(15, color = th.ink), maxLines = 4) }
+                        else MoIncoming(m.text, m.time, bg = th.inBg, modifier = Modifier.widthIn(max = w * .78f))
+                    }
                 }
             }
             // sheet (part of the layout)
@@ -98,7 +116,7 @@ fun ChatThemeScreen(ctx: KxScreenCtx) {
                     Text(th.name, style = mts(12, color = MoSub))
                 }
                 Row(Modifier.padding(top = 6.dp).horizontalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CT.forEachIndexed { i, x ->
+                    themes.forEachIndexed { i, x ->
                         val on = t == i
                         val ty by animateDpAsState(if (on) (-4).dp else 0.dp, tween(200), label = "ty")
                         val bd by animateColorAsState(if (on) Kx.text else Color.Transparent, tween(200), label = "bd")
@@ -112,17 +130,24 @@ fun ChatThemeScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Row(Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("У обоих · тема Telegram" to true, "Только у меня" to false).forEach { (label, v) ->
+                    listOf("У обоих · тема Telegram" to true, "Только у меня" to false).filter { !live || it.second }.forEach { (label, v) ->
                         val on = both == v
                         Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(14.dp)).background(if (on) Kx.accent.copy(alpha = .18f) else Color.Transparent)
                             .kxClick { both = v }, contentAlignment = Alignment.Center) { Text(label, style = mts(13, W7, if (on) Kx.accent else MoSub), maxLines = 1) }
                     }
                 }
-                Text(if (both) "Анна увидит ту же тему и сообщение о смене" else "Тема будет только на этом телефоне", style = mts(12, color = MoSub),
+                Text(if (both) "${header?.title?.substringBefore(' ') ?: "Анна"} увидит ту же тему и сообщение о смене" else "Тема будет только на этом телефоне", style = mts(12, color = MoSub),
                     modifier = Modifier.padding(top = 6.dp, start = 4.dp, end = 4.dp))
                 Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(26.dp))
                     .then(if (changed) Modifier.moAccent() else Modifier.background(Kx.w(.07f))).kxClick {
-                        if (changed) { cur = t; curBoth = both; toast = if (both) "Тема изменена у вас обоих" else "Тема изменена только у вас"; tk++ }
+                        if (changed && live) {
+                            val pick = t
+                            scope.launch {
+                                val err = ctx.store.applyChatTheme(chatId!!, if (pick == 0) "" else themes[pick].e)
+                                if (err == null) { cur = pick; curBoth = true; toast = if (pick == 0) "Тема убрана у вас обоих" else "Тема изменена у вас обоих" } else toast = err
+                                tk++
+                            }
+                        } else if (changed) { cur = t; curBoth = both; toast = if (both) "Тема изменена у вас обоих" else "Тема изменена только у вас"; tk++ }
                     }, contentAlignment = Alignment.Center) {
                     Text(if (changed) (if (t == 0) "Убрать тему" else "Поставить «${th.name}»") else "Эта тема уже стоит", style = mts(16, W8, if (changed) MoInk else MoMuted))
                 }

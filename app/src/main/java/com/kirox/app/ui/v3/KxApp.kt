@@ -20,6 +20,8 @@ import com.kirox.app.ui.v3.model.KxTab
 import com.kirox.app.ui.v3.screens.*
 import com.kirox.app.ui.v3.theme.KxMotion
 import com.kirox.app.ui.v3.theme.KxTheme
+import com.kirox.app.ui.v3.theme.KxAccessScale
+import com.kirox.app.ui.v3.theme.kxAccessNoMotion
 
 /** Where the v3 app is. Tabs live under [KxRoute.Home]; everything else is pushed on top. */
 sealed interface KxRoute {
@@ -46,11 +48,17 @@ class KxNav(start: KxRoute = KxRoute.Home) {
  * the real app (ui/v3/data). [extraScreen] lets the host render named screens not built in here yet.
  */
 @Composable
-fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean = false) = KxTheme(reducedMotion) {
+fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean = false) = KxTheme(reducedMotion || kxAccessNoMotion(store)) { KxAccessScale(store) {
     val nav = remember { KxNav() }
     val context = androidx.compose.ui.platform.LocalContext.current
     var tab by rememberSaveable { mutableStateOf(KxTab.Chats) }
     var selecting by remember { mutableStateOf(false) }
+    // wave3-account: tabs turned off in the settings (the old app's KiroxTweaks) leave the dock.
+    val hiddenTabs = buildSet { if (store.tweaks["hideCallsTab"] == true) add(KxTab.Calls); if (store.tweaks["hideStoriesTab"] == true) add(KxTab.Stories) }
+    LaunchedEffect(hiddenTabs) { if (tab in hiddenTabs) tab = KxTab.Chats }
+    // New Telegram terms (popup ones): the TermsUpdate board opens once per terms id.
+    val termsId = store.termsUpdate?.id
+    LaunchedEffect(termsId) { if (termsId != null) nav.push(KxRoute.Screen("TermsUpdate")) }
     BackHandler(enabled = nav.stack.size > 1 || tab != KxTab.Chats) { if (!nav.pop()) tab = KxTab.Chats }
     KxScreen(modifier) { KxToastHost {
         val toast = com.kirox.app.ui.v3.components.LocalKxToast.current
@@ -84,11 +92,12 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                     }
                     if (!(selecting && tab == KxTab.Chats)) KxBottomFade(Modifier.align(Alignment.BottomCenter))
                     if (!(selecting && tab == KxTab.Chats)) KxDock(tab, { tab = it }, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 22.dp),
-                        chatsBadge = store.unreadTotal, callsBadge = store.missedCalls, names = store.tabNames)
+                        chatsBadge = store.unreadTotal, callsBadge = store.missedCalls, names = store.tabNames, hidden = hiddenTabs)
                 }
                 is KxRoute.Chat -> ChatScreen(store, route.chatId, onBack = { store.closeChat(route.chatId); nav.pop() },
                     onCall = { v -> val h = store.header(route.chatId); store.call(route.chatId, v); nav.push(KxRoute.Call(route.chatId, h.title, v, h.colorIndex)) },
-                    onProfile = { if (store.header(route.chatId).kind == com.kirox.app.ui.v3.model.KxChatKind.Private) nav.push(KxRoute.Profile(route.chatId)) else nav.push(KxRoute.Screen("Group")) })
+                    onProfile = { if (store.header(route.chatId).kind == com.kirox.app.ui.v3.model.KxChatKind.Private) nav.push(KxRoute.Profile(route.chatId)) else nav.push(KxRoute.Screen("Group")) },
+                    onOpen = { nav.push(KxRoute.Screen(it)) })
                 is KxRoute.Profile -> ProfileScreen(store, route.chatId, onBack = { nav.pop() },
                     onCall = { v -> store.call(route.chatId, v); nav.push(KxRoute.Call(route.chatId, store.peer(route.chatId).name, v, store.peer(route.chatId).colorIndex)) },
                     onSearch = { nav.push(KxRoute.Screen("ChatSearch")) }, onOpen = { nav.push(KxRoute.Screen(it)) })
@@ -105,4 +114,4 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
             }
         }
     } }
-}
+} }

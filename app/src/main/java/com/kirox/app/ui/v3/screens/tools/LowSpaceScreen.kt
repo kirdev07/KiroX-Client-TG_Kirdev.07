@@ -40,17 +40,30 @@ private fun lsFmt(gb: Float) = if (gb >= 1f) String.format(java.util.Locale.US, 
 /** Board «Мало места»: warning bar over the chat list → quick-clean sheet (category bar, checkboxes, progress button) → freed bar. */
 @Composable
 fun LowSpaceScreen(ctx: KxScreenCtx) {
-    // demo: needs store (device free space, storage stats by type — getStorageStatisticsFast/optimizeStorage) — numbers are demo
+    // wave3-media: real account → phone free space (StatFs) + Telegram cache by type (KxStorage), cleaning with store.clearCache
+    val real = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val storage = if (real) ctx.store.storage else null
+    var space by remember { mutableStateOf<Pair<Long, Long>?>(null) }
+    var spaceKey by remember { mutableIntStateOf(0) }
+    if (real) LaunchedEffect(spaceKey) { space = ctx.store.deviceSpace() }
+    val palette = listOf(Kx.premium, Color(0xFF7FB8E0), Kx.warning, Kx.accent, Color(0xFFC9A6FF), Color(0xFFFFAE80), Color(0xFF8FD3AC), Color(0xFF9AA59F))
+    val gib = 1024f * 1024f * 1024f
+    val cats = if (!real) LS_CATS else storage?.byType.orEmpty().filter { it.second > 0 }.sortedByDescending { it.second }
+        .mapIndexed { i, (t, b) -> LsCat(t, t, "копии на телефоне", b / gib, palette[i % palette.size]) }
+    val freeGb = if (real) (space?.first ?: 0L) / gib else 1.1f
     var sheet by remember { mutableStateOf(false) }
-    var on by remember { mutableStateOf(setOf("video", "photo", "other")) }
+    var on by remember { mutableStateOf(if (real) emptySet() else setOf("video", "photo", "other")) }
+    var picked by remember { mutableStateOf(false) }
+    if (real) LaunchedEffect(cats.size) { if (!picked && cats.isNotEmpty()) { picked = true; on = cats.map { it.k }.toSet() } }
     var p by remember { mutableIntStateOf(-1) }
     var freed by remember { mutableFloatStateOf(0f) }
-    val total = LS_CATS.sumOf { it.gb.toDouble() }.toFloat()
-    val sel = LS_CATS.filter { it.k in on }.sumOf { it.gb.toDouble() }.toFloat()
+    val total = cats.sumOf { it.gb.toDouble() }.toFloat()
+    val sel = cats.filter { it.k in on }.sumOf { it.gb.toDouble() }.toFloat()
     val running = p >= 0
     LaunchedEffect(running) {
         if (!running) return@LaunchedEffect
-        while (true) { delay(70); val n = p + 5; if (n >= 100) { p = -1; sheet = false; freed = sel; break } else p = n }
+        if (real) ctx.store.clearCache(on)
+        while (true) { delay(70); val n = p + 5; if (n >= 100) { p = -1; sheet = false; freed = sel; if (real) { ctx.store.refreshStorage(); spaceKey++ }; break } else p = n }
     }
     androidx.activity.compose.BackHandler(sheet && !running) { sheet = false }
 
@@ -68,14 +81,14 @@ fun LowSpaceScreen(ctx: KxScreenCtx) {
                     .kxClick { sheet = true }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Rounded.Storage, null, Modifier.size(24.dp), tint = Kx.warning)
                     Column(Modifier.weight(1f)) {
-                        Text("На телефоне осталось 1,1 ГБ", style = KxType.style(14.sp, FontWeight.ExtraBold))
-                        Text("kiroX может освободить ${lsFmt(total)} — чаты не пострадают", style = KxType.style(12.sp, color = Color(0xFFE8D2A0)))
+                        Text(if (real && space == null) "Считаем место…" else "На телефоне осталось ${lsFmt(freeGb)}", style = KxType.style(14.sp, FontWeight.ExtraBold))
+                        Text(if (real && storage == null) "Считаем кэш Telegram…" else if (total <= 0f) "Кэш Telegram пуст — чистить нечего" else "kiroX может освободить ${lsFmt(total)} — чаты не пострадают", style = KxType.style(12.sp, color = Color(0xFFE8D2A0)))
                     }
                     Icon(Icons.Rounded.ChevronRight, null, Modifier.size(24.dp), tint = Kx.warning)
                 } else Row(m.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.accent.copy(alpha = .08f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(20.dp))
                     .padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Rounded.CheckCircle, null, Modifier.size(24.dp), tint = Kx.accent)
-                    Text("Освобождено ${lsFmt(freed)} · теперь свободно ${lsFmt(1.1f + freed)}", style = KxType.style(14.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
+                    Text(if (real) "Освобождено ~${lsFmt(freed)}" + (space?.let { " · теперь свободно ${lsFmt(it.first / gib)}" } ?: "") else "Освобождено ${lsFmt(freed)} · теперь свободно ${lsFmt(1.1f + freed)}", style = KxType.style(14.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
                     Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).kxClick { freed = 0f }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                         Text("Ещё раз", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent))
                     }
@@ -105,15 +118,15 @@ fun LowSpaceScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.padding(top = 14.dp).fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp)).background(Kx.w(.06f))) {
-                LS_CATS.forEach { c ->
+                cats.forEach { c ->
                     val w by animateFloatAsState(if (c.k in on) c.gb / total else 0f, tween(500, easing = TEase), label = "bw")
                     if (w > 0.001f) Box(Modifier.fillMaxHeight().weight(w).background(c.c).drawBehind { drawLine(Color(0xFF161B18), Offset(size.width - 1f, 0f), Offset(size.width - 1f, size.height), 2f * density) })
                 }
-                val rest = 1f - LS_CATS.filter { it.k in on }.sumOf { (it.gb / total).toDouble() }.toFloat()
+                val rest = 1f - cats.filter { it.k in on }.sumOf { (it.gb / total).toDouble() }.toFloat()
                 if (rest > 0.001f) Spacer(Modifier.weight(rest))
             }
             Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                LS_CATS.forEach { c ->
+                cats.forEach { c ->
                     val sel1 = c.k in on
                     Row(Modifier.fillMaxWidth().heightIn(min = 50.dp).kxClick(role = Role.Checkbox) { if (!running) on = if (sel1) on - c.k else on + c.k }.padding(horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

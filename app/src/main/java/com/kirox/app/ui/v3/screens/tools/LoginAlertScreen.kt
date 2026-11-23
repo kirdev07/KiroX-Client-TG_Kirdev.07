@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.tools
 
+import com.kirox.app.ui.v3.model.KxSession
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -40,7 +41,17 @@ private val LA_CH = listOf(listOf("Анна", "А", "До завтра 👋", "1
 /** Board «Новый вход в аккаунт»: alert card over the chat list (map ping, facts), «Это я» confirmation, «Это не я» sheet ending the session + protect steps. */
 @Composable
 fun LoginAlertScreen(ctx: KxScreenCtx) {
-    // demo: needs store (unconfirmedSession: device, place, time, IP; confirmSession / terminateSession) — the card data is demo
+    // wave3: real store — the unconfirmed session from store.sessions; «Это я» = confirmSession, «Это не я» = terminateSession after KxConfirm.
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val sess = if (demo) null else store.sessions.firstOrNull { it.passwordPending && !it.current }
+    var handled by remember { mutableStateOf<KxSession?>(null) }
+    val shown = sess ?: handled
+    val facts = if (demo || shown == null) listOf(Icons.Outlined.Computer to "Windows · kiroX Desktop", Icons.Outlined.LocationOn to "Алматы, Казахстан", Icons.Outlined.Schedule to "Сегодня в 19:52",
+        Icons.Outlined.Lan to "IP 95.56.•••.•••") else listOf(Icons.Outlined.Computer to listOf(shown.device, shown.app).filter { it.isNotBlank() }.joinToString(" · "),
+        Icons.Outlined.LocationOn to shown.place.ifBlank { "Место неизвестно" }, Icons.Outlined.Schedule to shown.time)
+    var confirm by remember { mutableStateOf<com.kirox.app.ui.v3.components.KxConfirm?>(null) }
+    val rows = if (demo) LA_CH else store.chats.take(6).mapIndexed { i, c -> listOf(c.title, c.title.take(1).uppercase(), c.preview, c.time) to LA_CH[i % LA_CH.size].second }
     var mode by remember { mutableStateOf("ask") }
     var min by remember { mutableIntStateOf(2) }
     var ending by remember { mutableStateOf(true) }
@@ -55,7 +66,16 @@ fun LoginAlertScreen(ctx: KxScreenCtx) {
                 Text("Чаты", style = KxType.style(26.sp, FontWeight.ExtraBold), modifier = Modifier.weight(1f))
                 Icon(Icons.Outlined.Search, null, Modifier.size(24.dp), tint = Kx.text3)
             }
-            if (mode == "ask") {
+            if (mode == "ask" && !demo && shown == null) Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                .background(Kx.accent.copy(alpha = .1f)).border(1.dp, Kx.accent.copy(alpha = .3f), RoundedCornerShape(18.dp)).padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(Icons.Rounded.VerifiedUser, null, Modifier.size(24.dp), tint = Kx.accent)
+                Text("Новых входов, которые ждут проверки, нет", style = KxType.style(13.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
+                Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).kxClick { ctx.open("Devices") }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                    Text("Устройства", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent))
+                }
+            }
+            if (mode == "ask" && (demo || shown != null)) {
                 val drop = remember { Animatable(0f) }
                 LaunchedEffect(Unit) { drop.animateTo(1f, tween(400, easing = CubicBezierEasing(.2f, .8f, .2f, 1f))) }
                 val sh = RoundedCornerShape(24.dp)
@@ -69,7 +89,7 @@ fun LoginAlertScreen(ctx: KxScreenCtx) {
                         }
                         Column(Modifier.weight(1f)) {
                             Text("Новый вход в аккаунт", style = KxType.style(16.sp, FontWeight.ExtraBold))
-                            Text("$min мин назад · проверьте, вы ли это", style = KxType.style(12.sp, color = Kx.text2))
+                            Text(if (demo) "$min мин назад · проверьте, вы ли это" else "${shown?.time.orEmpty()} · проверьте, вы ли это", style = KxType.style(12.sp, color = Kx.text2))
                         }
                     }
                     Row(Modifier.padding(top = 12.dp).height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -85,8 +105,7 @@ fun LoginAlertScreen(ctx: KxScreenCtx) {
                                 .border(2.dp, Kx.warning, CircleShape))
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf(Icons.Outlined.Computer to "Windows · kiroX Desktop", Icons.Outlined.LocationOn to "Алматы, Казахстан", Icons.Outlined.Schedule to "Сегодня в 19:52",
-                                Icons.Outlined.Lan to "IP 95.56.•••.•••").forEach { (ic, t) ->
+                            facts.forEach { (ic, t) ->
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Icon(ic, null, Modifier.size(17.dp), tint = Kx.text3); Text(t, style = KxType.style(13.sp, FontWeight.SemiBold))
                                 }
@@ -95,8 +114,16 @@ fun LoginAlertScreen(ctx: KxScreenCtx) {
                     }
                     Text("Место примерное — определено по IP-адресу.", style = KxType.style(12.sp, color = Kx.text3, lineHeight = 17.sp), modifier = Modifier.padding(top = 10.dp))
                     Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TPill("Это не я", Modifier.weight(1f), h = 48.dp, bg = solid(Kx.dangerSolid), ink = Color.White) { mode = "no" }
-                        TPill("Это я", Modifier.weight(1f), h = 48.dp, bg = solid(Kx.w(.1f)), ink = Kx.text, weight = FontWeight.Bold) { mode = "me" }
+                        TPill("Это не я", Modifier.weight(1f), h = 48.dp, bg = solid(Kx.dangerSolid), ink = Color.White) {
+                            val s = shown
+                            if (demo || s == null) mode = "no"
+                            else confirm = com.kirox.app.ui.v3.components.KxConfirm("Завершить этот сеанс?", "${facts.first().second} потеряет доступ к вашим чатам.", "Завершить") {
+                                handled = s; store.terminateSession(s.id); mode = "no"
+                            }
+                        }
+                        TPill("Это я", Modifier.weight(1f), h = 48.dp, bg = solid(Kx.w(.1f)), ink = Kx.text, weight = FontWeight.Bold) {
+                            shown?.let { if (!demo) { handled = it; store.confirmSession(it.id) } }; mode = "me"
+                        }
                     }
                 }
             }
@@ -105,12 +132,12 @@ fun LoginAlertScreen(ctx: KxScreenCtx) {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(Icons.Rounded.VerifiedUser, null, Modifier.size(24.dp), tint = Kx.accent)
                 Text("Отлично, вход подтверждён", style = KxType.style(13.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
-                Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).kxClick { mode = "ask"; min = 2 }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-                    Text("Ещё раз", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent))
+                Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).kxClick { if (demo) { mode = "ask"; min = 2 } else ctx.back() }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                    Text(if (demo) "Ещё раз" else "Готово", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent))
                 }
             }
             Column(Modifier.fillMaxWidth().weight(1f).alpha(listOp).padding(horizontal = 12.dp)) {
-                LA_CH.forEach { (t, c) ->
+                rows.forEach { (t, c) ->
                     Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(Modifier.size(50.dp).clip(CircleShape).background(c), contentAlignment = Alignment.Center) { Text(t[1], style = KxType.style(18.sp, FontWeight.ExtraBold)) }
                         Column(Modifier.weight(1f)) {
@@ -137,7 +164,7 @@ fun LoginAlertScreen(ctx: KxScreenCtx) {
                         Icon(if (ending) Icons.Rounded.GppMaybe else Icons.Rounded.GppGood, null, Modifier.size(42.dp), tint = if (ending) Kx.warning else Kx.onAccent)
                     }
                     Text(if (ending) "Завершаем чужой сеанс…" else "Сеанс завершён", style = KxType.style(20.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 12.dp))
-                    Text(if (ending) "Windows · Алматы" else "Это устройство больше не видит ваши чаты", style = KxType.style(13.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+                    Text(if (ending) (if (demo) "Windows · Алматы" else facts.first().second) else "Это устройство больше не видит ваши чаты", style = KxType.style(13.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
                 }
                 val cut = remember { Animatable(0f) }
                 LaunchedEffect(Unit) { cut.animateTo(1f, tween(1400, easing = TEase)) }
@@ -157,9 +184,10 @@ fun LoginAlertScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                TPill("Готово", Modifier.padding(top = 14.dp).fillMaxWidth(), h = 52.dp, bg = solid(Kx.w(.08f)), ink = Kx.text, weight = FontWeight.Bold) { mode = "ask"; min = 2 }
+                TPill("Готово", Modifier.padding(top = 14.dp).fillMaxWidth(), h = 52.dp, bg = solid(Kx.w(.08f)), ink = Kx.text, weight = FontWeight.Bold) { if (demo) { mode = "ask"; min = 2 } else ctx.back() }
             }
         }
+        confirm?.let { com.kirox.app.ui.v3.components.KxConfirmDialog(it) { confirm = null } }
     }
 }
 

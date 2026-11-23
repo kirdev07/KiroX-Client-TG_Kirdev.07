@@ -36,6 +36,7 @@ private val FlyEase = CubicBezierEasing(.2f, .7f, .3f, 1f)
 /** BigEmoji board: one emoji = huge and animated; tap it for a full-screen burst the other side sees too. */
 @Composable
 fun BigEmojiScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { val c = ctx.arg?.substringBefore(":")?.toLongOrNull(); if (c == null) C3NeedChat(ctx, "Большой эмодзи") else BigEmojiLive(ctx, c, ctx.arg?.split(":")?.getOrNull(1)?.toLongOrNull()); return }
     val msgs = remember { mutableStateListOf(BeMsg(0, "🥳", false, 1), BeMsg(1, "🎉", true, 1)) }
     var n by remember { mutableIntStateOf(1) }
     var run by remember { mutableStateOf("") }

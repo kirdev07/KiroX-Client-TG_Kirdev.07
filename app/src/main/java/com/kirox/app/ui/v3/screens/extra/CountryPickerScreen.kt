@@ -49,14 +49,27 @@ internal val KxCountries = listOf(
 /** Board «Выбор страны»: searchable country list with SIM suggestion, quick chips, A–Я index + bubble; and the phone field it returns to. */
 @Composable
 fun CountryPickerScreen(ctx: KxScreenCtx) {
-    var sel by remember { mutableStateOf("Казахстан") } // demo: needs store (country from SIM / auth.countryName)
+    // wave3: real store — Telegram's country list (GetCountries) and the country by IP (GetCountryCode); the demo keeps the board's list.
+    // Returning the pick to the sign-in flow stays with the old picker (auth.openCountryPicker).
+    val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    var countries by remember { mutableStateOf(KxCountries) }
+    var sel by remember { mutableStateOf("Казахстан") }
+    LaunchedEffect(Unit) {
+        if (demo) return@LaunchedEffect
+        val real = ctx.store.countries()
+        if (real.isNotEmpty()) {
+            countries = real.map { KxCountry(it.flag, it.name, "+" + it.callingCode, KxCountries.firstOrNull { b -> b.code == "+" + it.callingCode }?.mask ?: "••• ••• ••••") }.distinctBy { it.name } // names are LazyColumn keys
+            val mine = ctx.store.myCountry()
+            (real.firstOrNull { it.code == mine } ?: real.firstOrNull { it.code == "KZ" })?.let { sel = it.name }
+        }
+    }
     var q by remember { mutableStateOf("") }
     var list by remember { mutableStateOf(true) }
     var k by remember { mutableIntStateOf(0) }
     var jump by remember { mutableStateOf("") }
     var jk by remember { mutableIntStateOf(0) }
     var bubble by remember { mutableStateOf("") }
-    val cur = KxCountries.first { it.name == sel }
+    val cur = countries.firstOrNull { it.name == sel } ?: countries.first()
     val caret = kfLoop(1000, label = "caret")
     Box(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding().navigationBarsPadding()) {
         if (!list) key(k) {
@@ -89,8 +102,8 @@ fun CountryPickerScreen(ctx: KxScreenCtx) {
             }
         } else key(k) {
             val lq = q.lowercase()
-            val filtered = KxCountries.filter { lq.isEmpty() || it.name.lowercase().startsWith(lq) || it.code.contains(lq) }
-            val letters = KxCountries.map { it.name.first().toString() }.distinct()
+            val filtered = countries.filter { lq.isEmpty() || it.name.lowercase().startsWith(lq) || it.code.contains(lq) }
+            val letters = countries.map { it.name.first().toString() }.distinct()
             val state = rememberLazyListState()
             val scope = rememberCoroutineScope()
             // Item index of each letter's first row (after the optional SIM block = 2 items).
@@ -122,7 +135,7 @@ fun CountryPickerScreen(ctx: KxScreenCtx) {
                     Row(Modifier.fillMaxSize()) {
                         LazyColumn(Modifier.weight(1f).fillMaxHeight(), state = state, contentPadding = PaddingValues(start = 12.dp, end = 4.dp, bottom = 16.dp)) {
                             if (lq.isEmpty()) {
-                                item(key = "simH") { CpHead("Определено по SIM-карте", Kx.accent) }
+                                item(key = "simH") { CpHead(if (demo) "Определено по SIM-карте" else "Определено по сети", Kx.accent) }
                                 item(key = "sim") { CpRow(cur, true, Kx.accent.copy(alpha = .06f), 0f) { list = false; k++ } }
                             }
                             var last = ""

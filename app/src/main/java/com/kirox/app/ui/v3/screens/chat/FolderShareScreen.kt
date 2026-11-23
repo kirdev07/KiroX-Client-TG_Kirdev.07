@@ -1,5 +1,7 @@
 package com.kirox.app.ui.v3.screens.chat
 
+import kotlinx.coroutines.launch
+import com.kirox.app.ui.v3.model.KxChatKind
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -37,12 +39,14 @@ import kotlinx.coroutines.delay
 
 private class FsRow(val n: String, val l: String, val c: String, val kind: String, val ok: Boolean = true, val ch: Boolean = false, val joined: Boolean = false)
 
-// demo: needs store (chat folder invite links: createFolderLink(folderId, chatIds), checkFolderLink(link) → chats, addFolderFromLink(link, joinIds))
+// demo rows; the real store shares folder ctx.arg (wave3: folderInfo + folderShareableChats + folderLinks / createFolderLink).
+// «Вам прислали» (checkChatFolderInviteLink / addChatFolderByInviteLink) stays demo: no link entry point in v3 yet.
 private val FsMine = listOf(
     FsRow("Kotlin-клуб", "K", "#3F9A6C", "Группа · вы админ"), FsRow("Kotlin по-русски", "K", "#2F6E9E", "Канал · вы админ", ch = true),
     FsRow("Android Dev KZ", "A", "#B07A2E", "Группа · публичная"), FsRow("Митапы Алматы", "М", "#6A4C9C", "Канал · публичный", ch = true),
     FsRow("Анна", "А", "#C0443C", "Личный чат — нельзя добавить", ok = false), FsRow("Работа", "Р", "#5C6661", "Частная группа без прав приглашать", ok = false),
 )
+private val FS_INKS = listOf("#3F9A6C", "#2F6E9E", "#B07A2E", "#6A4C9C", "#C0443C", "#5C6661")
 private val FsTheirs = listOf(
     FsRow("Дизайн-ревью", "Д", "#C0443C", "Группа · 340 участников"), FsRow("Figma по-русски", "F", "#6A4C9C", "Канал · 12 тыс. подписчиков", ch = true),
     FsRow("UX-заметки", "U", "#2F6E9E", "Канал · вы уже подписаны", ch = true, joined = true), FsRow("Иконки и шрифты", "И", "#B07A2E", "Канал · 4 тыс. подписчиков", ch = true),
@@ -63,7 +67,37 @@ fun FolderShareScreen(ctx: KxScreenCtx) {
     var tk by remember { mutableIntStateOf(0) }
     LaunchedEffect(tk) { if (toast != null) { delay(2200); toast = null } }
     fun say(t: String) { toast = t; tk++ }
-    val notYet = { ctx.toast("Ссылки на папки пока недоступны") }
+    val notYet = { ctx.toast("Добавление папки по ссылке пока недоступно") }
+    val store = ctx.store
+    val folderId = ctx.arg?.toIntOrNull() ?: 0
+    val folderTitle = if (demo) "Kotlin" else store.folders.firstOrNull { it.id == folderId }?.title ?: "Папка"
+    var realIds by remember { mutableStateOf<List<Long>?>(null) }
+    var shareable by remember { mutableStateOf(emptySet<Long>()) }
+    var link by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val co = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    LaunchedEffect(folderId) {
+        if (demo || folderId == 0) { realIds = emptyList(); return@LaunchedEffect }
+        val info = store.folderInfo(folderId)
+        shareable = store.folderShareableChats(folderId).toSet()
+        link = store.folderLinks(folderId).firstOrNull()?.link
+        realIds = (info?.chatIds.orEmpty() + shareable).distinct()
+        mine.clear(); mine.addAll(realIds.orEmpty().withIndex().filter { it.value in shareable }.map { it.index })
+    }
+    val realRows = realIds.orEmpty().map { id ->
+        val h = store.header(id); val ok = id in shareable
+        val kindText = when (h.kind) { KxChatKind.Channel -> "Канал"; KxChatKind.Group -> "Группа"; KxChatKind.Bot -> "Бот"; else -> "Личный чат" }
+        FsRow(h.title, h.title.take(1).uppercase(), FS_INKS[(id % FS_INKS.size).toInt().let { if (it < 0) -it else it }],
+            if (ok) kindText else "$kindText — нельзя добавить в ссылку", ok = ok, ch = h.kind == KxChatKind.Channel)
+    }
+    val mineRows = if (demo) FsMine else realRows
+    LaunchedEffect(link) { if (!demo) linked = link != null }
+    fun shareLink(l: String) = runCatching {
+        context.startActivity(android.content.Intent.createChooser(android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
+            .putExtra(android.content.Intent.EXTRA_TEXT, l), "Поделиться папкой").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
     val share = tab == 0
     val mineN = mine.size; val thN = theirs.size
 
@@ -71,7 +105,7 @@ fun FolderShareScreen(ctx: KxScreenCtx) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 44.dp, border = Color.Transparent, onClick = ctx.back)
-                Text(if (share) "Папка «Kotlin»" else "Новая папка", style = ts(20, W800), modifier = Modifier.weight(1f))
+                Text(if (share) "Папка «$folderTitle»" else "Новая папка", style = ts(20, W800), modifier = Modifier.weight(1f))
             }
             Row(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Kx.w(.05f)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 listOf("Вы делитесь", "Вам прислали").forEachIndexed { i, t ->
@@ -84,7 +118,7 @@ fun FolderShareScreen(ctx: KxScreenCtx) {
                 Column(Modifier.weight(1f).chIn(dy = 10.dp, durationMs = 300, easing = FastOutSlowInEasing).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 14.dp)) {
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                         FolderArt(share)
-                        Text(if (share) "Поделиться папкой «Kotlin»" else "Добавить папку «Дизайн»?", style = ts(19, W800), modifier = Modifier.padding(top = 10.dp))
+                        Text(if (share) "Поделиться папкой «$folderTitle»" else "Добавить папку «Дизайн»?", style = ts(19, W800), modifier = Modifier.padding(top = 10.dp))
                         Text(if (share) "По ссылке человек получит такую же папку и сможет вступить во все выбранные чаты сразу" else "Лиза делится подборкой чатов. Отметьте, куда хотите вступить",
                             style = ts(13, color = Kx.text3, lh = 18.2.sp), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
                     }
@@ -92,20 +126,24 @@ fun FolderShareScreen(ctx: KxScreenCtx) {
                         .border(1.dp, if (linked) Kx.accent.copy(alpha = .35f) else Kx.w(.08f), RoundedCornerShape(18.dp)).padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Outlined.Link, null, tint = Kx.accent)
-                        Text(if (linked) "t.me/addlist/kX7pQ2…" else "Ссылка появится после создания", style = ts(14, W700, if (linked) Kx.text else Kx.text4), modifier = Modifier.weight(1f))
-                        Box(Modifier.size(38.dp).clip(CircleShape).background(Kx.accent.copy(alpha = .14f)).kxClick("Скопировать ссылку") { say(if (linked) "Ссылка скопирована" else "Сначала создайте ссылку") },
+                        Text(if (linked) (if (demo) "t.me/addlist/kX7pQ2…" else link.orEmpty().removePrefix("https://")) else "Ссылка появится после создания", style = ts(14, W700, if (linked) Kx.text else Kx.text4), modifier = Modifier.weight(1f))
+                        Box(Modifier.size(38.dp).clip(CircleShape).background(Kx.accent.copy(alpha = .14f)).kxClick("Скопировать ссылку") { if (linked && !demo) link?.let { clipboard.setText(androidx.compose.ui.text.AnnotatedString(it)) }; say(if (linked) "Ссылка скопирована" else "Сначала создайте ссылку") },
                             contentAlignment = Alignment.Center) { Icon(Icons.Outlined.ContentCopy, null, Modifier.size(20.dp), tint = Kx.accent) }
                     }
                     Row(Modifier.padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (share) "Что войдёт в ссылку · $mineN" else "Вступить · $thN из ${FsTheirs.count { !it.joined }}", style = ts(13, W700, Kx.accent), modifier = Modifier.weight(1f))
                         Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).kxClick {
-                            if (share) { mine.clear(); mine.addAll(listOf(0, 1, 2, 3)) } else if (thN > 0) theirs.clear() else theirs.addAll(listOf(0, 1, 3, 4))
+                            if (share) { mine.clear(); mine.addAll(mineRows.indices.filter { mineRows[it].ok }) } else if (thN > 0) theirs.clear() else theirs.addAll(listOf(0, 1, 3, 4))
                         }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                             Text(if (share) "Все доступные" else if (thN > 0) "Снять все" else "Выбрать все", style = ts(12, W700, Kx.text3))
                         }
                     }
                     Column(Modifier.padding(top = 6.dp)) {
-                        (if (share) FsMine else FsTheirs).forEachIndexed { i, x ->
+                        if (share && !demo && realIds == null) Text("Загружаем чаты папки…", style = ts(13, color = Kx.text3), modifier = Modifier.padding(vertical = 8.dp))
+                        if (share && !demo && realIds != null && mineRows.isEmpty()) Text("В папке нет групп и каналов, которыми можно поделиться.", style = ts(13, color = Kx.text3), modifier = Modifier.padding(vertical = 8.dp))
+                        if (!share && !demo) Text("Чтобы добавить чужую папку, откройте ссылку t.me/addlist в официальном Telegram — в kiroX v3 это пока недоступно.",
+                            style = ts(13, color = Kx.text3, lh = 18.sp), modifier = Modifier.padding(vertical = 8.dp))
+                        (if (share) mineRows else if (demo) FsTheirs else emptyList()).forEachIndexed { i, x ->
                             val on = if (share) i in mine && x.ok else x.joined || i in theirs
                             val dis = if (share) !x.ok else x.joined
                             Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).graphicsLayer { alpha = if (share) (if (x.ok) 1f else .55f) else (if (x.joined) .7f else 1f) }
@@ -130,7 +168,9 @@ fun FolderShareScreen(ctx: KxScreenCtx) {
                 .then(if (active) Modifier.cssGradient(135f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.07f))).kxClick {
                     if (share) {
                         if (mineN == 0) return@kxClick
-                        if (!demo) notYet() else if (!linked) { linked = true; say("Ссылка создана") } else say("Откроем «Поделиться»")
+                        if (demo) { if (!linked) { linked = true; say("Ссылка создана") } else say("Откроем «Поделиться»") }
+                        else if (link != null) shareLink(link!!)
+                        else if (!busy) { busy = true; co.launch { val l = store.createFolderLink(folderId, mine.mapNotNull { realIds?.getOrNull(it) }); busy = false; if (l != null) { link = l; say("Ссылка создана") } } }
                     } else if (!added) { if (!demo) notYet() else { added = true; say("Папка «Дизайн» в списке чатов") } }
                 }, contentAlignment = Alignment.Center) {
                 Text(if (share) (if (linked) "Поделиться ссылкой" else if (mineN > 0) "Создать ссылку · $mineN ${chatWordFs(mineN)}" else "Выберите чаты")

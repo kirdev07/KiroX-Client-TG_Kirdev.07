@@ -42,7 +42,8 @@ import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store — selection works on a demo dialog with «Анна» (store.delete/forward/saveToFavorites with real ids).
+// Demo dialog. Real chat (arg = chat id): its last 40 messages (peekHistory, nothing marked read); copy / forward (one message → Forward board) /
+// store.saveToFavorites / store.delete behind the confirm sheet.
 private val MS_MSGS = listOf(
     Triple("Привет! Есть планы на субботу?", false, "10:02"), Triple("Пока нет, а что?", true, "10:05"), Triple("Хотим на каток, потом в кафе", false, "10:06"),
     Triple("Звучит отлично 👍", true, "10:07"), Triple("Адрес катка: Медеу, касса №2", false, "10:08"), Triple("Сбор в 11:00 у входа", false, "10:08"),
@@ -54,8 +55,17 @@ private fun msWord(k: Int) = moPlural(k, "сообщение", "сообщени
 /** MultiSelect board: select messages, copy / forward / save / delete (with «также удалить у» in the sheet). */
 @Composable
 fun MultiSelectScreen(ctx: KxScreenCtx) {
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live && chatId == null) { C3NeedChat(ctx, "Выбор сообщений"); return }
+    val live = chatId != null
+    val header = chatId?.let { ctx.store.header(it) }
+    val peek = c3Peek(ctx.store, chatId, 40)
+    val real = peek.filter { it.kind != com.kirox.app.ui.v3.model.KxMsgKind.Service }
+    val msgs = if (live) real.map { Triple(it.text.ifBlank { "Сообщение" }, it.out, it.time) } else MS_MSGS
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val peer = header?.title ?: "Анна"
     var sel by remember { mutableStateOf(true) }
-    val on = remember { mutableStateMapOf(7 to true) }
+    val on = remember { mutableStateMapOf<Int, Boolean>().apply { if (!live) put(7, true) } }
     val gone = remember { mutableStateMapOf<Int, Boolean>() }
     val leaving = remember { mutableStateMapOf<Int, Boolean>() }
     var confirm by remember { mutableStateOf(false) }
@@ -63,14 +73,16 @@ fun MultiSelectScreen(ctx: KxScreenCtx) {
     var delTick by remember { mutableIntStateOf(0) }
     val toast = rememberMoToast()
 
-    val vis = MS_MSGS.indices.filter { gone[it] != true }
+    val vis = msgs.indices.filter { gone[it] != true }
     val ids = vis.filter { on[it] == true }
     val n = ids.size
-    val allMine = ids.all { MS_MSGS[it].second }
+    val allMine = ids.all { msgs[it].second }
+    val realIds = if (live) ids.mapNotNull { real.getOrNull(it)?.id } else emptyList()
 
     LaunchedEffect(delTick) {
         if (delTick == 0) return@LaunchedEffect
         val del = leaving.keys.toList(); val cnt = del.size; val both = forAll && allMine
+        if (live) ctx.store.delete(chatId!!, del.mapNotNull { real.getOrNull(it)?.id }, both)
         delay(460)
         del.forEach { gone[it] = true }; leaving.clear(); on.clear(); sel = false
         toast.show("Удалено $cnt ${msWord(cnt)}" + if (both) " у обоих" else "", Icons.Rounded.Delete)
@@ -79,7 +91,7 @@ fun MultiSelectScreen(ctx: KxScreenCtx) {
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             if (!sel) {
-                MoChatHeader(ctx.back, "А", Color(0xFFC0443C), Color(0xFF6A4C9C), "Анна", "в сети", Kx.accent) {
+                MoChatHeader(ctx.back, peer.take(1).uppercase(), Color(0xFFC0443C), Color(0xFF6A4C9C), peer, header?.status ?: "в сети", if (header == null || header.online) Kx.accent else MoSub) {
                     MoPill("Выбрать") { sel = true; on.clear() }
                 }
             } else {
@@ -96,16 +108,22 @@ fun MultiSelectScreen(ctx: KxScreenCtx) {
 
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (live && msgs.isEmpty()) C3Empty("Загрузка…")
                 vis.forEach { i ->
-                    key(i) { MsRow(i, on[i] == true, sel, leaving[i] == true) { if (sel) on[i] = on[i] != true else { sel = true; on.clear(); on[i] = true } } }
+                    key(i) { MsRow(msgs[i], on[i] == true, sel, leaving[i] == true) { if (sel) on[i] = on[i] != true else { sel = true; on.clear(); on[i] = true } } }
                 }
             }
 
             if (sel) Row(Modifier.fillMaxWidth().moIn(200, dy = 10.dp).moTopLine().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 18.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                MsAct(Icons.Outlined.ContentCopy, "Копировать", n > 0) { if (n > 0) toast.show("Скопировано $n ${msWord(n)}", Icons.Rounded.ContentCopy) }
-                MsAct(Icons.Outlined.Forward, "Переслать", n > 0) { if (n > 0) toast.show("Выберите, кому переслать", Icons.Rounded.Forward) }
-                MsAct(Icons.Outlined.Bookmark, "В Избранное", n > 0) { if (n > 0) toast.show("Сохранено в Избранное", Icons.Rounded.Bookmark) }
+                MsAct(Icons.Outlined.ContentCopy, "Копировать", n > 0) {
+                    if (n > 0) { if (live) clipboard.setText(androidx.compose.ui.text.AnnotatedString(ids.joinToString("\n") { msgs[it].first })); toast.show("Скопировано $n ${msWord(n)}", Icons.Rounded.ContentCopy) }
+                }
+                MsAct(Icons.Outlined.Forward, "Переслать", n > 0) {
+                    if (n > 0 && live) { if (realIds.size == 1) ctx.open("Forward:$chatId:${realIds[0]}") else toast.show("Пересылается по одному сообщению", Icons.Rounded.Forward) }
+                    else if (n > 0) toast.show("Выберите, кому переслать", Icons.Rounded.Forward)
+                }
+                MsAct(Icons.Outlined.Bookmark, "В Избранное", n > 0) { if (n > 0) { if (live) ctx.store.saveToFavorites(chatId!!, realIds); toast.show("Сохранено в Избранное", Icons.Rounded.Bookmark) } }
                 MsAct(Icons.Outlined.Delete, "Удалить", n > 0, danger = true) { if (n > 0) { confirm = true; forAll = allMine } }
             } else Box(Modifier.fillMaxWidth().moTopLine().padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp)) {
                 Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(24.dp)).background(Kx.w(.07f)).padding(horizontal = 16.dp),
@@ -124,7 +142,7 @@ fun MultiSelectScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Rounded.Check, null, Modifier.size(18.dp).graphicsLayer { alpha = if (checked) 1f else 0f }, tint = Color.White)
                 }
                 Column(Modifier.weight(1f)) {
-                    Text("Также удалить у: Анна", style = mts(15, W6))
+                    Text(if (header != null && header.kind != com.kirox.app.ui.v3.model.KxChatKind.Private) "Также удалить для всех" else "Также удалить у: $peer", style = mts(15, W6))
                     Text(if (allMine) "Сообщения исчезнут из чата у обоих" else "Чужие сообщения удалятся только у вас", style = mts(12, color = MoMuted))
                 }
             }
@@ -143,8 +161,8 @@ fun MultiSelectScreen(ctx: KxScreenCtx) {
 }
 
 @Composable
-private fun MsRow(i: Int, on: Boolean, sel: Boolean, leaving: Boolean, onTap: () -> Unit) {
-    val (t, me, time) = MS_MSGS[i]
+private fun MsRow(m: Triple<String, Boolean, String>, on: Boolean, sel: Boolean, leaving: Boolean, onTap: () -> Unit) {
+    val (t, me, time) = m
     val chkW by animateDpAsState(if (sel) 28.dp else 0.dp, tween(200), label = "chk")
     val rowBg by animateColorAsState(if (on) Kx.accent.copy(alpha = .12f) else Color.Transparent, tween(150), label = "row")
     val poof = remember { Animatable(0f) }

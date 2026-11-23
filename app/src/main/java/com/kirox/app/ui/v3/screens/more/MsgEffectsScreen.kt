@@ -24,7 +24,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — message effects (sendMessage with effect_id; availableMessageEffects), Premium ones marked by the server.
+// Demo effects. Real private chat (arg = chat id): store.messageEffects (Telegram's list, Premium marked) and store.sendWith(effectId).
 private data class Fx(val e: String, val name: String, val up: Boolean, val parts: List<String>)
 
 private val FX = listOf(
@@ -42,21 +42,35 @@ private data class FxSent(val id: Int, val text: String, val e: String)
 /** MsgEffects board: pick a full-screen effect for the message (confetti, hearts…), preview it, send with it. */
 @Composable
 fun MsgEffectsScreen(ctx: KxScreenCtx) {
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live && chatId == null) { C3NeedChat(ctx, "Эффекты"); return }
+    val live = chatId != null
+    val header = chatId?.let { ctx.store.header(it) }
+    if (live && header?.kind != com.kirox.app.ui.v3.model.KxChatKind.Private) { C3NeedChat(ctx, "Эффекты", "Telegram отправляет сообщения с эффектом только в личных чатах."); return }
+    val peek = c3Peek(ctx.store, chatId)
+    val effects = if (live) c3Load(chatId) { ctx.store.messageEffects() } else null
+    val list = if (!live) FX else effects.orEmpty().map { Fx(it.emoji, if (it.premium) "Эффект · Premium" else "Эффект", false, listOf(it.emoji, "✨", it.emoji)) }
+    if (live && effects != null && list.isEmpty()) { C3NeedChat(ctx, "Эффекты", "Telegram пока не прислал список эффектов. Откройте позже."); return }
+    if (live && effects == null) { C3NeedChat(ctx, "Эффекты", "Загрузка…"); return }
     var menu by remember { mutableStateOf(true) }
     var fx by remember { mutableIntStateOf(0) }
     var run by remember { mutableIntStateOf(-1) }
     var rk by remember { mutableIntStateOf(0) }
     val sent = remember { mutableStateListOf<FxSent>() }
+    var draft by remember { mutableStateOf("") }
     fun play(i: Int) { run = i; rk++ }
-    val f = FX[fx]
+    val f = list[fx.coerceIn(0, list.lastIndex)]
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            MoChatHeader(ctx.back, "Л", Color(0xFF6A4C9C), Color(0xFFC0443C), "Лиза", "в сети", Kx.accent)
+            if (header != null) MoChatHeader(ctx.back, header.title.take(1).uppercase(), Color(0xFF6A4C9C), Color(0xFFC0443C), header.title, header.status, if (header.online) Kx.accent else MoSub)
+            else MoChatHeader(ctx.back, "Л", Color(0xFF6A4C9C), Color(0xFFC0443C), "Лиза", "в сети", Kx.accent)
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(14.dp)) {
                 val w = maxWidth
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
-                    MoIncoming("Экзамен сдан!!! 🎓", modifier = Modifier.widthIn(max = w * .78f))
+                    val last = if (live) peek.lastOrNull { !it.out && it.text.isNotBlank() } else null
+                    if (!live) MoIncoming("Экзамен сдан!!! 🎓", modifier = Modifier.widthIn(max = w * .78f))
+                    else if (last != null) MoIncoming(last.text, last.time, modifier = Modifier.widthIn(max = w * .78f))
                     sent.forEach { m ->
                         key(m.id) {
                             val p = moEnter(350, easing = KxMotion.rise)
@@ -74,12 +88,22 @@ fun MsgEffectsScreen(ctx: KxScreenCtx) {
             Row(Modifier.fillMaxWidth().moTopLine().padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(24.dp)).background(Kx.w(.07f)).padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart) { Text(if (sent.isNotEmpty()) "Сообщение" else "Поздравляю!!! 🥳", style = mts(15)) }
+                    contentAlignment = Alignment.CenterStart) {
+                    if (live) MoInput(draft, { draft = it }, "Сообщение", Modifier.fillMaxWidth(), singleLine = false)
+                    else Text(if (sent.isNotEmpty()) "Сообщение" else "Поздравляю!!! 🥳", style = mts(15))
+                }
                 Box(Modifier.size(48.dp).clip(CircleShape).background(Kx.w(.07f)).kxClick("Выбрать эффект") { menu = !menu }, contentAlignment = Alignment.Center) {
                     Text(f.e, style = mts(22))
                 }
                 Box(Modifier.size(48.dp).clip(CircleShape).moAccent().kxClick("Отправить") {
-                    sent.add(FxSent(sent.size, if (sent.isNotEmpty()) "Горжусь тобой! 💚" else "Поздравляю!!! 🥳", f.e)); menu = false; play(fx)
+                    if (live) {
+                        val e = effects.orEmpty()[fx.coerceIn(0, list.lastIndex)]
+                        if (draft.isBlank()) { ctx.toast("Сначала напишите сообщение"); return@kxClick }
+                        if (e.premium && !ctx.store.me.premium) { ctx.toast("Этот эффект — с Premium"); return@kxClick }
+                        ctx.store.sendWith(chatId!!, draft.trim(), com.kirox.app.ui.v3.model.KxSendOptions(effectId = e.id))
+                        sent.add(FxSent(sent.size, draft.trim(), f.e)); draft = ""
+                    } else sent.add(FxSent(sent.size, if (sent.isNotEmpty()) "Горжусь тобой! 💚" else "Поздравляю!!! 🥳", f.e))
+                    menu = false; play(fx)
                 }, contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.Send, null, Modifier.size(24.dp), tint = MoInk) }
             }
         }
@@ -91,10 +115,10 @@ fun MsgEffectsScreen(ctx: KxScreenCtx) {
                 Text("часть эффектов — с Premium", style = mts(11, W6, MoMuted))
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                FX.indices.chunked(4).forEach { row ->
+                list.indices.take(24).chunked(4).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         row.forEach { i ->
-                            val x = FX[i]; val on = fx == i
+                            val x = list[i]; val on = fx == i
                             Box(Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(16.dp)).background(if (on) Kx.accent.copy(alpha = .18f) else Color.Black.copy(alpha = .18f))
                                 .border(1.5.dp, if (on) Kx.accent else Color.Transparent, RoundedCornerShape(16.dp)).kxClick(x.name) { fx = i; play(i) },
                                 contentAlignment = Alignment.Center) {
@@ -113,7 +137,7 @@ fun MsgEffectsScreen(ctx: KxScreenCtx) {
             }
         }
 
-        if (run >= 0) key(rk) { FxParticles(FX[run]) { run = -1 } }
+        if (run >= 0) key(rk) { FxParticles(list[run.coerceIn(0, list.lastIndex)]) { run = -1 } }
     }
 }
 

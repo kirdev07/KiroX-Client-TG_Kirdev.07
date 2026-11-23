@@ -39,6 +39,12 @@ private fun p2(n: Int) = n.toString().padStart(2, '0')
 /** Board «Запланировать звонок»: topic, day strip, time stepper + quick times, call / stream format → planned card with countdown. */
 @Composable
 fun PlanCallScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → CreateVideoChat(start_date) in chat ctx.arg
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoPlanCallScreen(ctx) else com.kirox.app.ui.v3.screens.media.RealPlanCall(ctx)
+}
+
+@Composable
+private fun DemoPlanCallScreen(ctx: KxScreenCtx) {
     // demo: needs store (scheduled group call: createVideoChat(start_date, is_rtmp_stream), toggleVideoChatEnabledStartNotification); «now» = Sun 22 Nov 18:00 as on the board
     var title by remember { mutableStateOf("Разбор Compose 1.9") }
     var day by remember { mutableIntStateOf(1) }

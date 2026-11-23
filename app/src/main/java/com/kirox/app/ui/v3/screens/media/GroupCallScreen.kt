@@ -82,6 +82,12 @@ fun Modifier.talkRing(active: Boolean, clock: Long, radius: Dp?): Modifier = if 
 /** Board «Видеочат» (group call): tiles grid or voice view, speaker line, controls, participants sheet. */
 @Composable
 fun GroupCallScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → the video chat this account is in (store.groupCall)
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoGroupCallScreen(ctx) else RealGroupCall(ctx)
+}
+
+@Composable
+private fun DemoGroupCallScreen(ctx: KxScreenCtx) {
     var sec by remember { mutableIntStateOf(754) }
     var speaker by remember { mutableIntStateOf(1) }
     var mic by remember { mutableStateOf(false) }

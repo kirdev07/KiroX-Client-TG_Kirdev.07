@@ -83,14 +83,17 @@ private fun Modifier.bubble(out: Boolean) = if (out) outBubble() else background
 
 /** Lets bubbles ask the store to download their media (set by ChatScreen). */
 private var LocalStoreDownload: ((Int) -> Unit)? = null
+/** wave3-media: a tap on a photo/video bubble opens the Viewer / VideoPlayer board (set by ChatScreen). */
+private var LocalOpenMedia: ((KxMessage) -> Unit)? = null
 
 private data class PendingDelete(val message: KxMessage, val forAll: Boolean, val id: Long = System.nanoTime())
 
 /** Conversation (board «Чат»): flat header + pinned bar, bubbles, glass composer, round mic/send button. */
 @Composable
-fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit = {}, onMenu: () -> Unit = {}, onProfile: () -> Unit = {}) {
+fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolean) -> Unit = {}, onMenu: () -> Unit = {}, onProfile: () -> Unit = {}, onOpen: (String) -> Unit = {}) {
     val header = store.header(chatId)
     LocalStoreDownload = store::download
+    LocalOpenMedia = { m -> onOpen((if (m.kind == KxMsgKind.Video) "VideoPlayer:" else "Viewer:") + "$chatId:${m.id}") }
     val look = chatLook(store)
     androidx.compose.runtime.CompositionLocalProvider(LocalChatLook provides look) { ChatScreenBody(store, chatId, header, onBack, onCall, onMenu, onProfile) }
 }
@@ -99,6 +102,7 @@ fun ChatScreen(store: KxStore, chatId: Long, onBack: () -> Unit, onCall: (Boolea
 private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, onBack: () -> Unit, onCall: (Boolean) -> Unit, onMenu: () -> Unit, onProfile: () -> Unit) {
     val look = LocalChatLook.current
     val toast = LocalKxToast.current
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     var text by rememberSaveable(chatId) { mutableStateOf("") }
     var replyTo by remember(chatId) { mutableStateOf<KxMessage?>(null) }
     var menuFor by remember(chatId) { mutableStateOf<KxMessage?>(null) }
@@ -144,7 +148,28 @@ private fun ChatScreenBody(store: KxStore, chatId: Long, header: KxChatHeader, o
             items(messages.asReversed(), key = { it.id }) { m ->
                 Column(Modifier.fillMaxWidth().animateItem(fadeInSpec = tween(250), fadeOutSpec = tween(350), placementSpec = tween(350, easing = KxMotion.rise))) {
                     m.dayHeader?.let { DayPill(it) }
-                    MessageBubble(m, isGroup = header.kind == KxChatKind.Group, onLongPress = { menuFor = m }, onReact = { store.react(chatId, m.id, it) })
+                    // wave3-account: gestures (ChatGestures board) and the word filter (KxChatGestures.kt)
+                    val service = m.kind == KxMsgKind.Service
+                    KxMessageSwipe(
+                        onLeft = if (service) null else when (KxGestureActions.left(store)) {
+                            1 -> { { toast("Выберите чат для пересылки") } }
+                            2 -> { { store.saveToFavorites(chatId, listOf(m.id)); toast("Сохранено в Избранное") } }
+                            else -> { { replyTo = m; editing = null } }
+                        },
+                        onRight = if (service) null else when (KxGestureActions.right(store)) { 0 -> onBack; 1 -> { { replyTo = m; editing = null } }; else -> null },
+                    ) {
+                        KxFilteredMessage(store, header.kind, m) {
+                            MessageBubble(m, isGroup = header.kind == KxChatKind.Group,
+                                onLongPress = { when (KxGestureActions.hold(store)) { 1 -> toast("Выбрано: 1"); 2 -> store.translate(chatId, m.id, m.translation == null); else -> menuFor = m } },
+                                onReact = { store.react(chatId, m.id, it) },
+                                onDoubleTap = when (KxGestureActions.double(store)) {
+                                    1 -> { { store.react(chatId, m.id, "❤") } }
+                                    2 -> { { replyTo = m; editing = null } }
+                                    3 -> { { clipboard.setText(androidx.compose.ui.text.AnnotatedString(m.text)); toast("Текст скопирован") } }
+                                    else -> null
+                                })
+                        }
+                    }
                 }
             }
         }
@@ -266,10 +291,10 @@ private fun DayPill(text: String) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onReact: (String) -> Unit) {
+fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onReact: (String) -> Unit, onDoubleTap: (() -> Unit)? = null) {
     val align = if (m.out) Alignment.End else Alignment.Start
     Column(Modifier.fillMaxWidth(), horizontalAlignment = align) {
-        val press = Modifier.combinedClickable(interactionSource = null, indication = null, onClick = {}, onLongClick = onLongPress)
+        val press = Modifier.combinedClickable(interactionSource = null, indication = null, onClick = {}, onLongClick = onLongPress, onDoubleClick = onDoubleTap)
         when (m.kind) {
             KxMsgKind.Service -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(m.text, style = KxType.style(12.sp, FontWeight.SemiBold, Kx.text3), modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Kx.fill).padding(horizontal = 12.dp, vertical = 4.dp))
@@ -306,7 +331,7 @@ fun MessageBubble(m: KxMessage, isGroup: Boolean, onLongPress: () -> Unit, onRea
                 }
                 Row { Text(m.meta, style = KxType.style(11.sp, color = OutMeta), modifier = Modifier.weight(1f)); MetaText(m, OutMeta) }
             }
-            KxMsgKind.Photo, KxMsgKind.Video, KxMsgKind.Gif -> Column(press.width(230.dp).clip(if (m.out) OutShape else RoundedCornerShape(22.dp, 22.dp, 22.dp, 6.dp)).bubble(m.out).padding(4.dp)) {
+            KxMsgKind.Photo, KxMsgKind.Video, KxMsgKind.Gif -> Column((if (m.kind == KxMsgKind.Gif) press else Modifier.combinedClickable(interactionSource = null, indication = null, onClick = { LocalOpenMedia?.invoke(m) }, onLongClick = onLongPress)).width(230.dp).clip(if (m.out) OutShape else RoundedCornerShape(22.dp, 22.dp, 22.dp, 6.dp)).bubble(m.out).padding(4.dp)) {
                 if (m.media == null && m.fileId != 0) LaunchedEffect(m.fileId) { LocalStoreDownload?.invoke(m.fileId) }
                 Box(Modifier.fillMaxWidth().height(if (m.aspect > 0f) (222f / m.aspect).coerceIn(118f, 300f).dp else 118.dp).clip(RoundedCornerShape(18.dp))
                     .drawBehind { drawRect(Brush.linearGradient(0f to Color(0xFF355E49), .55f to Color(0xFF1A2C22), 1f to Color(0xFF0F1712), start = cssAngleStart(150f, size), end = cssAngleEnd(150f, size))) },

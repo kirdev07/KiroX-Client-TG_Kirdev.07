@@ -42,6 +42,7 @@ private val SE_POSTS = listOf(
 /** Sensitive board: sensitive / spoiler media are blurred until tapped; the tune sheet switches «показывать сразу» (asks 18+). */
 @Composable
 fun SensitiveScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { SensitiveLive(ctx); return }
     val opened = remember { mutableStateMapOf<Int, Boolean>() }
     var mode by remember { mutableStateOf("blur") }
     var sheet by remember { mutableStateOf(false) }

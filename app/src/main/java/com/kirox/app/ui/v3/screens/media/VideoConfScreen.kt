@@ -46,6 +46,12 @@ private fun Modifier.camBg(p: ConfP) = cssGrad(160f, p.c1, p.c2).then(if (p.ligh
 /** Board «Видеоконференция»: 2-column grid or speaker layout with strip, speaking borders + EQ, raised hand, controls. */
 @Composable
 fun VideoConfScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → the video chat this account is in (store.groupCall)
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoVideoConfScreen(ctx) else RealGroupCall(ctx)
+}
+
+@Composable
+private fun DemoVideoConfScreen(ctx: KxScreenCtx) {
     var sec by remember { mutableIntStateOf(1284) }
     var speaking by remember { mutableIntStateOf(1) }
     var pin by remember { mutableIntStateOf(1) }

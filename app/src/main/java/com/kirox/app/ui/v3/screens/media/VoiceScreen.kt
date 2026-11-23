@@ -36,6 +36,8 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import kotlinx.coroutines.launch
 
 private class VoiceMsg(val mine: Boolean, val name: String, val dur: Int, val sent: String, val text: String)
 
@@ -61,6 +63,12 @@ private fun fmtT(t: Float) = "${(t / 60).toInt()}:${(t % 60).toInt().toString().
 /** Board «Голосовые»: voice bubbles with waveform seek, auto-play next unheard, mini player, speed, transcription. */
 @Composable
 fun VoiceScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → voice messages of chat ctx.arg (listened flag, Telegram speech recognition)
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoVoiceScreen(ctx) else RealVoiceScreen(ctx)
+}
+
+@Composable
+private fun DemoVoiceScreen(ctx: KxScreenCtx) {
     val V = VoiceMsgs
     var cur by remember { mutableIntStateOf(-1) }
     val pos = remember { mutableStateListOf(0f, 0f, 0f) }
@@ -185,5 +193,78 @@ private fun VoiceBubble(v: VoiceMsg, wave: List<Int>, pos: Float, isCur: Boolean
             Text(v.text, style = ts(14.sp, color = if (v.mine) Color(0xFFE6F6EC) else Kx.text2).copy(lineHeight = 19.6.sp),
                 modifier = Modifier.padding(top = 8.dp).graphicsLayer { alpha = a.value }.blur((3f * (1f - a.value)).dp))
         }
+    }
+}
+
+
+/** 0..1 bars → the bubble's 34 bar heights (6..28 dp). */
+private fun bars(w: List<Float>): List<Int> = if (w.isEmpty()) List(34) { 8 } else List(34) { k -> 6 + Math.round(22 * w[(k * w.size / 34).coerceAtMost(w.lastIndex)]) }
+
+/** wave3-media: Голосовые on the real account. Plays with the app's VoicePlayer; «прослушано» is sent only when playback starts. */
+@Composable
+private fun RealVoiceScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val chatId = ctx.arg?.substringBefore(':')?.toLongOrNull()
+    val scope = rememberCoroutineScope()
+    var items by remember { mutableStateOf<List<com.kirox.app.ui.v3.model.KxVoiceItem>?>(null) }
+    LaunchedEffect(chatId) { items = if (chatId == null) emptyList() else store.voiceMessages(chatId).sortedBy { it.messageId } }
+    var cur by remember { mutableLongStateOf(0L) }
+    val heard = remember { mutableStateListOf<Long>() }
+    val texts = remember { mutableStateMapOf<Long, String>() }
+    val tr = remember { mutableStateMapOf<Long, Int>() }
+    val toast = remember { MPillToastState() }
+    val p = store.player
+    val playing = cur != 0L && p.playing && p.track == null
+    val list = items.orEmpty()
+    fun play(v: com.kirox.app.ui.v3.model.KxVoiceItem) {
+        if (cur != v.messageId) {
+            cur = v.messageId
+            if (!v.out && !v.listened && v.messageId !in heard) { heard += v.messageId; store.markListened(v.chatId, v.messageId) }
+        }
+        store.playVoice(v.fileId)
+    }
+    fun transcribe(v: com.kirox.app.ui.v3.model.KxVoiceItem) {
+        if ((tr[v.messageId] ?: 0) == 2) { tr[v.messageId] = 0; return }
+        if (v.transcript != null || texts[v.messageId] != null) { texts.putIfAbsent(v.messageId, v.transcript.orEmpty()); tr[v.messageId] = 2; return }
+        tr[v.messageId] = 1
+        scope.launch {
+            val r = store.transcribe(v.chatId, v.messageId) { part -> texts[v.messageId] = part; tr[v.messageId] = 2 }
+            if (r.text != null) { texts[v.messageId] = r.text; tr[v.messageId] = 2 } else { tr[v.messageId] = 0; toast.show(r.error ?: "Не получилось расшифровать", Icons.Rounded.Translate) }
+        }
+    }
+    val title = chatId?.let { store.header(it).title }.orEmpty()
+
+    Box(Modifier.fillMaxSize().background(Kx.bg)) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                MRoundBtn(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", size = 42.dp) { ctx.back() }
+                Column(Modifier.weight(1f)) {
+                    T(title.ifBlank { "Голосовые" }, 16.sp, FontWeight.ExtraBold, maxLines = 1)
+                    T(if (playing) "вы слушаете голосовое" else "${list.size} голосовых", 12.sp, color = Kx.accent)
+                }
+                if (chatId != null) MRoundBtn(Icons.AutoMirrored.Outlined.Chat, "Открыть чат", size = 42.dp) { ctx.openChat(chatId) }
+            }
+            when {
+                items == null -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator(color = Kx.accent) }
+                list.isEmpty() -> Column(Modifier.weight(1f).fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)) {
+                    Icon(Icons.Rounded.Mic, null, Modifier.size(48.dp), tint = Kx.text4)
+                    T(if (chatId == null) "Откройте голосовые из чата" else "В этом чате нет голосовых", 15.sp, FontWeight.Bold)
+                }
+                else -> Column(Modifier.weight(1f).fillMaxWidth().ellipseGlow(Kx.accentDeep.copy(alpha = .14f), 1f, 0f, 1.2f, .6f, .6f)
+                    .verticalScroll(rememberScrollState(Int.MAX_VALUE)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
+                    list.forEach { v ->
+                        val isCur = cur == v.messageId && p.track == null
+                        val pos = if (isCur) p.positionMs / 1000f else 0f
+                        val msg = VoiceMsg(v.out, v.sender, maxOf(1, v.seconds), v.time, texts[v.messageId] ?: v.transcript.orEmpty())
+                        VoiceBubble(msg, bars(v.waveform), pos, isCur, isCur && p.playing, !v.out && !v.listened && v.messageId !in heard, tr[v.messageId] ?: 0,
+                            Modifier.align(if (v.out) Alignment.End else Alignment.Start),
+                            onPlay = { play(v) },
+                            onSeek = { f -> if (isCur) store.playerSeek(f) else play(v) },
+                            onTr = { transcribe(v) })
+                    }
+                }
+            }
+        }
+        MPillToastHost(toast)
     }
 }

@@ -37,6 +37,12 @@ private val CallIssues = listOf("Эхо" to Icons.Outlined.GraphicEq, "Шум" t
 /** Board «Звонок завершён»: summary, call-back actions, star rating with issues, thanks. */
 @Composable
 fun CallEndScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → last finished call + SendCallRating
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoCallEndScreen(ctx) else RealCallEnd(ctx)
+}
+
+@Composable
+private fun DemoCallEndScreen(ctx: KxScreenCtx) {
     // demo: needs store (last call summary + rateCall(rating, issues, comment, attachLog))
     var rate by remember { mutableIntStateOf(0) }
     var pop by remember { mutableIntStateOf(0) }

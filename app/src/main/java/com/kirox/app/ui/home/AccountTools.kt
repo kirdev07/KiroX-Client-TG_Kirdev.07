@@ -128,7 +128,7 @@ fun QrLoginScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
 
 /** The back camera with a QR reader (zxing); [onCode] gets each code seen. */
 @Composable
-private fun QrCamera(onCode: (String) -> Unit) {
+internal fun QrCamera(onCode: (String) -> Unit) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
     val reader = remember { com.google.zxing.qrcode.QRCodeReader() }

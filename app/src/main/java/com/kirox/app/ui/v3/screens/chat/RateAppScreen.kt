@@ -38,6 +38,7 @@ private val RaTags = listOf("Скорость", "Дизайн", "Уведомл�
 @Composable
 fun RateAppScreen(ctx: KxScreenCtx) {
     val demo = ctx.store is KxDemoStore
+    val context = androidx.compose.ui.platform.LocalContext.current
     var r by remember { mutableIntStateOf(-1) }
     var k by remember { mutableIntStateOf(0) }
     val tags = remember { mutableStateListOf<Int>() }
@@ -100,8 +101,10 @@ fun RateAppScreen(ctx: KxScreenCtx) {
                         Box(Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(26.dp)).then(if (r >= 0) Modifier.cssGradient(135f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.07f)))
                             .kxClick {
                                 if (r < 0) return@kxClick
-                                // demo: needs store (send in-app feedback: rating, tags, note)
-                                if (demo) done = true else ctx.toast("Отправка отзывов пока недоступна")
+                                // wave3: no feedback server — the real app shares the rating through Android's share sheet.
+                                if (demo) done = true
+                                else com.kirox.app.ui.v3.data.KxBugReport.share(context, "Отзыв о kiroX", "Оценка: ${r + 1} из 5" +
+                                    (if (tags.isNotEmpty()) "\nНравится / не нравится: " + tags.sorted().joinToString { RaTags[it] } else "") + (if (note.isNotBlank()) "\n\n$note" else ""), false)
                             }, contentAlignment = Alignment.Center) { Text(if (r >= 0) "Отправить отзыв" else "Оценить", style = ts(15, W800, if (r >= 0) Kx.onAccent else Kx.text4)) }
                     }
                 } else Box(Modifier.fillMaxWidth()) {

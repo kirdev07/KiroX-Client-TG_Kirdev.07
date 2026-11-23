@@ -55,6 +55,12 @@ private val TBars = listOf(8, 14, 20, 12, 24, 18, 10, 22, 26, 16, 12, 20, 24, 14
 /** Board «Расшифровка голосовых»: voice bubbles with play, →A transcribe (shimmer, streaming words), copy/translate/rate, auto switch. */
 @Composable
 fun TranscribeScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → voice/round messages of chat ctx.arg, Telegram speech recognition (streamed text)
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoTranscribeScreen(ctx) else RealTranscribeScreen(ctx)
+}
+
+@Composable
+private fun DemoTranscribeScreen(ctx: KxScreenCtx) {
     val st = remember { mutableStateMapOf<Int, String>() }
     val words = remember { mutableStateMapOf<Int, Int>() }
     val en = remember { mutableStateMapOf<Int, Boolean>() }
@@ -198,4 +204,100 @@ private fun ShimmerLine(frac: Float, delayMs: Int) {
         val px = x.dp.toPx(); val w = 200.dp.toPx()
         drawRect(Brush.horizontalGradient(0f to Kx.w(.06f), .5f to Kx.w(.22f), 1f to Kx.w(.06f), startX = px, endX = px + w, tileMode = TileMode.Repeated))
     })
+}
+
+
+/** wave3-media: Расшифровка on the real account. Play / «прослушано» only on a real tap; copy the recognized text. */
+@Composable
+private fun RealTranscribeScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val chatId = ctx.arg?.substringBefore(':')?.toLongOrNull()
+    val scope = rememberCoroutineScope()
+    val clip = LocalClipboardManager.current
+    var items by remember { mutableStateOf<List<com.kirox.app.ui.v3.model.KxVoiceItem>?>(null) }
+    LaunchedEffect(chatId) { items = if (chatId == null) emptyList() else store.voiceMessages(chatId).sortedBy { it.messageId } }
+    val st = remember { mutableStateMapOf<Long, String>() }
+    val text = remember { mutableStateMapOf<Long, String>() }
+    val heard = remember { mutableStateListOf<Long>() }
+    var cur by remember { mutableLongStateOf(0L) }
+    var toast by remember { mutableStateOf<String?>(null) }
+    var tk by remember { mutableIntStateOf(0) }
+    LaunchedEffect(tk) { if (toast != null) { delay(2500); toast = null } }
+    fun say(t: String) { toast = t; tk++ }
+    val p = store.player
+    fun start(v: com.kirox.app.ui.v3.model.KxVoiceItem) {
+        v.transcript?.let { text[v.messageId] = it; st[v.messageId] = "show"; return }
+        st[v.messageId] = "load"
+        scope.launch {
+            val r = store.transcribe(v.chatId, v.messageId) { part -> text[v.messageId] = part; st[v.messageId] = "show" }
+            if (r.text != null) { text[v.messageId] = r.text; st[v.messageId] = "show" } else { st[v.messageId] = "closed"; say(r.error ?: "Не получилось расшифровать") }
+        }
+    }
+    val title = chatId?.let { store.header(it).title }.orEmpty()
+    val list = items.orEmpty()
+
+    Box(Modifier.fillMaxSize().background(Kx.bg)) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 44.dp, border = Color.Transparent, onClick = ctx.back)
+                Column(Modifier.weight(1f)) { Text(title.ifBlank { "Расшифровка" }, style = ts(16, W800), maxLines = 1); Text("${list.size} голосовых", style = ts(12, color = Kx.accent)) }
+            }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
+            if (items == null) Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator(color = Kx.accent) }
+            else if (list.isEmpty()) Box(Modifier.weight(1f).fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                Text(if (chatId == null) "Откройте расшифровку из чата" else "В этом чате нет голосовых", style = ts(15, W700, Kx.text3))
+            }
+            else Column(Modifier.weight(1f).verticalScroll(rememberScrollState(Int.MAX_VALUE)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                list.forEach { v ->
+                    val s = st[v.messageId]; val open = s == "load" || s == "show"
+                    val me = v.out; val pl = cur == v.messageId && p.playing && p.track == null
+                    val ink = if (me) Kx.onAccent else Kx.text
+                    val dark = Color(0xFF06150D)
+                    Column(Modifier.align(if (me) Alignment.End else Alignment.Start).width(284.dp)
+                        .clip(if (me) RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp) else RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp))
+                        .then(if (me) Modifier.cssGradient(135f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.07f))).padding(horizontal = 12.dp, vertical = 10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(Modifier.size(40.dp).clip(CircleShape).background(if (me) dark.copy(alpha = .18f) else Kx.accent.copy(alpha = .16f))
+                                .kxClick(if (pl) "Пауза" else "Слушать") {
+                                    if (cur != v.messageId) {
+                                        cur = v.messageId
+                                        if (!v.out && !v.listened && v.messageId !in heard) { heard += v.messageId; store.markListened(v.chatId, v.messageId) }
+                                    }
+                                    store.playVoice(v.fileId)
+                                }, contentAlignment = Alignment.Center) {
+                                Icon(if (pl) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, tint = if (me) dark else Kx.accent)
+                            }
+                            Wave(Modifier.weight(1f), if (me) dark.copy(alpha = .45f) else Kx.accent.copy(alpha = .55f), pl)
+                            Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp))
+                                .background(if (open) (if (me) dark.copy(alpha = .25f) else Kx.accent.copy(alpha = .22f)) else (if (me) dark.copy(alpha = .12f) else Kx.w(.08f)))
+                                .kxClick(if (open) "Скрыть текст" else "Расшифровать") { if (open) st[v.messageId] = "closed" else if (text[v.messageId] != null) st[v.messageId] = "show" else start(v) },
+                                contentAlignment = Alignment.Center) {
+                                Text(if (open) "▴" else "→A", style = ts(13, androidx.compose.ui.text.font.FontWeight.Black, if (me) dark else Kx.accent))
+                            }
+                        }
+                        Row(Modifier.padding(top = 4.dp).graphicsLayer { alpha = .75f }) {
+                            Text("${v.seconds / 60}:${(v.seconds % 60).toString().padStart(2, '0')}" + if (v.video) " · кружок" else "", style = ts(11, color = ink), modifier = Modifier.weight(1f))
+                            Text(v.time, style = ts(11, color = ink))
+                        }
+                        if (s == "load") Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { ShimmerLine(.92f, 0); ShimmerLine(.70f, 150) }
+                        if (s == "show") {
+                            val t = text[v.messageId].orEmpty()
+                            Text(t.ifBlank { "Речь не распознана" }, style = ts(14, color = ink, lh = 20.3.sp), modifier = Modifier.padding(top = 8.dp))
+                            if (t.isNotBlank()) Row(Modifier.padding(top = 8.dp)) {
+                                TChip(Icons.Outlined.ContentCopy, "Копировать", if (me) dark.copy(alpha = .12f) else Kx.w(.07f), ink, "Скопировать текст") { clip.setText(AnnotatedString(t)); say("Текст скопирован") }
+                            }
+                        }
+                    }
+                }
+            }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
+            Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(Modifier.height(18.dp).clip(RoundedCornerShape(9.dp)).background(Kx.premium.copy(alpha = .18f)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                    Text("PREMIUM", style = ts(11, W800, Kx.premium))
+                }
+                Text(if (store.me.premium) "С Premium расшифровка без ограничений." else "Без Premium Telegram даёт лишь несколько расшифровок в неделю.", style = ts(12, color = Kx.text3))
+            }
+        }
+        BToast(toast, tk, Modifier.align(Alignment.BottomCenter).navigationBarsPadding(), icon = Icons.Rounded.CheckCircle, bottom = 40.dp)
+    }
 }

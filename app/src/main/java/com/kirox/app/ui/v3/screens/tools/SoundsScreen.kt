@@ -47,14 +47,30 @@ private val SCOPES = listOf("Личные чаты", "Группы", "Канал
 /** Board «Звук уведомлений»: scope chips, now-playing card (ripples, swinging bell, progress waveform), sound list by group, custom sound. */
 @Composable
 fun SoundsScreen(ctx: KxScreenCtx) {
-    // demo: needs store (notification sound per scope; saved custom sounds; real playback)
+    // wave3-media: real account → Telegram's saved notification sounds + the sound of each scope (Get/SetScopeNotificationSettings)
+    val real = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val keys = listOf("private", "groups", "channels")
+    var sounds by remember { mutableStateOf<List<com.kirox.app.ui.v3.model.KxSound>>(emptyList()) }
+    val cs = rememberCoroutineScope()
     var scope by rememberSaveable { mutableIntStateOf(0) }
-    var sel by remember { mutableStateOf(listOf(1, 3, 0)) }
+    var sel by remember { mutableStateOf(if (real) listOf(-1, -1, -1) else listOf(1, 3, 0)) }
+    if (real) LaunchedEffect(Unit) {
+        val list = ctx.store.notificationSounds()
+        sounds = list
+        sel = keys.map { k -> val id = ctx.store.scopeSound(k); list.indexOfFirst { it.id == id } }
+    }
+    val list = if (!real) SOUNDS else sounds.map { snd ->
+        when (snd.id) {
+            0L -> Snd("Без звука", Icons.Rounded.NotificationsOff, "Только вибрация", "Telegram")
+            1L -> Snd("По умолчанию", Icons.Rounded.Notifications, "Системный звук уведомлений", "Telegram")
+            else -> Snd(snd.title, Icons.Rounded.MusicNote, "Свой звук · ${snd.seconds} с", "Мои звуки")
+        }
+    }
     var playing by remember { mutableIntStateOf(-1) }
     var playId by remember { mutableIntStateOf(0) }
     var t by remember { mutableIntStateOf(0) }
     val toast = remember { TToast() }
-    val cur = sel[scope]
+    val cur = sel[scope].coerceAtLeast(0)
     LaunchedEffect(playId) {
         if (playing < 0) return@LaunchedEffect
         t = 0
@@ -94,7 +110,7 @@ fun SoundsScreen(ctx: KxScreenCtx) {
             }
             Column(Modifier.weight(1f)) {
                 Text("Сейчас выбран", style = KxType.style(12.sp, FontWeight.Bold, Kx.accent))
-                Text(SOUNDS[cur].name, style = KxType.style(18.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 2.dp))
+                Text(list.getOrNull(cur)?.name ?: "—", style = KxType.style(18.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 2.dp))
                 Row(Modifier.padding(top = 8.dp).height(26.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     val seed = cur * 7 + 3
                     repeat(28) { j ->
@@ -108,19 +124,25 @@ fun SoundsScreen(ctx: KxScreenCtx) {
     }) {
         Spacer(Modifier.height(8.dp))
         var last = ""
-        SOUNDS.forEachIndexed { i, s ->
+        if (real && list.isEmpty()) Text("Загружаем звуки…", style = KxType.style(14.sp, color = Kx.text4), modifier = Modifier.padding(16.dp))
+        list.forEachIndexed { i, s ->
             if (s.grp != last) {
                 last = s.grp
                 Text(s.grp.uppercase(), style = KxType.style(12.sp, FontWeight.Bold, Kx.text4).copy(letterSpacing = .6.sp), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp, bottom = 6.dp))
             }
-            val on = cur == i
+            val on = sel[scope] == i
             val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .1f) else Color.Transparent, tween(200), label = "bg")
             val bd by animateColorAsState(if (on) Kx.accent.copy(alpha = .4f) else Color.Transparent, tween(200), label = "bd")
             val shape = RoundedCornerShape(18.dp)
             Row(Modifier.padding(bottom = 4.dp).fillMaxWidth().clip(shape).background(bg).border(1.dp, bd, shape)
                 .kxClick(role = Role.RadioButton) {
                     sel = sel.mapIndexed { k, v -> if (k == scope) i else v }
-                    if (i == 0) { playing = -1; t = 0 } else { playing = i; playId++ }
+                    if (real) {
+                        val snd = sounds[i]; val key = keys[scope]
+                        ctx.store.previewSound(snd.id)
+                        cs.launch { ctx.store.changeScopeSound(key, snd.id)?.let { toast.show(it, Icons.Rounded.ErrorOutline) } }
+                    }
+                    if (list.getOrNull(i)?.icon == Icons.Rounded.NotificationsOff) { playing = -1; t = 0 } else { playing = i; playId++ }
                 }.padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TIconTile(s.icon, if (on) Color.White else Kx.text3, if (on) Kx.accentDeep else Kx.w(.06f), 38.dp)
@@ -131,13 +153,14 @@ fun SoundsScreen(ctx: KxScreenCtx) {
                 TRadio(on, off = Kx.w(.3f))
             }
         }
-        Row(Modifier.padding(top = 8.dp).fillMaxWidth().height(54.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.04f)).dashedBorder(Kx.accent.copy(alpha = .4f), 18.dp)
+        if (!real) Row(Modifier.padding(top = 8.dp).fillMaxWidth().height(54.dp).clip(RoundedCornerShape(18.dp)).background(Kx.w(.04f)).dashedBorder(Kx.accent.copy(alpha = .4f), 18.dp)
             .kxClick { toast.show("Откроется выбор файла", Icons.Outlined.Upload) }.padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(Icons.Outlined.Upload, null, Modifier.size(24.dp), tint = Kx.accent)
             Text("Свой звук из файла", style = KxType.style(15.sp, FontWeight.Bold, Kx.accent))
         }
-        THint("Подойдёт MP3 или OGG до 5 секунд и 300 КБ. Можно взять голосовое из любого чата: нажмите на него и выберите «Сделать звуком».", Modifier.padding(start = 4.dp, end = 4.dp), top = 10.dp)
+        if (real) THint("Свои звуки добавляются в Telegram из аудио или голосового в чате и появляются здесь сами.", Modifier.padding(start = 4.dp, end = 4.dp), top = 10.dp)
+        else THint("Подойдёт MP3 или OGG до 5 секунд и 300 КБ. Можно взять голосовое из любого чата: нажмите на него и выберите «Сделать звуком».", Modifier.padding(start = 4.dp, end = 4.dp), top = 10.dp)
     }
 }
 

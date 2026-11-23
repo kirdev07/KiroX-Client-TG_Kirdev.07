@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
+import com.kirox.app.ui.v3.model.KxPrefsAccount
+import com.kirox.app.ui.v3.model.pref
 
 private val AC_CB = listOf(
     listOf("Обычные", "Как задумано") to listOf(Color(0xFF8FD3AC), Color(0xFFFF8A80), Color(0xFFE8B04A)),
@@ -55,15 +57,17 @@ private val AC_OPTS = listOf(
 /** Board «Специальные возможности»: live chat preview, text scale slider, 6 switches, colour-vision palettes. */
 @Composable
 fun AccessScreen(ctx: KxScreenCtx) {
-    // demo: needs store (accessibility prefs: text scale, bold, contrast, outlines, big buttons, motion, captions, colour palette) — the app theme does not read them yet
-    var scale by rememberSaveable { mutableIntStateOf(100) }
+    // wave3: store prefs. The whole v3 UI follows the text scale and «Анимации» (theme/KxAccess.kt); the other switches shape this preview.
+    val store = ctx.store
+    val scale = store.pref(KxPrefsAccount.ACCESS_SCALE).coerceIn(85, 150)
     // bold, contrast, outline, big, motion, captions
-    var flags by remember { mutableStateOf(listOf(false, false, false, false, true, true)) }
-    var cb by rememberSaveable { mutableIntStateOf(0) }
+    val bits = store.pref(KxPrefsAccount.ACCESS_FLAGS)
+    val flags = List(6) { bits and (1 shl it) != 0 }
+    val cb = store.pref(KxPrefsAccount.ACCESS_PALETTE).coerceIn(0, AC_CB.lastIndex)
     val (bold, contrast, outline, big, motion) = flags
     val acc by animateColorAsState(AC_CB[cb].second[0], tween(300), label = "acc")
     val bg by animateColorAsState(if (contrast) Color.Black else Kx.bg, tween(300), label = "bg")
-    val fs by animateFloatAsState(15f * scale / 100f, tween(300), label = "fs")
+    val fs by animateFloatAsState(15f, tween(300), label = "fs") // the app-wide font scale already applies «Размер текста»
     val av by animateDpAsState((30f * scale / 100f).dp, tween(300), label = "av")
     val btnH by animateDpAsState(if (big) 56.dp else 44.dp, tween(300), label = "bh")
     val ink = if (contrast) Color.White else Kx.text
@@ -110,7 +114,7 @@ fun AccessScreen(ctx: KxScreenCtx) {
             }
             Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("А", style = KxType.style(13.sp, color = Kx.text3))
-                Box(Modifier.weight(1f)) { RingSlider(scale, 85, 150, 5, "Размер текста") { scale = it } }
+                Box(Modifier.weight(1f)) { RingSlider(scale, 85, 150, 5, "Размер текста") { store.putPref(KxPrefsAccount.ACCESS_SCALE, it) } }
                 Text("А", style = KxType.style(22.sp, color = Kx.text3))
             }
         }
@@ -118,7 +122,7 @@ fun AccessScreen(ctx: KxScreenCtx) {
             AC_OPTS.forEachIndexed { i, o ->
                 val on = flags[i]
                 TRow(o.icon, o.label, o.sub, Modifier.bottomLine(), iconTint = if (on) acc else Kx.text3, subColor = Kx.text4,
-                    onClick = { flags = flags.toMutableList().also { it[i] = !on } }) { TSmallSwitch(on) }
+                    onClick = { store.putPref(KxPrefsAccount.ACCESS_FLAGS, bits xor (1 shl i)) }) { TSmallSwitch(on) }
             }
         }
         TCap("Различение цветов", top = 16.dp)
@@ -129,7 +133,7 @@ fun AccessScreen(ctx: KxScreenCtx) {
                     val cbg by animateColorAsState(if (sel) Kx.accent.copy(alpha = .12f) else Kx.w(.04f), tween(200), label = "cbg")
                     val cbd by animateColorAsState(if (sel) acc else Kx.w(.08f), tween(200), label = "cbd")
                     val sh = RoundedCornerShape(18.dp)
-                    Column(Modifier.weight(1f).clip(sh).background(cbg).border(1.dp, cbd, sh).kxClick(role = Role.RadioButton) { cb = i }.padding(12.dp)) {
+                    Column(Modifier.weight(1f).clip(sh).background(cbg).border(1.dp, cbd, sh).kxClick(role = Role.RadioButton) { store.putPref(KxPrefsAccount.ACCESS_PALETTE, i) }.padding(12.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { cs.forEach { Box(Modifier.size(18.dp).clip(CircleShape).background(it)) } }
                         Text(t[0], style = KxType.style(14.sp, FontWeight.Bold), modifier = Modifier.padding(top = 8.dp))
                         Text(t[1], style = KxType.style(11.sp, color = Kx.text4))

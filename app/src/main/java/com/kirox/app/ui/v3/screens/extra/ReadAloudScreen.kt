@@ -37,7 +37,7 @@ import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
 private const val RaText = "Вышел Compose 1.9. Общие переходы между экранами стали стабильными, ленивые списки работают быстрее на треть, а превью теперь понимают тёмную тему. Обновляйтесь и делитесь впечатлениями в комментариях."
-private val RaW = RaText.split(' ')
+private val RaWDemo = RaText.split(' ')
 private val RaSp = listOf("0,8×" to .8f, "1×" to 1f, "1,5×" to 1.5f, "2×" to 2f)
 
 /**
@@ -47,7 +47,15 @@ private val RaSp = listOf("0,8×" to .8f, "1×" to 1f, "1,5×" to 1.5f, "2×" to
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ReadAloudScreen(ctx: KxScreenCtx) {
-    // demo: needs store (the post comes from the chat; here it is the board's sample post)
+    // Demo post. Real chat (arg = chat id[:message id], else its last text message, read with peekHistory): that message is read aloud.
+    val live = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val liveChat = if (live) ctx.arg?.substringBefore(':')?.toLongOrNull() else null
+    if (live && liveChat == null) { com.kirox.app.ui.v3.screens.more.C3NeedChat(ctx, "Читать вслух"); return }
+    val peek = com.kirox.app.ui.v3.screens.more.c3Peek(ctx.store, liveChat, 30)
+    val wantId = ctx.arg?.split(':')?.getOrNull(1)?.toLongOrNull()
+    val target = if (!live) null else peek.let { all -> if (wantId != null) all.firstOrNull { it.id == wantId } else all.lastOrNull { it.text.isNotBlank() && it.kind == com.kirox.app.ui.v3.model.KxMsgKind.Text } }
+    if (live && target == null) { com.kirox.app.ui.v3.screens.more.C3NeedChat(ctx, "Читать вслух", if (peek.isEmpty()) "Загрузка…" else "Здесь нет текста, который можно прочитать."); return }
+    @Suppress("LocalVariableName") val RaW = if (live) target!!.text.split(Regex("""\s+""")).filter { it.isNotBlank() } else RaWDemo
     var i by remember { mutableIntStateOf(0) }
     var playing by remember { mutableStateOf(true) }
     var speed by remember { mutableFloatStateOf(1f) }

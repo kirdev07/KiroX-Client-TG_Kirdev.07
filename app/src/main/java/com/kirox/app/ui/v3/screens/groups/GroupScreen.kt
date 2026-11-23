@@ -61,6 +61,8 @@ private val GTools = listOf(
     GTool(Icons.Rounded.StickyNote2, "Стикеры группы", "kiroX", Color(0xFFC9A6FF), "GroupStickers"),
     GTool(Icons.Rounded.Link, "Пригласительные ссылки", "3", Color(0xFFFFAE80), "Invite"),
 )
+/** wave3-account: on a real group the tools also open the anti-spam board. */
+private val GAntiSpam = GTool(Icons.Rounded.HealthAndSafety, "Защита от спама", "", Color(0xFF8FD3AC), "AntiSpam")
 
 /** Board «Группа и управление»: group hero, 4 actions, about, members; «Управление» slides in from the right. */
 @Composable
@@ -84,7 +86,7 @@ fun GroupScreen(ctx: KxScreenCtx) {
             else -> GMember(gxPerson(m.name, m.userId), m.status, m.status == "в сети")
         }
     }
-    val tools = if (chatId == null) GTools else GTools.map { t ->
+    val tools = if (chatId == null) GTools else (GTools + GAntiSpam).map { t ->
         when (t.board) {
             "AllowedReacts" -> t.copy(value = info?.reactions.let { r -> when { info == null -> ""; r == null -> "Все"; r.isEmpty() -> "Нет"; else -> "${r.size}" } })
             "AdminRights" -> t.copy(value = memberList?.count { it.role == "Создатель" || it.role == "Администратор" }?.toString() ?: "")

@@ -38,32 +38,46 @@ import com.kirox.app.ui.v3.components.KxSwitch
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — message info (sent/edited/read dates, previous text) and the «show read time» privacy flag.
+// Demo chat. Real chat (arg = chat id[:message id], else your last message): store.messageInfo (GetMessage + GetMessageReadDate)
+// and the real «show read time» privacy flag (store.showReadDate). Telegram does not keep the previous text of an edit.
 private data class InfoStep(val icon: ImageVector, val t: String, val v: String, val sub: String?, val green: Boolean)
 
 /** MsgInfo board: tap your message → sheet with sent / edited / read timeline and the read-time privacy switch. */
 @Composable
 fun MsgInfoScreen(ctx: KxScreenCtx) {
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live && chatId == null) { C3NeedChat(ctx, "Сведения о сообщении"); return }
+    val live = chatId != null
+    val header = chatId?.let { ctx.store.header(it) }
+    val peek = c3Peek(ctx.store, chatId, 40)
+    val wantId = ctx.c3Msg
+    val target = if (!live) null else (ctx.store.messages(chatId!!) + peek).let { all -> if (wantId != null) all.firstOrNull { it.id == wantId } else all.lastOrNull { it.out } }
+    val targetId = wantId ?: target?.id
+    val info = if (live && targetId != null) c3Load(chatId, targetId, ctx.store.showReadDate) { ctx.store.messageInfo(chatId!!, targetId) } else null
+    if (live && targetId == null) { C3NeedChat(ctx, "Сведения о сообщении", if (peek.isEmpty()) "Загрузка…" else "Здесь нет ваших сообщений."); return }
+    val bubbleText = target?.text?.ifBlank { null } ?: if (live) "Сообщение" else null
     var sheet by remember { mutableStateOf(true) }
-    var mine by remember { mutableStateOf(true) }
+    var mineDemo by remember { mutableStateOf(true) }
+    val mine = if (live) ctx.store.showReadDate else mineDemo
     var theirs by remember { mutableStateOf(true) }
-    val showRead = mine && theirs
+    val showRead = if (live) info?.read?.isNotEmpty() == true else mine && theirs
     val rootL = remember { MoLift() }
     val bubL = remember { MoLift() }
 
     Box(Modifier.fillMaxSize().background(Kx.bg).moTrack(rootL)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            MoChatHeader(ctx.back, "А", Color(0xFFC0443C), null, "Анна", "в сети недавно")
+            MoChatHeader(ctx.back, (header?.title ?: "А").take(1).uppercase(), Color(0xFFC0443C), null, header?.title ?: "Анна", header?.status ?: "в сети недавно")
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(14.dp)) {
                 val w = maxWidth
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
-                    Box(Modifier.widthIn(max = w * .78f).clip(RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)).background(Kx.w(.07f)).padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    val before = if (live) peek.lastOrNull { !it.out && it.text.isNotBlank() && it.id < (targetId ?: Long.MAX_VALUE) } else null
+                    if (!live || before != null) Box(Modifier.widthIn(max = w * .78f).clip(RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)).background(Kx.w(.07f)).padding(horizontal = 12.dp, vertical = 8.dp)) {
                         Text(buildAnnotatedString {
-                            append("Скинь адрес, где встречаемся")
-                            withStyle(SpanStyle(fontSize = 11.sp, color = Kx.text.copy(alpha = .6f))) { append("  19:31") }
+                            append(before?.text ?: "Скинь адрес, где встречаемся")
+                            withStyle(SpanStyle(fontSize = 11.sp, color = Kx.text.copy(alpha = .6f))) { append("  " + (before?.time ?: "19:31")) }
                         }, style = mts(15))
                     }
-                    Box(Modifier.align(Alignment.End).widthIn(max = w * .8f).moTrack(bubL)) { InfoBubble { sheet = true } }
+                    Box(Modifier.align(Alignment.End).widthIn(max = w * .8f).moTrack(bubL)) { InfoBubble(bubbleText, target?.time) { sheet = true } }
                     if (!sheet) Text("нажмите на сообщение", style = mts(11, color = MoMuted), modifier = Modifier.align(Alignment.End))
                 }
             }
@@ -78,9 +92,16 @@ fun MsgInfoScreen(ctx: KxScreenCtx) {
             val lift = moEnter(250)
             MoSheet({ sheet = false }, pad = PaddingValues(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 24.dp), durMs = 350,
                 colors = listOf(Color(0xFC28302C), Color(0xFF121614)),
-                between = { MoLifted(bubL, rootL, Modifier.graphicsLayer { val s = 1f + .03f * lift; scaleX = s; scaleY = s }) { InfoBubble { sheet = true } } }) {
+                between = { MoLifted(bubL, rootL, Modifier.graphicsLayer { val s = 1f + .03f * lift; scaleX = s; scaleY = s }) { InfoBubble(bubbleText, target?.time) { sheet = true } } }) {
                 Text("Сведения о сообщении", style = mts(18, W8))
-                val steps = listOf(
+                val steps = if (live) listOfNotNull(
+                    InfoStep(Icons.AutoMirrored.Rounded.Send, "Отправлено", info?.sent ?: "…", listOfNotNull(
+                        info?.views?.takeIf { it > 0 }?.let { "Просмотров: $it" }, info?.forwards?.takeIf { it > 0 }?.let { "Пересылок: $it" }, info?.via?.ifBlank { null }?.let { "через $it" },
+                    ).joinToString(" · ").ifBlank { null }, true),
+                    info?.edited?.ifBlank { null }?.let { InfoStep(Icons.Rounded.Edit, "Изменено", it, null, false) },
+                    if (header?.kind == com.kirox.app.ui.v3.model.KxChatKind.Private) InfoStep(Icons.Rounded.DoneAll, "Прочитано",
+                        info?.read?.removePrefix("Прочитано ")?.ifBlank { null } ?: "—", info?.readNote?.ifBlank { null }, showRead) else null,
+                ) else listOf(
                     InfoStep(Icons.AutoMirrored.Rounded.Send, "Отправлено", "19:36", null, true),
                     InfoStep(Icons.Rounded.Edit, "Изменено", "19:40", "Было: «…Абая 50…»", false),
                     InfoStep(Icons.Rounded.DoneAll, "Прочитано", if (showRead) "19:42" else "скрыто",
@@ -115,12 +136,12 @@ fun MsgInfoScreen(ctx: KxScreenCtx) {
                     .padding(horizontal = 14.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(if (showRead) Icons.Outlined.Info else Icons.Outlined.VisibilityOff, null, Modifier.size(20.dp), tint = if (showRead) blue else MoAmber)
                     Text(when {
-                        showRead -> "Время прочтения видно в личных чатах в течение недели, если оба собеседника его показывают."
+                        showRead || (live && mine) -> "Время прочтения видно в личных чатах в течение недели, если оба собеседника его показывают."
                         mine -> "Собеседник скрывает время прочтения — видны только две галочки."
                         else -> "Вы скрыли своё время прочтения, поэтому не видите его и у собеседника."
                     }, style = mts(13, color = Kx.text2, lh = 1.4f), modifier = Modifier.weight(1f))
                 }
-                Row(Modifier.padding(top = 8.dp).fillMaxWidth().heightIn(min = 56.dp).kxClick(role = Role.Switch) { mine = !mine },
+                Row(Modifier.padding(top = 8.dp).fillMaxWidth().heightIn(min = 56.dp).kxClick(role = Role.Switch) { if (live) ctx.store.setShowReadDate(!mine) else mineDemo = !mineDemo },
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Outlined.Schedule, null, Modifier.size(24.dp), tint = MoSub)
                     Column(Modifier.weight(1f)) {
@@ -129,7 +150,7 @@ fun MsgInfoScreen(ctx: KxScreenCtx) {
                     }
                     KxSwitch(mine, width = 46.dp, height = 28.dp, knob = 22.dp, trackOn = Kx.accentDeep, trackOff = Kx.w(.14f), knobOn = Kx.text, knobOff = MoSub)
                 }
-                MoPill(if (theirs) "Макет: Анна скрывает время" else "Макет: Анна показывает время", Modifier.padding(top = 2.dp), height = 34.dp,
+                if (!live) MoPill(if (theirs) "Макет: Анна скрывает время" else "Макет: Анна показывает время", Modifier.padding(top = 2.dp), height = 34.dp,
                     ink = MoSub, size = 12) { theirs = !theirs }
             }
         }
@@ -137,11 +158,11 @@ fun MsgInfoScreen(ctx: KxScreenCtx) {
 }
 
 @Composable
-private fun InfoBubble(onClick: () -> Unit) {
+private fun InfoBubble(text: String? = null, time: String? = null, onClick: () -> Unit) {
     Box(Modifier.clip(RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp)).moAccent().kxClick("Сведения о сообщении", onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp)) {
         Text(buildAnnotatedString {
-            append("Кофейня «Зерно», Абая 52. Буду к семи ☕")
-            withStyle(SpanStyle(fontSize = 11.sp, color = MoInk.copy(alpha = .7f))) { append("  изм. 19:40") }
+            append(text ?: "Кофейня «Зерно», Абая 52. Буду к семи ☕")
+            withStyle(SpanStyle(fontSize = 11.sp, color = MoInk.copy(alpha = .7f))) { append("  " + (if (text == null) "изм. 19:40" else time.orEmpty())) }
             append(" "); appendInlineContent("ok", "✓✓")
         }, style = mts(15, color = MoInk), inlineContent = mapOf("ok" to InlineTextContent(Placeholder(15.sp, 15.sp, PlaceholderVerticalAlign.TextCenter)) {
             Icon(Icons.Outlined.DoneAll, null, Modifier.fillMaxSize(), tint = MoInk)

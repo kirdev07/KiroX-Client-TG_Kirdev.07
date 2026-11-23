@@ -27,7 +27,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — replacing the media of an own sent message (editMessageMedia) and the device gallery.
+// Demo photos. Real chat (arg = chat id[:message id]): ReplaceMediaLive — system photo picker + store.replaceMedia (EditMessageMedia).
 private data class RmPhoto(val e: String, val a: Color, val b: Color, val tag: String, val cap: String)
 
 private val RM_G = listOf(
@@ -42,6 +42,8 @@ private val RM_G = listOf(
 /** ReplaceMedia board: edit a sent photo message — tap the attach button to pick another photo, save or cancel. */
 @Composable
 fun ReplaceMediaScreen(ctx: KxScreenCtx) {
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live) { if (chatId == null) C3NeedChat(ctx, "Заменить медиа") else ReplaceMediaLive(ctx, chatId); return }
     var cur by remember { mutableIntStateOf(0) }
     var sel by remember { mutableIntStateOf(0) }
     var editing by remember { mutableStateOf(true) }

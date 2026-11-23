@@ -32,18 +32,29 @@ import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store — a local send delay (hold the message N seconds before store.send) and the delay setting.
+// Demo chat. Real chat (arg = chat id): the delay is the kiroX setting KxChatPrefs.UNDO_SEND; the text goes to store.send only when the countdown ends
+// (leaving the board sends it at once), «Отменить» keeps it local. The main chat composer does not read this setting yet.
 private val US_DELAYS = listOf("Выкл" to 0, "3 с" to 3, "5 с" to 5, "10 с" to 10)
 private data class UsMsg(val id: Int, val t: String, val pending: Boolean, val min: String)
 
 /** UndoSend board: messages wait a few seconds with a countdown ring and «Отменить»; the delay is set in the header. */
 @Composable
 fun UndoSendScreen(ctx: KxScreenCtx) {
-    var draft by remember { mutableStateOf("Я смогу, но только до обеда") }
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live && chatId == null) { C3NeedChat(ctx, "Отмена отправки"); return }
+    val live = chatId != null
+    val header = chatId?.let { ctx.store.header(it) }
+    val peek = c3Peek(ctx.store, chatId)
+    var draft by remember { mutableStateOf(if (live) "" else "Я смогу, но только до обеда") }
     val sent = remember { mutableStateListOf<UsMsg>() }
     var pend by remember { mutableIntStateOf(-1) }
     var left by remember { mutableIntStateOf(0) }
-    var delaySec by remember { mutableIntStateOf(5) }
+    var delayDemo by remember { mutableIntStateOf(5) }
+    val delaySec = if (live) ctx.store.prefs[com.kirox.app.ui.v3.model.KxChatPrefs.UNDO_SEND] ?: 0 else delayDemo
+    fun changeDelay(v: Int) { if (live) ctx.store.putPref(com.kirox.app.ui.v3.model.KxChatPrefs.UNDO_SEND, v) else delayDemo = v }
+    fun deliver(id: Int) { if (live) sent.firstOrNull { it.id == id }?.let { ctx.store.send(chatId!!, it.t) } }
+    val latestPend by rememberUpdatedState(pend)
+    DisposableEffect(Unit) { onDispose { if (latestPend >= 0) deliver(latestPend) } }
     var settings by remember { mutableStateOf(false) }
     var n by remember { mutableIntStateOf(0) }
     val can = draft.trim().isNotEmpty()
@@ -52,20 +63,23 @@ fun UndoSendScreen(ctx: KxScreenCtx) {
         if (pend < 0) return@LaunchedEffect
         val id = pend
         while (left > 0) { delay(100); left-- }
+        deliver(id)
         sent.indices.forEach { i -> if (sent[i].id == id) sent[i] = sent[i].copy(pending = false) }
         pend = -1
     }
     fun send() {
         val t = draft.trim(); if (t.isEmpty()) return
         val id = n
+        if (pend >= 0) deliver(pend)
         sent.indices.forEach { i -> if (sent[i].pending) sent[i] = sent[i].copy(pending = false) }
         sent.add(UsMsg(id, t, delaySec > 0, "${1 + id % 9}")); draft = ""; n++
+        if (live && delaySec <= 0) ctx.store.send(chatId!!, t)
         if (delaySec > 0) { left = delaySec * 10; pend = id }
     }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
-            MoChatHeader(ctx.back, "Р", Color(0xFF5C6661), null, "Работа", "8 участников") {
+            MoChatHeader(ctx.back, (header?.title ?: "Р").take(1).uppercase(), Color(0xFF5C6661), null, header?.title ?: "Работа", header?.status ?: "8 участников") {
                 MoRound(Icons.AutoMirrored.Outlined.Undo, "Настройки отмены", bg = if (settings) Kx.accent.copy(alpha = .16f) else Kx.w(.06f), border = null,
                     tint = if (settings) Kx.accent else Kx.text) { settings = !settings }
             }
@@ -76,7 +90,7 @@ fun UndoSendScreen(ctx: KxScreenCtx) {
                     US_DELAYS.forEach { (label, v) ->
                         val on = delaySec == v
                         Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(14.dp)).background(if (on) Kx.accent.copy(alpha = .16f) else Kx.w(.05f))
-                            .border(1.dp, if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), RoundedCornerShape(14.dp)).kxClick { delaySec = v },
+                            .border(1.dp, if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), RoundedCornerShape(14.dp)).kxClick { changeDelay(v) },
                             contentAlignment = Alignment.Center) { Text(label, style = mts(13, W7, if (on) Kx.accent else Kx.text2)) }
                     }
                 }
@@ -86,7 +100,9 @@ fun UndoSendScreen(ctx: KxScreenCtx) {
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val w = maxWidth
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
-                    MoIncoming("Кто сможет подменить Марию в понедельник?", author = "Начальник", authorColor = Color(0xFF6FA9D8), size = 14, modifier = Modifier.widthIn(max = w * .8f))
+                    val lastIn = if (live) peek.lastOrNull { !it.out && it.text.isNotBlank() } else null
+                    if (!live) MoIncoming("Кто сможет подменить Марию в понедельник?", author = "Начальник", authorColor = Color(0xFF6FA9D8), size = 14, modifier = Modifier.widthIn(max = w * .8f))
+                    else if (lastIn != null) MoIncoming(lastIn.text, lastIn.time, author = lastIn.sender, authorColor = Color(0xFF6FA9D8), size = 14, modifier = Modifier.widthIn(max = w * .8f))
                     sent.forEach { m -> key(m.id) { UsBubble(m, Modifier.align(Alignment.End).widthIn(max = w * .82f)) } }
                 }
             }

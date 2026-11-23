@@ -44,6 +44,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private data class AdOpt(val label: String, val icon: ImageVector, val iconOn: ImageVector, val short: String)
 private val AD_OPTS = listOf(
@@ -55,17 +56,32 @@ private val AD_OPTS = listOf(
     AdOpt("Свой срок", Icons.Outlined.Tune, Icons.Rounded.Tune, ""),
 )
 private val AD_CUSTOM = listOf("1 час", "3 часа", "6 часов", "12 часов", "1 день", "2 дня", "3 дня", "1 неделя", "2 недели", "1 месяц", "3 месяца", "1 год")
+/** Seconds of AD_OPTS 0..4 and of AD_CUSTOM (Telegram accepts 1 hour … 1 year). */
+private val AD_SECS = listOf(0, 3600, 86400, 604800, 2678400)
+private val AD_CUSTOM_SECS = listOf(3600, 3 * 3600, 6 * 3600, 12 * 3600, 86400, 2 * 86400, 3 * 86400, 604800, 2 * 604800, 2678400, 3 * 2678400, 31536000)
 private data class AdMsg(val text: String, val mine: Boolean, val time: String)
 private val AD_MSG = listOf(AdMsg("Привет! Завтра в силе?", false, "18:02"), AdMsg("Да, в 10 у метро", true, "18:03"), AdMsg("Код от подъезда 4512", false, "18:04"))
 
 /** Board «Автоудаление»: live ring + vanishing bubbles preview, period grid, custom period slider, default for new chats, save. */
 @Composable
 fun AutoDeleteScreen(ctx: KxScreenCtx) {
-    // demo: needs store (chat auto-delete timer get/set, default timer for new chats)
-    val name = ctx.arg?.toLongOrNull()?.let { runCatching { ctx.store.header(it).title }.getOrNull() } ?: "Анна"
+    // Demo store: board state. Real chat (arg = chat id): the timer is read with store.autoDeleteOf and saved with store.setAutoDelete;
+    // «Для всех новых чатов» is Telegram's default timer (defaultAutoDelete / changeDefaultAutoDelete).
+    val live = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val chatId = ctx.arg?.substringBefore(':')?.toLongOrNull()
+    if (live && chatId == null) { com.kirox.app.ui.v3.screens.more.C3NeedChat(ctx, "Автоудаление"); return }
+    val name = chatId?.let { runCatching { ctx.store.header(it).title }.getOrNull() } ?: "Анна"
     var opt by rememberSaveable { mutableIntStateOf(2) }
     var customVal by rememberSaveable { mutableIntStateOf(7) }
     var all by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var defaultSecs by remember { mutableStateOf<Int?>(null) }
+    if (live) LaunchedEffect(chatId) {
+        val cur = ctx.store.autoDeleteOf(chatId!!) ?: 0
+        val i = AD_SECS.indexOf(cur)
+        if (i in 0..4) opt = i else if (cur > 0) { opt = 5; customVal = AD_CUSTOM_SECS.indices.minByOrNull { kotlin.math.abs(AD_CUSTOM_SECS[it] - cur) } ?: 7 } else opt = 0
+        defaultSecs = ctx.store.defaultAutoDelete(); all = (defaultSecs ?: 0) > 0
+    }
     var tick by remember { mutableIntStateOf(0) }
     LaunchedEffect(opt) { tick = 0; while (true) { delay(1000); tick++ } }
     val toast = remember { TToast() }
@@ -186,6 +202,12 @@ fun AutoDeleteScreen(ctx: KxScreenCtx) {
             }
         }
         TSaveBar("Сохранить", Icons.Rounded.Done) {
+            if (live) {
+                val secs = if (opt == 5) AD_CUSTOM_SECS[customVal] else AD_SECS[opt]
+                ctx.store.setAutoDelete(chatId!!, secs)
+                val wantDefault = if (all && on) secs else 0
+                if (defaultSecs != null && wantDefault != defaultSecs) scope.launch { ctx.store.changeDefaultAutoDelete(wantDefault)?.let { ctx.toast(it) } ?: run { defaultSecs = wantDefault } }
+            }
             toast.show(if (on) "Автоудаление: $period" else "Автоудаление выключено", if (on) Icons.Rounded.Timer else Icons.Rounded.TimerOff)
         }
         TToastHost(toast, 96.dp)

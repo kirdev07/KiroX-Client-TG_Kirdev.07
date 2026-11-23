@@ -36,10 +36,11 @@ import kotlin.math.sin
 /** Board «Открыть подарок»: gift bubble wobbles → tap → box shakes, lid flies, teddy pops with rays + sparks → keep / convert to stars / show in profile. */
 @Composable
 fun GiftOpenScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is KxDemoStore) { com.kirox.app.ui.v3.screens.more.GiftsLive(ctx); return }
     val demo = ctx.store is KxDemoStore
     var phase by remember { mutableStateOf("closed") }
     var show by remember { mutableStateOf(true) }
-    // demo: needs store (received gifts: open, convert to stars, show/hide in profile, stars balance)
+    // Demo opening animation. Real account: GiftsLive (received gifts, show/hide, convert to stars behind a confirm).
     var stars by remember { mutableIntStateOf(120) }
     var sk by remember { mutableIntStateOf(0) }
     var result by remember { mutableStateOf("") }

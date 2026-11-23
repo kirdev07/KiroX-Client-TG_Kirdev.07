@@ -36,6 +36,12 @@ private val KC_COLORS = listOf(Color(0xFF8FD3AC), Color(0xFFE8B04A), Color(0xFF6
 /** Board «Сверьте ключ» (call encryption): pulsing shield, 4 flipping emoji, how-to steps, match / mismatch with confetti or shake. */
 @Composable
 fun KeyCheckScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → emoji key of the live call
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoKeyCheckScreen(ctx) else com.kirox.app.ui.v3.screens.media.RealCallBoard(ctx, com.kirox.app.ui.v3.screens.media.CallBoard.Key)
+}
+
+@Composable
+private fun DemoKeyCheckScreen(ctx: KxScreenCtx) {
     // demo: needs store (active call: peer name, duration, emoji fingerprint; discardCall) — emoji/peer are demo
     var res by remember { mutableStateOf("") }
     var sec by remember { mutableIntStateOf(254) }

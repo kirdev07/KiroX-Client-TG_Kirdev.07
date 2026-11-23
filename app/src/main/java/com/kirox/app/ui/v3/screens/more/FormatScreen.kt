@@ -30,7 +30,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: the real composer formats with TDLib entities (bold/italic/underline/strike/code/spoiler/textUrl); this board shows the toolbar on a fixed text.
+// Demo: the toolbar on a fixed text. Real chat (arg = chat id): your own text, styles become TDLib entities and «Отправить» sends it (store.sendWith).
 private const val FM_TEXT = "Митап в субботу в 11:00. Код для входа 4512. Подробности на kotlin.club"
 private val FM_W = FM_TEXT.split(' ')
 private val FM_TOOLS: List<Triple<Char, ImageVector, String>> = listOf(
@@ -50,7 +50,12 @@ private fun fmStyle(st: Set<Char>, preview: Boolean, base: TextStyle): TextStyle
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FormatScreen(ctx: KxScreenCtx) {
-    val f = remember { mutableStateMapOf(2 to setOf('b'), 4 to setOf('b'), 8 to setOf('p'), 11 to setOf('l')) }
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live && chatId == null) { C3NeedChat(ctx, "Форматирование"); return }
+    val live = chatId != null
+    var liveText by remember { mutableStateOf("") }
+    val words = if (live) liveText.trim().split(Regex("""\s+""")).filter { it.isNotEmpty() } else FM_W
+    val f = remember { mutableStateMapOf<Int, Set<Char>>().apply { if (!live) putAll(mapOf(2 to setOf('b'), 4 to setOf('b'), 8 to setOf('p'), 11 to setOf('l'))) } }
     val sel = remember { mutableStateMapOf<Int, Boolean>() }
     var quote by remember { mutableStateOf(false) }
     val selIds = sel.filterValues { it }.keys.toList()
@@ -59,7 +64,8 @@ fun FormatScreen(ctx: KxScreenCtx) {
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            MoChatHeader(ctx.back, "K", Color(0xFF6FA9D8), Color(0xFF2F6E9E), "Kotlin-клуб", "предпросмотр сообщения")
+            val h = chatId?.let { ctx.store.header(it) }
+            MoChatHeader(ctx.back, (h?.title ?: "K").take(1).uppercase(), Color(0xFF6FA9D8), Color(0xFF2F6E9E), h?.title ?: "Kotlin-клуб", "предпросмотр сообщения")
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val w = maxWidth
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
@@ -71,7 +77,7 @@ fun FormatScreen(ctx: KxScreenCtx) {
                             Text("Цитата: «Встречаемся у входа»", style = mts(15, color = MoInk, lh = 1.5f).copy(fontStyle = FontStyle.Italic))
                         }
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            FM_W.forEachIndexed { i, t -> FmPreviewWord(t, fmt(i)) }
+                            words.forEachIndexed { i, t -> FmPreviewWord(t, fmt(i)) }
                         }
                         Text("18:40", style = mts(11, color = MoInk.copy(alpha = .6f)), modifier = Modifier.align(Alignment.End))
                     }
@@ -92,9 +98,33 @@ fun FormatScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                FlowRow(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Kx.w(.1f), Kx.w(.04f))))
+                if (live) Row(Modifier.padding(bottom = 8.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.weight(1f).heightIn(min = 44.dp).clip(RoundedCornerShape(22.dp)).background(Kx.w(.07f)).padding(horizontal = 14.dp), contentAlignment = Alignment.CenterStart) {
+                        MoInput(liveText, { liveText = it; f.clear(); sel.clear() }, "Текст сообщения", Modifier.fillMaxWidth(), singleLine = false)
+                    }
+                    MoPill("Отправить", height = 40.dp, bg = Kx.accent.copy(alpha = .16f), ink = Kx.accent, size = 13) {
+                        if (words.isEmpty()) { ctx.toast("Сначала напишите текст"); return@MoPill }
+                        val text = words.joinToString(" ")
+                        var off = 0
+                        val ents = ArrayList<com.kirox.app.ui.v3.model.KxEntity>()
+                        words.forEachIndexed { i, w ->
+                            fmt(i).forEach { k ->
+                                val type = when (k) { 'b' -> com.kirox.app.ui.v3.model.KxEntityType.Bold; 'i' -> com.kirox.app.ui.v3.model.KxEntityType.Italic
+                                    'u' -> com.kirox.app.ui.v3.model.KxEntityType.Underline; 's' -> com.kirox.app.ui.v3.model.KxEntityType.Strike
+                                    'c' -> com.kirox.app.ui.v3.model.KxEntityType.Code; 'p' -> com.kirox.app.ui.v3.model.KxEntityType.Spoiler
+                                    else -> com.kirox.app.ui.v3.model.KxEntityType.TextLink }
+                                val url = if (k == 'l') (if (w.contains("://")) w else if (w.contains('.')) "https://$w" else null) else null
+                                if (k != 'l' || url != null) ents += com.kirox.app.ui.v3.model.KxEntity(off, w.length, type, url)
+                            }
+                            off += w.length + 1
+                        }
+                        ctx.store.sendWith(chatId!!, text, com.kirox.app.ui.v3.model.KxSendOptions(entities = ents))
+                        ctx.toast("Отправлено"); liveText = ""; f.clear(); sel.clear()
+                    }
+                }
+                if (words.isNotEmpty()) FlowRow(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Kx.w(.1f), Kx.w(.04f))))
                     .border(1.dp, Kx.w(.12f), RoundedCornerShape(20.dp)).padding(horizontal = 14.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    FM_W.forEachIndexed { i, t ->
+                    words.forEachIndexed { i, t ->
                         val on = sel[i] == true; val st = fmt(i)
                         Text(t, style = fmStyle(st, false, mts(16, color = if ('l' in st) Kx.accent else Kx.text)),
                             modifier = Modifier.background(if (on) Kx.accent.copy(alpha = .35f) else if ('p' in st) Kx.w(.12f) else Color.Transparent).kxClick(t) { sel[i] = !on })
@@ -103,7 +133,7 @@ fun FormatScreen(ctx: KxScreenCtx) {
                 Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(if (selIds.isNotEmpty()) "Выбрано слов: ${selIds.size} — нажмите стиль" else "Нажмите на слова, чтобы выделить", style = mts(12, color = MoMuted), modifier = Modifier.weight(1f))
                     MoPill("Убрать всё", height = 32.dp, ink = Kx.text2, size = 12) { f.clear(); sel.clear() }
-                    MoPill("Цитата", height = 32.dp, bg = if (quote) Kx.accent.copy(alpha = .16f) else Kx.w(.06f), ink = if (quote) Kx.accent else Kx.text2, size = 12,
+                    if (!live) MoPill("Цитата", height = 32.dp, bg = if (quote) Kx.accent.copy(alpha = .16f) else Kx.w(.06f), ink = if (quote) Kx.accent else Kx.text2, size = 12,
                         icon = Icons.Outlined.FormatQuote) { quote = !quote }
                 }
             }

@@ -47,7 +47,7 @@ private fun exFmt(mb: Float) = if (mb >= 1000) String.format(java.util.Locale.US
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ExportScreen(ctx: KxScreenCtx) {
-    // demo: needs store (export chat history to Downloads/kiroX Export as HTML/JSON; real progress, open folder, share intent) — sizes are demo
+    // wave3: stays demo on the real store (honest toast) — needs store (export chat history to Downloads/kiroX Export as HTML/JSON; real progress, open folder, share intent) — sizes are demo
     val hdr = ctx.arg?.toLongOrNull()?.let { runCatching { ctx.store.header(it) }.getOrNull() }
     val title = hdr?.title ?: "Kotlin-клуб"
     var on by remember { mutableStateOf(listOf(true, true, false, false, true, false)) }
@@ -180,7 +180,7 @@ fun ExportScreen(ctx: KxScreenCtx) {
             .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             when (phase) {
                 "setup" -> TPill("Экспортировать · ≈ " + exFmt(total), Modifier.weight(1f).shadow(14.dp, RoundedCornerShape(27.dp), spotColor = Kx.accentDeep, ambientColor = Kx.accentDeep),
-                    Icons.Rounded.Download, 54.dp, green, size = 16) { if (on.none { it }) toast.show("Выберите, что сохранить", Icons.Rounded.Info) else phase = "run" }
+                    Icons.Rounded.Download, 54.dp, green, size = 16) { if (on.none { it }) toast.show("Выберите, что сохранить", Icons.Rounded.Info) else if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) toast.show("Экспорт чатов в kiroX v3 пока не готов — это предпросмотр", Icons.Rounded.Info) else phase = "run" }
                 "run" -> TPill("Отменить", Modifier.weight(1f), h = 54.dp, bg = solid(Kx.w(.07f)), ink = Kx.text, size = 16, weight = FontWeight.Bold) {
                     phase = "setup"; prog = 0f; toast.show("Экспорт отменён", Icons.Rounded.Close)
                 }

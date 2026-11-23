@@ -40,9 +40,10 @@ import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store — all chats with a draft (chat.draftMessage incl. reply_to and attached media), delete / send a draft.
+// Demo drafts. Real account: chats (main list + archive) whose KxChat.draft is set; delete = store.setDraft(""), open = the chat,
+// send = store.send + clear (behind the confirm). Reply-to / attached media of a draft are not in KxChat yet.
 private data class Draft(val chat: String, val l: String, val c: Color, val time: String, val text: String, val reply: String, val file: String = "")
-private val DR = listOf(
+private val DR_DEMO = listOf(
     Draft("Работа", "Р", Color(0xFF5C6661), "Сегодня, 17:40", "Добрый день! По поводу отпуска в декабре хочу уточнить", ""),
     Draft("Анна", "А", Color(0xFFC0443C), "Сегодня, 12:15", "Слушай, а давай в субботу на каток, а потом", "Анна: Есть планы на выходные?"),
     Draft("Kotlin-клуб", "K", Color(0xFF2F6E9E), "Вчера", "По PR: кэш лучше чистить при выходе из аккаунта, иначе", "Дмитрий: глянешь PR?"),
@@ -52,6 +53,11 @@ private val DR = listOf(
 /** Drafts board: every unfinished message across chats; delete, continue or send as is (with confirm). */
 @Composable
 fun DraftsScreen(ctx: KxScreenCtx) {
+    val live = ctx.c3Live
+    val palette = listOf(Color(0xFF5C6661), Color(0xFFC0443C), Color(0xFF2F6E9E), Color(0xFFB07A2E), Color(0xFF3F9A6C), Color(0xFF6A4C9C))
+    val realChats = remember(ctx.store.chatsLoading) { if (live) (ctx.store.chats + ctx.store.archivedChats).filter { !it.draft.isNullOrBlank() }.distinctBy { it.id } else emptyList() }
+    val DR = if (!live) DR_DEMO else realChats.mapIndexed { i, c -> Draft(c.title, c.title.take(1).uppercase().ifEmpty { "?" }, palette[i % palette.size], "", c.draft.orEmpty(), "") }
+    fun realId(i: Int) = realChats.getOrNull(i)?.id
     val gone = remember { mutableStateMapOf<Int, Boolean>() }
     val leaving = remember { mutableStateMapOf<Int, String>() }
     var cf by remember { mutableStateOf<KxConfirm?>(null) }
@@ -67,6 +73,7 @@ fun DraftsScreen(ctx: KxScreenCtx) {
             MoTitleHeader("Черновики", ctx.back, sub = if (n > 0) "$n ${moPlural(n, "черновик", "черновика", "черновиков")}" else "Пусто") {
                 if (n > 0) MoPill("Удалить все", bg = MoRed.copy(alpha = .1f), ink = MoRedInk) {
                     cf = KxConfirm("Удалить все черновики?", "Недописанные сообщения пропадут во всех чатах и на других устройствах.", "Удалить все") {
+                        if (live) left.forEach { i -> realId(i)?.let { ctx.store.setDraft(it, "") } }
                         remove(left, "del"); toast.show("Черновики удалены", Icons.Rounded.Delete)
                     }
                 }
@@ -82,15 +89,16 @@ fun DraftsScreen(ctx: KxScreenCtx) {
                     Text("Недописанные сообщения из всех чатов. Они синхронизируются с другими вашими устройствами.", style = mts(12, color = Kx.text2, lh = 1.4f))
                 }
                 left.forEach { i -> key(i) { DraftCard(DR[i], leaving[i],
-                    onDel = { remove(listOf(i), "del"); toast.show("Черновик удалён", Icons.Rounded.Delete) },
-                    onOpen = { toast.show("Откроется чат «${DR[i].chat}»", Icons.Rounded.Edit) },
+                    onDel = { realId(i)?.let { ctx.store.setDraft(it, "") }; remove(listOf(i), "del"); toast.show("Черновик удалён", Icons.Rounded.Delete) },
+                    onOpen = { val id = realId(i); if (id != null) ctx.openChat(id) else toast.show("Откроется чат «${DR[i].chat}»", Icons.Rounded.Edit) },
                     onSend = { cf = KxConfirm("Отправить черновик?", "Текст уйдёт как есть, даже если он не дописан.", "Отправить") {
+                        realId(i)?.let { ctx.store.send(it, DR[i].text); ctx.store.setDraft(it, "") }
                         remove(listOf(i), "send"); toast.show("Отправлено в «${DR[i].chat}»", Icons.AutoMirrored.Rounded.Send) } }) } }
                 if (n == 0) Column(Modifier.fillMaxWidth().moIn(300, dy = 10.dp).padding(start = 30.dp, end = 30.dp, top = 70.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Outlined.EditOff, null, Modifier.size(56.dp), tint = Kx.dashed)
                     Text("Черновиков нет", style = mts(17, W8), modifier = Modifier.padding(top = 10.dp))
                     Text("Всё, что вы начали писать, отправлено", style = mts(13, color = MoMuted), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
-                    MoPill("Показать пример снова", Modifier.padding(top = 16.dp), height = 38.dp, ink = Kx.accent, padH = 16.dp) { gone.clear() }
+                    if (!live) MoPill("Показать пример снова", Modifier.padding(top = 16.dp), height = 38.dp, ink = Kx.accent, padH = 16.dp) { gone.clear() }
                 }
             }
         }

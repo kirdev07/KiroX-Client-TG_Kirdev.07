@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.chat
 
+import kotlinx.coroutines.launch
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -38,13 +39,16 @@ private val LimitedReasons = listOf("Пишу покупателям и прод
 @Composable
 fun LimitedScreen(ctx: KxScreenCtx) {
     val demo = ctx.store is KxDemoStore
-    var st by remember { mutableIntStateOf(0) }
+    // wave3: Telegram tells the limit and its date only in the @SpamBot chat: the real store starts at the explanation and opens that chat.
+    var st by remember { mutableIntStateOf(if (demo) 0 else 1) }
+    val co = rememberCoroutineScope()
+    fun openSpamBot() { co.launch { val id = ctx.store.publicChat("SpamBot"); if (id != null) ctx.openChat(id) else ctx.toast("Не удалось открыть @SpamBot") } }
     var k by remember { mutableIntStateOf(0) }
     var r by remember { mutableIntStateOf(0) }
     var note by remember { mutableStateOf("") }
     fun go(s: Int) { st = s; k++ }
-    val back = { if (st == 0) ctx.back() else go(if (st == 3) 0 else st - 1) }
-    BackHandler(st != 0) { back() }
+    val back = { if (st == 0 || (!demo && st == 1)) ctx.back() else go(if (st == 3) 0 else st - 1) }
+    BackHandler(st != 0 && (demo || st != 1)) { back() }
 
     Column(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -79,11 +83,11 @@ fun LimitedScreen(ctx: KxScreenCtx) {
                 1 -> Column(Modifier.weight(1f).then(anim).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
                     Column(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(Modifier.size(76.dp).clip(RoundedCornerShape(26.dp)).background(Kx.warning.copy(alpha = .14f)), contentAlignment = Alignment.Center) { Hourglass() }
-                        Text("Снимется 29 ноября", style = ts(19, W800), modifier = Modifier.padding(top = 10.dp))
-                        Text("Дата — из ответа @SpamBot", style = ts(13, color = Kx.text3), modifier = Modifier.padding(top = 4.dp))
+                        Text(if (demo) "Снимется 29 ноября" else "Срок знает @SpamBot", style = ts(19, W800), modifier = Modifier.padding(top = 10.dp))
+                        Text(if (demo) "Дата — из ответа @SpamBot" else "Напишите ему /start — он ответит, есть ли ограничение и до какого числа", style = ts(13, color = Kx.text3), modifier = Modifier.padding(top = 4.dp))
                     }
-                    Box(Modifier.padding(top = 12.dp).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Kx.w(.08f)))
-                    Row(Modifier.padding(top = 6.dp)) { Text("22 ноября", style = ts(11, color = Kx.text4), modifier = Modifier.weight(1f)); Text("29 ноября", style = ts(11, color = Kx.text4)) }
+                    if (demo) Box(Modifier.padding(top = 12.dp).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Kx.w(.08f)))
+                    if (demo) Row(Modifier.padding(top = 6.dp)) { Text("22 ноября", style = ts(11, color = Kx.text4), modifier = Modifier.weight(1f)); Text("29 ноября", style = ts(11, color = Kx.text4)) }
                     Text("Почему так бывает", style = ts(13, W700, Kx.accent), modifier = Modifier.padding(top = 16.dp))
                     Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf(Icons.Outlined.Report to "Несколько человек пожаловались на сообщения от вас как на спам.",
@@ -103,8 +107,8 @@ fun LimitedScreen(ctx: KxScreenCtx) {
                             }
                         }
                     }
-                    Box(Modifier.padding(top = 18.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(26.dp)).background(Kx.w(.08f)).kxClick { go(2) }, contentAlignment = Alignment.Center) {
-                        Text("Это ошибка — подать апелляцию", style = ts(15, W800))
+                    Box(Modifier.padding(top = 18.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(26.dp)).background(Kx.w(.08f)).kxClick { if (demo) go(2) else openSpamBot() }, contentAlignment = Alignment.Center) {
+                        Text(if (demo) "Это ошибка — подать апелляцию" else "Открыть @SpamBot", style = ts(15, W800))
                     }
                 }
                 2 -> Column(Modifier.weight(1f).then(anim).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
@@ -122,8 +126,7 @@ fun LimitedScreen(ctx: KxScreenCtx) {
                     }
                     BTextArea(note, { note = it }, "Подробности (необязательно)", 90.dp, Modifier.padding(top = 10.dp))
                     Box(Modifier.padding(top = 12.dp).fillMaxWidth().height(54.dp).clip(RoundedCornerShape(27.dp)).cssGradient(135f, Kx.accentMid, Kx.accentDeep).kxClick {
-                        // demo: needs store (spam appeal: send via @SpamBot / account.reportSpamLimit is not in KxStore)
-                        if (demo) go(3) else ctx.toast("Апелляцию пока можно подать только в чате @SpamBot")
+                        if (demo) go(3) else openSpamBot()
                     }, contentAlignment = Alignment.Center) { Text("Отправить апелляцию", style = ts(16, W800, Kx.onAccent)) }
                 }
                 else -> Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 30.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {

@@ -51,6 +51,7 @@ private data class CpSent(val id: Int, val clip: String, val text: String)
 /** ClipPaste board: a fresh clipboard item is offered above the composer; paste attaches it, the system notice confirms. */
 @Composable
 fun ClipPasteScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { val c = ctx.arg?.substringBefore(":")?.toLongOrNull(); if (c == null) C3NeedChat(ctx, "Вставить из буфера") else ClipPasteLive(ctx, c); return }
     var clip by remember { mutableStateOf("shot") }
     var sug by remember { mutableStateOf(true) }
     var att by remember { mutableStateOf(false) }

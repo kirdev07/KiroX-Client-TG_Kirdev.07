@@ -43,7 +43,8 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
 // People = store.contacts (the board's demo people when the store has none); «Создать группу» = store.createGroup(title, userIds).
-// demo: needs store (group photo/colour, history for new members, join by request and slow mode at creation are not sent yet)
+// wave3: after creating, the real store applies the extras — when slow mode, join requests or a hidden history are chosen the group
+// becomes a supergroup first (upgradeGroup), then setSlowMode / setJoinByRequest / switchHistoryForNew. The colour stays the board's (no photo upload).
 private data class NgP(val name: String, val status: String, val online: Boolean, val from: Color, val to: Color, val ink: Color)
 private val NgPeople = listOf(
     NgP("Анна", "в сети", true, Color(0xFF4B3F7A), Color(0xFF2A2240), Color(0xFFDCD0FF)),
@@ -61,6 +62,7 @@ private val NgColors = listOf(
 )
 private val LocalNgPeople = compositionLocalOf { NgPeople }
 private val NgSlow = listOf("Выкл.", "10 с", "1 мин", "5 мин")
+private val NgSlowSecs = listOf(0, 10, 60, 300)
 private val NgConfetti = listOf(Color(0xFF8FD3AC), Color(0xFFE8B04A), Color(0xFFFF8A80), Color(0xFF9FB7FF), Color(0xFFDCD0FF), Color(0xFFF2A65A))
 
 /** Board «Новая группа»: step 1 pick people (chips + search), step 2 name and settings, then «Группа создана» with confetti. */
@@ -130,7 +132,13 @@ fun NewGroupScreen(ctx: KxScreenCtx) {
                             creating = true
                             val ids = sel.mapNotNull { contacts.getOrNull(it)?.id }
                             scope.launch {
-                                val id = store.createGroup(name.trim(), ids)
+                                var id = store.createGroup(name.trim(), ids)
+                                if (id != null && (slow > 0 || approve || !history)) {
+                                    id = store.upgradeGroup(id) ?: id
+                                    if (slow > 0) store.setSlowMode(id, NgSlowSecs[slow])
+                                    if (approve) store.setJoinByRequest(id, true)
+                                    if (!history) store.switchHistoryForNew(id, false)
+                                }
                                 creating = false
                                 if (id != null) { newId = id; step = 3 }
                             }

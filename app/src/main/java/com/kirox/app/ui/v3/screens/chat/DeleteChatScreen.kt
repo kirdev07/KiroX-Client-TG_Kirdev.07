@@ -34,6 +34,7 @@ import com.kirox.app.ui.v3.model.KxChatKind
 import com.kirox.app.ui.v3.theme.Kx
 import com.kirox.app.ui.v3.theme.LocalKxReducedMotion
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Board «Удалить чат»: tap a chat → sheet with two ways to delete/leave → row collapses, 5 s undo with a ring. */
 @Composable
@@ -49,9 +50,16 @@ fun DeleteChatScreen(ctx: KxScreenCtx) {
     var back by remember { mutableStateOf<Long?>(null) }
     val isGroup: (KxChat) -> Boolean = { it.kind == KxChatKind.Group || it.kind == KxChatKind.Channel }
 
+    val live = store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val scope = rememberCoroutineScope()
+    // Real account: groups and channels are left with store.leaveChat (option 2 clears the history here first);
+    // a creator gets a third option to delete the group for everyone (store.deleteChat(forEveryone)).
     fun commit(p: Pair<KxChat, Int>) {
         val (c, o) = p
-        store.deleteChat(c.id, forEveryone = !isGroup(c) && o == 1)
+        if (live && isGroup(c)) {
+            if (o == 2) store.deleteChat(c.id, forEveryone = true)
+            else scope.launch { if (o == 1) store.clearHistory(c.id); store.leaveChat(c.id)?.let { ctx.toast(it) } }
+        } else store.deleteChat(c.id, forEveryone = !isGroup(c) && o == 1)
     }
     LaunchedEffect(rk) {
         val p = pend ?: return@LaunchedEffect
@@ -111,11 +119,13 @@ fun DeleteChatScreen(ctx: KxScreenCtx) {
                 if (s != null) ChatAvatar(s, 52.dp)
                 Column(Modifier.weight(1f)) {
                     Text(if (s == null) "" else if (g) "Выйти из «${s.title}»?" else "Удалить чат «${s.title}»?", style = ts(18, W800))
-                    Text(if (g) "Вернуться можно по ссылке-приглашению" else "Сообщения нельзя будет восстановить после 5 секунд", style = ts(13, color = Color(0xFF9AA59F)))
+                    Text(if (g && live && s?.canDeleteForAll == true) "Вы создатель: если просто выйти, группа останется без вас, а права создателя — за вами"
+                        else if (g) "Вернуться можно по ссылке-приглашению" else "Сообщения нельзя будет восстановить после 5 секунд", style = ts(13, color = Color(0xFF9AA59F)))
                 }
             }
             val opts = if (g) listOf(Triple(Icons.AutoMirrored.Outlined.Logout, "Выйти из группы", "Пропадёт из списка, сообщения у участников останутся"),
-                Triple(Icons.Outlined.DeleteForever, "Выйти и очистить у себя", "Плюс удалим кэш фото и файлов этой группы"))
+                Triple(Icons.Outlined.DeleteForever, "Выйти и очистить у себя", if (live) "Плюс удалим историю этой группы у вас" else "Плюс удалим кэш фото и файлов этой группы")) +
+                (if (live && s?.canDeleteForAll == true) listOf(Triple(Icons.Outlined.GroupRemove, "Удалить для всех", "Группа исчезнет у всех участников навсегда")) else emptyList())
             else listOf(Triple(Icons.Outlined.Person, "Удалить только у меня", "У собеседника переписка останется"),
                 Triple(Icons.Outlined.GroupRemove, "Удалить у меня и у собеседника", "Переписка исчезнет у обоих"))
             Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -94,8 +94,10 @@ class MessageNotifications(
             groups.remove(groupId)
             cancel(groupId)
         } else if (!AppVisibility.visible) {
-            show(groupId, group, alert = fresh)
-        } else if (fresh && chatId != InAppAlerts.openChatId) {
+            // kiroX «Не беспокоить» (v3 Dnd board): the notification still appears, without sound or vibration.
+            val quiet = com.kirox.app.ui.v3.data.KxDnd.silenced(context, chatId)
+            show(groupId, group, alert = fresh && !quiet, quiet = quiet)
+        } else if (fresh && chatId != InAppAlerts.openChatId && !com.kirox.app.ui.v3.data.KxDnd.silenced(context, chatId)) {
             alertInApp(group)
         }
     }
@@ -123,7 +125,7 @@ class MessageNotifications(
         else -> CHANNEL
     }
 
-    private fun show(groupId: Int, group: Group, alert: Boolean) {
+    private fun show(groupId: Int, group: Group, alert: Boolean, quiet: Boolean = false) {
         val title = chats.chat(group.chatId)?.title.orEmpty().ifBlank { "Telegram" }
         val style = NotificationCompat.MessagingStyle(Person.Builder().setName(com.kirox.app.i18n.I18n.t("Вы")).build())
             // In a private chat the sender already names it; a title there shows up as "Name: Name".
@@ -141,6 +143,7 @@ class MessageNotifications(
             .setBadgeIconType(if (local.badge) NotificationCompat.BADGE_ICON_SMALL else NotificationCompat.BADGE_ICON_NONE)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setOnlyAlertOnce(!alert)
+            .setSilent(quiet)
             // On a secure lock screen only "new message" shows, not the text.
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(

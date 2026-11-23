@@ -1,5 +1,7 @@
 package com.kirox.app.ui.v3.screens.chat
 
+import kotlinx.coroutines.launch
+import com.kirox.app.ui.v3.model.KxPersonalChannels
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,7 +41,7 @@ import com.kirox.app.ui.v3.theme.LocalKxReducedMotion
 private class PcCh(val n: String, val l: String, val c1: Color, val c2: Color?, val subs: String, val ok: Boolean, val post: String = "", val pe: String = "",
                    val img: Pair<Color, Color>? = null, val meta: String = "", val why: String = "")
 
-// demo: needs store (public channels the user owns + subscriber counts + last post, setPersonalChannel(chatId) / clear)
+// demo values; the real store lists store.personalChannels() (wave3)
 private val PcDemo = listOf(
     PcCh("kiroX: дневник разработки", "X", Kx.accentMid, Kx.accentDeep, "1,2 тыс.", true, "Новые макеты: стеклянные шторки, бусты и живые эмодзи. Что думаете?", "🎨", Kx.accentDeep to hex("#1B3A2C"), "сегодня · 3,4 тыс. просмотров"),
     PcCh("Kotlin по-русски", "K", hex("#2F6E9E"), null, "48 тыс.", true, "Корутины без боли: 7 ошибок новичков", "💻", hex("#2F6E9E") to hex("#0B1F2E"), "15 ноября · 21 тыс. просмотров"),
@@ -53,13 +55,18 @@ fun PersonalChannelScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val demo = store is KxDemoStore
     val me = store.me
-    val chans = if (demo) PcDemo else store.chats.filter { it.kind == KxChatKind.Channel }.take(6).map {
-        val sw = com.kirox.app.ui.v3.theme.KxAvatarPalette.of(it.id)
-        PcCh(it.title, it.title.take(1).uppercase(), sw.from, sw.to, "", it.canDeleteForAll, it.preview, "", sw.from to sw.to, it.time,
-            why = "Вы не владелец канала")
+    var real by remember { mutableStateOf<KxPersonalChannels?>(null) }
+    val co = rememberCoroutineScope()
+    LaunchedEffect(Unit) { if (!demo) real = store.personalChannels() }
+    val list = real?.channels.orEmpty()
+    val chans = if (demo) PcDemo else list.map {
+        val sw = com.kirox.app.ui.v3.theme.KxAvatarPalette.of(it.chatId)
+        PcCh(it.title, it.title.take(1).uppercase(), sw.from, sw.to, if (it.subscribers > 0) com.kirox.app.ui.v3.data.KxFormat.count(it.subscribers) else "", true, it.lastPost, "", sw.from to sw.to, "")
     }
     var sel by remember { mutableIntStateOf(chans.indexOfFirst { it.ok }.coerceAtLeast(0)) }
     var show by remember { mutableStateOf(demo && chans.isNotEmpty()) }
+    LaunchedEffect(real) { real?.let { r -> val i = r.channels.indexOfFirst { it.chatId == r.current }; show = i >= 0; if (i >= 0) sel = i } }
+    fun save(chatId: Long, then: () -> Unit) { co.launch { val e = store.choosePersonalChannel(chatId); if (e == null) then() else ctx.toast(e) } }
     var k by remember { mutableIntStateOf(0) }
     val c = chans.getOrNull(sel)
 
@@ -116,8 +123,8 @@ fun PersonalChannelScreen(ctx: KxScreenCtx) {
                         .border(1.5.dp, if (on) Kx.accent.copy(alpha = .55f) else Color.Transparent, RoundedCornerShape(18.dp))
                         .kxClick(x.n, role = androidx.compose.ui.semantics.Role.RadioButton) {
                             if (!x.ok) return@kxClick
-                            sel = i; show = true; k++
-                            if (!demo) ctx.toast("Это предпросмотр — сохранить канал в профиле пока нельзя")
+                            if (demo) { sel = i; show = true; k++ }
+                            else save(list[i].chatId) { sel = i; show = true; k++; ctx.toast("Канал показан в профиле") }
                         }.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ChTile(x, 42.dp, 13.dp)
                         Column(Modifier.weight(1f)) {
@@ -128,10 +135,12 @@ fun PersonalChannelScreen(ctx: KxScreenCtx) {
                     }
                 }
             }
+            if (!demo && real == null) Text("Загружаем каналы…", style = ts(13, color = Kx.text3), modifier = Modifier.padding(4.dp))
+            if (!demo && real != null && chans.isEmpty()) Text("Подходящих каналов нет. Создайте публичный канал — его можно будет показать здесь.", style = ts(13, color = Kx.text3, lh = 18.sp), modifier = Modifier.padding(4.dp))
             Text("Показать можно только публичный канал, где вы владелец.", style = ts(12, color = Kx.text4, lh = 16.8.sp), modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp))
         }
         Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 20.dp).fillMaxWidth().height(50.dp).clip(RoundedCornerShape(25.dp))
-            .background(if (show) Kx.dangerSolid.copy(alpha = .1f) else Kx.w(.06f)).kxClick { if (show) show = false }, contentAlignment = Alignment.Center) {
+            .background(if (show) Kx.dangerSolid.copy(alpha = .1f) else Kx.w(.06f)).kxClick { if (show) { if (demo) show = false else save(0L) { show = false; ctx.toast("Канал убран из профиля") } } }, contentAlignment = Alignment.Center) {
             Text(if (show) "Убрать канал из профиля" else "Канал не показывается", style = ts(15, W800, if (show) Kx.danger else Kx.text4), textAlign = TextAlign.Center)
         }
     }

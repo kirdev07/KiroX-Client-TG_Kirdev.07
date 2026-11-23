@@ -1,5 +1,7 @@
 package com.kirox.app.ui.v3.screens.extra
 
+import kotlinx.coroutines.launch
+import com.kirox.app.ui.v3.model.KxEmojiStatus
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -45,10 +47,14 @@ internal fun graphemes(s: String): List<String> {
 /** Board «Статус»: emoji status (Premium) with preview, pop + sparks, duration chips, emoji grid, save / remove. */
 @Composable
 fun StatusScreen(ctx: KxScreenCtx) {
-    // Removing the status = store.setEmojiStatus(0). demo: needs store (Telegram's custom-emoji status list and expiry are not in the store yet:
-    // the board's emoji grid stays a preview, a real account only gets «Убрать»)
+    // wave3: real store — Telegram's default emoji statuses (custom emoji, shown by their plain emoji) and SetEmojiStatus with expiry.
     val realStore = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
-    var emoji by remember { mutableStateOf("🎧") }
+    var statuses by remember { mutableStateOf<List<KxEmojiStatus>?>(null) }
+    LaunchedEffect(Unit) { if (realStore) statuses = ctx.store.emojiStatuses() }
+    var picked by remember { mutableLongStateOf(0L) }
+    var busy by remember { mutableStateOf(false) }
+    val co = rememberCoroutineScope()
+    var emoji by remember { mutableStateOf(if (realStore) "" else "🎧") }
     var dur by remember { mutableIntStateOf(2) }
     var pop by remember { mutableIntStateOf(0) }
     val toast = rememberExToast()
@@ -122,7 +128,20 @@ fun StatusScreen(ctx: KxScreenCtx) {
                 }
             }
             Column(Modifier.weight(1f).padding(top = 12.dp).verticalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, bottom = 110.dp)) {
-                StGroups.forEach { (title, str) ->
+                if (realStore && statuses == null) Text("Загружаем статусы…", style = ts(13.sp, color = Kx.text3), modifier = Modifier.padding(6.dp))
+                if (realStore && statuses?.isEmpty() == true) Text("Telegram не прислал статусы. Они доступны с Premium.", style = ts(13.sp, color = Kx.text3), modifier = Modifier.padding(6.dp))
+                if (realStore) statuses.orEmpty().chunked(7).forEach { row ->
+                    Row(Modifier.padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        row.forEach { s ->
+                            val on = s.customEmojiId == picked
+                            Box(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(14.dp)).background(if (on) Kx.accent.copy(alpha = .14f) else Color.Transparent)
+                                .then(if (on) Modifier.border(2.dp, Kx.accent, RoundedCornerShape(14.dp)) else Modifier).kxClick(s.emoji) { picked = s.customEmojiId; emoji = s.emoji; pop++ },
+                                contentAlignment = Alignment.Center) { Text(s.emoji, style = ts(26.sp)) }
+                        }
+                        repeat(7 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+                if (!realStore) StGroups.forEach { (title, str) ->
                     Text(title, style = ts(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 8.dp, bottom = 6.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         graphemes(str).chunked(7).forEach { row ->
@@ -143,13 +162,24 @@ fun StatusScreen(ctx: KxScreenCtx) {
         // The emoji grid scrolls under the buttons: fade it out so «Убрать» and the Premium note stay readable.
         com.kirox.app.ui.v3.components.KxBottomFade(Modifier.align(Alignment.BottomCenter))
         Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 26.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (emoji.isNotEmpty()) Box(Modifier.weight(1f).height(54.dp).clip(RoundedCornerShape(18.dp)).background(Kx.bg).background(Kx.w(.08f)).kxClick("Убрать") { emoji = "" }, contentAlignment = Alignment.Center) {
+            if (emoji.isNotEmpty()) Box(Modifier.weight(1f).height(54.dp).clip(RoundedCornerShape(18.dp)).background(Kx.bg).background(Kx.w(.08f)).kxClick("Убрать") { emoji = ""; picked = 0L }, contentAlignment = Alignment.Center) {
                 Text("Убрать", style = ts(15.sp, FontWeight.Bold))
             }
             ExCta("Сохранить статус", Modifier.weight(2f), height = 54.dp, size = 15.sp) {
-                if (emoji.isEmpty()) { ctx.store.setEmojiStatus(0); toast.show("Статус убран", Icons.Rounded.CheckCircle) }
-                else if (realStore) toast.show("Эмодзи-статусы Telegram пока не переносятся", Icons.Rounded.CheckCircle)
-                else toast.show("Статус $emoji сохранён", Icons.Rounded.CheckCircle)
+                if (!realStore) { if (emoji.isEmpty()) toast.show("Статус убран", Icons.Rounded.CheckCircle) else toast.show("Статус $emoji сохранён", Icons.Rounded.CheckCircle) }
+                else if (!busy) {
+                    val now = System.currentTimeMillis() / 1000
+                    val untilSec = when (h) {
+                        0 -> 0
+                        24 -> java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, 1); set(java.util.Calendar.HOUR_OF_DAY, 9); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0) }.timeInMillis / 1000
+                        else -> now + h * 3600L
+                    }.toInt()
+                    busy = true
+                    co.launch {
+                        val e = ctx.store.applyEmojiStatus(if (emoji.isEmpty()) 0L else picked, untilSec); busy = false
+                        if (e != null) ctx.toast(e) else toast.show(if (emoji.isEmpty()) "Статус убран" else "Статус $emoji сохранён", Icons.Rounded.CheckCircle)
+                    }
+                }
             }
         }
         Text("Эмодзи-статус работает с Telegram Premium", style = ts(11.sp, color = Kx.text4), modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 6.dp))

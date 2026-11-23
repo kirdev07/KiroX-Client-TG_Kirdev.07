@@ -30,12 +30,24 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.dashedBorder
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
+import kotlinx.coroutines.launch
 
 /** Board «Telegram обновил условия»: sheet over the dimmed chat list with the server text, accept / decline → warning dialog, result card. */
 @Composable
 fun TermsUpdateScreen(ctx: KxScreenCtx) {
-    // demo: needs store (termsOfService text from updateTermsOfService, acceptTermsOfService(id); decline → logOut) — text is a placeholder
-    var st by remember { mutableStateOf("sheet") }
+    // wave3: real store shows Telegram's text (store.termsUpdate) and accepts it; declining never deletes or signs out here.
+    val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val terms = ctx.store.termsUpdate
+    var st by remember { mutableStateOf(if (demo || terms != null) "sheet" else "none") }
+    var busy by remember { mutableStateOf(false) }
+    val co = rememberCoroutineScope()
+    fun accept() {
+        if (demo) { st = "ok"; return }
+        val t = terms ?: return
+        if (busy) return
+        busy = true
+        co.launch { val err = ctx.store.acceptTerms(t.id); busy = false; if (err == null) st = "ok" else ctx.toast(err) }
+    }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.matchParentSize().alpha(.35f).statusBarsPadding().padding(16.dp)) {
@@ -71,11 +83,12 @@ fun TermsUpdateScreen(ctx: KxScreenCtx) {
                 }
                 Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp).fillMaxWidth().weight(1f).clip(RoundedCornerShape(18.dp)).background(Color.Black.copy(alpha = .25f))
                     .border(1.dp, Kx.w(.08f), RoundedCornerShape(18.dp)).verticalScroll(rememberScrollState()).padding(14.dp)) {
-                    Text("Здесь будет полный текст, который пришлёт сервер Telegram, с заголовками и ссылками. В макете — заглушка.\n\n1. Общие положения…\n2. Использование сервиса…\n3. Платные функции…\n4. Конфиденциальность…\n5. Изменения условий…",
+                    if (!demo && terms != null && terms.minAge > 0) Text("Пользоваться Telegram можно с ${terms.minAge} лет.", style = KxType.style(13.sp, FontWeight.Bold, Kx.warning), modifier = Modifier.padding(bottom = 8.dp))
+                    Text(if (!demo && terms != null) terms.text else "Здесь будет полный текст, который пришлёт сервер Telegram, с заголовками и ссылками. В макете — заглушка.\n\n1. Общие положения…\n2. Использование сервиса…\n3. Платные функции…\n4. Конфиденциальность…\n5. Изменения условий…",
                         style = KxType.style(13.sp, color = Kx.text2, lineHeight = 21.sp))
                 }
                 Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TPill("Принять", Modifier.fillMaxWidth(), h = 54.dp, bg = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), size = 16) { st = "ok" }
+                    TPill(if (busy) "Принимаем…" else "Принять", Modifier.fillMaxWidth(), h = 54.dp, bg = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), size = 16) { accept() }
                     TPill("Не принимать", Modifier.fillMaxWidth(), h = 44.dp, bg = solid(Color.Transparent), ink = Kx.text3, size = 14, weight = FontWeight.Bold) { st = "warn" }
                 }
             }
@@ -87,12 +100,24 @@ fun TermsUpdateScreen(ctx: KxScreenCtx) {
                     .border(1.dp, Kx.danger.copy(alpha = .3f), RoundedCornerShape(28.dp)).padding(20.dp)) {
                     Icon(Icons.Rounded.Warning, null, Modifier.size(32.dp), tint = Kx.danger)
                     Text("Без согласия пользоваться нельзя", style = KxType.style(18.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 6.dp))
-                    Text("Telegram попросит принять условия при следующем входе. Если отказаться совсем, сервер может предложить удалить аккаунт — это решает Telegram, а не kiroX.",
+                    Text(if (demo) "Telegram попросит принять условия при следующем входе. Если отказаться совсем, сервер может предложить удалить аккаунт — это решает Telegram, а не kiroX."
+                        else "Окно появится снова при следующем запуске. kiroX ничего не удаляет и не выходит из аккаунта за вас.",
                         style = KxType.style(14.sp, color = Kx.text2, lineHeight = 20.sp), modifier = Modifier.padding(top = 8.dp))
                     Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TPill("Вернуться", Modifier.weight(1f), h = 48.dp, bg = Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), size = 14) { st = "sheet" }
-                        TPill("Выйти из аккаунта", Modifier.weight(1f), h = 48.dp, bg = solid(Kx.w(.08f)), ink = Kx.text, size = 14, weight = FontWeight.Bold) { st = "later" }
+                        TPill(if (demo) "Выйти из аккаунта" else "Позже", Modifier.weight(1f), h = 48.dp, bg = solid(Kx.w(.08f)), ink = Kx.text, size = 14, weight = FontWeight.Bold) { if (demo) st = "later" else ctx.back() }
                     }
+                }
+            }
+        }
+        if (st == "none") TermsPop {
+            Column(Modifier.width(260.dp).clip(RoundedCornerShape(26.dp)).background(Color(24, 29, 27)).border(1.dp, Kx.w(.12f), RoundedCornerShape(26.dp)).padding(22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Rounded.CheckCircle, null, Modifier.size(44.dp), tint = Kx.accent)
+                Text("Новых условий нет", style = KxType.style(17.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 6.dp))
+                Text("Telegram ничего не просит принять", style = KxType.style(13.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+                Box(Modifier.padding(top = 14.dp).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.08f)).kxClick { ctx.back() }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                    Text("Назад", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
                 }
             }
         }
@@ -103,7 +128,9 @@ fun TermsUpdateScreen(ctx: KxScreenCtx) {
                 Icon(if (ok) Icons.Rounded.CheckCircle else Icons.Rounded.Schedule, null, Modifier.size(44.dp), tint = if (ok) Kx.accent else Kx.warning)
                 Text(if (ok) "Условия приняты" else "Напомним позже", style = KxType.style(17.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 6.dp))
                 Text(if (ok) "Можно пользоваться дальше" else "Окно появится при следующем запуске", style = KxType.style(13.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
-                Box(Modifier.padding(top = 14.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 22.dp).padding(2.dp)) {
+                if (!demo) Box(Modifier.padding(top = 14.dp).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.08f)).kxClick { ctx.back() }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                    Text("Готово", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
+                } else Box(Modifier.padding(top = 14.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 22.dp).padding(2.dp)) {
                     Box(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.08f)).kxClick { st = "sheet" }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
                         Text("Макет: показать снова", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent))
                     }

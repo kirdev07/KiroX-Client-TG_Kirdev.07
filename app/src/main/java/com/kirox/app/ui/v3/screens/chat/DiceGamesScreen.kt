@@ -46,6 +46,9 @@ private data class DMsg(val id: Long, val mine: Boolean, val g: Int, val v: Int,
 @Composable
 fun DiceGamesScreen(ctx: KxScreenCtx) {
     val demo = ctx.store is KxDemoStore
+    // Real chat (arg = chat id): «Бросить» sends a real Telegram dice (store.sendDice); Telegram picks the value and it shows in the chat.
+    val chatId = if (demo) null else ctx.arg?.substringBefore(':')?.toLongOrNull()
+    val header = chatId?.let { ctx.store.header(it) }
     var g by remember { mutableIntStateOf(0) }
     val msgs = remember { mutableStateListOf<DMsg>() }
     var me by remember { mutableIntStateOf(0) }
@@ -61,8 +64,10 @@ fun DiceGamesScreen(ctx: KxScreenCtx) {
     fun land(id: Long) { val i = msgs.indexOfFirst { it.id == id }; if (i >= 0) msgs[i] = msgs[i].copy(done = true) }
     fun throwIt() {
         if (busy || over) return
-        // demo: needs store (sendDice(chatId, emoji) + incoming dice values from the peer)
-        if (!demo) { ctx.toast("Игры с кубиком пока недоступны"); return }
+        if (!demo) {
+            if (chatId == null) { ctx.toast("Откройте игру из чата"); return }
+            ctx.store.sendDice(chatId, game.e); ctx.toast("${game.e} брошен — результат появится в чате"); return
+        }
         busy = true
         scope.launch {
             val a = roll(true); delay(1100); land(a.id); typing = true
@@ -75,10 +80,10 @@ fun DiceGamesScreen(ctx: KxScreenCtx) {
     Column(Modifier.fillMaxSize().background(Kx.bg).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 44.dp, border = Color.Transparent, onClick = ctx.back)
-            LetterAv("О", hex("#5C6661"), 40.dp, 16)
+            LetterAv((header?.title ?: "О").take(1).uppercase(), hex("#5C6661"), 40.dp, 16)
             Column(Modifier.weight(1f)) {
-                Text("Олег", style = ts(16, W800))
-                Text(if (typing) "бросает ${game.e}…" else "в сети", style = ts(12, color = if (typing) Kx.warning else Kx.accent))
+                Text(header?.title ?: "Олег", style = ts(16, W800), maxLines = 1)
+                Text(if (typing) "бросает ${game.e}…" else header?.status ?: "в сети", style = ts(12, color = if (typing) Kx.warning else Kx.accent), maxLines = 1)
             }
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.06f)))

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,7 +30,8 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — pinned chats order (store.setPinned exists; reordering pins is not in the store yet).
+// Demo chats. Real account: pinned chats of the main list (store.chats), order via store.reorderPinned (SetPinnedChats),
+// store.setPinned, the limit from Telegram (store.pinnedLimit: 5, Premium 10).
 private data class PinChat(val name: String, val letter: String, val color: Color, val msg: String)
 
 private val PIN_CH = linkedMapOf(
@@ -41,19 +43,28 @@ private val PIN_CH = linkedMapOf(
     "liza" to PinChat("Лиза", "Л", Color(0xFF6A4C9C), "Сюрприз готов 🎁"),
     "work" to PinChat("Работа", "Р", Color(0xFF5C6661), "Созвон в понедельник"),
 )
-private const val PIN_MAX = 5
+private const val PIN_MAX_DEMO = 5
 
 /** Pinned board: 5 slots meter, reorder / unpin, «Закрепить ещё» list with a shake when full. */
 @Composable
 fun PinnedScreen(ctx: KxScreenCtx) {
-    val pins = remember { mutableStateListOf("fav", "mom", "anna", "fam") }
+    val live = ctx.c3Live
+    val scope = rememberCoroutineScope()
+    val palette = listOf(Color(0xFFB07A2E), Color(0xFFC0443C), Color(0xFF3F9A6C), Color(0xFF2F6E9E), Color(0xFF6FA9D8), Color(0xFF6A4C9C), Color(0xFF5C6661))
+    val chatMap = if (!live) PIN_CH else LinkedHashMap<String, PinChat>().apply {
+        ctx.store.chats.forEach { c -> put(c.id.toString(), PinChat(c.title, c.title.take(1).uppercase().ifEmpty { "?" }, palette[((if (c.colorIndex >= 0) c.colorIndex else (c.id % 7).toInt()) % 7 + 7) % 7],
+            listOfNotNull(c.previewSender, c.preview).joinToString(": "))) }
+    }
+    val PIN_MAX = if (live) ctx.store.pinnedLimit else PIN_MAX_DEMO
+    val pins = remember { mutableStateListOf<String>().apply { if (live) addAll(ctx.store.chats.filter { it.pinned }.map { it.id.toString() }) else addAll(listOf("fav", "mom", "anna", "fam")) } }
+    fun saveOrder() { if (live) scope.launch { ctx.store.reorderPinned(pins.mapNotNull { it.toLongOrNull() })?.let { ctx.toast(it) } } }
     var moved by remember { mutableStateOf("") }
     var k by remember { mutableIntStateOf(0) }
     var shake by remember { mutableIntStateOf(0) }
     val toast = rememberMoToast()
     val n = pins.size
 
-    fun move(i: Int, d: Int) { val j = i + d; if (j < 0 || j >= pins.size) return; val a = pins[i]; pins[i] = pins[j]; pins[j] = a; moved = pins[j]; k++ }
+    fun move(i: Int, d: Int) { val j = i + d; if (j < 0 || j >= pins.size) return; val a = pins[i]; pins[i] = pins[j]; pins[j] = a; moved = pins[j]; k++; saveOrder() }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
@@ -70,7 +81,7 @@ fun PinnedScreen(ctx: KxScreenCtx) {
                 }
                 pins.forEachIndexed { i, id ->
                     key(id) {
-                        val c = PIN_CH.getValue(id)
+                        val c = chatMap[id] ?: PinChat("Чат", "?", Kx.w(.2f), "")
                         val mv = if (moved == id) moEnter(500, key = k) else 1f
                         Row(Modifier.padding(bottom = 8.dp).fillMaxWidth().graphicsLayer { val s = 1.03f - .03f * mv; scaleX = s; scaleY = s }
                             .clip(RoundedCornerShape(20.dp)).background(androidx.compose.ui.graphics.lerp(Kx.accent.copy(alpha = .16f), Kx.w(.04f), mv))
@@ -95,7 +106,7 @@ fun PinnedScreen(ctx: KxScreenCtx) {
                                 PinArrow(Icons.Outlined.KeyboardArrowDown, "Опустить ${c.name}", i < n - 1) { move(i, 1) }
                             }
                             Box(Modifier.size(36.dp).clip(CircleShape).kxClick("Открепить ${c.name}") {
-                                pins.remove(id); toast.show("Чат «${c.name}» откреплён", Icons.Outlined.PushPin)
+                                pins.remove(id); id.toLongOrNull()?.takeIf { live }?.let { ctx.store.setPinned(it, false) }; toast.show("Чат «${c.name}» откреплён", Icons.Outlined.PushPin)
                             }, contentAlignment = Alignment.Center) {
                                 Icon(Icons.Outlined.PushPin, null, Modifier.size(20.dp), tint = MoSub)
                                 // keep_off: the pin with a slash
@@ -105,9 +116,9 @@ fun PinnedScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Text("Закрепить ещё", style = mts(13, W7, Kx.accent), modifier = Modifier.padding(top = 14.dp, start = 4.dp, end = 4.dp, bottom = 8.dp))
-                PIN_CH.keys.filter { it !in pins }.forEach { id ->
+                chatMap.keys.filter { it !in pins }.take(if (live) 12 else 99).forEach { id ->
                     key("o$id") {
-                        val c = PIN_CH.getValue(id); val full = n >= PIN_MAX
+                        val c = chatMap.getValue(id); val full = n >= PIN_MAX
                         Row(Modifier.fillMaxWidth().moIn(250).padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             MoLetter(c.letter, c.color, size = 42.dp)
@@ -115,12 +126,12 @@ fun PinnedScreen(ctx: KxScreenCtx) {
                             MoPill("Закрепить", height = 34.dp, bg = if (full) Kx.w(.05f) else Kx.accent.copy(alpha = .14f), ink = if (full) MoMuted else Kx.accent,
                                 size = 12, icon = Icons.Outlined.PushPin) {
                                 if (full) { shake++; toast.show("Мест нет — открепите чат", Icons.Rounded.Info) }
-                                else { pins.add(id); moved = id; k++ }
+                                else { pins.add(id); moved = id; k++; id.toLongOrNull()?.takeIf { live }?.let { ctx.store.setPinned(it, true) } }
                             }
                         }
                     }
                 }
-                Text("Сверху списка чатов помещается 5 закреплённых. В папках можно закрепить свои.", style = mts(12, color = MoMuted, lh = 1.45f),
+                Text("Сверху списка чатов помещается $PIN_MAX ${moPlural(PIN_MAX, "закреплённый", "закреплённых", "закреплённых")}. В папках можно закрепить свои.", style = mts(12, color = MoMuted, lh = 1.45f),
                     modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 12.dp))
             }
         }

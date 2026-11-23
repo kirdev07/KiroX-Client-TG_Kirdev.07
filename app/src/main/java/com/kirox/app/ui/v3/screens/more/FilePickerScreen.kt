@@ -62,6 +62,7 @@ private data class FpPlace(val icon: ImageVector, val t: String, val s: String, 
 /** FilePicker board: the «Файл» sheet — places, folders, recent files, multi-select and send without compression. */
 @Composable
 fun FilePickerScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { val c = ctx.arg?.substringBefore(":")?.toLongOrNull(); if (c == null) C3NeedChat(ctx, "Отправить файл") else FilePickerLive(ctx, c); return }
     var at by remember { mutableStateOf("root") }
     val sel = remember { mutableStateMapOf<String, Boolean>() }
     var k by remember { mutableIntStateOf(0) }

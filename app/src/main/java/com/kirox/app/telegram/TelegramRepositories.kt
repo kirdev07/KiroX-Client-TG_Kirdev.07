@@ -157,4 +157,8 @@ class TelegramServices(context: android.content.Context) {
     val notificationPrefs = com.kirox.app.notify.NotificationPreferences(context)
     val notifications = com.kirox.app.notify.MessageNotifications(context.applicationContext, client, chats, users, notificationPrefs)
     val stories = TelegramStoryRepository(client, chats, users)
+    // wave3-chat: update-only values for the v3 chat boards
+    val chat3Updates = TelegramChat3Updates(client)
+    /** Accent colours and new terms of service (sent once by TDLib), for the v3 account boards. */
+    val accountUpdates = TelegramAccountUpdates(client)
 }

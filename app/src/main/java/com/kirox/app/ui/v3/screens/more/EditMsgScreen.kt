@@ -40,13 +40,24 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — the board edits one own message of a demo group chat (store.edit + edit history).
+// Demo group chat. Real chat (arg = chat id[:message id], else your last text message): store.edit; Telegram keeps no edit history,
+// so the history sheet lists only the versions changed here.
 private const val EDIT_ORIG = "Встречаемся у входа в 10:00"
 
 /** EditMsg board: tap your own message → edit banner over the composer → save; edit history sheet. */
 @Composable
 fun EditMsgScreen(ctx: KxScreenCtx) {
-    val versions = remember { mutableStateListOf(EDIT_ORIG) }
+    val chatId = ctx.c3Chat
+    if (ctx.c3Live && chatId == null) { C3NeedChat(ctx, "Изменить сообщение"); return }
+    val live = chatId != null
+    val header = chatId?.let { ctx.store.header(it) }
+    val peek = c3Peek(ctx.store, chatId, 40)
+    val wantId = ctx.c3Msg
+    val target = if (!live) null else (ctx.store.messages(chatId!!) + peek).let { all -> if (wantId != null) all.firstOrNull { it.id == wantId } else all.lastOrNull { it.out && it.canEdit && it.text.isNotBlank() } }
+    if (live && target == null) { C3NeedChat(ctx, "Изменить сообщение", if (peek.isEmpty()) "Загрузка…" else "Здесь нет вашего сообщения, которое можно изменить."); return }
+    if (live && !target!!.canEdit) { C3NeedChat(ctx, "Изменить сообщение", "Telegram больше не даёт изменить это сообщение."); return }
+    val before = if (live) peek.lastOrNull { !it.out && it.text.isNotBlank() && it.id < target!!.id } else null
+    val versions = remember(target?.id) { mutableStateListOf(target?.text ?: EDIT_ORIG) }
     var editing by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
     var history by remember { mutableStateOf(false) }
@@ -57,16 +68,17 @@ fun EditMsgScreen(ctx: KxScreenCtx) {
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
-            MoChatHeader(ctx.back, "K", Color(0xFF6FA9D8), Color(0xFF2F6E9E), "Kotlin-клуб", "1 284 участника")
+            MoChatHeader(ctx.back, (header?.title ?: "K").take(1).uppercase(), Color(0xFF6FA9D8), Color(0xFF2F6E9E), header?.title ?: "Kotlin-клуб", header?.status ?: "1 284 участника")
 
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)) {
-                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                if (!live || before != null) BoxWithConstraints(Modifier.fillMaxWidth()) {
                     val maxW = maxWidth
                     Column(Modifier.widthIn(max = maxW * .8f).clip(RoundedCornerShape(18.dp, 18.dp, 18.dp, 6.dp)).background(Kx.w(.07f))
                         .padding(horizontal = 12.dp, vertical = 8.dp)) {
-                        Text("Мария", style = mts(12, W8, MoAmber))
-                        Text("Где встречаемся и во сколько?", style = mts(14))
+                        val who = if (live) before?.sender else "Мария"
+                        if (who != null) Text(who, style = mts(12, W8, MoAmber))
+                        Text(before?.text ?: "Где встречаемся и во сколько?", style = mts(14))
                     }
                 }
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -110,7 +122,7 @@ fun EditMsgScreen(ctx: KxScreenCtx) {
                     }
                     Box(Modifier.size(50.dp).clip(CircleShape).then(if (changed) Modifier.moAccent() else Modifier.background(Kx.w(.07f)))
                         .kxClick(if (editing) "Сохранить изменение" else "Отправить") {
-                            if (changed) { versions.add(draft.trim()); editing = false; draft = ""; k++ }
+                            if (changed) { if (live) ctx.store.edit(chatId!!, target!!.id, draft.trim()); versions.add(draft.trim()); editing = false; draft = ""; k++ }
                         }, contentAlignment = Alignment.Center) {
                         Icon(if (editing) Icons.Rounded.Check else Icons.AutoMirrored.Rounded.Send, null, Modifier.size(24.dp),
                             tint = if (changed) MoInk else Color(0xFF5C6661))

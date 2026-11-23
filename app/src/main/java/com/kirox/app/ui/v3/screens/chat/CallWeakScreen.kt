@@ -44,17 +44,8 @@ private class CwBan(val icon: ImageVector, val ic: Color, val title: String, val
  */
 @Composable
 fun CallWeakScreen(ctx: KxScreenCtx) {
-    if (ctx.store !is KxDemoStore) {
-        // demo: needs store (call state: network quality of both sides, reconnecting, voice-only switch) — no simulated call on a real account
-        Column(Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().padding(16.dp)) {
-            ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 44.dp, border = Color.Transparent, onClick = ctx.back)
-            Column(Modifier.weight(1f).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text("Сейчас нет звонка", style = ts(18, W800))
-                Text("Подсказки о слабой связи появятся во время звонка", style = ts(13, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
-            }
-        }
-        return
-    }
+    // wave3-media: real account → signal bars / reconnecting / voice-only of the live call
+    if (ctx.store !is KxDemoStore) { com.kirox.app.ui.v3.screens.media.RealCallBoard(ctx, com.kirox.app.ui.v3.screens.media.CallBoard.Weak); return }
     var net by remember { mutableStateOf("weak") }
     var sec by remember { mutableIntStateOf(754) }
     var cam by remember { mutableStateOf(true) }

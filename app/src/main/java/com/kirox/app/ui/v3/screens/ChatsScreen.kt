@@ -56,7 +56,8 @@ fun ChatsScreen(
     bottomPadding: androidx.compose.ui.unit.Dp = 110.dp,
 ) {
     var folder by rememberSaveable { mutableIntStateOf(0) }
-    val chats = store.chatsIn(folder)
+    val hiddenIds = store.prefList(KxPrefsAccount.HIDDEN_CHATS).mapNotNull { it.toLongOrNull() }.toSet() // wave3-account: Hidden board
+    val chats = store.chatsIn(folder).let { all -> if (hiddenIds.isEmpty()) all else all.filter { it.id !in hiddenIds } }
     // Board «Выбор чатов»: long press starts selection, then taps toggle; the dock gives way to an action bar.
     val selected = remember { mutableStateListOf<Long>() }
     var confirm by remember { mutableStateOf<KxConfirm?>(null) }
@@ -90,7 +91,7 @@ fun ChatsScreen(
             if (folder == 0 && store.archivedChats.isNotEmpty()) item("archive") { ArchiveRow(store.archivedChats, onOpenArchive) }
             itemsIndexed(chats, key = { _, c -> c.id }) { i, chat ->
                 if (i >= chats.size - 10) LaunchedEffect(chats.size, folder) { store.loadMoreChats(folder) }
-                SwipeToRead(enabled = chat.unread > 0, onRead = { store.markRead(chat.id) }) {
+                ChatSwipe(store, chat, toast = { toast(it) }, ask = { confirm = it }) { // wave3-account: Swipe board actions
                     ChatRow(chat, onClick = { if (selected.isNotEmpty()) toggle(chat.id) else onOpenChat(chat.id) }, onLongClick = { toggle(chat.id) }, selected = chat.id in selected)
                 }
             }

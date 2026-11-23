@@ -31,7 +31,7 @@ import kotlinx.coroutines.delay
 
 private class StSet(val name: String, val cover: String, val n: Int, val peek: String, val mine: Boolean = false, val anim: Boolean = false)
 
-// demo: needs store (installed sticker sets: list/order/archive/unarchive/remove, «suggest stickers by emoji» setting)
+// Demo sets. Real account: StickerManageLive (installed / archived sets, order, archive, remove with confirm). «Подсказывать по эмодзи» is not a TDLib setting.
 private val StSets = mapOf(
     "cat" to StSet("Котлин-кот", "🐱", 24, "😺😹😻🙀😿", mine = true), "bug" to StSet("Баги и фичи", "🐛", 18, "🐞🦋🐜🪲🐝", mine = true),
     "cof" to StSet("Кофе и код", "☕", 30, "💻⌨️🚀✅🔥", anim = true), "dl" to StSet("Дедлайн", "⏰", 20, "😰😤🥵😵🫠"),
@@ -43,6 +43,7 @@ private class StLast(val k: String, val fromAct: Boolean, val i: Int)
 /** Board «Наборы стикеров»: installed / archived sets, reorder with arrows, archive, delete with undo, suggest-by-emoji switch. */
 @Composable
 fun StickerManageScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { com.kirox.app.ui.v3.screens.more.StickerManageLive(ctx); return }
     var tab by remember { mutableIntStateOf(0) }
     var edit by remember { mutableStateOf(false) }
     val act = remember { mutableStateListOf("cat", "cof", "dog", "bug", "dl", "gr") }

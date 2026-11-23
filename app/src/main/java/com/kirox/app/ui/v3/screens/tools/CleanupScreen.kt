@@ -40,7 +40,7 @@ import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private data class CuSub(val name: String, val icon: ImageVector, val c: Color, val kind: String, val days: Int, val unread: Int)
+private data class CuSub(val name: String, val icon: ImageVector, val c: Color, val kind: String, val days: Int, val unread: Int, val chatId: Long = 0)
 // demo: needs store — subscriptions with "last opened" days and unread counts
 private val CU_SUBS = listOf(
     CuSub("Скидки и акции KZ", Icons.Rounded.Sell, Color(0xFFB07A2E), "Канал", 210, 2140), CuSub("Мемы про котов", Icons.Rounded.Pets, Color(0xFFC0443C), "Канал", 140, 860),
@@ -48,6 +48,9 @@ private val CU_SUBS = listOf(
     CuSub("Погода Алматы", Icons.Rounded.WbCloudy, Color(0xFF3F9A6C), "Канал", 40, 120), CuSub("Барахолка района", Icons.Rounded.Storefront, Color(0xFF6A4C9C), "Группа", 33, 980),
     CuSub("Android Weekly", Icons.Rounded.Campaign, Color(0xFF3F9A6C), "Канал", 1, 0), CuSub("Kotlin-клуб", Icons.Rounded.Code, Color(0xFF2F6E9E), "Группа", 0, 3))
 private val CU_FILTERS = listOf("Не читаю месяц" to 30, "Не читаю неделю" to 7, "Все" to 0, "Только каналы" to -1)
+/** Real store: Telegram does not tell when a chat was last opened — the filters go by unread messages instead. */
+private val CU_FILTERS_REAL = listOf("100+ непрочитанных" to 100, "Есть непрочитанные" to 1, "Все" to 0, "Только каналы" to -1)
+private val CU_INKS = listOf(Color(0xFFB07A2E), Color(0xFFC0443C), Color(0xFF5C6661), Color(0xFF2F6E9E), Color(0xFF3F9A6C), Color(0xFF6A4C9C))
 private fun cuAgo(d: Int) = if (d == 0) "сегодня" else if (d == 1) "вчера" else if (d < 30) "$d дн. назад" else if (d < 365) "${d / 30} мес. назад" else "больше года"
 private fun cuK(n: Int) = String.format(java.util.Locale.US, "%.1f", n / 1000f).replace('.', ',')
 private fun cuUn(n: Int) = if (n == 0) "всё прочитано" else (if (n > 999) cuK(n) + "K" else "$n") + " непрочитанных"
@@ -55,27 +58,50 @@ private fun cuUn(n: Int) = if (n == 0) "всё прочитано" else (if (n >
 /** Board «Чистка подписок»: idle hero with sweeping mop, filters, multi-select list, leave / archive with slide-out and undo toast. */
 @Composable
 fun CleanupScreen(ctx: KxScreenCtx) {
-    // demo: needs store (chat last-opened date, leaveChat, archive many) — list is demo
+    // wave3: real store — channels and groups from store.chats with Telegram's unread counts; leave (deleteChat, after KxConfirm) /
+    // archive (setArchived, undo). «Last opened» is not known to Telegram, so the real filters use unread counts.
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val subs = if (demo) CU_SUBS else store.chats.filter { it.kind == com.kirox.app.ui.v3.model.KxChatKind.Channel || it.kind == com.kirox.app.ui.v3.model.KxChatKind.Group }
+        .mapIndexed { i, c -> CuSub(c.title, if (c.kind == com.kirox.app.ui.v3.model.KxChatKind.Channel) Icons.Rounded.Campaign else Icons.Rounded.Groups, CU_INKS[i % CU_INKS.size],
+            if (c.kind == com.kirox.app.ui.v3.model.KxChatKind.Channel) "Канал" else "Группа", -1, c.unread, c.id) }
+    val filters = if (demo) CU_FILTERS else CU_FILTERS_REAL
+    var confirm by remember { mutableStateOf<com.kirox.app.ui.v3.components.KxConfirm?>(null) }
     var f by remember { mutableIntStateOf(0) }
     var sel by remember { mutableStateOf(setOf<Int>()) }
     var gone by remember { mutableStateOf(setOf<Int>()) }
     var leaving by remember { mutableStateOf(setOf<Int>()) }
     val toast = remember { TToast() }
     val co = rememberCoroutineScope()
-    val lim = CU_FILTERS[f].second
-    val list = CU_SUBS.withIndex().filter { (i, x) -> i !in gone && (if (lim == -1) x.kind == "Канал" else x.days >= lim) }
+    val lim = filters[f].second
+    // Keys: the board index in the demo, the chat id on the real account (the list reorders as messages arrive).
+    val keyed = subs.mapIndexed { i, x -> (if (demo) i else x.chatId.hashCode()) to x }
+    val list = keyed.map { IndexedValue(it.first, it.second) }.filter { (i, x) -> i !in gone && (if (lim == -1) x.kind == "Канал" else if (demo) x.days >= lim else x.unread >= lim) }
     val n = list.count { it.index in sel }
-    val idle = CU_SUBS.withIndex().count { (i, x) -> i !in gone && x.days >= 30 }
-    val unreadIdle = CU_SUBS.withIndex().sumOf { (i, x) -> if (i !in gone && x.days >= 30) x.unread else 0 }
-    fun act(leave: Boolean) {
+    val idleRule: (CuSub) -> Boolean = { x -> if (demo) x.days >= 30 else x.unread >= 100 }
+    val idle = keyed.count { (i, x) -> i !in gone && idleRule(x) }
+    val unreadIdle = keyed.sumOf { (i, x) -> if (i !in gone && idleRule(x)) x.unread else 0 }
+    fun run(leave: Boolean) {
         val ids = sel.filter { it !in gone }
         if (ids.isEmpty()) return
+        val chats = keyed.filter { it.first in ids }.map { it.second.chatId }
         leaving = ids.toSet()
         co.launch {
             delay(420)
+            if (!demo) chats.forEachIndexed { k, id -> if (k > 0) delay(300); if (leave) store.deleteChat(id) else store.setArchived(id, true) } // spaced: no FLOOD_WAIT
             gone = gone + ids; leaving = emptySet(); sel = emptySet()
-            toast.show((if (leave) "Вы отписались: " else "В архиве: ") + ids.size, if (leave) Icons.AutoMirrored.Outlined.Logout else Icons.Outlined.Archive, act = "Вернуть") { gone = gone - ids.toSet() }
+            if (leave && !demo) toast.show("Вы вышли: " + ids.size, Icons.AutoMirrored.Outlined.Logout)
+            else toast.show((if (leave) "Вы отписались: " else "В архиве: ") + ids.size, if (leave) Icons.AutoMirrored.Outlined.Logout else Icons.Outlined.Archive, act = "Вернуть") {
+                gone = gone - ids.toSet(); if (!demo && !leave) chats.forEach { store.setArchived(it, false) }
+            }
         }
+    }
+    fun act(leave: Boolean) {
+        val k = sel.count { it !in gone }
+        if (k == 0) return
+        if (leave && !demo) confirm = com.kirox.app.ui.v3.components.KxConfirm("Выйти из $k ${tPlural(k, "чата", "чатов", "чатов")}?",
+            "Вы покинете выбранные каналы и группы. Вернуться можно будет только по ссылке или через поиск.", "Выйти") { run(true) }
+        else run(leave)
     }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -92,13 +118,13 @@ fun CleanupScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Rounded.CleaningServices, null, Modifier.size(32.dp).graphicsLayer { translationX = if (moving) x * density else 0f; rotationZ = if (moving) r else 0f }, tint = Kx.accent)
                 }
                 Column(Modifier.weight(1f)) {
-                    Text(if (idle > 0) "$idle " + tPlural(idle, "подписку", "подписки", "подписок") + " вы не открывали месяц" else "Все подписки в деле", style = KxType.style(17.sp, FontWeight.ExtraBold))
+                    Text(if (idle > 0) "$idle " + tPlural(idle, "подписку", "подписки", "подписок") + (if (demo) " вы не открывали месяц" else " с сотней непрочитанных") else "Все подписки в деле", style = KxType.style(17.sp, FontWeight.ExtraBold))
                     Text(if (idle > 0) "В них " + (if (unreadIdle > 999) cuK(unreadIdle) + " тыс." else "$unreadIdle") + " непрочитанных сообщений" else "Нечего чистить — отлично!",
                         style = KxType.style(13.sp, color = Kx.text3), modifier = Modifier.padding(top = 2.dp))
                 }
             }
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                CU_FILTERS.forEachIndexed { i, (l, _) -> TChip(l, f == i, h = 34.dp) { f = i } }
+                filters.forEachIndexed { i, (l, _) -> TChip(l, f == i, h = 34.dp) { f = i } }
             }
             Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 110.dp)) {
                 list.forEachIndexed { k, (i, x) ->
@@ -126,11 +152,13 @@ fun CleanupScreen(ctx: KxScreenCtx) {
                                     KxLine(x.name, KxType.style(15.sp, FontWeight.Bold), Modifier.weight(1f))
                                     Text(x.kind, style = KxType.style(11.sp, color = Kx.text4))
                                 }
-                                val lastInk = if (x.days >= 30) Kx.warning else Kx.text4
+                                val lastInk = if (x.days >= 30 || (!demo && x.unread >= 100)) Kx.warning else Kx.text4
                                 Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Icon(Icons.Outlined.Schedule, null, Modifier.size(14.dp), tint = lastInk)
-                                    Text("открывали " + cuAgo(x.days), style = KxType.style(12.sp, color = lastInk))
-                                    Text("· " + cuUn(x.unread), style = KxType.style(12.sp, color = Kx.text4), maxLines = 1)
+                                    if (x.days >= 0) {
+                                        Icon(Icons.Outlined.Schedule, null, Modifier.size(14.dp), tint = lastInk)
+                                        Text("открывали " + cuAgo(x.days), style = KxType.style(12.sp, color = lastInk))
+                                        Text("· " + cuUn(x.unread), style = KxType.style(12.sp, color = Kx.text4), maxLines = 1)
+                                    } else Text(cuUn(x.unread), style = KxType.style(12.sp, color = lastInk), maxLines = 1)
                                 }
                             }
                         }
@@ -150,5 +178,6 @@ fun CleanupScreen(ctx: KxScreenCtx) {
             TPill(if (n > 0) "Выйти · $n" else "Выберите подписки", Modifier.weight(1f), Icons.AutoMirrored.Outlined.Logout, 54.dp, solid(lbg), if (n > 0) Color.White else Color(0xFF5C6661)) { act(true) }
         }
         TToastHost(toast, 96.dp, 3000)
+        confirm?.let { com.kirox.app.ui.v3.components.KxConfirmDialog(it) { confirm = null } }
     }
 }

@@ -33,7 +33,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 
-// demo: needs store — unread mentions / reactions of a chat (unread_mention_count, getChatUnreadMentions / getChatUnreadReactions) and jumping to them.
+// Demo chat. Real account: MentionsLive (store.unreadMentions — unread mentions / reactions — and jump to the message).
 private const val ME = "@kirill_dev"
 private data class MnMsg(val name: String, val l: String, val c: Color, val pre: String, val at: String, val post: String, val time: String, val kind: String = "")
 private val MN = listOf(
@@ -55,6 +55,7 @@ private val MN_AT = MN.indices.filter { MN[it].kind == "at" }
 /** Mentions board: «@» jumps to each unread mention in turn (flash), ❤️ to new reactions, ↓ to the newest messages. */
 @Composable
 fun MentionsScreen(ctx: KxScreenCtx) {
+    if (ctx.c3Live) { MentionsLive(ctx, ctx.c3Chat); return }
     var pos by remember { mutableIntStateOf(0) }
     val seenAt = remember { mutableStateListOf<Int>() }
     var seenReact by remember { mutableStateOf(false) }

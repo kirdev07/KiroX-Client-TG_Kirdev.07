@@ -49,7 +49,12 @@ private fun cnFmt(d: String) = listOf(d.take(3), d.drop(3).take(3), d.drop(6).ta
 /** Board «Сменить номер»: 4 steps — intro with the flying SIM, new number field, 5-digit code with keypad + resend timer, done. */
 @Composable
 fun ChangeNumberScreen(ctx: KxScreenCtx) {
-    // demo: needs store (changePhoneNumber → sendCode / checkCode / resend); demo accepts code 24680
+    // wave3: real store — sendPhoneNumberCode(change) → checkPhoneNumberCode / resend, asked through KxConfirm first; demo accepts 24680
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    var sentHint by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var confirm by remember { mutableStateOf<com.kirox.app.ui.v3.components.KxConfirm?>(null) }
     val myDigits = ctx.store.me.phone.filter { it.isDigit() }
     val current = if (myDigits.length >= 10) "+" + myDigits.dropLast(10).ifEmpty { "7" } + " " + myDigits.takeLast(10).take(3) + " ••• •• " + myDigits.takeLast(2) else "+7 777 ••• •• 12"
     val sameDigits = if (myDigits.length >= 10) myDigits.takeLast(10) else "7770000012"
@@ -63,8 +68,20 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
     val shakeC = remember { Animatable(0f) }
     val co = rememberCoroutineScope()
     LaunchedEffect(timerId) { if (timerId == 0) return@LaunchedEffect; sec = 45; while (sec > 0 && step == 2) { delay(1000); sec-- } }
-    val full = digits.length == 10
-    val same = digits == sameDigits
+    // Country: Kazakhstan +7 in the demo; the real store starts from the country by IP and lets the user pick any (store.countries()).
+    var countries by remember { mutableStateOf(emptyList<com.kirox.app.ui.v3.model.KxCountry>()) }
+    var country by remember { mutableStateOf(com.kirox.app.ui.v3.model.KxCountry("KZ", "Казахстан", "7", "🇰🇿")) }
+    var picking by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (demo) return@LaunchedEffect
+        countries = store.countries()
+        val mine = store.myCountry()
+        countries.firstOrNull { it.code == mine }?.let { country = it }
+    }
+    val cc = country.callingCode
+    val maxLen = if (cc == "7") 10 else 15 - cc.length
+    val full = if (demo || cc == "7") digits.length == 10 else digits.length >= 6
+    val same = if (demo) digits == sameDigits else (cc + digits) == myDigits
     val canNext = step == 0 || (step == 1 && full && !same) || step == 3
     fun typeKey(k: String) {
         if (k == "del") { code = code.dropLast(1); bad = false; return }
@@ -72,8 +89,9 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
         val c = code + k; code = c; bad = false
         if (c.length == 5) co.launch {
             delay(350)
-            if (c == "24680") step = 3
-            else { bad = true; code = ""; shakeC.snapTo(0f); shakeC.animateTo(1f, tween(350, easing = TEase)); shakeC.snapTo(0f) }
+            val wrong = if (demo) (if (c == "24680") null else "Неверный код") else store.changeNumberCheck(c)
+            if (wrong == null) step = 3
+            else { if (!demo && wrong != "Неверный код") ctx.toast(wrong); bad = true; code = ""; shakeC.snapTo(0f); shakeC.animateTo(1f, tween(350, easing = TEase)); shakeC.snapTo(0f) }
         }
     }
     val back = { if (step in 1..2) { step--; code = ""; bad = false } else ctx.back() }
@@ -112,17 +130,18 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
                         val sh = RoundedCornerShape(22.dp)
                         Row(Modifier.padding(top = 20.dp).graphicsLayer { translationX = shakeX(shakeN.value) * density }.fillMaxWidth().height(60.dp).clip(sh).background(Kx.w(.05f)).border(1.dp, bd, sh)
                             .padding(start = 8.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Box(Modifier.height(44.dp).clip(RoundedCornerShape(15.dp)).background(Kx.w(.07f)).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                                Text("🇰🇿 +7", style = KxType.style(16.sp, FontWeight.Bold))
+                            Box(Modifier.height(44.dp).clip(RoundedCornerShape(15.dp)).background(Kx.w(.07f)).kxClick("Страна", enabled = !demo && countries.isNotEmpty()) { picking = true }
+                                .padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+                                Text("${country.flag} +$cc", style = KxType.style(16.sp, FontWeight.Bold))
                             }
                             Box(Modifier.weight(1f)) {
                                 val st = KxType.style(19.sp).copy(letterSpacing = .6.sp)
                                 if (digits.isEmpty()) Text("000 000 00 00", style = st.copy(color = Kx.text4))
-                                BasicTextField(cnFmt(digits), { digits = it.filter(Char::isDigit).take(10) }, Modifier.fillMaxWidth().semantics { contentDescription = "Новый номер" },
+                                BasicTextField(cnFmt(digits), { digits = it.filter(Char::isDigit).take(maxLen) }, Modifier.fillMaxWidth().semantics { contentDescription = "Новый номер" },
                                     singleLine = true, textStyle = st, cursorBrush = SolidColor(Kx.accent), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone))
                             }
                         }
-                        Text(if (same) "Это ваш текущий номер" else if (full) "Номер введён · проверим после запроса кода" else "Ещё ${10 - digits.length} из 10 цифр",
+                        Text(if (same) "Это ваш текущий номер" else if (full) "Номер введён · проверим после запроса кода" else if (!demo && cc != "7") "Введите номер без кода страны" else "Ещё ${10 - digits.length} из 10 цифр",
                             style = KxType.style(12.sp, color = if (same) Kx.danger else if (full) Kx.accent else Kx.text4), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 8.dp))
                         val ish = RoundedCornerShape(20.dp)
                         Row(Modifier.padding(top = 18.dp).fillMaxWidth().clip(ish).background(Kx.warning.copy(alpha = .08f)).border(1.dp, Kx.warning.copy(alpha = .25f), ish).padding(horizontal = 16.dp, vertical = 14.dp),
@@ -134,7 +153,7 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
                     }
                     2 -> Column(Modifier.fillMaxSize().cnIn(2).padding(start = 20.dp, end = 20.dp, top = 30.dp)) {
                         Text("Код подтверждения", style = KxType.style(22.sp, FontWeight.ExtraBold))
-                        Text("Отправили на +7 ${cnFmt(digits)}", style = KxType.style(14.sp, color = Kx.text3), modifier = Modifier.padding(top = 6.dp))
+                        Text("Отправили на +$cc ${cnFmt(digits)}", style = KxType.style(14.sp, color = Kx.text3), modifier = Modifier.padding(top = 6.dp))
                         Row(Modifier.padding(top = 24.dp).fillMaxWidth().graphicsLayer { translationX = shakeX(shakeC.value) * density }, horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)) {
                             val blink by rememberInfiniteTransition(label = "caret").animateFloat(0f, 1f, infiniteRepeatable(tween(1000, easing = LinearEasing)), label = "b")
                             repeat(5) { i ->
@@ -146,7 +165,7 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
                                 }
                             }
                         }
-                        Text(if (bad) "Неверный код, попробуйте ещё раз" else "Для примера подходит 24680", style = KxType.style(13.sp, color = if (bad) Kx.danger else Kx.text4),
+                        Text(if (bad) "Неверный код, попробуйте ещё раз" else if (demo) "Для примера подходит 24680" else sentHint, style = KxType.style(13.sp, color = if (bad) Kx.danger else Kx.text4),
                             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
                         Column(Modifier.padding(top = 22.dp).width(300.dp).align(Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del").chunked(3).forEach { row ->
@@ -163,7 +182,9 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
                         }
                         Text(if (sec > 0) "Отправить снова через 0:" + sec.toString().padStart(2, '0') else "Отправить код снова",
                             style = KxType.style(13.sp, FontWeight.Bold, if (sec > 0) Kx.text4 else Kx.accent), textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 14.dp).align(Alignment.CenterHorizontally).kxClick(enabled = sec == 0) { timerId++ }.padding(8.dp))
+                            modifier = Modifier.padding(top = 14.dp).align(Alignment.CenterHorizontally).kxClick(enabled = sec == 0) {
+                                if (demo) timerId++ else co.launch { val r = store.changeNumberResend(); if (r.startsWith("!")) ctx.toast(r.drop(1)) else { sentHint = r; timerId++ } }
+                            }.padding(8.dp))
                     }
                     else -> Column(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 60.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         val pop = remember { Animatable(0f) }
@@ -175,8 +196,8 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
                             Icon(Icons.Rounded.Check, null, Modifier.size(52.dp), tint = Kx.onAccent)
                         }
                         Text("Номер изменён", style = KxType.style(22.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 22.dp))
-                        Text("+7 ${cnFmt(digits)}", style = KxType.style(15.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(top = 8.dp))
-                        Text("Все чаты на месте. На других устройствах вход сохранится.", style = KxType.style(14.sp, color = Kx.text3, lineHeight = 21.sp), textAlign = TextAlign.Center,
+                        Text("+$cc ${cnFmt(digits)}", style = KxType.style(15.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(top = 8.dp))
+                        Text(if (demo) "Все чаты на месте. На других устройствах вход сохранится." else "Все чаты на месте. Теперь вас находят по новому номеру.", style = KxType.style(14.sp, color = Kx.text3, lineHeight = 21.sp), textAlign = TextAlign.Center,
                             modifier = Modifier.padding(top = 10.dp))
                     }
                 }
@@ -187,8 +208,29 @@ fun ChangeNumberScreen(ctx: KxScreenCtx) {
                     ink = if (canNext) Kx.onAccent else Color(0xFF5C6661), size = 16) {
                     when (step) {
                         0 -> step = 1
-                        1 -> if (canNext) { step = 2; code = ""; timerId++ } else co.launch { shakeN.snapTo(0f); shakeN.animateTo(1f, tween(350, easing = TEase)); shakeN.snapTo(0f) }
+                        1 -> if (canNext && demo) { step = 2; code = ""; timerId++ }
+                        else if (canNext && !busy) confirm = com.kirox.app.ui.v3.components.KxConfirm("Сменить номер на +$cc ${cnFmt(digits)}?",
+                            "Telegram пришлёт код на новый номер. После подтверждения войти по старому номеру будет нельзя.", "Получить код") {
+                            busy = true
+                            co.launch {
+                                val r = store.changeNumberSendCode("+$cc$digits"); busy = false
+                                if (r.startsWith("!")) ctx.toast(r.drop(1)) else { sentHint = r; step = 2; code = ""; timerId++ }
+                            }
+                        }
+                        else if (!canNext) co.launch { shakeN.snapTo(0f); shakeN.animateTo(1f, tween(350, easing = TEase)); shakeN.snapTo(0f) }
                         3 -> ctx.back()
+                    }
+                }
+            }
+        }
+        confirm?.let { com.kirox.app.ui.v3.components.KxConfirmDialog(it) { confirm = null } }
+        if (picking) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = .6f)).kxClick("Закрыть") { picking = false }, contentAlignment = Alignment.Center) {
+            androidx.compose.foundation.lazy.LazyColumn(Modifier.padding(24.dp).fillMaxWidth().heightIn(max = 520.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xFF1A201D)).padding(vertical = 8.dp)) {
+                items(countries.size) { i ->
+                    val c = countries[i]
+                    Row(Modifier.fillMaxWidth().kxClick(c.name) { country = c; digits = ""; picking = false }.padding(horizontal = 18.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(c.flag, style = KxType.style(20.sp)); Text(c.name, style = KxType.style(15.sp), modifier = Modifier.weight(1f)); Text("+${c.callingCode}", style = KxType.style(14.sp, color = Kx.text3))
                     }
                 }
             }

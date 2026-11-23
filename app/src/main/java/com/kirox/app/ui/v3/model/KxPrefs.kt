@@ -99,6 +99,91 @@ data class KxRequest(val chatId: Long, val userId: Long, val name: String, val m
 data class KxStoryViewer(val userId: Long, val name: String, val time: String, val reaction: String = "", val avatar: String? = null)
 
 /** Value of a [KxPrefs] key (the default when the store has none). */
-fun KxStore.pref(key: String): Int = prefs[key] ?: KxPrefs.defaults[key] ?: KxPrefs.defaults[key.substringBefore(':')] ?: 0
+fun KxStore.pref(key: String): Int = prefs[key] ?: KxPrefs.defaults[key] ?: KxPrefs.defaults[key.substringBefore(':')] ?: KxPrefsAccount.defaults[key] ?: 0
 fun KxStore.prefOn(key: String): Boolean = pref(key) != 0
 fun KxStore.togglePref(key: String) = putPref(key, if (prefOn(key)) 0 else 1)
+
+// wave3-account ---------------------------------------------------------------------------------
+
+/** kiroX-local settings of the account/tools boards (wave3). Ints through [KxStore.prefs], texts through [KxStore.prefTexts]. */
+object KxPrefsAccount {
+    // Фильтр слов (the app's MessageFilters: on + words; the rest is kiroX-v3 only)
+    const val FILTER_ON = "filter.on"
+    /** 0 Скрыть, 1 Размыть, 2 Отметить. */
+    const val FILTER_ACTION = "filter.action"
+    /** Bits: 1 Группы, 2 Каналы, 4 Личные чаты. */
+    const val FILTER_SCOPE = "filter.scope"
+    /** Bits of the ready-made sets (Реклама, Крипта, Спойлеры). */
+    const val FILTER_PRESETS = "filter.presets"
+    /** Text: the own words, '\n'-separated. */
+    const val FILTER_LIST = "filter.words"
+
+    // Не беспокоить (silences kiroX's own notifications on this phone)
+    const val DND_ON = "dnd.on"
+    /** Unix seconds when it turns off by itself, 0 = until turned off. */
+    const val DND_UNTIL = "dnd.until"
+    /** 0 1 час, 1 3 часа, 2 До утра, 3 Пока не выключу. */
+    const val DND_DUR = "dnd.dur"
+    const val DND_CALLS = "dnd.calls"
+    const val DND_REPEAT = "dnd.repeat"
+    const val DND_SCHED = "dnd.sched"
+    const val DND_FROM = "dnd.from"
+    const val DND_TO = "dnd.to"
+    /** Text: chat ids that still ring. */
+    const val DND_PEOPLE = "dnd.people"
+
+    // Жесты в переписке: option index per gesture
+    const val GEST_SWIPE_L = "gest.swipeL"
+    const val GEST_DOUBLE = "gest.double"
+    const val GEST_HOLD = "gest.hold"
+    const val GEST_SWIPE_R = "gest.swipeR"
+    // Жесты списка чатов: 0 read, 1 pin, 2 mute, 3 archive, 4 delete, 5 folder
+    const val SWIPE_LEFT = "swipe.left"
+    const val SWIPE_RIGHT = "swipe.right"
+
+    // Специальные возможности
+    /** Text scale in %, 85..150. */
+    const val ACCESS_SCALE = "access.scale"
+    /** Bits: 1 bold, 2 contrast, 4 outlines, 8 big buttons, 16 animations, 32 captions. */
+    const val ACCESS_FLAGS = "access.flags"
+    /** 0 Обычные, 1 Дейтеранопия, 2 Тританопия, 3 Монохром. */
+    const val ACCESS_PALETTE = "access.palette"
+
+    /** Text: recent settings searches, newest first. */
+    const val SEARCH_RECENT = "search.recent"
+    /** Text: hidden chat ids. */
+    const val HIDDEN_CHATS = "hidden.chats"
+    /** Widgets board style index. */
+    const val WIDGET_STYLE = "widget.style"
+    /** Shortcuts board: launcher badge on. */
+    const val SHORTCUT_BADGE = "shortcut.badge"
+    /** Backup board: weekly auto backup. */
+    const val BACKUP_AUTO = "backup.auto"
+    /** The last backup time, unix seconds (0 = never); the Backup board writes it. */
+    const val BACKUP_LAST = "backup.last"
+    /** Read-only (real store): minutes kiroX was open today / this week (local counting). */
+    const val USAGE_TODAY = "usage.today"
+    const val USAGE_WEEK = "usage.week"
+    /** Text, read-only (real store): minutes kiroX was open on each of the last 7 days, oldest first, comma-separated. */
+    const val USAGE_DAYS = "usage.days"
+    /** Text, read-only (real store): the day counting started, yyyy-MM-dd (empty = not yet). */
+    const val USAGE_SINCE = "usage.since"
+    /** Wellbeing: daily limit in minutes (0 = off), break reminder, quiet after 23:00. */
+    const val WELL_LIMIT = "well.limit"
+    const val WELL_BREAK = "well.break"
+    const val WELL_QUIET = "well.quiet"
+
+    val defaults: Map<String, Int> = mapOf(
+        FILTER_ON to 1, FILTER_ACTION to 0, FILTER_SCOPE to 3, FILTER_PRESETS to 0,
+        DND_ON to 0, DND_UNTIL to 0, DND_DUR to 2, DND_CALLS to 1, DND_REPEAT to 1, DND_SCHED to 1, DND_FROM to 23, DND_TO to 7,
+        GEST_SWIPE_L to 0, GEST_DOUBLE to 0, GEST_HOLD to 0, GEST_SWIPE_R to 0, SWIPE_LEFT to 0, SWIPE_RIGHT to 3,
+        ACCESS_SCALE to 100, ACCESS_FLAGS to 48, ACCESS_PALETTE to 0,
+        WIDGET_STYLE to 0, SHORTCUT_BADGE to 1, BACKUP_AUTO to 0, BACKUP_LAST to 0, USAGE_TODAY to 0, USAGE_WEEK to 0,
+        WELL_LIMIT to 0, WELL_BREAK to 0, WELL_QUIET to 0,
+    )
+    val textDefaults: Map<String, String> = mapOf(FILTER_LIST to "финал\nскидка")
+}
+
+/** A text setting split into its lines. */
+fun KxStore.prefList(key: String): List<String> = (prefTexts[key] ?: KxPrefsAccount.textDefaults[key].orEmpty()).split('\n').filter { it.isNotBlank() }
+fun KxStore.putPrefList(key: String, items: List<String>) = putPrefText(key, items.joinToString("\n"))

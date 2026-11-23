@@ -82,7 +82,9 @@ fun ChannelScreen(ctx: KxScreenCtx) {
     var popTick by remember { mutableIntStateOf(0) }
     var stats by remember { mutableStateOf(false) }
     var adminDemo by rememberSaveable { mutableStateOf(false) }
-    val admin = header?.let { it.composer == KxComposer.Write } ?: adminDemo
+    // wave3-chat: own role and Telegram marks from store.chatFacts (creator / administrator, verified / scam / fake, discussion group).
+    val facts = if (live) com.kirox.app.ui.v3.screens.more.c3Load(chatId) { store.chatFacts(chatId!!) } else null
+    val admin = if (live) facts?.admin ?: (header?.composer == KxComposer.Write) else adminDemo
     var more by remember { mutableStateOf(false) }
     var leave by remember { mutableStateOf(false) }
     var ad by rememberSaveable { mutableStateOf(true) }
@@ -161,7 +163,9 @@ fun ChannelScreen(ctx: KxScreenCtx) {
                         if (muted) Kx.danger else Kx.text, Modifier.weight(1f)) { if (live) store.setMuted(chatId!!, !muted) else mutedDemo = !muted }
                     CBarButton(Icons.Outlined.Forum, "Обсуждение", Kx.text, Modifier.weight(1f)) {
                         if (!live) ctx.open("Comments")
-                        else posts.lastOrNull { it.comments > 0 }?.let { ctx.open("Comments:$chatId:${it.id}") } ?: tip.say("У канала нет обсуждения")
+                        else if ((facts?.linkedChatId ?: 0L) != 0L) ctx.openChat(facts!!.linkedChatId)
+                        else if (facts == null) posts.lastOrNull { it.comments > 0 }?.let { ctx.open("Comments:$chatId:${it.id}") } ?: tip.say("У канала нет обсуждения")
+                        else tip.say("У канала нет обсуждения")
                     }
                 }
             }
@@ -178,7 +182,10 @@ fun ChannelScreen(ctx: KxScreenCtx) {
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         KxLine(header?.title ?: "Кино по пятницам", KxType.style(15.sp, FontWeight.Bold), Modifier.weight(1f, false))
-                        if (!live) Icon(Icons.Rounded.Verified, "Подтверждён", Modifier.size(16.dp), tint = Kx.accent)
+                        if (!live || facts?.verified == true) Icon(Icons.Rounded.Verified, "Подтверждён", Modifier.size(16.dp), tint = Kx.accent)
+                        if (facts?.scam == true || facts?.fake == true) Box(Modifier.clip(RoundedCornerShape(5.dp)).border(1.dp, Kx.danger, RoundedCornerShape(5.dp)).padding(horizontal = 4.dp)) {
+                            Text(if (facts.scam) "SCAM" else "FAKE", style = KxType.style(10.sp, FontWeight.Bold, Kx.danger))
+                        }
                     }
                     Text(header?.let { h -> if (h.members > 0) "${h.members.toString().reversed().chunked(3).joinToString(" ").reversed()} ${gxPlural(h.members, "подписчик", "подписчика", "подписчиков")}" else h.status }
                         ?: if (sub) "24 501 подписчик" else "24 500 подписчиков", style = KxType.style(12.sp, color = Kx.text3), maxLines = 1)

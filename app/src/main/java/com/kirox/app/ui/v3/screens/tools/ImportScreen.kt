@@ -46,7 +46,7 @@ internal fun ruNum(n: Int): String = java.text.NumberFormat.getIntegerInstance(j
 /** Board «Перенос переписки»: 4 steps — source app, how to export, target chat, progress with flying messages. */
 @Composable
 fun ImportScreen(ctx: KxScreenCtx) {
-    // demo: needs store (importMessages: checkChatsImport / importMessages from a shared file; real file comes via the share intent) — file and progress are demo
+    // wave3: stays demo on the real store (honest toast) — needs store (importMessages: checkChatsImport / importMessages from a shared file; real file comes via the share intent) — file and progress are demo
     var step by remember { mutableIntStateOf(0) }
     var app by remember { mutableIntStateOf(0) }
     var target by remember { mutableIntStateOf(0) }
@@ -153,7 +153,7 @@ fun ImportScreen(ctx: KxScreenCtx) {
         Box(Modifier.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp)) {
             TPill(when (step) { 0 -> "Дальше"; 1 -> "Файл готов"; 2 -> "Перенести"; else -> if (done) "Открыть чат" else "Переносим…" }, Modifier.fillMaxWidth(), h = 54.dp,
                 bg = if (running) solid(Kx.w(.07f)) else Brush.linearGradient(listOf(Kx.accentMid, Kx.accentDeep)), ink = if (running) Color(0xFF5C6661) else Kx.onAccent, size = 16) {
-                when { step < 2 -> step += 1; step == 2 -> { step = 3; runId += 1 }; done -> { step = 0; prog = 0f } }
+                when { step < 2 -> step += 1; step == 2 -> { if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) ctx.toast("Перенос чатов в kiroX v3 пока не готов — это предпросмотр") else { step = 3; runId += 1 } }; done -> { step = 0; prog = 0f } }
             }
         }
     }

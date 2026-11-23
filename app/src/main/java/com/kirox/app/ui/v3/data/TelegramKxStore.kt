@@ -1353,8 +1353,9 @@ class TelegramKxStore(
 
     // ---- Round 6: kiroX-local settings (TelegramKxLocal.kt) ----
     private val local by lazy { KxLocalSettings(app, scope).also { it.start() } }
-    override val prefs: Map<String, Int> get() = local.values
-    override fun putPref(key: String, value: Int) = local.put(key, value)
+    private val mergedPrefs by androidx.compose.runtime.derivedStateOf { local.values + account.values + chat3.values }
+    override val prefs: Map<String, Int> get() = mergedPrefs
+    override fun putPref(key: String, value: Int) = if (chat3.owns(key)) chat3.put(key, value) else if (account.owns(key)) account.put(key, value) else local.put(key, value)
     override val tabNames: Map<Int, String> get() = local.tabNames
     override fun renameTab(index: Int, name: String) = local.renameTab(index, name)
     override val passcodeSet: Boolean get() = local.passcodeSet
@@ -1368,6 +1369,179 @@ class TelegramKxStore(
         // Warm the preferences behind [local] off the main thread (first reads load from disk).
         scope.launch(Dispatchers.IO) { app.getSharedPreferences("kirox_v3_prefs", android.content.Context.MODE_PRIVATE); com.kirox.app.settings.ChatWallpapers.count(app) }
     }
+
+    // ---- wave3-media (TelegramKxMedia.kt) ----
+    private val mediaBinder by lazy { KxMediaBinder(app, vm, scope) { autoPath(it, paths.value) }.also { it.start() } }
+    override suspend fun chatMedia(chatId: Long, aroundMessageId: Long) = mediaBinder.chatMedia(chatId, aroundMessageId)
+    override suspend fun albumOf(chatId: Long, messageId: Long) = mediaBinder.albumOf(chatId, messageId)
+    override fun fileState(fileId: Int) = mediaBinder.fileState(fileId)
+    override fun cancelDownload(fileId: Int) = mediaBinder.cancelDownload(fileId)
+    override suspend fun saveToGallery(fileId: Int, video: Boolean) = mediaBinder.saveToGallery(fileId, video)
+    override suspend fun shareFile(fileId: Int) = mediaBinder.shareFile(fileId)
+    override suspend fun openFile(fileId: Int) = mediaBinder.openFile(fileId)
+    override suspend fun musicLibrary(query: String) = mediaBinder.musicLibrary(query)
+    override val player: KxPlayerState get() = mediaBinder.player
+    override fun playTracks(tracks: List<KxTrack>, index: Int) = mediaBinder.playTracks(tracks, index)
+    override fun playerToggle() = mediaBinder.playerToggle()
+    override fun playerNext() = mediaBinder.playerNext()
+    override fun playerPrevious() = mediaBinder.playerPrevious()
+    override fun playerSeek(fraction: Float) = mediaBinder.playerSeek(fraction)
+    override fun playerShuffle() = mediaBinder.playerShuffle()
+    override fun playerRepeat() = mediaBinder.playerRepeat()
+    override fun playVoice(fileId: Int) = mediaBinder.playVoice(fileId)
+    override suspend fun downloads(query: String) = mediaBinder.downloads(query)
+    override fun pauseDownload(fileId: Int, paused: Boolean) = mediaBinder.pauseDownload(fileId, paused)
+    override fun removeDownloads(fileIds: List<Int>) = mediaBinder.removeDownloads(fileIds)
+    override suspend fun voiceMessages(chatId: Long) = mediaBinder.voiceMessages(chatId)
+    override fun markListened(chatId: Long, messageId: Long) = mediaBinder.markListened(chatId, messageId)
+    override suspend fun transcribe(chatId: Long, messageId: Long, onPartial: (String) -> Unit) = mediaBinder.transcribe(chatId, messageId, onPartial)
+    override suspend fun storyArchive() = mediaBinder.storyArchive()
+    override suspend fun profileStories() = mediaBinder.profileStories()
+    override suspend fun setStoryOnProfile(storyId: Int, on: Boolean) = mediaBinder.setStoryOnProfile(storyId, on)
+    override suspend fun pinnedStoryIds() = mediaBinder.pinnedStoryIds()
+    override suspend fun pinnedStoryMax() = mediaBinder.pinnedStoryMax()
+    override suspend fun pinStories(ids: List<Int>) = mediaBinder.pinStories(ids)
+    override suspend fun deviceMedia(limit: Int) = mediaBinder.deviceMedia(limit)
+    override suspend fun postStory(media: KxDeviceMedia, caption: String, audience: Int) = mediaBinder.postStory(media, caption, audience)
+    override suspend fun sendDeviceMedia(chatId: Long, media: KxDeviceMedia, caption: String) = mediaBinder.sendDeviceMedia(chatId, media, caption)
+    override suspend fun closeFriends() = mediaBinder.closeFriends()
+    override suspend fun privateChat(userId: Long) = mediaBinder.privateChat(userId)
+    override val activeCall: KxCallState? get() = mediaBinder.activeCall
+    override val groupCall: KxGroupCallState? get() = mediaBinder.groupCall
+    override val lastCall: KxCallState? get() = mediaBinder.lastCall
+    override fun answerCall() = mediaBinder.answerCall()
+    override fun hangUp() = mediaBinder.hangUp()
+    override fun muteCallMic(muted: Boolean) = mediaBinder.muteCallMic(muted)
+    override fun turnCallCamera(on: Boolean) = mediaBinder.turnCallCamera(on)
+    override fun flipCallCamera() = mediaBinder.flipCallCamera()
+    override fun attachCallVideo(remote: Any?, local: Any?) = mediaBinder.attachCallVideo(remote, local)
+    override fun joinGroupCall(chatId: Long) = mediaBinder.joinGroupCall(chatId)
+    override fun leaveGroupCall() = mediaBinder.leaveGroupCall()
+    override fun muteGroupMic(muted: Boolean) = mediaBinder.muteGroupMic(muted)
+    override fun turnGroupCamera(on: Boolean) = mediaBinder.turnGroupCamera(on)
+    override suspend fun rateCall(callId: Int, rating: Int, comment: String, problems: List<String>) = mediaBinder.rateCall(callId, rating, comment, problems)
+    override suspend fun planVideoChat(chatId: Long, title: String, startAt: Int, rtmp: Boolean) = mediaBinder.planVideoChat(chatId, title, startAt, rtmp)
+    override suspend fun networkStats() = mediaBinder.networkStats()
+    override suspend fun resetNetworkStats() = mediaBinder.resetNetworkStats()
+    override suspend fun deviceSpace() = mediaBinder.deviceSpace()
+    override suspend fun netCheck() = mediaBinder.netCheck()
+    override suspend fun notificationSounds() = mediaBinder.notificationSounds()
+    override suspend fun scopeSound(key: String) = mediaBinder.scopeSound(key)
+    override suspend fun changeScopeSound(key: String, soundId: Long) = mediaBinder.changeScopeSound(key, soundId)
+    override fun previewSound(soundId: Long) = mediaBinder.previewSound(soundId)
+
+    // ---- wave3-account (TelegramKxAccount.kt) ----
+    private val account by lazy { KxAccountBinder(app, services, scope) { error = it }.also { it.start() } }
+    override val prefTexts: Map<String, String> get() = account.texts
+    override fun putPrefText(key: String, value: String) = account.putText(key, value)
+    override suspend fun folderInfo(id: Int): KxFolderInfo? = account.folderInfo(id)?.let { f -> f.copy(unread = folders.firstOrNull { it.id == id }?.unread ?: 0) }
+    override suspend fun saveFolder(id: Int, info: KxFolderInfo): String? = account.saveFolder(id, info)
+    override suspend fun folderShareableChats(id: Int): List<Long> = account.folderShareableChats(id)
+    override suspend fun folderLinks(id: Int): List<KxInviteLink> = account.folderLinks(id)
+    override suspend fun createFolderLink(id: Int, chatIds: List<Long>): String? = account.createFolderLink(id, chatIds)
+    override fun deleteFolderLink(id: Int, link: String) = account.deleteFolderLink(id, link)
+    override suspend fun personalChannels(): KxPersonalChannels = account.personalChannels(me.id).let { p ->
+        p.copy(channels = p.channels.map { c -> c.copy(avatar = items[c.chatId]?.let { autoPath(it.photo, paths.value) }) })
+    }
+    override suspend fun choosePersonalChannel(chatId: Long): String? = account.choosePersonalChannel(chatId)
+    override suspend fun changeNumberSendCode(phone: String): String = account.changeNumberSendCode(phone)
+    override suspend fun changeNumberResend(): String = account.changeNumberResend()
+    override suspend fun changeNumberCheck(code: String): String? = account.changeNumberCheck(code)
+    override suspend fun loginEmailPattern(): String = account.loginEmailPattern()
+    override suspend fun loginEmailSendCode(email: String): String? = account.loginEmailSendCode(email)
+    override suspend fun loginEmailResend(): String? = account.loginEmailResend()
+    override suspend fun loginEmailCheck(code: String): String? = account.loginEmailCheck(code)
+    override fun confirmSession(id: Long) = account.confirmSession(id) { reloadSessions() }
+    override val termsUpdate: KxTerms? get() = termsState
+    private var termsState by mutableStateOf<KxTerms?>(null)
+    override suspend fun acceptTerms(id: String): String? = account.acceptTerms(id).also { if (it == null) termsState = null }
+    override suspend fun antiSpam(chatId: Long): Boolean? = account.antiSpam(chatId)
+    override fun switchAntiSpam(chatId: Long, on: Boolean) = account.switchAntiSpam(chatId, on)
+    override fun reportAntiSpamMistake(chatId: Long, messageId: Long) = account.reportAntiSpamMistake(chatId, messageId)
+    override fun switchHistoryForNew(chatId: Long, on: Boolean) = account.switchHistoryForNew(chatId, on)
+    override suspend fun publicChat(username: String): Long? = account.publicChat(username)
+    override suspend fun importedContactCount(): Int? = account.importedContactCount()
+    override suspend fun clearImportedContacts(): String? = account.clearImportedContacts()
+    override val accentColors: List<KxAccent> get() = accentState
+    override val profileColors: List<KxAccent> get() = profileAccentState
+    private var accentState by mutableStateOf(emptyList<KxAccent>())
+    private var profileAccentState by mutableStateOf(emptyList<KxAccent>())
+    override val myColors: Pair<Int, Int> get() { account.loadMyColors(); return account.myColors }
+    override suspend fun applyNameColor(accentId: Int): String? = account.applyNameColor(accentId)
+    override suspend fun applyProfileColor(accentId: Int): String? = account.applyProfileColor(accentId)
+    override suspend fun emojiStatuses(): List<KxEmojiStatus> = account.emojiStatuses()
+    override suspend fun applyEmojiStatus(customEmojiId: Long, until: Int): String? = account.applyEmojiStatus(customEmojiId, until)
+    override suspend fun countries(): List<KxCountry> = account.countries()
+    override suspend fun myCountry(): String = account.myCountry()
+    override suspend fun upgradeGroup(chatId: Long): Long? = account.upgradeGroup(chatId)
+    private fun initAccount() {
+        scope.launch { services.accountUpdates.terms.collect { termsState = account.termsUpdate } }
+        scope.launch { services.accountUpdates.accentColors.collect { accentState = account.accentColors } }
+        scope.launch { services.accountUpdates.profileColors.collect { profileAccentState = account.profileColors } }
+    }
+    init { initAccount() }
+
+    // ---- wave3-chat (binder-chat): TelegramKxChat3.kt ----
+    private val chat3 by lazy { KxChat3(services, app, scope).also { it.start() } }
+    override fun sendWith(chatId: Long, text: String, options: KxSendOptions) = act { chat3.sendWith(chatId, text, options) }
+    override suspend fun sendAsOptions(chatId: Long): List<KxSender> = chat3.sendAsOptions(chatId)
+    override suspend fun chooseSendAs(chatId: Long, senderId: Long): String? = attempt { chat3.chooseSendAs(chatId, senderId) }
+    override suspend fun messageEffects(): List<KxEffect> = chat3.messageEffects()
+    override val chatThemes: List<String> get() = chat3.chatThemes
+    override suspend fun applyChatTheme(chatId: Long, name: String): String? = attempt { chat3.applyChatTheme(chatId, name) }
+    override suspend fun inlineQuery(chatId: Long, bot: String, query: String, offset: String): KxInlineResults? = orNull { chat3.inlineQuery(chatId, bot, query, offset) }
+    override fun sendInlineResult(chatId: Long, queryId: Long, resultId: String) = act { chat3.sendInlineResult(chatId, queryId, resultId) }
+    override suspend fun reorderPinned(chatIds: List<Long>): String? = attempt { chat3.reorderPinned(chatIds) }
+    override val pinnedLimit: Int get() = chat3.pinnedLimit
+    override suspend fun messageInfo(chatId: Long, messageId: Long): KxMsgInfo? = chat3.messageInfo(chatId, messageId)
+    override suspend fun messageViewers(chatId: Long, messageId: Long): List<KxViewer> = chat3.messageViewers(chatId, messageId)
+    override suspend fun reactionPanel(chatId: Long, messageId: Long): KxReactionPanel? = chat3.reactionPanel(chatId, messageId)
+    override val quickReaction: String? get() = chat3.quickReaction
+    override fun changeQuickReaction(emoji: String) = chat3.changeQuickReaction(emoji)
+    override suspend fun replaceMedia(chatId: Long, messageId: Long, path: String, video: Boolean): String? = attempt { chat3.replaceMedia(chatId, messageId, path, video) }
+    override suspend fun unreadMentions(chatId: Long, reactions: Boolean): List<KxFound> = chat3.unreadMentions(chatId, reactions)
+    override suspend fun peekHistory(chatId: Long, limit: Int): List<KxMessage> = chat3.peekHistory(chatId, limit)
+    override suspend fun linkPreview(text: String): KxLinkPreview? = chat3.linkPreview(text)
+    override suspend fun messageAtDate(chatId: Long, unix: Int): Long? = chat3.messageAtDate(chatId, unix)
+    override suspend fun stickerSetByName(name: String): KxStickerSetInfo? = chat3.stickerSetByName(name)
+    override suspend fun stickerSetInfo(setId: Long): KxStickerSetInfo? = chat3.stickerSetInfo(setId)
+    override suspend fun installedStickerSets(): List<KxStickerSetInfo> = chat3.installedStickerSets()
+    override suspend fun archivedStickerSets(): List<KxStickerSetInfo> = chat3.archivedStickerSets()
+    override suspend fun changeStickerSet(setId: Long, installed: Boolean, archived: Boolean): String? = attempt { chat3.changeStickerSet(setId, installed, archived) }
+    override suspend fun reorderStickerSets(ids: List<Long>): String? = attempt { chat3.reorderStickerSets(ids) }
+    override suspend fun favoriteSticker(stickerId: String, favorite: Boolean): String? = attempt { chat3.favoriteSticker(stickerId, favorite) }
+    override fun sendDice(chatId: Long, emoji: String) = act { chat3.sendDice(chatId, emoji) }
+    override suspend fun receivedGifts(): List<KxReceivedGift> = chat3.receivedGifts()
+    override suspend fun keepGift(giftId: String, saved: Boolean): String? = attempt { chat3.keepGift(giftId, saved) }
+    override suspend fun sellGift(giftId: String): String? = attempt { chat3.sellGift(giftId) }
+    override fun sendContact(chatId: Long, userId: Long, phone: String, first: String, last: String) = act { chat3.sendContact(chatId, userId, phone, first, last) }
+    override suspend fun userNote(userId: Long): String? = chat3.userNote(userId)
+    override suspend fun saveUserNote(userId: Long, text: String): String? = attempt { chat3.saveUserNote(userId, text) }
+    override suspend fun addContactById(userId: Long, first: String, last: String, sharePhone: Boolean): String? = attempt { chat3.addContactById(userId, first, last, sharePhone) }
+    override suspend fun sharePhone(userId: Long): String? = attempt { chat3.sharePhone(userId) }
+    override suspend fun reportChat(chatId: Long, messageIds: List<Long>, optionId: String, text: String): KxReportStep = chat3.reportChat(chatId, messageIds, optionId, text)
+    override suspend fun leaveChat(chatId: Long): String? = attempt { chat3.leaveChat(chatId) }
+    override suspend fun autoDeleteOf(chatId: Long): Int? = chat3.autoDeleteOf(chatId)
+    override suspend fun defaultAutoDelete(): Int? = chat3.defaultAutoDelete()
+    override suspend fun changeDefaultAutoDelete(seconds: Int): String? = attempt { chat3.changeDefaultAutoDelete(seconds) }
+    override suspend fun loadChatNotify(chatId: Long): KxChatNotify? = chat3.loadChatNotify(chatId)
+    override suspend fun saveChatNotify(chatId: Long, value: KxChatNotify): String? = attempt { chat3.saveChatNotify(chatId, value) }
+    override suspend fun checklist(chatId: Long, messageId: Long): KxChecklist? = chat3.checklist(chatId, messageId)
+    override suspend fun sendChecklist(chatId: Long, title: String, tasks: List<String>, othersCanAdd: Boolean, othersCanMark: Boolean): String? =
+        attempt { chat3.sendChecklist(chatId, title, tasks, othersCanAdd, othersCanMark) }
+    override suspend fun markChecklist(chatId: Long, messageId: Long, done: List<Int>, notDone: List<Int>): String? = attempt { chat3.markChecklist(chatId, messageId, done, notDone) }
+    override suspend fun memories(): List<KxFound> = chat3.memories()
+    override suspend fun recommendedChats(): List<KxPublicChat> = chat3.recommendedChats()
+    override suspend fun searchPublicChats(query: String): List<KxPublicChat> = chat3.searchPublicChats(query)
+    override suspend fun similarChats(chatId: Long): List<KxPublicChat> = chat3.similarChats(chatId)
+    override suspend fun birthdays(): List<KxBirthday> = chat3.birthdays()
+    override fun clickBigEmoji(chatId: Long, messageId: Long) { scope.launch { chat3.clickBigEmoji(chatId, messageId) } }
+    override val sensitiveAllowed: Boolean? get() = chat3.sensitive
+    override fun allowSensitive(on: Boolean) = chat3.allowSensitive(on)
+    override suspend fun translateText(text: String, toLang: String): String? = chat3.translateText(text, toLang)
+    override suspend fun textEntities(text: String): List<KxEntity> = chat3.textEntities(text)
+    override suspend fun chatFacts(chatId: Long): KxChatFacts? = chat3.chatFacts(chatId)
+    override suspend fun sendViewOnce(chatId: Long, path: String): String? = chat3.sendViewOnce(chatId, path)
 
     private companion object {
         const val DRAFT_DELAY_MS = 500L

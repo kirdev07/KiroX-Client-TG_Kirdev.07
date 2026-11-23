@@ -45,6 +45,7 @@ private fun bdDays(n: Int) = if (n == 1) "день" else if (n < 5) "дня" els
 /** Board «Дни рождения»: today hero with confetti + balloon (wish / call / video), upcoming list with reminders, wish sheet. */
 @Composable
 fun BirthdaysScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { com.kirox.app.ui.v3.screens.more.BirthdaysLive(ctx); return }
     val demo = ctx.store is KxDemoStore
     var sheet by remember { mutableStateOf(false) }
     var wish by remember { mutableIntStateOf(0) }

@@ -46,7 +46,8 @@ import com.kirox.app.ui.v3.theme.LocalKxReducedMotion
 
 private class Caught(val id: Int, val n: String, val l: String, val t: String, val msg: String)
 
-// demo: needs store (group anti-spam: aggressive filter flag, links-only-admins, slow mode, deleted-by-filter list, report false positive)
+// demo list. Real group (ctx.arg = chat id, wave3): aggressive anti-spam (store.antiSpam / switchAntiSpam) and slow mode (groupInfo / setSlowMode);
+// the filtered messages live in the admin log (the list, «links only from admins» and the weekly count stay demo).
 private val CaughtDemo = listOf(
     Caught(1, "Гость_7741", "Г", "14:02", "Заработок от 5000 в день без вложений, пиши в лс"),
     Caught(2, "crypto_signal", "C", "12:40", "Бесплатные сигналы, вход по ссылке в профиле 🚀"),
@@ -56,8 +57,23 @@ private val CaughtDemo = listOf(
 /** Board «Защита от спама» (group admin): shield card, stats, three switches, today's filtered messages with «Не спам». */
 @Composable
 fun AntiSpamScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val chatId = ctx.arg?.substringBefore(':')?.toLongOrNull()
+    var available by remember { mutableStateOf<Boolean?>(if (demo) true else null) }
+    var groupLine by remember { mutableStateOf(if (demo) "Android Dev KZ · 4 820 участников" else "") }
     var aggr by remember { mutableStateOf(true) }
     var newbies by remember { mutableStateOf(false) }
+    LaunchedEffect(chatId) {
+        if (demo) return@LaunchedEffect
+        if (chatId == null) { available = false; return@LaunchedEffect }
+        val a = store.antiSpam(chatId)
+        val info = store.groupInfo(chatId)
+        available = a != null
+        aggr = a == true
+        newbies = (info?.slowModeSeconds ?: 0) > 0
+        if (info != null) groupLine = info.title + if (info.members > 0) " · ${com.kirox.app.ui.v3.data.KxFormat.count(info.members)} " + com.kirox.app.ui.v3.data.KxFormat.plural(info.members, "участник", "участника", "участников") else ""
+    }
     var links by remember { mutableStateOf(false) }
     val back = remember { mutableStateListOf<Int>() }
     var toast by remember { mutableStateOf<String?>(null) }
@@ -71,10 +87,15 @@ fun AntiSpamScreen(ctx: KxScreenCtx) {
                 ChRound(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", 44.dp, border = Color.Transparent, onClick = ctx.back)
                 Column(Modifier.weight(1f)) {
                     Text("Защита от спама", style = ts(20, W800))
-                    Text("Android Dev KZ · 4 820 участников", style = ts(12, color = Kx.text3))
+                    Text(groupLine, style = ts(12, color = Kx.text3))
                 }
             }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
+            if (!demo && available != true) Column(Modifier.weight(1f).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                ShieldTile(false)
+                Text(if (available == null) "Проверяем группу…" else "Здесь защиту не настроить", style = ts(17, W800), modifier = Modifier.padding(top = 12.dp))
+                if (available == false) Text("Усиленный антиспам Telegram включают админы больших супергрупп. Откройте экран из управления такой группой.",
+                    style = ts(13, color = Kx.text3, lh = 18.sp), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
+            } else Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
                 val glow by animateColorAsState(if (aggr) Kx.accent.copy(alpha = .22f) else Kx.warning.copy(alpha = .16f), label = "glow")
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(Kx.w(.04f))
                     .drawBehind {
@@ -90,7 +111,7 @@ fun AntiSpamScreen(ctx: KxScreenCtx) {
                             style = ts(13, color = Kx.text2, lh = 18.2.sp), modifier = Modifier.padding(top = 2.dp))
                     }
                 }
-                Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (demo) Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(Triple(if (aggr) "27" else "—", "удалено за неделю", Kx.danger), Triple("${list.size}", "сегодня", Kx.text), Triple("${back.size}", "отмечено «не спам»", Kx.accent)).forEach { (v, t, c) ->
                         Column(Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(Kx.w(.04f)).padding(horizontal = 6.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(v, style = ts(22, W800, c)); Text(t, style = ts(11, color = Kx.text3), textAlign = TextAlign.Center)
@@ -102,11 +123,15 @@ fun AntiSpamScreen(ctx: KxScreenCtx) {
                         Triple(Icons.Outlined.HealthAndSafety, "Усиленный антиспам" to "Автоматически, для больших групп", aggr),
                         Triple(Icons.Outlined.LinkOff, "Ссылки только от админов" to "Участники не смогут отправлять ссылки", links),
                         Triple(Icons.Outlined.Speed, "Медленный режим" to "Одно сообщение в минуту на участника", newbies),
-                    )
+                    ).let { if (demo) it else listOf(it[0], it[2]) }
                     opts.forEachIndexed { i, (ic, ts2, on) ->
                         Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).kxClick(ts2.first, role = androidx.compose.ui.semantics.Role.Switch) {
-                            when (i) { 0 -> aggr = !aggr; 1 -> links = !links; else -> newbies = !newbies }
-                        }.drawBehind { if (i < 2) drawLine(Kx.w(.06f), Offset(0f, size.height - .5f), Offset(size.width, size.height - .5f), 1.dp.toPx()) },
+                            if (demo) when (i) { 0 -> aggr = !aggr; 1 -> links = !links; else -> newbies = !newbies }
+                            else if (chatId != null) when (i) {
+                                0 -> { aggr = !aggr; store.switchAntiSpam(chatId, aggr) }
+                                else -> { newbies = !newbies; store.setSlowMode(chatId, if (newbies) 60 else 0) }
+                            }
+                        }.drawBehind { if (i < opts.lastIndex) drawLine(Kx.w(.06f), Offset(0f, size.height - .5f), Offset(size.width, size.height - .5f), 1.dp.toPx()) },
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Icon(ic, null, tint = Kx.text3)
                             Column(Modifier.weight(1f)) { Text(ts2.first, style = ts(15, W700)); Text(ts2.second, style = ts(12, color = Kx.text3, lh = 16.2.sp)) }
@@ -114,11 +139,16 @@ fun AntiSpamScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Row(Modifier.padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (!demo && chatId != null) Row(Modifier.padding(top = 16.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kx.w(.04f))
+                    .kxClick("Журнал действий") { ctx.open("AdminLog:$chatId") }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Что удалил фильтр, видно в «Недавних действиях» группы", style = ts(13, color = Kx.text2, lh = 18.sp), modifier = Modifier.weight(1f))
+                    Text("Открыть", style = ts(12, W800, Kx.accent))
+                }
+                if (demo) Row(Modifier.padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Удалено сегодня · ${list.size}", style = ts(13, W700, Kx.accent), modifier = Modifier.weight(1f))
                     Text("отметьте ошибки", style = ts(11, color = Kx.text4))
                 }
-                Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                if (demo) Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
                     CaughtDemo.forEach { c ->
                         AnimatedVisibility(c.id !in back, exit = shrinkVertically(tween(300)) + fadeOut(tween(300))) {
                             Row(Modifier.padding(bottom = 6.dp).chIn(dy = 0.dp, dx = (-10).dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kx.danger.copy(alpha = .05f))

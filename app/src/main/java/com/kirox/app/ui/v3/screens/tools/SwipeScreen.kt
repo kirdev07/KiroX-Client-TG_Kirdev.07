@@ -34,6 +34,8 @@ import com.kirox.app.ui.v3.components.cssAngleEnd
 import com.kirox.app.ui.v3.components.cssAngleStart
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
+import com.kirox.app.ui.v3.model.KxPrefsAccount
+import com.kirox.app.ui.v3.model.pref
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -51,9 +53,10 @@ private data class SwSt(val read: Boolean, val pin: Boolean = false, val mute: B
 /** Board «Жесты» (chat list swipes): live demo rows (tap halves or drag), action pickers for right / left swipe, undo toast. */
 @Composable
 fun SwipeScreen(ctx: KxScreenCtx) {
-    // demo: needs store (chat list swipe actions left/right) — the chat list does not read them yet
-    var left by rememberSaveable { mutableStateOf("read") }
-    var right by rememberSaveable { mutableStateOf("archive") }
+    // wave3: store prefs SWIPE_LEFT / SWIPE_RIGHT (index in SW_ACT); the v3 chat list runs them (screens/ChatSwipe.kt)
+    val keys = SW_ACT.keys.toList()
+    val left = keys.getOrElse(ctx.store.pref(KxPrefsAccount.SWIPE_LEFT)) { "read" }
+    val right = keys.getOrElse(ctx.store.pref(KxPrefsAccount.SWIPE_RIGHT)) { "archive" }
     var swipe by remember { mutableStateOf(listOf(0, 0, 0)) }
     var st by remember { mutableStateOf(SW_CH.map { SwSt(read = it.badge == 0) }) }
     var gone by remember { mutableStateOf(listOf<Int>()) }
@@ -164,7 +167,7 @@ fun SwipeScreen(ctx: KxScreenCtx) {
                         val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .1f) else TTile, tween(200), label = "b")
                         val bd by animateColorAsState(if (on) Kx.accent.copy(alpha = .45f) else Color.Transparent, tween(200), label = "d")
                         val sh = RoundedCornerShape(18.dp)
-                        Column(Modifier.weight(1f).height(74.dp).clip(sh).background(bg).border(1.dp, bd, sh).kxClick(role = Role.RadioButton) { if (isLeft) left = k else right = k; hinted = true },
+                        Column(Modifier.weight(1f).height(74.dp).clip(sh).background(bg).border(1.dp, bd, sh).kxClick(role = Role.RadioButton) { ctx.store.putPref(if (isLeft) KxPrefsAccount.SWIPE_LEFT else KxPrefsAccount.SWIPE_RIGHT, keys.indexOf(k)); hinted = true },
                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)) {
                             Box(Modifier.size(32.dp).clip(CircleShape).background(a.c), contentAlignment = Alignment.Center) { Icon(a.icon, null, Modifier.size(18.dp), tint = Color.White) }
                             Text(a.label, style = KxType.style(12.sp, FontWeight.Bold), textAlign = TextAlign.Center)

@@ -35,29 +35,50 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.components.topHighlight
 import com.kirox.app.ui.v3.theme.*
+import com.kirox.app.ui.v3.model.*
 
 private val DND_DURS = listOf("1 час", "3 часа", "До утра", "Пока не выключу")
 private val DND_PEOPLE = listOf(Triple("Мама", "М", Color(0xFFB07A2E)), Triple("Анна", "А", Color(0xFFC0443C)), Triple("Папа", "П", Color(0xFF2F6E9E)),
     Triple("Дмитрий", "Д", Color(0xFF6A4C9C)), Triple("Работа", "Р", Color(0xFF5C6661)), Triple("Алекс", "А", Color(0xFF3F9A6C)))
+private val DND_INKS = listOf(Color(0xFFB07A2E), Color(0xFFC0443C), Color(0xFF2F6E9E), Color(0xFF6A4C9C), Color(0xFF5C6661), Color(0xFF3F9A6C), Color(0xFF2E7A7A))
 private val Violet = Color(0xFFB9A6FF)
 private val VioletDeep = Color(0xFF6E5BC4)
 
 /** Board «Не беспокоить»: big moon orb toggle (breathing glow, floating z), duration, exceptions (people + calls), nightly schedule bar. */
 @Composable
 fun DndScreen(ctx: KxScreenCtx) {
-    // demo: needs store (do-not-disturb: on/until, exceptions list, calls/repeat flags, nightly schedule) — people are demo contacts
-    var on by rememberSaveable { mutableStateOf(false) }
-    var dur by rememberSaveable { mutableIntStateOf(2) }
-    var exc by remember { mutableStateOf(setOf(0, 2)) }
-    var calls by rememberSaveable { mutableStateOf(true) }
-    var repeatC by rememberSaveable { mutableStateOf(true) }
-    var sched by rememberSaveable { mutableStateOf(true) }
-    var from by rememberSaveable { mutableIntStateOf(23) }
-    var to by rememberSaveable { mutableIntStateOf(7) }
+    // wave3: store prefs. Real store: kiroX's own message notifications come silently (KxDnd); calls are not silenced.
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val P = KxPrefsAccount
+    val dur = store.pref(P.DND_DUR).coerceIn(0, 3)
+    val nowSec = System.currentTimeMillis() / 1000
+    val untilSec = store.pref(P.DND_UNTIL).toLong()
+    val on = store.prefOn(P.DND_ON) && (demo || untilSec == 0L || nowSec < untilSec)
+    // Exceptions: the board's people in the demo, the first private chats on the real account (ids kept in prefs).
+    val people: List<Pair<Long, Triple<String, String, Color>>> = if (demo) DND_PEOPLE.mapIndexed { i, t -> i.toLong() to t }
+        else store.chats.filter { it.kind == KxChatKind.Private }.take(8).map { c -> c.id to Triple(c.title, c.title.take(1).uppercase(), DND_INKS[(c.colorIndex.coerceAtLeast(0)) % DND_INKS.size]) }
+    val excIds = store.prefList(P.DND_PEOPLE).mapNotNull { it.toLongOrNull() }.toSet().let { if (demo && store.prefTexts[P.DND_PEOPLE] == null) setOf(0L, 2L) else it }
+    val exc = people.indices.filter { people[it].first in excIds }.toSet()
+    fun toggleExc(i: Int) { val id = people[i].first; store.putPrefList(P.DND_PEOPLE, (if (id in excIds) excIds - id else excIds + id).map { it.toString() }) }
+    val calls = store.prefOn(P.DND_CALLS)
+    val repeatC = store.prefOn(P.DND_REPEAT)
+    val sched = store.prefOn(P.DND_SCHED)
+    val from = store.pref(P.DND_FROM).mod(24)
+    val to = store.pref(P.DND_TO).mod(24)
     val toast = remember { TToast() }
     fun hh(h: Int) = (((h % 24) + 24) % 24).toString().padStart(2, '0') + ":00"
+    fun hm(plusSec: Int) = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(System.currentTimeMillis() + plusSec * 1000L))
+    fun switchOn(turnOn: Boolean) {
+        if (turnOn) {
+            val cal = java.util.Calendar.getInstance()
+            store.putPref(P.DND_UNTIL, com.kirox.app.ui.v3.data.KxAccountMapping.dndUntil(dur, nowSec, cal.get(java.util.Calendar.HOUR_OF_DAY), cal.get(java.util.Calendar.MINUTE), to).toInt())
+        }
+        store.putPref(P.DND_ON, if (turnOn) 1 else 0)
+    }
     val acc by animateColorAsState(if (on) Violet else Kx.accent, tween(400), label = "acc")
-    val until = when (dur) { 0 -> "18:15"; 1 -> "20:15"; 2 -> hh(to); else -> "" }
+    val until = if (!demo && on && untilSec > 0) java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(untilSec * 1000))
+        else when (dur) { 0 -> if (demo) "18:15" else hm(3600); 1 -> if (demo) "20:15" else hm(3 * 3600); 2 -> hh(to); else -> "" }
     val reduced = LocalKxReducedMotion.current
     val nightA by animateFloatAsState(if (on) 1f else 0f, tween(600), label = "night")
 
@@ -84,7 +105,7 @@ fun DndScreen(ctx: KxScreenCtx) {
                         .kxClick(if (on) "Выключить «Не беспокоить»" else "Включить «Не беспокоить»", Role.Switch) {
                             toast.show(if (on) "Уведомления снова включены" else "Тишина" + (if (until.isNotEmpty()) " до $until" else ""),
                                 if (on) Icons.Rounded.NotificationsActive else Icons.Rounded.Bedtime, if (on) Kx.accent else Violet)
-                            on = !on
+                            switchOn(!on)
                         }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                         val ink by animateColorAsState(if (on) Color(0xFFE4DCFF) else Kx.text3, tween(400), label = "ink")
                         Icon(if (on) Icons.Rounded.Bedtime else Icons.Outlined.Bedtime, null, Modifier.size(64.dp), tint = ink)
@@ -101,7 +122,7 @@ fun DndScreen(ctx: KxScreenCtx) {
                 }
                 Text(if (on) (if (until.isNotEmpty()) "Тишина до $until" else "Тишина, пока не выключите") else "Уведомления приходят как обычно",
                     style = KxType.style(15.sp, FontWeight.Bold), modifier = Modifier.padding(top = 14.dp))
-                Text(if (on) (if (exc.isNotEmpty()) "Пропускаем: " + DND_PEOPLE.filterIndexed { i, _ -> i in exc }.joinToString(", ") { it.first } else "Никого не пропускаем") else "Нажмите на луну, чтобы включить",
+                Text(if (on) (if (exc.isNotEmpty()) "Пропускаем: " + people.filterIndexed { i, _ -> i in exc }.joinToString(", ") { it.second.first } else "Никого не пропускаем") else "Нажмите на луну, чтобы включить",
                     style = KxType.style(13.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
             }
 
@@ -112,7 +133,7 @@ fun DndScreen(ctx: KxScreenCtx) {
                     val bg by animateColorAsState(if (sel) (if (on) Violet.copy(alpha = .16f) else Kx.accent.copy(alpha = .14f)) else Kx.w(.05f), tween(200), label = "b")
                     val bd by animateColorAsState(if (sel) (if (on) Violet.copy(alpha = .45f) else Kx.accent.copy(alpha = .45f)) else Kx.w(.08f), tween(200), label = "d")
                     val shape = RoundedCornerShape(16.dp)
-                    Box(Modifier.weight(1f).height(44.dp).clip(shape).background(bg).border(1.dp, bd, shape).kxClick(role = Role.RadioButton) { dur = i }, contentAlignment = Alignment.Center) {
+                    Box(Modifier.weight(1f).height(44.dp).clip(shape).background(bg).border(1.dp, bd, shape).kxClick(role = Role.RadioButton) { store.putPref(P.DND_DUR, i); if (on) { val cal = java.util.Calendar.getInstance(); store.putPref(P.DND_UNTIL, com.kirox.app.ui.v3.data.KxAccountMapping.dndUntil(i, nowSec, cal.get(java.util.Calendar.HOUR_OF_DAY), cal.get(java.util.Calendar.MINUTE), to).toInt()) } }, contentAlignment = Alignment.Center) {
                         Text(label, style = KxType.style(13.sp, FontWeight.Bold, if (sel) acc else Kx.text2), textAlign = TextAlign.Center)
                     }
                 }
@@ -125,10 +146,11 @@ fun DndScreen(ctx: KxScreenCtx) {
             val gShape = RoundedCornerShape(22.dp)
             Column(Modifier.fillMaxWidth().clip(gShape).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), gShape).padding(12.dp)) {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    DND_PEOPLE.forEachIndexed { i, (name, l, c) ->
+                    if (people.isEmpty()) Text("Личных чатов пока нет", style = KxType.style(13.sp, color = Kx.text4), modifier = Modifier.padding(4.dp))
+                    people.forEachIndexed { i, (_, t) -> val (name, l, c) = t
                         val sel = i in exc
                         val op by animateFloatAsState(if (sel) 1f else .55f, tween(200), label = "op")
-                        Column(Modifier.width(58.dp).alpha(op).kxClick(name + if (sel) ", пропускать" else "", Role.Checkbox) { exc = if (sel) exc - i else exc + i },
+                        Column(Modifier.width(58.dp).alpha(op).kxClick(name + if (sel) ", пропускать" else "", Role.Checkbox) { toggleExc(i) },
                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Box(Modifier.size(50.dp)) {
                                 Box(Modifier.matchParentSize().then(if (sel) Modifier.border(2.dp, acc, CircleShape).padding(2.dp).border(2.dp, Kx.bg, CircleShape) else Modifier)
@@ -143,10 +165,12 @@ fun DndScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Box(Modifier.padding(top = 12.dp, bottom = 4.dp).fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
-                listOf(Triple(Icons.Outlined.Call, "Звонки от избранных", "Звонок пройдёт, даже если сообщения молчат"),
+                if (!demo) Text("Звонки «Не беспокоить» не глушит: они звонят как обычно. Сообщения приходят без звука и вибрации.",
+                    style = KxType.style(12.sp, color = Kx.text4, lineHeight = 17.sp), modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp))
+                if (demo) listOf(Triple(Icons.Outlined.Call, "Звонки от избранных", "Звонок пройдёт, даже если сообщения молчат"),
                     Triple(Icons.Outlined.Replay, "Повторный звонок", "Если звонят второй раз за 3 минуты — пропустим")).forEachIndexed { i, (ic, label, sub) ->
                     val v = if (i == 0) calls else repeatC
-                    Row(Modifier.fillMaxWidth().kxClick(role = Role.Switch) { if (i == 0) calls = !calls else repeatC = !repeatC }.padding(horizontal = 4.dp, vertical = 10.dp),
+                    Row(Modifier.fillMaxWidth().kxClick(role = Role.Switch) { store.togglePref(if (i == 0) P.DND_CALLS else P.DND_REPEAT) }.padding(horizontal = 4.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(ic, null, Modifier.size(24.dp), tint = Kx.text3)
                         Column(Modifier.weight(1f)) {
@@ -160,7 +184,7 @@ fun DndScreen(ctx: KxScreenCtx) {
 
             Text("Каждую ночь", style = KxType.style(13.sp, FontWeight.Bold, acc), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 18.dp, bottom = 8.dp))
             Column(Modifier.fillMaxWidth().clip(gShape).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), gShape).padding(horizontal = 16.dp, vertical = 14.dp)) {
-                Row(Modifier.fillMaxWidth().kxClick(role = Role.Switch) { sched = !sched }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth().kxClick(role = Role.Switch) { store.togglePref(P.DND_SCHED) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Outlined.Schedule, null, Modifier.size(24.dp), tint = Kx.text3)
                     Text("По расписанию", style = KxType.style(15.sp, FontWeight.SemiBold), modifier = Modifier.weight(1f))
                     DndSwitch(sched, on)
@@ -180,11 +204,11 @@ fun DndScreen(ctx: KxScreenCtx) {
                         listOf("С" to 0, "До" to 1).forEach { (label, k) ->
                             Row(Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).background(Kx.w(.04f)).padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                TRoundBtn(Icons.Rounded.Remove, "$label: на час раньше", 30.dp) { if (k == 0) from = (from + 23) % 24 else to = (to + 23) % 24 }
+                                TRoundBtn(Icons.Rounded.Remove, "$label: на час раньше", 30.dp) { if (k == 0) store.putPref(P.DND_FROM, (from + 23) % 24) else store.putPref(P.DND_TO, (to + 23) % 24) }
                                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(label, style = KxType.style(11.sp, color = Kx.text4)); Text(hh(if (k == 0) from else to), style = KxType.style(17.sp, FontWeight.ExtraBold))
                                 }
-                                TRoundBtn(Icons.Rounded.Add, "$label: на час позже", 30.dp) { if (k == 0) from = (from + 1) % 24 else to = (to + 1) % 24 }
+                                TRoundBtn(Icons.Rounded.Add, "$label: на час позже", 30.dp) { if (k == 0) store.putPref(P.DND_FROM, (from + 1) % 24) else store.putPref(P.DND_TO, (to + 1) % 24) }
                             }
                         }
                     }

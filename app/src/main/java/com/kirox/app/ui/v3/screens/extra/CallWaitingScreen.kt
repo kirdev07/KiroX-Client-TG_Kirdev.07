@@ -39,6 +39,12 @@ private fun mmss(t: Int) = "${t / 60}:" + (t % 60).toString().padStart(2, '0')
  */
 @Composable
 fun CallWaitingScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → the live call; Telegram has no call waiting / hold
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoCallWaitingScreen(ctx) else com.kirox.app.ui.v3.screens.media.RealCallBoard(ctx, com.kirox.app.ui.v3.screens.media.CallBoard.Waiting)
+}
+
+@Composable
+private fun DemoCallWaitingScreen(ctx: KxScreenCtx) {
     // demo: needs store (call state: active + held calls, incoming while in a call, merge into a group call)
     val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
     var active by remember { mutableStateOf("a") }

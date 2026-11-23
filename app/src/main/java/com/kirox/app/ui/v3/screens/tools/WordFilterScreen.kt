@@ -38,6 +38,7 @@ import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.dashedBorder
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
+import com.kirox.app.ui.v3.model.*
 import kotlinx.coroutines.launch
 
 private data class WfPreset(val label: String, val icon: ImageVector, val iconOn: ImageVector, val words: List<String>)
@@ -52,6 +53,7 @@ private val WF_MSGS = listOf(
     WfMsg("Мария", Color(0xFFC0443C), "Завтра созвон в 11, не опаздываем", 'g'),
     WfMsg("Crypto Signals", Color(0xFFB07A2E), "Новый airdrop! Успей, монета даст x100", 'c'),
     WfMsg("Дмитрий", Color(0xFF2F6E9E), "Скинул презентацию в общий чат", 'p'))
+private val WF_INKS = listOf(Color(0xFF6FA9D8), Color(0xFFE8B04A), Color(0xFFC0443C), Color(0xFFB07A2E), Color(0xFF2F6E9E), Color(0xFF3F9A6C))
 private val WF_ACTIONS = listOf(Triple("Скрыть", Icons.Outlined.VisibilityOff, "hide"), Triple("Размыть", Icons.Outlined.BlurOn, "blur"), Triple("Отметить", Icons.Outlined.Flag, "flag"))
 private val WF_SCOPES = listOf(Triple("Группы", Icons.Outlined.Group, 'g'), Triple("Каналы", Icons.Outlined.Campaign, 'c'), Triple("Личные чаты", Icons.Outlined.Person, 'p'))
 
@@ -59,13 +61,21 @@ private val WF_SCOPES = listOf(Triple("Группы", Icons.Outlined.Group, 'g')
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WordFilterScreen(ctx: KxScreenCtx) {
-    // demo: needs store (word filter: on, words, presets, action, scopes; applying it to incoming messages)
-    var on by rememberSaveable { mutableStateOf(true) }
-    var words by remember { mutableStateOf(listOf("финал", "скидка")) }
+    // wave3: the filter lives in store prefs (real store: the app's MessageFilters gets on + words incl. the chosen sets)
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val on = store.prefOn(KxPrefsAccount.FILTER_ON)
+    val words = store.prefList(KxPrefsAccount.FILTER_LIST)
     var draft by rememberSaveable { mutableStateOf("") }
-    var act by rememberSaveable { mutableIntStateOf(0) }
-    var scope by remember { mutableStateOf(setOf('g', 'c')) }
-    var presets by remember { mutableStateOf(setOf<Int>()) }
+    val act = store.pref(KxPrefsAccount.FILTER_ACTION).coerceIn(0, WF_ACTIONS.lastIndex)
+    val scopeBits = store.pref(KxPrefsAccount.FILTER_SCOPE)
+    val scope = WF_SCOPES.withIndex().filter { (i, _) -> scopeBits and (1 shl i) != 0 }.map { it.value.third }.toSet()
+    val presetBits = store.pref(KxPrefsAccount.FILTER_PRESETS)
+    val presets = WF_PRESETS.indices.filter { presetBits and (1 shl it) != 0 }.toSet()
+    // Preview: the board's sample messages in the demo, the latest chat previews on the real account.
+    val msgs = if (demo) WF_MSGS else store.chats.filter { it.preview.isNotBlank() }.take(6).mapIndexed { i, c ->
+        WfMsg(c.title, WF_INKS[i % WF_INKS.size], c.preview, when (c.kind) { KxChatKind.Group -> 'g'; KxChatKind.Channel -> 'c'; else -> 'p' })
+    }
     var last by remember { mutableStateOf("") }
     var peek by remember { mutableStateOf(setOf<Int>()) }
     val shake = remember { Animatable(0f) }
@@ -78,11 +88,11 @@ fun WordFilterScreen(ctx: KxScreenCtx) {
     val bodyOp by animateFloatAsState(if (on) 1f else .45f, tween(300), label = "op")
     fun add() {
         if (d.isEmpty() || dup) { scopeCo.launch { shake.snapTo(0f); shake.animateTo(1f, tween(300, easing = TEase)); shake.snapTo(0f) }; return }
-        words = words + d; draft = ""; last = d
+        store.putPrefList(KxPrefsAccount.FILTER_LIST, words + d); draft = ""; last = d
     }
 
     TScreen("Фильтр слов", ctx.back, titleSize = 20, actions = {
-        Box(Modifier.semantics { contentDescription = "Фильтр включён" }.kxClick(role = Role.Switch) { on = !on }) {
+        Box(Modifier.semantics { contentDescription = "Фильтр включён" }.kxClick(role = Role.Switch) { store.togglePref(KxPrefsAccount.FILTER_ON) }) {
             TSwitch(on, Kx.accentDeep, Kx.w(.14f), 52.dp, 30.dp, 24.dp, Kx.text, Kx.text3, shadow = false)
         }
     }) {
@@ -116,14 +126,14 @@ fun WordFilterScreen(ctx: KxScreenCtx) {
                         LaunchedEffect(Unit) { if (pop.value < 1f) pop.animateTo(1f, tween(300, easing = TEase)) }
                         val p = pop.value
                         val sc = if (p < .7f) .6f + .48f * p / .7f else 1.08f - .08f * (p - .7f) / .3f
-                        val hits = WF_MSGS.count { it.text.lowercase().contains(w.lowercase()) }
+                        val hits = msgs.count { it.text.lowercase().contains(w.lowercase()) }
                         val cShape = RoundedCornerShape(17.dp)
                         Row(Modifier.graphicsLayer { scaleX = sc; scaleY = sc; alpha = (p / .7f).coerceAtMost(1f) }.height(34.dp).clip(cShape)
                             .background(Kx.dangerSolid.copy(alpha = .12f)).border(1.dp, Kx.dangerSolid.copy(alpha = .3f), cShape).padding(start = 12.dp, end = 4.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(w, style = KxType.style(13.sp, FontWeight.Bold, Color(0xFFFFB3AC)))
                             if (hits > 0) Text("· $hits", style = KxType.style(11.sp, FontWeight.SemiBold, Color(0xFFC98A84)))
-                            Box(Modifier.size(26.dp).clip(RoundedCornerShape(13.dp)).kxClick("Убрать слово $w") { words = words - w }, contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(26.dp).clip(RoundedCornerShape(13.dp)).kxClick("Убрать слово $w") { store.putPrefList(KxPrefsAccount.FILTER_LIST, words - w) }, contentAlignment = Alignment.Center) {
                                 Icon(Icons.Rounded.Close, null, Modifier.size(16.dp), tint = Color(0xFFFFB3AC))
                             }
                         }
@@ -138,7 +148,7 @@ fun WordFilterScreen(ctx: KxScreenCtx) {
                     val bg by animateColorAsState(if (sel) Kx.accent.copy(alpha = .12f) else Kx.w(.04f), tween(200), label = "b")
                     val bd by animateColorAsState(if (sel) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), tween(200), label = "d")
                     val shape = RoundedCornerShape(18.dp)
-                    Column(Modifier.weight(1f).clip(shape).background(bg).border(1.dp, bd, shape).kxClick(role = Role.Checkbox) { presets = if (sel) presets - i else presets + i }
+                    Column(Modifier.weight(1f).clip(shape).background(bg).border(1.dp, bd, shape).kxClick(role = Role.Checkbox) { store.putPref(KxPrefsAccount.FILTER_PRESETS, presetBits xor (1 shl i)) }
                         .padding(horizontal = 10.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(if (sel) p.iconOn else p.icon, null, Modifier.size(24.dp), tint = if (sel) Kx.accent else Kx.text3)
                         Text(p.label, style = KxType.style(13.sp, FontWeight.Bold), modifier = Modifier.padding(top = 4.dp))
@@ -153,7 +163,7 @@ fun WordFilterScreen(ctx: KxScreenCtx) {
                 WF_ACTIONS.forEachIndexed { i, (label, ic, _) ->
                     val sel = act == i
                     val bg by animateColorAsState(if (sel) Kx.accent.copy(alpha = .16f) else Color.Transparent, tween(200), label = "ab")
-                    Row(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(16.dp)).background(bg).kxClick(role = Role.RadioButton) { act = i; peek = emptySet() },
+                    Row(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(16.dp)).background(bg).kxClick(role = Role.RadioButton) { store.putPref(KxPrefsAccount.FILTER_ACTION, i); peek = emptySet() },
                         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         Icon(ic, null, Modifier.size(18.dp), tint = if (sel) Kx.accent else Kx.text2); Spacer(Modifier.width(4.dp))
                         Text(label, style = KxType.style(13.sp, FontWeight.Bold, if (sel) Kx.accent else Kx.text2))
@@ -167,7 +177,7 @@ fun WordFilterScreen(ctx: KxScreenCtx) {
                     val bg by animateColorAsState(if (sel) Kx.accent.copy(alpha = .14f) else Kx.w(.05f), tween(200), label = "sb")
                     val bd by animateColorAsState(if (sel) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), tween(200), label = "sd")
                     val shape = RoundedCornerShape(17.dp)
-                    Row(Modifier.height(34.dp).clip(shape).background(bg).border(1.dp, bd, shape).kxClick(role = Role.Checkbox) { scope = if (sel) scope - k else scope + k }.padding(horizontal = 12.dp),
+                    Row(Modifier.height(34.dp).clip(shape).background(bg).border(1.dp, bd, shape).kxClick(role = Role.Checkbox) { store.putPref(KxPrefsAccount.FILTER_SCOPE, scopeBits xor (1 shl WF_SCOPES.indexOfFirst { it.third == k })) }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Icon(ic, null, Modifier.size(16.dp), tint = if (sel) Kx.accent else Kx.text2)
                         Text(label, style = KxType.style(13.sp, FontWeight.Bold, if (sel) Kx.accent else Kx.text2))
@@ -176,10 +186,10 @@ fun WordFilterScreen(ctx: KxScreenCtx) {
             }
 
             var caught = 0
-            val rows = WF_MSGS.mapIndexed { i, m -> val hit = if (on && m.scope in scope) match(m.text) else null; if (hit != null) caught++; Triple(i, m, hit) }
+            val rows = msgs.mapIndexed { i, m -> val hit = if (on && m.scope in scope) match(m.text) else null; if (hit != null) caught++; Triple(i, m, hit) }
             Row(Modifier.padding(start = 4.dp, end = 4.dp, top = 18.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Как это будет выглядеть", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.weight(1f))
-                Text(if (on) "Сработает: $caught из ${WF_MSGS.size}" else "Фильтр выключен", style = KxType.style(12.sp, color = Kx.text4))
+                Text(if (!on) "Фильтр выключен" else if (msgs.isEmpty()) "Чатов пока нет" else "Сработает: $caught из ${msgs.size}", style = KxType.style(12.sp, color = Kx.text4))
             }
             val pShape = RoundedCornerShape(22.dp)
             Column(Modifier.fillMaxWidth().clip(pShape).background(Color(0xFF111614)).border(1.dp, Kx.w(.08f), pShape).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -37,6 +37,9 @@ import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
+import com.kirox.app.ui.v3.model.KxPrefs
+import com.kirox.app.ui.v3.model.KxPrefsAccount
+import com.kirox.app.ui.v3.model.pref
 
 private data class GOpt(val outlined: ImageVector, val filled: ImageVector, val label: String)
 private data class Gest(val key: String, val label: String, val icon: ImageVector, val opts: List<GOpt>)
@@ -50,13 +53,28 @@ private val GESTS = listOf(
     Gest("swipeR", "Смахнуть вправо", Icons.Outlined.SwipeRight, listOf(GOpt(Icons.AutoMirrored.Outlined.ArrowBack, Icons.AutoMirrored.Rounded.ArrowBack, "Назад к чатам"),
         GOpt(Icons.AutoMirrored.Outlined.Reply, Icons.AutoMirrored.Rounded.Reply, "Ответить"), GOpt(Icons.Outlined.Block, Icons.Rounded.Block, "Ничего"))))
 
+/** Board double-tap options (Реакция, Копировать, Ничего) → the app's DoubleTapAction index (0 Ничего, 1 Реакция, 2 Ответить, 3 Копировать). */
+internal val GEST_DOUBLE_TO_APP = listOf(1, 3, 0)
+/** The app's double-tap action as a board option; «Ответить» (not on the board) keeps the board's own pick. */
+internal fun gestDoubleIndex(app: Int, own: Int): Int = GEST_DOUBLE_TO_APP.indexOf(app).takeIf { it >= 0 } ?: own
+
 /** Board «Жесты в переписке»: animated demo of the selected gesture (finger, swipe, heart, lift), action chips, list of gestures. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatGesturesScreen(ctx: KxScreenCtx) {
-    // demo: needs store (chat gestures: action per gesture) — the chat screen does not read them yet
+    // wave3: store prefs (gest.*; double tap = the app's DOUBLE_TAP); the v3 chat reads them (ChatScreen)
     var demo by rememberSaveable { mutableIntStateOf(0) }
-    var pick by remember { mutableStateOf(listOf(0, 0, 0, 0)) }
+    val store = ctx.store
+    val pick = listOf(store.pref(KxPrefsAccount.GEST_SWIPE_L), gestDoubleIndex(store.pref(KxPrefs.DOUBLE_TAP), store.pref(KxPrefsAccount.GEST_DOUBLE)),
+        store.pref(KxPrefsAccount.GEST_HOLD), store.pref(KxPrefsAccount.GEST_SWIPE_R)).map { it.coerceIn(0, 2) }
+    fun choose(gesture: Int, option: Int) {
+        when (gesture) {
+            0 -> store.putPref(KxPrefsAccount.GEST_SWIPE_L, option)
+            1 -> { store.putPref(KxPrefsAccount.GEST_DOUBLE, option); store.putPref(KxPrefs.DOUBLE_TAP, GEST_DOUBLE_TO_APP[option]) }
+            2 -> store.putPref(KxPrefsAccount.GEST_HOLD, option)
+            else -> store.putPref(KxPrefsAccount.GEST_SWIPE_R, option)
+        }
+    }
     var k by remember { mutableIntStateOf(0) }
     val g = GESTS[demo]
     val act = g.opts[pick[demo]]
@@ -121,7 +139,7 @@ fun ChatGesturesScreen(ctx: KxScreenCtx) {
                     val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .16f) else Kx.w(.05f), tween(200), label = "b")
                     val bd by animateColorAsState(if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), tween(200), label = "d")
                     Row(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(bg).border(1.dp, bd, RoundedCornerShape(18.dp))
-                        .kxClick { pick = pick.mapIndexed { i, v -> if (i == demo) j else v }; k++ }.padding(horizontal = 12.dp),
+                        .kxClick { choose(demo, j); k++ }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Icon(o.outlined, null, Modifier.size(16.dp), tint = if (on) Kx.accent else Kx.text2)
                         Text(o.label, style = KxType.style(13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text2))

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
@@ -58,6 +59,12 @@ private fun gfmt(mb: Double): String = if (mb >= 1000) String.format(java.util.L
 /** Board «Медиатека»: all downloaded media by month, kind + chat filters, select → save / remove from phone. */
 @Composable
 fun GalleryScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → downloaded photos/videos of all chats (ctx.arg = chat id filters one chat)
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoGalleryScreen(ctx) else RealGalleryScreen(ctx)
+}
+
+@Composable
+private fun DemoGalleryScreen(ctx: KxScreenCtx) {
     var kind by remember { mutableIntStateOf(0) }
     var chat by remember { mutableIntStateOf(0) }
     var selecting by remember { mutableStateOf(false) }
@@ -154,5 +161,121 @@ fun GalleryScreen(ctx: KxScreenCtx) {
         }
         MPillToastHost(toast, bottom = 90.dp)
         MConfirmHost(confirm)
+    }
+}
+
+
+/** wave3-media: Медиатека on the real account — finished photo/video downloads by month, remove from the phone behind a confirm. */
+@Composable
+private fun RealGalleryScreen(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val scope = rememberCoroutineScope()
+    val onlyChat = ctx.arg?.toLongOrNull()
+    var all by remember { mutableStateOf<List<com.kirox.app.ui.v3.model.KxDownload>?>(null) }
+    LaunchedEffect(Unit) {
+        all = store.downloads().filter { it.done && (it.kind == com.kirox.app.ui.v3.model.KxMsgKind.Photo || it.kind == com.kirox.app.ui.v3.model.KxMsgKind.Video || it.kind == com.kirox.app.ui.v3.model.KxMsgKind.Gif) }
+    }
+    var kind by remember { mutableIntStateOf(0) }
+    var chat by remember { mutableStateOf(onlyChat ?: 0L) }
+    var selecting by remember { mutableStateOf(false) }
+    val sel = remember { mutableStateListOf<Int>() }
+    val toast = remember { MPillToastState() }
+    var confirm by remember { mutableStateOf<KxConfirm?>(null) }
+    val items = all.orEmpty()
+    fun mb(d: com.kirox.app.ui.v3.model.KxDownload) = d.size / 1_000_000.0
+    fun video(d: com.kirox.app.ui.v3.model.KxDownload) = d.kind != com.kirox.app.ui.v3.model.KxMsgKind.Photo
+    val vis = items.filter { (chat == 0L || it.chatId == chat) && (kind == 0 || (kind == 1 && !video(it)) || (kind == 2 && video(it)) || (kind == 3 && mb(it) > 10)) }
+    val chats = remember(items) { items.groupBy { it.chatId }.entries.sortedByDescending { it.value.size }.take(8).map { it.key to it.value.first().chatTitle } }
+    val months = java.text.SimpleDateFormat("LLLL yyyy", java.util.Locale.forLanguageTag("ru"))
+    val byMonth = vis.sortedByDescending { it.addedAt }.groupBy { months.format(java.util.Date(it.addedAt * 1000L)).replaceFirstChar { c -> c.uppercase() } }
+    val selMb = items.filter { it.fileId in sel }.sumOf { mb(it) }
+
+    Box(Modifier.fillMaxSize().background(Kx.bg)) {
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            Row(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MRoundBtn(Icons.AutoMirrored.Rounded.ArrowBack, "Назад") { ctx.back() }
+                Column(Modifier.weight(1f)) {
+                    T(if (selecting) (if (sel.isNotEmpty()) "Выбрано ${sel.size}" else "Выберите") else "Медиатека", 20.sp, FontWeight.ExtraBold)
+                    T("${vis.size} ${ruPlural(vis.size, "файл", "файла", "файлов")} · ${gfmt(vis.sumOf { mb(it) })} на телефоне", 12.sp, color = Kx.text3)
+                }
+                Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(if (selecting) Kx.accent.copy(alpha = .16f) else Kx.w(.07f))
+                    .kxClick { selecting = !selecting; sel.clear() }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
+                    T(if (selecting) "Готово" else "Выбрать", 13.sp, FontWeight.Bold, if (selecting) Kx.accent else Kx.text)
+                }
+            }
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("Всё" to Icons.Outlined.PermMedia, "Фото" to Icons.Outlined.Image, "Видео" to Icons.Outlined.Movie, "Большие" to Icons.Outlined.Storage).forEachIndexed { i, (label, icon) ->
+                    val on = kind == i
+                    Row(Modifier.height(34.dp).clip(RoundedCornerShape(17.dp)).background(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f)).kxClick { kind = i }.padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(icon, null, Modifier.size(16.dp), tint = if (on) Kx.accent else Kx.text2); T(label, 13.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text2)
+                    }
+                }
+            }
+            if (chats.size > 1) Row(Modifier.horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                (listOf(0L to "Все чаты") + chats).forEach { (id, name) ->
+                    val on = chat == id
+                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f)).kxClick("Фильтр: $name") { chat = id }
+                        .padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { T(name.ifBlank { "Чат" }, 12.sp, FontWeight.Bold, if (on) Kx.accent else Kx.text2, maxLines = 1) }
+                }
+            }
+            if (all == null) Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator(color = Kx.accent) }
+            else if (vis.isEmpty()) Column(Modifier.fillMaxWidth().padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Outlined.PermMedia, null, Modifier.size(48.dp), tint = Kx.text4)
+                T("На телефоне нет скачанных фото и видео", 15.sp, FontWeight.Bold)
+                T("Здесь появятся медиа, которые вы открывали в чатах", 13.sp, color = Kx.text4)
+            }
+            else LazyVerticalGrid(GridCells.Fixed(4), Modifier.weight(1f), contentPadding = PaddingValues(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 100.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                byMonth.forEach { (mn, list) ->
+                    item(span = { GridItemSpan(maxLineSpan) }, key = "h$mn") {
+                        Row(Modifier.padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.Bottom) {
+                            T(mn, 14.sp, FontWeight.ExtraBold, modifier = Modifier.weight(1f).alignByBaseline())
+                            T("${list.size} · ${gfmt(list.sumOf { mb(it) })}", 12.sp, color = Kx.text4, modifier = Modifier.alignByBaseline())
+                        }
+                    }
+                    items(list, key = { "${it.fileId}" }) { d ->
+                        val on = d.fileId in sel
+                        Box(Modifier.aspectRatio(1f).clip(RoundedCornerShape(6.dp)).background(Kx.w(.06f))
+                            .kxClick((if (video(d)) "Видео" else "Фото") + ", ${gfmt(mb(d))}" + if (on) ", выбрано" else "") {
+                                if (selecting) { if (on) sel.remove(d.fileId) else sel.add(d.fileId) }
+                                else ctx.open((if (d.kind == com.kirox.app.ui.v3.model.KxMsgKind.Video) "VideoPlayer:" else "Viewer:") + "${d.chatId}:${d.messageId}")
+                            }) {
+                            KxImage(if (video(d)) d.thumb else (d.path ?: d.thumb), Modifier.matchParentSize(), maxPx = 300)
+                            if (video(d)) Icon(Icons.Rounded.PlayArrow, null, Modifier.align(Alignment.BottomStart).padding(4.dp).size(18.dp), tint = Color.White)
+                            if (kind == 3 || selecting) T(gfmt(mb(d)), 11.sp, color = Color.White, modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp)
+                                .clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha = .45f)).padding(horizontal = 5.dp, vertical = 1.dp))
+                            if (selecting) Box(Modifier.align(Alignment.TopEnd).padding(4.dp).size(20.dp).clip(CircleShape).background(if (on) Kx.accent else Color.Black.copy(alpha = .25f))
+                                .border(2.dp, Color.White, CircleShape), contentAlignment = Alignment.Center) { if (on) Icon(Icons.Rounded.Check, null, Modifier.size(14.dp), tint = Kx.onAccent) }
+                        }
+                    }
+                }
+            }
+        }
+        AnimatedVisibility(selecting && sel.isNotEmpty(), Modifier.align(Alignment.BottomCenter), enter = fadeIn(tween(200)) + scaleIn(tween(200), initialScale = .9f), exit = fadeOut(tween(150))) {
+            Row(Modifier.navigationBarsPadding().padding(start = 12.dp, end = 12.dp, bottom = 16.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp))
+                .background(Brush.verticalGradient(listOf(Color(0xFF282F2C), Color(0xFF121614)))).border(1.dp, Kx.w(.14f), RoundedCornerShape(24.dp)).padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                T("${sel.size} · освободится ${gfmt(selMb)}", 13.sp, color = Kx.text2, modifier = Modifier.weight(1f).padding(start = 8.dp), maxLines = 1)
+                MRoundBtn(Icons.Outlined.Download, "Сохранить в галерею", bg = Kx.w(.08f), border = null) {
+                    val chosen = items.filter { it.fileId in sel }
+                    scope.launch {
+                        val ok = chosen.count { store.saveToGallery(it.fileId, video(it)) == null }
+                        toast.show(if (ok == chosen.size) "Сохранено в галерею: $ok" else "Сохранено $ok из ${chosen.size}", Icons.Rounded.DownloadDone)
+                    }
+                }
+                Row(Modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).background(Color(0xFFE5534B)).kxClick {
+                    confirm = KxConfirm("Убрать с телефона?", "Файлы удалятся только из памяти телефона и останутся в облаке Telegram — их можно скачать снова.", "Убрать") {
+                        val ids = sel.toList(); val freed = selMb
+                        store.removeDownloads(ids); all = all?.filter { it.fileId !in ids }; sel.clear(); selecting = false
+                        toast.show("Освобождено ${gfmt(freed)} · в облаке осталось", Icons.Rounded.CleaningServices)
+                    }
+                }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Outlined.CleaningServices, null, Modifier.size(18.dp), tint = Color.White); T("Убрать с телефона", 13.sp, FontWeight.ExtraBold, Color.White)
+                }
+            }
+        }
+        MPillToastHost(toast, bottom = 90.dp)
+        confirm?.let { KxConfirmDialog(it) { confirm = null } }
     }
 }

@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.extra
 
+import kotlinx.coroutines.launch
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -56,17 +57,37 @@ private val NcSpots = listOf(Triple(8, 10, 22), Triple(26, 30, 16), Triple(70, 8
 /** Board «Мой цвет» (Premium): name color + quote icons in chats, profile cover color + pattern; live previews. */
 @Composable
 fun NameColorScreen(ctx: KxScreenCtx) {
-    // demo: needs store (accent color + background emoji for name and profile, Premium)
+    // wave3: real store — Telegram's accent colours (updateAccentColors / updateProfileAccentColors) and SetAccentColor /
+    // SetProfileAccentColor (the background emoji is kept). The icon pattern is the demo's only: Telegram uses custom emoji there.
+    val store = ctx.store
+    val demo = store is com.kirox.app.ui.v3.demo.KxDemoStore
+    val co = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
     var tab by remember { mutableIntStateOf(0) }
     var nameC by remember { mutableIntStateOf(0) }; var nameI by remember { mutableIntStateOf(1) }
     var profC by remember { mutableIntStateOf(2) }; var profI by remember { mutableIntStateOf(6) }
-    val c = if (tab == 0) nameC else profC
+    val accents = if (demo) emptyList() else if (tab == 0) store.accentColors else store.profileColors
+    fun shade(argb: Int, f: Float) = Color(argb).let { Color(it.red * f, it.green * f, it.blue * f) }
+    val palette: List<NcColor> = if (demo) NcColors else accents.map { a ->
+        val first = a.colors.firstOrNull() ?: 0xFF888888.toInt()
+        NcColor("Цвет ${a.id + 1}" + if (a.premium) " (Premium)" else "", Color(first), a.colors.getOrNull(1)?.let { Color(it) } ?: shade(first, .55f))
+    }
+    val mine = if (demo) 0 to -1 else store.myColors
+    var synced by remember { mutableStateOf(false) }
+    LaunchedEffect(mine, store.accentColors.size, store.profileColors.size) {
+        if (demo || synced) return@LaunchedEffect
+        val ni = store.accentColors.indexOfFirst { it.id == mine.first }; val pi = store.profileColors.indexOfFirst { it.id == mine.second }
+        if (ni >= 0) nameC = ni
+        profC = pi.coerceAtLeast(0)
+        if (store.accentColors.isNotEmpty()) synced = true
+    }
+    val c = (if (tab == 0) nameC else profC).coerceIn(0, (palette.size - 1).coerceAtLeast(0))
     val ic = if (tab == 0) nameI else profI
     fun setC(v: Int) { if (tab == 0) nameC = v else profC = v }
     fun setI(v: Int) { if (tab == 0) nameI = v else profI = v }
-    val lite by animateColorAsState(NcColors[c].lite, tween(300), label = "lite")
-    val dark by animateColorAsState(NcColors[c].dark, tween(400), label = "dark")
-    val icon = NcIcons[ic]?.second
+    val lite by animateColorAsState(palette.getOrNull(c)?.lite ?: Kx.text3, tween(300), label = "lite")
+    val dark by animateColorAsState(palette.getOrNull(c)?.dark ?: Kx.w(.1f), tween(400), label = "dark")
+    val icon = if (demo) NcIcons[ic]?.second else null
     val toast = rememberExToast()
     val me = ctx.store.me.name.ifBlank { "Алекс" }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -130,8 +151,9 @@ fun NameColorScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Text("Цвет", style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 18.dp, bottom = 10.dp))
+                if (!demo && palette.isEmpty()) Text("Telegram ещё не прислал цвета — откройте экран чуть позже.", style = ts(13.sp, color = Kx.text3), modifier = Modifier.padding(horizontal = 4.dp))
                 Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    NcColors.withIndex().chunked(6).forEach { row ->
+                    palette.withIndex().chunked(6).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             row.forEach { (i, col) ->
                                 val on = c == i
@@ -145,11 +167,13 @@ fun NameColorScreen(ctx: KxScreenCtx) {
                         }
                     }
                 }
-                Row(Modifier.padding(start = 4.dp, end = 4.dp, top = 20.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (!demo) Text("Узор из эмодзи (Premium) выбирается в официальном Telegram — kiroX его сохраняет и не трогает.",
+                    style = ts(12.sp, color = Kx.text4, lh = 17.sp), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 18.dp))
+                if (demo) Row(Modifier.padding(start = 4.dp, end = 4.dp, top = 20.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(if (tab == 0) "Значки в цитатах" else "Узор в шапке", style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.weight(1f))
                     Text(NcNames[ic], style = ts(12.sp, color = Kx.text4))
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (demo) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     NcIcons.withIndex().chunked(6).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             row.forEach { (i, pair) ->
@@ -172,9 +196,17 @@ fun NameColorScreen(ctx: KxScreenCtx) {
         }
         ExBottom {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ExPill("Сбросить", height = 54.dp, bg = Kx.w(.07f), size = 15.sp) { if (tab == 0) { nameC = 0; nameI = 0 } else { profC = 10; profI = 0 } }
+                ExPill("Сбросить", height = 54.dp, bg = Kx.w(.07f), size = 15.sp) {
+                    if (demo) { if (tab == 0) { nameC = 0; nameI = 0 } else { profC = 10; profI = 0 } }
+                    else if (tab == 0) nameC = store.accentColors.indexOfFirst { it.id == mine.first }.coerceAtLeast(0)
+                    else profC = store.profileColors.indexOfFirst { it.id == mine.second }.coerceAtLeast(0)
+                }
                 ExCta("Применить", Modifier.weight(1f), height = 54.dp, radius = 27.dp, icon = Icons.Rounded.Palette) {
-                    toast.show((if (tab == 0) "Цвет имени" else "Шапка профиля") + ": " + NcColors[c].label.lowercase(), Icons.Rounded.Palette)
+                    val label = (if (tab == 0) "Цвет имени" else "Шапка профиля") + ": " + (palette.getOrNull(c)?.label?.lowercase() ?: "")
+                    if (demo) toast.show(label, Icons.Rounded.Palette)
+                    else accents.getOrNull(c)?.let { a ->
+                        if (!busy) { busy = true; co.launch { val e = if (tab == 0) store.applyNameColor(a.id) else store.applyProfileColor(a.id); busy = false; if (e == null) toast.show(label, Icons.Rounded.Palette) else ctx.toast(e) } }
+                    }
                 }
             }
         }

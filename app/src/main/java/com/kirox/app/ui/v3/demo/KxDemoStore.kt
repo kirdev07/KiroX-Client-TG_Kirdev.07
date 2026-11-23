@@ -307,6 +307,28 @@ class KxDemoStore : KxStore {
     override fun renameTab(index: Int, name: String) { if (name.isBlank()) tabNameMap.remove(index) else tabNameMap[index] = name }
     override val passcodeSet: Boolean get() = true
     override suspend fun checkPasscode(code: String): Boolean = code == "1234"
+
+    // wave3-account: demo values for the account/tools boards.
+    private val prefTextMap = mutableStateMapOf<String, String>().apply { putAll(KxPrefsAccount.textDefaults) }
+    override val prefTexts: Map<String, String> get() = prefTextMap
+    override fun putPrefText(key: String, value: String) { prefTextMap[key] = value }
+    override suspend fun folderInfo(id: Int): KxFolderInfo? = folders.firstOrNull { it.id == id && id != 0 }?.let { KxFolderInfo(it.title, it.icon, 5, chats.take(3).map { c -> c.id }, unread = it.unread, groups = true) }
+    override suspend fun folderShareableChats(id: Int): List<Long> = chats.filter { it.kind != KxChatKind.Private }.take(4).map { it.id }
+    override suspend fun createFolderLink(id: Int, chatIds: List<Long>): String? = "https://t.me/addlist/kIr0xDem0"
+    override suspend fun personalChannels(): KxPersonalChannels = KxPersonalChannels(0, chats.filter { it.kind == KxChatKind.Channel }.map { KxPersonalChannel(it.id, it.title, 1240, it.preview, colorIndex = it.colorIndex) })
+    override suspend fun changeNumberSendCode(phone: String): String = "Код отправлен по SMS"
+    override suspend fun changeNumberResend(): String = "Код отправлен по SMS"
+    override suspend fun changeNumberCheck(code: String): String? = if (code == "24680") null else "Неверный код"
+    override suspend fun loginEmailPattern(): String = "a***@gmail.com"
+    override suspend fun loginEmailCheck(code: String): String? = if (code == "482915") null else "Неверный код"
+    override val termsUpdate: KxTerms? get() = null
+    override suspend fun antiSpam(chatId: Long): Boolean? = true
+    override suspend fun importedContactCount(): Int? = 214
+    override val accentColors: List<KxAccent> get() = listOf(0xFFEF7468, 0xFFF0975A, 0xFFA88BEB, 0xFF5FC08F, 0xFF3BB39A, 0xFF4A9FD8, 0xFFE57FB4).mapIndexed { i, c -> KxAccent(i, listOf(c.toInt())) }
+    override val profileColors: List<KxAccent> get() = accentColors.map { it.copy(premium = true) }
+    override suspend fun emojiStatuses(): List<KxEmojiStatus> = listOf("🎉", "💼", "🌴", "🎧", "🔥", "😴").mapIndexed { i, e -> KxEmojiStatus(i + 1L, e) }
+    override suspend fun countries(): List<KxCountry> = listOf(KxCountry("KZ", "Казахстан", "7", "🇰🇿"), KxCountry("RU", "Россия", "7", "🇷🇺"), KxCountry("UZ", "Узбекистан", "998", "🇺🇿"))
+    override suspend fun myCountry(): String = "KZ"
 }
 
 /** A store for screens shown before sign-in (they only use ctx.auth). */

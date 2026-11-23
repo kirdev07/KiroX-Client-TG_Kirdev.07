@@ -40,6 +40,7 @@ private val VoEmb = listOf(Color(0xFFFFD27A), Color(0xFFF07A5A), Color(0xFFFFB36
 /** Board «Одноразовое фото»: spoiler cover → 10 s view with the ring timer (FLAG_SECURE while open) → burn with embers → gone. */
 @Composable
 fun ViewOnceScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { val c = ctx.arg?.substringBefore(":")?.toLongOrNull(); if (c == null) com.kirox.app.ui.v3.screens.more.C3NeedChat(ctx, "Просмотр один раз") else com.kirox.app.ui.v3.screens.more.ViewOnceLive(ctx, c); return }
     // demo: needs store (view-once photo message: open → TDLib starts self-destruct, viewed state)
     var phase by remember { mutableStateOf("hidden") }
     var left by remember { mutableIntStateOf(VoDur) }

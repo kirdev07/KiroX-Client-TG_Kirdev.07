@@ -46,6 +46,7 @@ private val MmList = listOf(
 /** Board «В этот день»: year chips, story-like memory card (slide in by direction, Ken Burns, progress dots, tap zones), hide / to chat / share. */
 @Composable
 fun MemoriesScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { com.kirox.app.ui.v3.screens.more.MemoriesLive(ctx); return }
     var i by remember { mutableIntStateOf(0) }
     var dir by remember { mutableIntStateOf(1) }
     var k by remember { mutableIntStateOf(0) }

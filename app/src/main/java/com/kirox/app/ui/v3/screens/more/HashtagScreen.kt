@@ -39,7 +39,7 @@ import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
 
-// demo: needs store — hashtag search (searchMessages / searchChatMessages / searchPublicPosts by #tag) split into my chats / channels / saved.
+// Demo results. Real account: HashtagLive (store.searchMessages("#tag"), split by chat kind).
 private val HT_TAGS = listOf("отпуск", "море", "рецепт", "kotlin")
 private val HT_SC = listOf("Мои чаты", "Каналы", "Избранное")
 private data class HtRes(val tag: String, val sc: Int, val chat: String, val kind: ImageVector, val channel: Boolean, val who: String, val l: String, val c: Color, val t: String,
@@ -62,6 +62,7 @@ private val HT_R = listOf(
 /** Hashtag board: messages with #tag from my chats / channels / saved, related tags, highlighted hits. */
 @Composable
 fun HashtagScreen(ctx: KxScreenCtx) {
+    if (ctx.c3Live) { HashtagLive(ctx); return }
     var ti by remember { mutableIntStateOf(0) }
     var sc by remember { mutableIntStateOf(0) }
     var k by remember { mutableIntStateOf(0) }

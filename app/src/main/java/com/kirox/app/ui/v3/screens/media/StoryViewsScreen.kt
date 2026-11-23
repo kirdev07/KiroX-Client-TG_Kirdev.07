@@ -78,8 +78,9 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
     val scope = rememberCoroutineScope()
     var viewers by remember { mutableStateOf(if (live) emptyList() else StoryViewers) }
     if (live) LaunchedEffect(storyId) {
+        val close = store.closeFriends()
         viewers = store.storyViewers(storyId!!).map { v ->
-            Viewer(v.name, v.name.take(1).uppercase(), VColors[(v.userId and 0x7fffffff).toInt() % VColors.size], v.time, v.reaction, false, v.userId, v.avatar)
+            Viewer(v.name, v.name.take(1).uppercase(), VColors[(v.userId and 0x7fffffff).toInt() % VColors.size], v.time, v.reaction, v.userId in close, v.userId, v.avatar)
         }
     }
     // Real totals come from the story itself (the viewer list is one page of at most 100).
@@ -137,7 +138,7 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("Все · ${count(total)}", "С реакцией · $reactions", "Близкие друзья").forEachIndexed { i, label ->
+                listOf("Все · ${count(total)}", "С реакцией · $reactions", if (live) "Близкие друзья · ${viewers.count { it.close }}" else "Близкие друзья").forEachIndexed { i, label ->
                     val on = tab == i
                     val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.05f), tween(200), label = "t")
                     Box(Modifier.height(32.dp).clip(RoundedCornerShape(16.dp)).background(bg).kxClick { tab = i }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
@@ -159,7 +160,11 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
                         Column(Modifier.weight(1f)) { T(v.name, 15.sp, FontWeight.Bold); T(v.time, 12.sp, color = Kx.text4) }
                         if (v.react.isNotEmpty()) Text(v.react, style = ts(24.sp))
                         MRoundBtn(Icons.AutoMirrored.Outlined.Chat, "Ответить: ${v.name}", size = 36.dp, iconSize = 18.dp, bg = Kx.w(.06f), border = null, tint = Kx.text2) {
-                            if (live && v.userId != 0L) ctx.openChat(v.userId) else toast.show("Откроется чат «${v.name}»", Icons.Rounded.Chat)
+                            if (live && v.userId != 0L) scope.launch {
+                                // The viewer may never have written: TDLib needs the private chat created first.
+                                val chat = store.privateChat(v.userId)
+                                if (chat != null) ctx.openChat(chat) else toast.show("Не удалось открыть чат", Icons.Rounded.Chat)
+                            } else toast.show("Откроется чат «${v.name}»", Icons.Rounded.Chat)
                         }
                     }
                 }
@@ -167,7 +172,7 @@ fun StoryViewsScreen(ctx: KxScreenCtx) {
                     Row(Modifier.padding(start = 6.dp, end = 6.dp, top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Kx.w(.04f)).padding(horizontal = 12.dp, vertical = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Outlined.Schedule, null, Modifier.size(18.dp), tint = Kx.text4)
-                        T(if (live) "Список просмотров хранится ещё сутки после того, как история исчезнет." else "История исчезнет через 19 ч. Список просмотров хранится ещё сутки после этого.", 12.sp, color = Kx.text4)
+                        T(if (live) (if (store.me.premium) "С Premium список просмотров остаётся и после того, как история исчезнет." else "После того как история исчезнет, останется только число просмотров.") else "История исчезнет через 19 ч. Список просмотров хранится ещё сутки после этого.", 12.sp, color = Kx.text4)
                     }
                 }
             }

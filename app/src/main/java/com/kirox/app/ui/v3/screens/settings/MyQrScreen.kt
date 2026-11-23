@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.settings
 
+import kotlinx.coroutines.launch
 import android.content.Intent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
@@ -63,7 +64,9 @@ private fun qrCells(text: String): Pair<Int, List<Boolean>> = runCatching {
 @Composable
 fun MyQrScreen(ctx: KxScreenCtx) {
     val me = ctx.store.me
-    val user = me.username.ifEmpty { "alex_m" }
+    val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    // Real account without a username: Telegram's phone link t.me/+<number> (opens only for people the phone privacy allows).
+    val user = me.username.ifEmpty { if (demo) "alex_m" else "+" + me.phone.filter { it.isDigit() } }
     val initials = me.name.split(' ').filter { it.isNotEmpty() }.take(2).joinToString("") { it.take(1) }.uppercase().ifEmpty { "АМ" }
     var th by rememberSaveable { mutableIntStateOf(0) }
     var toastAt by remember { mutableLongStateOf(0L) }
@@ -71,6 +74,31 @@ fun MyQrScreen(ctx: KxScreenCtx) {
     fun say(t: String) { toastText = t; toastAt = System.nanoTime() }
     val clip = LocalClipboardManager.current
     val context = LocalContext.current
+    // wave3: QR scanner (the old app's zxing camera). t.me/<name> opens the chat, tg://login asks before signing that device in.
+    var scanning by remember { mutableStateOf(false) }
+    var handled by remember { mutableStateOf(false) }
+    var confirm by remember { mutableStateOf<com.kirox.app.ui.v3.components.KxConfirm?>(null) }
+    val co = rememberCoroutineScope()
+    val camera = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) { handled = false; scanning = true } else say("Без камеры QR-код не прочитать")
+    }
+    fun startScan() {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) { handled = false; scanning = true }
+        else camera.launch(android.Manifest.permission.CAMERA)
+    }
+    fun onCode(code: String) {
+        if (handled) return
+        handled = true; scanning = false
+        val name = Regex("^(?:https?://)?(?:t\\.me|telegram\\.me)/([A-Za-z0-9_]{4,})/?$").find(code.trim())?.groupValues?.get(1)
+        when {
+            code.startsWith("tg://login") -> confirm = com.kirox.app.ui.v3.components.KxConfirm("Войти на другом устройстве?",
+                "Устройство, на экране которого этот QR-код, получит доступ к вашему аккаунту. Подтверждайте, только если это ваш компьютер.", "Войти") {
+                co.launch { val e = ctx.store.confirmQrLogin(code); say(e ?: "Устройство подключено") }
+            }
+            name != null -> co.launch { val id = ctx.store.publicChat(name); if (id != null) ctx.openChat(id) else say("@$name не найден") }
+            else -> { clip.setText(AnnotatedString(code)); say("Текст из QR-кода скопирован") }
+        }
+    }
     val t = QThemes[th]
     val c1 by animateColorAsState(t.c1, tween(500), label = "c1"); val c2 by animateColorAsState(t.c2, tween(500), label = "c2"); val c3 by animateColorAsState(t.c3, tween(500), label = "c3")
     val ink by animateColorAsState(t.ink, tween(400), label = "ink")
@@ -95,7 +123,7 @@ fun MyQrScreen(ctx: KxScreenCtx) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RoundDark(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", ctx.back)
                 Text("QR-код", style = KxType.style(18.sp, FontWeight.ExtraBold), modifier = Modifier.weight(1f))
-                RoundDark(Icons.Outlined.QrCodeScanner, "Сканировать") { say("Откроется сканер QR-кодов") }
+                RoundDark(Icons.Outlined.QrCodeScanner, "Сканировать") { if (demo) say("Откроется сканер QR-кодов") else startScan() }
             }
             // card
             val pop = remember { Animatable(if (reduced) 1f else 0f) }
@@ -156,6 +184,14 @@ fun MyQrScreen(ctx: KxScreenCtx) {
                 Text("Поделиться кодом", style = KxType.style(15.sp, FontWeight.ExtraBold, Color(0xFF0B110E)))
             }
         }
+        if (scanning) Box(Modifier.fillMaxSize().background(Color.Black)) {
+            com.kirox.app.ui.home.QrCamera { code -> onCode(code) }
+            Box(Modifier.align(Alignment.Center).size(240.dp).border(3.dp, Kx.accent, RoundedCornerShape(28.dp)))
+            Column(Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp)) { RoundDark(Icons.AutoMirrored.Rounded.ArrowBack, "Закрыть") { scanning = false } }
+            Text("Наведите камеру на QR-код", style = KxType.style(15.sp, FontWeight.Bold), modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 60.dp))
+        }
+        androidx.activity.compose.BackHandler(scanning) { scanning = false }
+        confirm?.let { com.kirox.app.ui.v3.components.KxConfirmDialog(it) { confirm = null } }
         if (toastAt != 0L) key(toastAt) {
             val p = remember { Animatable(0f) }
             LaunchedEffect(Unit) { p.animateTo(1f, tween(2200, easing = LinearEasing)); toastAt = 0L }

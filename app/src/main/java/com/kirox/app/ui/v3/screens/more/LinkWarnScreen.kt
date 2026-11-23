@@ -46,6 +46,7 @@ private val LW = mapOf(
 /** LinkWarn board: tapping a link shows its real address first; a hidden or look-alike address gets a red warning. */
 @Composable
 fun LinkWarnScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { LinkWarnLive(ctx); return }
     var which by remember { mutableStateOf("bad") }
     var open by remember { mutableStateOf(true) }
     var ask by remember { mutableStateOf(true) }

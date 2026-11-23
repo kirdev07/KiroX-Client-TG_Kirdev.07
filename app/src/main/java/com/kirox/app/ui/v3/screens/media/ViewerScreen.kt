@@ -76,6 +76,12 @@ fun DemoPicture(p: DemoPic, modifier: Modifier, animateSun: Boolean = true) {
 /** Board «Просмотр медиа»: swipe-free slide track, tap zones, video bar, thumbnails, actions, menu, toasts. */
 @Composable
 fun ViewerScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → chat media list (ctx.arg = "chatId:messageId")
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoViewerScreen(ctx) else RealViewer(ctx)
+}
+
+@Composable
+private fun DemoViewerScreen(ctx: KxScreenCtx) {
     val M = ViewerMedia
     var i by remember { mutableIntStateOf(0) }
     var ui by remember { mutableStateOf(true) }

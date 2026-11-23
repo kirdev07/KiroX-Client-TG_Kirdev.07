@@ -16,11 +16,17 @@ object SettingsBackup {
     /** SharedPreferences files that hold user settings; nothing else is read or written. */
     private val FILES = listOf(KiroxTweaks.PREFS, "auto_download", "storage_policy", "media_prefs", "notification_prefs", "i18n", CustomThemes.PREFS, MessageFilters.PREFS, Playlists.PREFS, "power_saver", "kirox_v3_prefs")
 
+    /** Keys that never leave this phone (the backup lands in Saved Messages, readable on every device): hidden chats,
+     *  recent searches, usage counts. Restore keeps the phone's own values of these. */
+    private val LOCAL_ONLY = mapOf("kirox_v3_prefs" to { key: String -> key == "hidden.chats" || key == "search.recent" || key == "dnd.people" || key.startsWith("usage.") })
+    private fun localOnly(file: String, key: String) = LOCAL_ONLY[file]?.invoke(key) == true
+
     suspend fun export(context: Context): String {
         val prefs = JSONObject()
         FILES.forEach { name ->
             val values = JSONObject()
             context.getSharedPreferences(name, Context.MODE_PRIVATE).all.forEach { (key, value) ->
+                if (localOnly(name, key)) return@forEach
                 val typed = when (value) {
                     is Boolean -> JSONObject().put("t", "b").put("v", value)
                     is Int -> JSONObject().put("t", "i").put("v", value)
@@ -51,9 +57,13 @@ object SettingsBackup {
         FILES.forEach { name ->
             val values = prefs.optJSONObject(name) ?: return@forEach
             // Written at once (commit), so the restart right after reads the restored values.
-            context.getSharedPreferences(name, Context.MODE_PRIVATE).edit(commit = true) {
+            val sp = context.getSharedPreferences(name, Context.MODE_PRIVATE)
+            val kept = sp.all.filterKeys { localOnly(name, it) }
+            sp.edit(commit = true) {
                 clear()
+                kept.forEach { (k, v) -> when (v) { is Boolean -> putBoolean(k, v); is Int -> putInt(k, v); is Long -> putLong(k, v); is Float -> putFloat(k, v); is String -> putString(k, v) } }
                 values.keys().forEach { key ->
+                    if (localOnly(name, key)) return@forEach
                     val typed = values.optJSONObject(key) ?: return@forEach
                     when (typed.optString("t")) {
                         "b" -> putBoolean(key, typed.optBoolean("v"))

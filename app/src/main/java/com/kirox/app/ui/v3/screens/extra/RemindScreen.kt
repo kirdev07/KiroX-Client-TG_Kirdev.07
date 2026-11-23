@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.extra
 
+import kotlinx.coroutines.launch
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -38,7 +39,8 @@ import com.kirox.app.ui.v3.theme.*
 
 private data class RmItem(val id: Int, val title: String, val from: String, val c: Color, val quote: String, val day: Int, val time: String, val rep: String, val done: Boolean)
 
-// demo: needs store (message reminders: list, create, done, snooze)
+// demo list. Real store (wave3): reminders are Telegram's own — scheduled messages in Saved Messages (store.scheduled / sendScheduled /
+// deleteScheduled), so they ring on every device. Snooze and repeat stay demo (no rescheduling call in the store).
 private val RmSeed = listOf(
     RmItem(1, "Скинуть Анне фото с дачи", "Анна", Color(0xFFC0443C), "Пришлёшь фотки, когда вернёшься?", 0, "19:00", "", false),
     RmItem(2, "Оплатить интернет", "Избранное", Kx.accent, "Счёт до 25-го, лицевой 4471…", 0, "21:30", "Каждый месяц", false),
@@ -59,6 +61,8 @@ private fun rmDay(d: Int) = when (d) { 0 -> "Сегодня"; 1 -> "Завтра
 /** Board «Напоминания»: next-up card with the bell, active / done tabs, reminder cards (done toggle, snooze +1h), new reminder sheet. */
 @Composable
 fun RemindScreen(ctx: KxScreenCtx) {
+    val demo = ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore
+    if (!demo) { RemindReal(ctx); return }
     val list = remember { mutableStateListOf<RmItem>().apply { addAll(RmSeed) } }
     var tab by remember { mutableIntStateOf(0) }
     var sheet by remember { mutableStateOf(false) }
@@ -223,5 +227,99 @@ private fun RmCard(r: RmItem, k: Int, pop: Int, onToggle: () -> Unit, onSnooze: 
         if (!r.done) Box(Modifier.size(36.dp).clip(CircleShape).background(Kx.w(.06f)).kxClick("Отложить на час", onClick = onSnooze), contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.Snooze, null, Modifier.size(19.dp), tint = Kx.text2)
         }
+    }
+}
+
+
+/** wave3: reminders on the real account = scheduled messages in Saved Messages. */
+@Composable
+private fun RemindReal(ctx: KxScreenCtx) {
+    val store = ctx.store
+    val savedId = store.chats.firstOrNull { it.kind == com.kirox.app.ui.v3.model.KxChatKind.Saved }?.id ?: store.me.id
+    var items by remember { mutableStateOf<List<com.kirox.app.ui.v3.model.KxScheduled>?>(null) }
+    var reload by remember { mutableIntStateOf(0) }
+    var sheet by remember { mutableStateOf(false) }
+    var w by remember { mutableIntStateOf(2) }
+    var text by remember { mutableStateOf("") }
+    val co = androidx.compose.runtime.rememberCoroutineScope()
+    val toast = rememberExToast()
+    LaunchedEffect(reload, savedId) { if (savedId != 0L) items = store.scheduled(savedId) }
+    fun whenAt(i: Int): Long {
+        val c = java.util.Calendar.getInstance()
+        when (i) {
+            0 -> c.add(java.util.Calendar.HOUR_OF_DAY, 1)
+            1 -> { c.set(java.util.Calendar.HOUR_OF_DAY, 21); c.set(java.util.Calendar.MINUTE, 0); if (c.timeInMillis < System.currentTimeMillis() + 60_000) c.add(java.util.Calendar.DAY_OF_YEAR, 1) }
+            2 -> { c.add(java.util.Calendar.DAY_OF_YEAR, 1); c.set(java.util.Calendar.HOUR_OF_DAY, 9); c.set(java.util.Calendar.MINUTE, 0) }
+            else -> { do c.add(java.util.Calendar.DAY_OF_YEAR, 1) while (c.get(java.util.Calendar.DAY_OF_WEEK) != java.util.Calendar.SATURDAY); c.set(java.util.Calendar.HOUR_OF_DAY, 10); c.set(java.util.Calendar.MINUTE, 0) }
+        }
+        c.set(java.util.Calendar.SECOND, 0)
+        return c.timeInMillis
+    }
+    val fmt = java.text.SimpleDateFormat("d MMM, HH:mm", java.util.Locale("ru"))
+    Box(Modifier.fillMaxSize().background(Kx.bg)) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            ExBar("Напоминания", { ctx.back() }) {
+                Box(Modifier.size(44.dp).clip(CircleShape).lin2(135f, Kx.accentMid, Kx.accentDeep).kxClick("Новое напоминание") { sheet = true }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Outlined.AddAlarm, null, Modifier.size(24.dp), tint = Kx.onAccent)
+                }
+            }
+            Text("Напоминание — это сообщение в «Избранном», которое Telegram отправит в выбранное время. Оно придёт на все ваши устройства.",
+                style = ts(13.sp, color = Kx.text3, lh = 18.sp), modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 8.dp))
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 30.dp)) {
+                val list = items
+                if (list == null) Text("Загружаем…", style = ts(14.sp, color = Kx.text3), modifier = Modifier.padding(8.dp))
+                else if (list.isEmpty()) Column(Modifier.fillMaxWidth().padding(top = 60.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.AlarmOff, null, Modifier.size(54.dp), tint = Kx.dashed)
+                    Text("Активных напоминаний нет", style = ts(16.sp, FontWeight.Bold), modifier = Modifier.padding(top = 10.dp))
+                }
+                list.orEmpty().forEach { r ->
+                    Row(Modifier.padding(bottom = 8.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(20.dp)).padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Icon(Icons.Rounded.Alarm, null, Modifier.size(24.dp), tint = Kx.accent)
+                        Column(Modifier.weight(1f)) {
+                            Text(r.text.ifBlank { "Сообщение" }, style = ts(15.sp, FontWeight.Bold), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(r.time, style = ts(12.sp, color = Kx.text4), modifier = Modifier.padding(top = 2.dp))
+                        }
+                        ExPill("Готово", height = 34.dp, size = 12.sp, padH = 12.dp) { store.deleteScheduled(savedId, r.id); items = items.orEmpty().filter { it.id != r.id }; toast.show("Напоминание снято", Icons.Rounded.CheckCircle) }
+                    }
+                }
+            }
+        }
+        if (sheet) ExGlassSheet({ sheet = false }) {
+            Text("Новое напоминание", style = ts(19.sp, FontWeight.ExtraBold))
+            Box(Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Kx.w(.06f)).padding(14.dp)) {
+                if (text.isEmpty()) Text("О чём напомнить?", style = ts(15.sp, color = Kx.text4))
+                androidx.compose.foundation.text.BasicTextField(text, { text = it.take(4000) }, Modifier.fillMaxWidth(), textStyle = ts(15.sp), cursorBrush = androidx.compose.ui.graphics.SolidColor(Kx.accent))
+            }
+            Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                RmWhens.chunked(2).forEachIndexed { row, pair ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        pair.forEachIndexed { col, it ->
+                            val i = row * 2 + col; val on = w == i
+                            Column(Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(if (on) Kx.accent.copy(alpha = .12f) else Kx.w(.04f))
+                                .border(1.dp, if (on) Kx.accent.copy(alpha = .45f) else Kx.w(.08f), RoundedCornerShape(18.dp)).kxClick(it.label) { w = i }.padding(12.dp)) {
+                                Icon(if (on) it.on else it.off, null, Modifier.size(24.dp), tint = if (on) Kx.accent else Kx.text3)
+                                Text(it.label, style = ts(14.sp, FontWeight.Bold), modifier = Modifier.padding(top = 6.dp))
+                                Text(fmt.format(java.util.Date(whenAt(i))), style = ts(12.sp, color = Kx.text4))
+                            }
+                        }
+                    }
+                }
+            }
+            val ok = text.isNotBlank()
+            Row(Modifier.padding(top = 14.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(26.dp)).then(if (ok) Modifier.lin2(135f, Kx.accentMid, Kx.accentDeep) else Modifier.background(Kx.w(.07f)))
+                .kxClick("Напомнить") {
+                    if (!ok) return@kxClick
+                    val at = whenAt(w)
+                    store.sendScheduled(savedId, text.trim(), (at / 1000).toInt())
+                    text = ""; sheet = false
+                    toast.show("Напомню " + fmt.format(java.util.Date(at)), Icons.Rounded.AlarmOn)
+                    co.launch { kotlinx.coroutines.delay(800); reload++ }
+                }, horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.AlarmAdd, null, Modifier.size(24.dp), tint = if (ok) Kx.onAccent else Kx.text4)
+                Text("Напомнить · " + RmWhens[w].label.lowercase(), style = ts(16.sp, FontWeight.ExtraBold, if (ok) Kx.onAccent else Kx.text4))
+            }
+        }
+        ExToast(toast)
     }
 }

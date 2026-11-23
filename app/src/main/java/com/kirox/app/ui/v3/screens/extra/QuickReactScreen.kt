@@ -40,8 +40,12 @@ private val QrEm = listOf("❤️" to "Сердце", "👍" to "Класс", "�
 /** Board «Быстрая реакция»: double-tap playground with the burst, 6×3 emoji grid for the default reaction, three switches. */
 @Composable
 fun QuickReactScreen(ctx: KxScreenCtx) {
-    // demo: needs store (default reaction: setDefaultReactionType; animation/haptic/big chips are local prefs)
-    var sel by remember { mutableIntStateOf(0) }
+    // Demo store: the board's own state. Real account: the double-tap reaction is Telegram's default reaction
+    // (store.quickReaction / changeQuickReaction = SetDefaultReactionType); animation / haptic / big chips stay board-local.
+    val live = ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    fun norm(e: String) = e.replace("️", "")
+    val realQuick = if (live) ctx.store.quickReaction else null
+    var sel by remember(realQuick) { mutableIntStateOf(realQuick?.let { q -> QrEm.indexOfFirst { norm(it.first) == norm(q) } }?.takeIf { it >= 0 } ?: 0) }
     var last by remember { mutableLongStateOf(0L) }
     var reacted by remember { mutableStateOf(false) }
     var burst by remember { mutableIntStateOf(0) }
@@ -108,7 +112,7 @@ fun QuickReactScreen(ctx: KxScreenCtx) {
                                 val bg by animateColorAsState(if (on) Kx.accent.copy(alpha = .14f) else Kx.w(.04f), tween(200), label = "eb")
                                 val bd by animateColorAsState(if (on) Kx.accent else Kx.w(.06f), tween(200), label = "ed")
                                 Box(Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(18.dp)).background(bg).border(1.5.dp, bd, RoundedCornerShape(18.dp))
-                                    .kxClick(label) { sel = i; popSel = i }, contentAlignment = Alignment.Center) {
+                                    .kxClick(label) { sel = i; popSel = i; if (live) ctx.store.changeQuickReaction(norm(ch)) }, contentAlignment = Alignment.Center) {
                                     key(popSel == i) {
                                         val p = if (popSel == i) enter(300) else 1f
                                         Text(ch, style = ts(26.sp), modifier = Modifier.graphicsLayer {

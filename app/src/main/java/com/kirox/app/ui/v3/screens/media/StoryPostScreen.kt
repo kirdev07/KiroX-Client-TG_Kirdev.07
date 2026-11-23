@@ -69,6 +69,12 @@ private val Auds = listOf(
 /** Board «Новая история»: picker (photo / text), editor with background, audience sheet, publish progress. */
 @Composable
 fun StoryPostScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → phone gallery picker + PostStory (photo/video, caption, audience)
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoStoryPostScreen(ctx) else RealStoryPost(ctx)
+}
+
+@Composable
+private fun DemoStoryPostScreen(ctx: KxScreenCtx) {
     var mode by remember { mutableStateOf("pick") }
     var tab by remember { mutableStateOf("photo") }
     var photo by remember { mutableIntStateOf(0) }

@@ -67,6 +67,12 @@ private fun SeaVideo(p: Float, playing: Boolean, stripe: Dp, sunFrac: Float?, mo
 /** Board «Картинка в картинке»: full player → floating window over chats with corners, size, controls, close/reopen. */
 @Composable
 fun PipScreen(ctx: KxScreenCtx) {
+    // wave3-media: real account → the live call (Android PiP itself is not wired)
+    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) DemoPipScreen(ctx) else RealCallBoard(ctx, CallBoard.Pip)
+}
+
+@Composable
+private fun DemoPipScreen(ctx: KxScreenCtx) {
     var mode by remember { mutableStateOf("full") }
     var corner by remember { mutableStateOf("tr") }
     var big by remember { mutableStateOf(false) }

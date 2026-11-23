@@ -40,7 +40,7 @@ import com.kirox.app.ui.v3.theme.Kx
 import com.kirox.app.ui.v3.theme.LocalKxReducedMotion
 import kotlinx.coroutines.delay
 
-// demo: needs store (sticker set by name, install/uninstall, favorite stickers, sendSticker are not in KxStore yet)
+// Demo pack «Лис». Real account: StickerPackLive (set by name, install / remove, favourites, send to the chat of the arg).
 private val Fox = listOf("🦊" to "привет", "😏" to "хитро", "🍂" to "осень", "🔥" to "огонь", "🌙" to "спокойной ночи", "🎒" to "в путь", "☕" to "кофе", "📚" to "учёба",
     "🎸" to "музыка", "👋" to "пока", "🧣" to "холодно", "🏕️" to "поход", "😴" to "спать", "🥳" to "праздник", "🤔" to "хмм", "❤️" to "люблю", "😭" to "плачу",
     "👍" to "класс", "🙈" to "стыдно", "🫶" to "спасибо")
@@ -48,6 +48,7 @@ private val Fox = listOf("🦊" to "привет", "😏" to "хитро", "🍂
 /** Board «Набор стикеров»: pack sheet with a 4-col grid, big preview (send / favorite), add or remove the pack with a confirm. */
 @Composable
 fun StickerPackScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { com.kirox.app.ui.v3.screens.more.StickerPackLive(ctx); return }
     var sheet by remember { mutableStateOf(true) }
     var added by remember { mutableStateOf(false) }
     var preview by remember { mutableIntStateOf(-1) }

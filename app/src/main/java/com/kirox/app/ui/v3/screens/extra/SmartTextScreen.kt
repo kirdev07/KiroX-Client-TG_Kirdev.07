@@ -52,6 +52,7 @@ private val StSheets = mapOf(
 /** Board «Умный текст»: dates / addresses / sums / track numbers in messages are tappable; action sheet with a preview per kind, copy + main action. */
 @Composable
 fun SmartTextScreen(ctx: KxScreenCtx) {
+    if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) { com.kirox.app.ui.v3.screens.more.SmartTextLive(ctx, ctx.arg?.substringBefore(":")?.toLongOrNull(), ctx.arg?.split(":")?.getOrNull(1)?.toLongOrNull()); return }
     // demo: needs store (entity detection on message text: TDLib getTextEntities + own date/sum/track detectors)
     var open by remember { mutableStateOf("") }
     val toast = rememberExToast()
