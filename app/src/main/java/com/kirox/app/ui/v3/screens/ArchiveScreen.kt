@@ -1,5 +1,8 @@
 package com.kirox.app.ui.v3.screens
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -56,6 +59,7 @@ fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit
     val toast = LocalKxToast.current
     val chats = store.archivedChats
     androidx.activity.compose.BackHandler(enabled = sel.isNotEmpty()) { sel.clear() }
+    androidx.activity.compose.BackHandler(enabled = settings) { settings = false }
     fun toggle(id: Long) { if (id in sel) sel.remove(id) else sel.add(id) }
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         Column(Modifier.fillMaxSize()) {
@@ -86,7 +90,7 @@ fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit
                                 else "Чат вернётся в список, как только придёт новое сообщение. Удерживайте чат, чтобы выбрать.",
                                 style = KxType.style(13.sp, color = Kx.text2, lineHeight = 18.sp), modifier = Modifier.padding(top = 3.dp))
                         }
-                        Box(Modifier.size(28.dp).clip(CircleShape).kxClick("Скрыть") { store.putPref(KxPrefsAccount.ARCHIVE_TIP, 0) }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text4) }
+                        Box(Modifier.kxHitClick("Скрыть") { store.putPref(KxPrefsAccount.ARCHIVE_TIP, 0) }.size(28.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text4) }
                     }
                 }
                 itemsIndexed(chats, key = { _, c -> c.id }) { i, c ->
@@ -120,7 +124,9 @@ fun ArchiveScreen(store: KxStore, onBack: () -> Unit, onOpenChat: (Long) -> Unit
 @Composable
 private fun ArchiveRow(c: KxChat, selected: Boolean, hideBadge: Boolean, modifier: Modifier, onClick: () -> Unit, onLong: () -> Unit) {
     Row(modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (selected) Kx.accent.copy(alpha = .1f) else Color.Transparent)
-        .combinedClickable(interactionSource = null, indication = ripple(color = Kx.accent), onClick = onClick, onLongClick = onLong).padding(horizontal = 8.dp, vertical = 9.dp),
+        .combinedClickable(interactionSource = null, indication = ripple(color = Kx.accent), onClick = onClick, onLongClick = onLong, onClickLabel = "Открыть чат", onLongClickLabel = "Выбрать")
+        .semantics { contentDescription = chatRowDescription(c); if (selected) this.selected = true } // a11y (P1-3)
+        .padding(horizontal = 8.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box {
             KxAvatar(c.title, c.id, size = 52.dp, colorIndex = c.colorIndex, square = c.kind == KxChatKind.Channel)

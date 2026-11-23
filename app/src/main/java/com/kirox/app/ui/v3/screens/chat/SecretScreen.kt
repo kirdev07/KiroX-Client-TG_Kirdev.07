@@ -120,7 +120,7 @@ fun SecretScreen(ctx: KxScreenCtx) {
                     val ink = if (timer > 0) Kx.accent else Kx.text3
                     Icon(Icons.Outlined.Timer, null, Modifier.size(18.dp), tint = ink); Text(tShort, style = ts(13, W700, ink), maxLines = 1)
                 }
-                Box(Modifier.size(42.dp).clip(CircleShape).kxClick("Ключ шифрования") { keySheet = true }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Key, null, tint = Kx.text) }
+                Box(Modifier.kxHitClick("Ключ шифрования") { keySheet = true }.size(42.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Key, null, tint = Kx.text) }
             }
             LazyColumn(Modifier.weight(1f).fillMaxWidth().ellipseGlow(.5f, 0f, .6f, .3f, Kx.accentDeep.copy(alpha = .12f)), state = list,
                 contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

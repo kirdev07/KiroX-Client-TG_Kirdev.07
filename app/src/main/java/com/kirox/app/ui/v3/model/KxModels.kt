@@ -138,6 +138,10 @@ data class KxMessage(
     val translation: String? = null,
     /** Poll / quiz of a [KxMsgKind.Poll] message. */
     val poll: KxPoll? = null,
+    /** wave5: media sent under a spoiler — blurred until tapped. */
+    val spoiler: Boolean = false,
+    /** wave5: view-once / self-destructing media — a cover in the chat, opened once in a protected view. */
+    val viewOnce: Boolean = false,
 )
 
 /** What the bottom of a chat shows instead of / as the composer. */
@@ -315,6 +319,10 @@ data class KxFileState(val path: String? = null, val downloaded: Long = 0, val t
     val fraction: Float get() = if (total > 0) (downloaded.toFloat() / total).coerceIn(0f, 1f) else 0f
 }
 
+/** «Проверка файлов» result before a file is opened: [level] 0 safe, 1 caution, 2 danger; [installer] = an app installer (APK…). */
+@Immutable
+data class KxFileCheck(val level: Int, val reasons: List<String> = emptyList(), val kind: String = "", val installer: Boolean = false)
+
 /** A music file sent in some chat. */
 @Immutable
 data class KxTrack(val chatId: Long, val messageId: Long, val title: String, val performer: String = "", val chatTitle: String = "",
@@ -324,6 +332,8 @@ data class KxTrack(val chatId: Long, val messageId: Long, val title: String, val
 @Immutable
 data class KxPlayerState(val track: KxTrack? = null, val playing: Boolean = false, val positionMs: Long = 0, val durationMs: Long = 0,
                          val shuffle: Boolean = false, val repeat: Int = 0, val loading: Boolean = false, val source: String = "",
+                         /** wave5: local file the player has loaded (a voice message or a track); null when idle. */
+                         val path: String? = null,
                          val queue: List<KxTrack> = emptyList())
 
 /** A file in Telegram's download list (SearchFileDownloads). */

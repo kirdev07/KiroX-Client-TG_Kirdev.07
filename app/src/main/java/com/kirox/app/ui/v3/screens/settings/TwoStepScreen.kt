@@ -164,7 +164,7 @@ fun TwoStepScreen(ctx: KxScreenCtx) {
                         }
                     }
                     Spacer(Modifier.weight(1f))
-                    if (st.skip) Box(Modifier.padding(bottom = 6.dp).fillMaxWidth().height(44.dp).kxClick { vals[step] = ""; if (step == 3) save() else step++ }, contentAlignment = Alignment.Center) {
+                    if (st.skip) Box(Modifier.padding(bottom = 6.dp).fillMaxWidth().heightIn(min = 44.dp).kxClick { vals[step] = ""; if (step == 3) save() else step++ }, contentAlignment = Alignment.Center) {
                         Text("Пропустить", style = KxType.style(14.sp, FontWeight.SemiBold, Kx.text3))
                     }
                     val on = ok || isDone

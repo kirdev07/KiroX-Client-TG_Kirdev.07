@@ -34,25 +34,25 @@ Summary: **P1 — 12**, **P2 — 17**, **P3 — 9** (38 total).
 - **Problem:** the index has ~10 hard-coded entries; for many boards (Access, NightMode, Sounds) search is the *only* way in, and most settings («Время захода», «Автоудаление», «Папки», «Прокси», «Иконка») can't be found. Telegram's settings search indexes every row.
 - **Proposal:** generate the index from one table of (title, synonyms, path, board) shared with the P1-1 map; include synonyms (тема/цвет/ночь, звук/мелодия, пароль/код).
 
-### P1-3 Chat row: status icons are silent for TalkBack — S
+### P1-3 Chat row: status icons are silent for TalkBack — S (a11y: done — invisible)
 - **Screen:** Chats list (ChatsScreen.kt ChatRow ~200-225), Archive.
 - **Problem:** pinned, muted, verified, secret, read/sent/sending/**failed** icons all have `contentDescription = null`; TalkBack reads «Анна, печатает…, 21:58, 2» and never says «не отправлено» or «без звука».
 - **Proposal:** build one merged description per row: «Анна. Закреплён. Без звука. 2 непрочитанных. Последнее: …, 21:58, прочитано».
 
-### P1-4 Swipe / long-press actions have no accessible alternative — M
+### P1-4 Swipe / long-press actions have no accessible alternative — M (a11y: done — invisible)
 - **Screen:** chat list (ChatSwipe, SwipeToRead), message bubbles (long-press menu, double-tap), story viewer.
 - **Problem:** 0 uses of `customActions` in v3. TalkBack and switch-access users can't archive, pin, mark read or reply without gestures.
 - **Proposal:** add `semantics { customActions = … }` on ChatRow (Прочитано, Закрепить, Архивировать, Без звука, Удалить) and on MessageBubble (Ответить, Реакция, Меню).
 
-### P1-5 Touch targets under 48 dp — S
+### P1-5 Touch targets under 48 dp — S (a11y: done — invisible)
 - **Screen:** global. `KxIconButton` defaults to 44 dp, the tab headers use 42 dp (Calls, Stories, Settings search/⋮), close «×» buttons are 28–34 dp (ArchiveScreen.kt:86, CommentsScreen.kt:210, QuoteScreen.kt:147, ChatSearchScreen.kt:115, AgendaScreen.kt:124, LiveBarsScreen.kt:106).
 - **Proposal:** keep the drawn size but add `Modifier.minimumInteractiveComponentSize()` (or a 48 dp hit box) inside `kxClick` for icon-only targets. No visual change.
 
-### P1-6 Switches don't announce on/off — S
+### P1-6 Switches don't announce on/off — S (a11y: done — invisible)
 - **Screen:** 8 files draw `KxSwitch` without toggleable semantics (ChatKitB, Poll, Drive, Hidden, QuickReact, Invite, NewGroup, Browser); KxSwitch itself has none.
 - **Proposal:** give the row `Modifier.toggleable(value, role = Role.Switch)` (or put it into KxSwitch via an optional `onChange`), so TalkBack says «Вкл/Выкл».
 
-### P1-7 Fixed-height rows clip at large font sizes — M
+### P1-7 Fixed-height rows clip at large font sizes — M (a11y: done — invisible)
 - **Screen:** settings rows (`height(52/58.dp)`), dock, chips, action tiles (Profile actions «Без звука», Group «Управление» are already at the edge at 100 %).
 - **Problem:** with system font 130 %+ and the in-app Access scale, two-line labels are cut; profile action labels truncate.
 - **Proposal:** switch to `heightIn(min = …)`, allow 2 lines for action-tile labels, test boards at fontScale 1.3 and 1.6 in the screenshot harness (add a variant to kxbuild test).
@@ -197,7 +197,7 @@ Same light haptic for long-press menu, swipe threshold, toggle; none on plain na
 ### P3-8 Story card density — S
 Stories tab shows 6 cards per screen; a list mode (Telegram-style rows with ring) fits 10+ and makes «hide/mute story» swipe-able.
 
-### P3-9 Screenshot harness variants — S
+### P3-9 Screenshot harness variants — S (a11y: fontScale 1.3 + TalkBack-tree checks done in V3A11yTest — invisible)
 Add fontScale 1.3, light-contrast and TalkBack-tree dumps to kxbuild test so every new board is checked for P1-5..P1-7 automatically.
 
 ## from qa-lead

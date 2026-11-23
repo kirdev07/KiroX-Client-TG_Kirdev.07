@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.chat
 
+import com.kirox.app.ui.v3.components.kxToggleState
 import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.model.KxChatKind
 import androidx.compose.animation.animateColorAsState
@@ -188,7 +189,7 @@ private fun chatWordFs(k: Int) = if (k % 10 == 1 && k % 100 != 11) "чат" else
 private fun FsCheck(on: Boolean, dis: Boolean) {
     val bd by animateColorAsState(if (dis) Kx.w(.12f) else if (on) Kx.accent else Kx.w(.3f), tween(150), label = "bd")
     val bg by animateColorAsState(if (on) Kx.accent else Color.Transparent, tween(150), label = "bg")
-    Box(Modifier.size(24.dp).clip(CircleShape).background(bg).border(2.dp, bd, CircleShape), contentAlignment = Alignment.Center) {
+    Box(Modifier.kxToggleState(on).size(24.dp).clip(CircleShape).background(bg).border(2.dp, bd, CircleShape), contentAlignment = Alignment.Center) {
         if (on) Icon(Icons.Outlined.Check, null, Modifier.size(17.dp), tint = Kx.onAccent)
     }
 }

@@ -66,8 +66,12 @@ fun WhatsNewScreen(ctx: KxScreenCtx) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ExRoundBtn(Icons.AutoMirrored.Outlined.ArrowBack, "Назад") { ctx.back() }
             Text("Что нового", style = ts(20.sp, FontWeight.ExtraBold), modifier = Modifier.weight(1f))
-            Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.accent.copy(alpha = .14f)).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                Text("1.0.0-rc.1", style = ts(12.sp, FontWeight.ExtraBold, Kx.accent))
+            // wave5 (hybrid 1.0): on the real account the version pill opens the update checker (old UpdateCenter screen via the
+            // «Update» board route) and shows the installed version.
+            val updates = com.kirox.app.ui.v3.KxLegacy.Local.current != null
+            Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.accent.copy(alpha = .14f))
+                .then(if (updates) Modifier.kxClick("Проверить обновления") { ctx.open("Update") } else Modifier).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+                Text(if (updates) "v" + com.kirox.app.BuildConfig.VERSION_NAME.substringBefore('-') + " · Обновления" else "1.0.0-rc.1", style = ts(12.sp, FontWeight.ExtraBold, Kx.accent))
             }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 30.dp)) {

@@ -195,6 +195,7 @@ fun EditProfileScreen(ctx: KxScreenCtx) {
                         Triple(Icons.Outlined.Cake, "День рождения" to (if (bdSet) "$day ${Months[month - 1]}" else "Не указан")) { bd = true },
                         Triple(Icons.Outlined.Link, "Ссылка на канал" to "Не указана") { ctx.open("PersonalChannel") },
                         Triple(Icons.Outlined.Palette, "Цвет имени и профиля · Premium" to s.label) { photo = true },
+                        Triple(Icons.Outlined.EmojiEmotions, "Статус · Premium" to "Эмодзи рядом с именем") { ctx.open("Status") },
                     ).forEachIndexed { i, (ic, lv, act) ->
                         Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).drawBehind { if (i > 0) drawLine(Kx.w(.06f), Offset(0f, .5f), Offset(size.width, .5f), 1f) }
                             .kxClick(onClick = act).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {

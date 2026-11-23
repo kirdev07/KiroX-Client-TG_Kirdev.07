@@ -25,6 +25,9 @@ class TelegramFileRepository(private val client: TelegramClient) {
     private val states = ConcurrentHashMap<Int, MutableStateFlow<TelegramFileState>>()
     /** Background downloads asked for by [observe]; forgotten when TDLib closes, so they are asked again. */
     private val requested: MutableSet<Int> = ConcurrentHashMap.newKeySet()
+    private val _removed = kotlinx.coroutines.flow.MutableSharedFlow<Int>(extraBufferCapacity = 64)
+    /** Ids of files whose local copy TDLib deleted (cache clean, storage optimizer): screens drop the old path and ask again. */
+    val removed: kotlinx.coroutines.flow.SharedFlow<Int> = _removed
 
     init {
         client.addUpdateHandler { update ->
@@ -33,6 +36,13 @@ class TelegramFileRepository(private val client: TelegramClient) {
                     val file = update.file
                     val local = file.local ?: return@addUpdateHandler
                     if (local.isDownloadingCompleted && local.path.isNotBlank()) paths[file.id]?.value = local.path
+                    else if (!local.isDownloadingActive && local.downloadedSize == 0L) {
+                        // wave5: the local copy was deleted (OptimizeStorage / «Очистить кэш») → forget the path, download again on the next look.
+                        val had = paths[file.id]?.value != null || states[file.id]?.value?.path != null
+                        paths[file.id]?.value = null
+                        requested.remove(file.id)
+                        if (had) _removed.tryEmit(file.id)
+                    }
                     states[file.id]?.value = file.toState()
                 }
                 is TdApi.UpdateAuthorizationState -> if (update.authorizationState is TdApi.AuthorizationStateClosed) {

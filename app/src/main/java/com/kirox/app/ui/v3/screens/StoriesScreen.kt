@@ -137,8 +137,32 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
     }
     LaunchedEffect(open, slide) { store.viewStory(peer.id, s.id); progress.snapTo(0f) }
     DisposableEffect(Unit) { onDispose { store.closeStory() } }
-    LaunchedEffect(open, slide, paused) {
-        if (!paused) { progress.animateTo(1f, tween(((1f - progress.value) * 5000).toInt().coerceAtLeast(1), easing = LinearEasing)); advance(1) }
+    // wave5 (fixer-media): a video story plays (with sound) once its file is on the phone; the bar follows the video's length.
+    val videoPath = s.media?.takeIf { s.video }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val player = remember(videoPath) {
+        videoPath?.let { p ->
+            com.kirox.app.ui.chat.VoicePlayer.stop()
+            androidx.media3.exoplayer.ExoPlayer.Builder(context.applicationContext)
+                .setAudioAttributes(androidx.media3.common.AudioAttributes.Builder().setUsage(androidx.media3.common.C.USAGE_MEDIA).setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
+                .setHandleAudioBecomingNoisy(true).build().apply {
+                    setMediaItem(androidx.media3.common.MediaItem.fromUri(android.net.Uri.fromFile(java.io.File(p)))); playWhenReady = true; prepare()
+                }
+        }
+    }
+    DisposableEffect(player) { onDispose { player?.release() } }
+    LaunchedEffect(open, slide, paused, player) {
+        val p = player
+        if (p != null) {
+            p.playWhenReady = !paused
+            if (!paused) while (true) {
+                val d = p.duration
+                if (d > 0) progress.snapTo((p.currentPosition.toFloat() / d).coerceIn(0f, 1f))
+                if (p.playbackState == androidx.media3.common.Player.STATE_ENDED) { advance(1); break }
+                delay(100)
+            }
+        }
+        else if (!paused) { progress.animateTo(1f, tween(((1f - progress.value) * 5000).toInt().coerceAtLeast(1), easing = LinearEasing)); advance(1) }
         else progress.stop()
     }
     val zoom = remember { Animatable(.88f) }
@@ -149,7 +173,11 @@ fun StoryViewer(store: KxStore, startIndex: Int, onClose: () -> Unit) {
 
     Box(Modifier.fillMaxSize().background(Color.Black).graphicsLayer { scaleX = zoom.value; scaleY = zoom.value; alpha = ((zoom.value - .88f) / .12f).coerceIn(0f, 1f) }) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))) {
-            Box(Modifier.fillMaxSize().graphicsLayer { scaleX = ken.value; scaleY = ken.value }.look(s.look)) { if (s.media != null) KxImage(s.media, Modifier.matchParentSize()) }
+            Box(Modifier.fillMaxSize().graphicsLayer { scaleX = ken.value; scaleY = ken.value }.look(s.look)) {
+                if (player != null) androidx.compose.ui.viewinterop.AndroidView(factory = { c -> androidx.media3.ui.PlayerView(c).apply { useController = false; keepScreenOn = true } },
+                    update = { it.player = player }, modifier = Modifier.matchParentSize())
+                else if (s.media != null) KxImage(s.media, Modifier.matchParentSize())
+            }
             Icon(Looks[s.look % Looks.size].third, null, Modifier.align(BiasAlignment(0f, -.1f)).size(90.dp), tint = Color.White.copy(alpha = .22f))
             Box(Modifier.fillMaxWidth().height(140.dp).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = .55f), Color.Transparent))))
             Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(200.dp).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .6f)))))

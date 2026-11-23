@@ -1,0 +1,174 @@
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index be3dbd7..50a82e6 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -34,8 +34,8 @@ android {
+         // Android 10 – 17, 64-bit ARM only (owner decision for 1.0).
+         minSdk = 29
+         targetSdk = 37
+-        versionCode = 8
+-        versionName = "1.0.0-rc.1"
++        versionCode = 9
++        versionName = "1.0"
+         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+         buildConfigField("int", "TELEGRAM_API_ID", secret("KIROX_API_ID", "kirox.apiId").toIntOrNull()?.toString() ?: "0")
+         buildConfigField("boolean", "TELEGRAM_USE_TEST_DC", "false")
+diff --git a/app/src/main/java/com/kirox/app/ui/home/AppearanceScreens.kt b/app/src/main/java/com/kirox/app/ui/home/AppearanceScreens.kt
+index 583c229..6978bb6 100644
+--- a/app/src/main/java/com/kirox/app/ui/home/AppearanceScreens.kt
++++ b/app/src/main/java/com/kirox/app/ui/home/AppearanceScreens.kt
+@@ -113,14 +113,6 @@ internal fun CustomizationScreen(
+         item { Spacer(Modifier.height(8.dp)) }
+         item {
+             SettingsCard {
+-                run {
+-                    val ctx = androidx.compose.ui.platform.LocalContext.current
+-                    val newDesign by com.kirox.app.ui.v3.KxNewDesign.enabled(ctx).collectAsState()
+-                    // Preview of the kiroX v3 design on the real account; the old UI stays the default.
+-                    IconRow(KiroXIcon.Star, Color(0xFF3F9A6C), "Новый дизайн", if (newDesign == true) "Включён · вернуть можно в его настройках" else "Превью kiroX v3: чёрный и мягкий зелёный",
+-                        trailing = if (newDesign == true) "Вкл" else "Выкл") { com.kirox.app.ui.v3.KxNewDesign.set(ctx, newDesign != true) }
+-                }
+-                CardDivider()
+                 IconRow(KiroXIcon.Palette, Fusion.colors.accent, "Темы", "Готовые темы, свои цвета, загрузить тему", trailing = themeName, onClick = onOpenThemes)
+                 CardDivider()
+                 IconRow(KiroXIcon.Chat, Color(0xFF34B7A6), "Чаты", "Пузыри, обои, размер текста", trailing = bubbleShape.title, onClick = onOpenChats)
+diff --git a/app/src/main/java/com/kirox/app/ui/home/WhatsNew.kt b/app/src/main/java/com/kirox/app/ui/home/WhatsNew.kt
+index 54f13d6..c4fa6c4 100644
+--- a/app/src/main/java/com/kirox/app/ui/home/WhatsNew.kt
++++ b/app/src/main/java/com/kirox/app/ui/home/WhatsNew.kt
+@@ -28,14 +28,12 @@ private data class NewThing(val icon: KiroXIcon, val title: String, val text: St
+ 
+ /** What this version brings; written for each release. */
+ private val CHANGES = listOf(
+-    NewThing(KiroXIcon.Music, "Музыка", "Вся музыка из чатов, плейлисты и «Любимое», полноэкранный плеер с очередью, повтором и таймером сна"),
+-    NewThing(KiroXIcon.Video, "Онлайн-воспроизведение", "Видео и музыка играют сразу, пока скачиваются; двойное касание перематывает видео на 10 секунд"),
+-    NewThing(KiroXIcon.File, "Файлы Telegram", "Всё скачанное в одном месте: PDF, документы, архивы, APK открываются прямо в kiroX"),
++    NewThing(KiroXIcon.Star, "Новый дизайн kiroX", "Тёмный интерфейс с мягким зелёным: чаты, звонки, истории и настройки нарисованы заново"),
++    NewThing(KiroXIcon.Palette, "Темы и вид чатов", "Готовые темы, конструктор из одного цвета, свои обои для любимых чатов и ночной режим по расписанию"),
++    NewThing(KiroXIcon.File, "Файлы и музыка", "Всё скачанное в одном месте: документы, архивы, музыка с плеером и очередью"),
+     NewThing(KiroXIcon.Shield, "Проверка файлов", "Перед открытием kiroX ищет замаскированные программы, макросы и опасные архивы"),
+-    NewThing(KiroXIcon.Link, "Встроенный браузер", "Ссылки открываются внутри kiroX: приватный режим, экономия трафика, поиск на странице"),
+-    NewThing(KiroXIcon.Eye, "Фильтры сообщений", "Прячьте в группах сообщения с нужными словами или от выбранных людей"),
+-    NewThing(KiroXIcon.Lock, "Графический ключ", "kiroX можно закрыть не только PIN-кодом, но и графическим ключом"),
+-    NewThing(KiroXIcon.Refresh, "Энергосбережение", "Вместе с экономией заряда телефона kiroX отключает анимации и тяжёлые эффекты")
++    NewThing(KiroXIcon.Lock, "Код-пароль и скрытые чаты", "kiroX закрывается кодом, а отдельные чаты можно спрятать из списка"),
++    NewThing(KiroXIcon.Music, "Голосовые и звонки", "Голосовые сообщения, кружки и звонки со сквозным шифрованием прямо из чата")
+ )
+ 
+ /**
+diff --git a/app/src/main/java/com/kirox/app/ui/v3/KxApp.kt b/app/src/main/java/com/kirox/app/ui/v3/KxApp.kt
+index 9764880..6aedfb6 100644
+--- a/app/src/main/java/com/kirox/app/ui/v3/KxApp.kt
++++ b/app/src/main/java/com/kirox/app/ui/v3/KxApp.kt
+@@ -156,7 +156,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean
+                             )
+                             KxTab.Calls -> CallsScreen(store, onCall = { c, v -> if (c.group && !demoStore) store.joinGroupCall(c.peerId) else startCall(c.peerId, c.name, v, c.colorIndex) }, onOpen = { nav.push(KxRoute.Screen(it)) })
+                             KxTab.Stories -> StoriesScreen(store, onOpenViewer = { nav.push(KxRoute.Story(it)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
+-                            KxTab.Settings -> SettingsScreen(store, onOpen = { if (it == "Старый дизайн") KxNewDesign.set(context, false) else nav.push(KxRoute.Screen(it)) })
++                            KxTab.Settings -> SettingsScreen(store, onOpen = { nav.push(KxRoute.Screen(it)) })
+                             else -> KxTabPlaceholder(t)
+                         } }
+                     }
+diff --git a/app/src/main/java/com/kirox/app/ui/v3/KxNewDesign.kt b/app/src/main/java/com/kirox/app/ui/v3/KxNewDesign.kt
+index b19b8e4..c1d936b 100644
+--- a/app/src/main/java/com/kirox/app/ui/v3/KxNewDesign.kt
++++ b/app/src/main/java/com/kirox/app/ui/v3/KxNewDesign.kt
+@@ -5,23 +5,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.StateFlow
+ 
+ /**
+- * «Новый дизайн»: shows the kiroX v3 UI (ui/v3) instead of the current one after sign-in.
+- * Off by default; the old UI stays until the owner confirms the new one. Kept on this phone.
++ * kiroX 1.0: the v3 UI (ui/v3) is the main UI after sign-in; functions without a v3 board open the old screens.
++ * The «Новый дизайн» / «Старый дизайн» switches are gone, so this is always on — also for phones that had
++ * turned it off in a pre-release (the old preference "new_design_v3" is ignored and left in place).
+  */
+ object KxNewDesign {
+-    private const val PREFS = "kirox_ui"
+-    private const val KEY = "new_design_v3"
+-    private val state = MutableStateFlow<Boolean?>(null)
++    private val state = MutableStateFlow<Boolean?>(true)
+ 
+-    fun enabled(context: Context): StateFlow<Boolean?> {
+-        if (state.value == null) state.value = runCatching {
+-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, false)
+-        }.getOrDefault(false)
+-        return state
+-    }
+-
+-    fun set(context: Context, on: Boolean) {
+-        state.value = on
+-        runCatching { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY, on).apply() }
+-    }
++    @Suppress("UNUSED_PARAMETER")
++    fun enabled(context: Context): StateFlow<Boolean?> = state
+ }
+diff --git a/app/src/main/java/com/kirox/app/ui/v3/screens/SettingsScreen.kt b/app/src/main/java/com/kirox/app/ui/v3/screens/SettingsScreen.kt
+index 97440a4..85fdda7 100644
+--- a/app/src/main/java/com/kirox/app/ui/v3/screens/SettingsScreen.kt
++++ b/app/src/main/java/com/kirox/app/ui/v3/screens/SettingsScreen.kt
+@@ -95,7 +95,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
+             Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 58.dp, end = 16.dp).width(210.dp)
+                 .clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Color(0xF22E3A34), Color(0xF5181E1B)))).border(1.dp, Kx.stroke, RoundedCornerShape(20.dp)).topHighlight(Kx.w(.22f)).padding(6.dp)) {
+                 listOf(androidx.compose.material.icons.Icons.Outlined.AccountCircle to "Мой профиль", androidx.compose.material.icons.Icons.Outlined.SwitchAccount to "Аккаунты", androidx.compose.material.icons.Icons.Outlined.Contacts to "Контакты",
+-                    androidx.compose.material.icons.Icons.Outlined.Devices to "Устройства", androidx.compose.material.icons.Icons.Outlined.Folder to "Чаты и папки", androidx.compose.material.icons.Icons.Outlined.VisibilityOff to "Скрытые чаты", androidx.compose.material.icons.Icons.Outlined.AutoStories to "Архив историй", androidx.compose.material.icons.Icons.Outlined.History to "Старый дизайн", androidx.compose.material.icons.Icons.AutoMirrored.Outlined.Logout to "Выйти").filter { store !is com.kirox.app.ui.v3.demo.KxDemoStore || it.second != "Старый дизайн" }.forEach { (ic, t) ->
++                    androidx.compose.material.icons.Icons.Outlined.Devices to "Устройства", androidx.compose.material.icons.Icons.Outlined.Folder to "Чаты и папки", androidx.compose.material.icons.Icons.Outlined.VisibilityOff to "Скрытые чаты", androidx.compose.material.icons.Icons.Outlined.AutoStories to "Архив историй", androidx.compose.material.icons.Icons.AutoMirrored.Outlined.Logout to "Выйти").forEach { (ic, t) ->
+                     Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick { menu = false; onOpen(mapOf("Мой профиль" to "EditProfile", "Аккаунты" to "Accounts", "Контакты" to "Contacts", "Устройства" to "Devices", "Чаты и папки" to "Folders", "Скрытые чаты" to "Hidden", "Архив историй" to "StoryArchive", "Выйти" to "Logout")[t] ?: t) }.padding(horizontal = 12.dp),
+                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                         Icon(ic, null, Modifier.size(20.dp), tint = Kx.accent); Text(t, style = KxType.style(15.sp))
+diff --git a/app/src/main/java/com/kirox/app/ui/v3/screens/chat/CoachScreen.kt b/app/src/main/java/com/kirox/app/ui/v3/screens/chat/CoachScreen.kt
+index e6a4b65..937bbc9 100644
+--- a/app/src/main/java/com/kirox/app/ui/v3/screens/chat/CoachScreen.kt
++++ b/app/src/main/java/com/kirox/app/ui/v3/screens/chat/CoachScreen.kt
+@@ -156,7 +156,8 @@ fun CoachScreen(ctx: KxScreenCtx) {
+                     Icon(Icons.Rounded.Celebration, null, Modifier.size(48.dp), tint = Kx.accent)
+                     Text("Вы готовы!", style = ts(18, W800), modifier = Modifier.padding(top = 8.dp))
+                     Text("Подсказки можно включить снова в «Помощи»", style = ts(13, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+-                    Box(Modifier.padding(top = 14.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 22.dp).padding(2.dp).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.08f))
++                    // «Макет: …» replays the board on the demo store only.
++                    if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) Box(Modifier.padding(top = 14.dp).dashedBorder(Kx.accent.copy(alpha = .5f), 22.dp).padding(2.dp).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Kx.w(.08f))
+                         .kxClick { i = 0; done = false }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) { Text("Макет: показать снова", style = ts(13, W700, Kx.accent)) }
+                 }
+             }
+diff --git a/app/src/main/java/com/kirox/app/ui/v3/screens/extra/WhatsNewScreen.kt b/app/src/main/java/com/kirox/app/ui/v3/screens/extra/WhatsNewScreen.kt
+index d13126c..029b62d 100644
+--- a/app/src/main/java/com/kirox/app/ui/v3/screens/extra/WhatsNewScreen.kt
++++ b/app/src/main/java/com/kirox/app/ui/v3/screens/extra/WhatsNewScreen.kt
+@@ -44,8 +44,13 @@ private val WnSlides = listOf(
+ )
+ 
+ private data class WnItem(val icon: ImageVector, val c: Color, val t: String)
+-// demo: needs store (changelog of the installed build)
+-private val WnLog = listOf(
++// The real changelog of the installed build (release-1.0.md); the demo store keeps the board's sample history.
++private val WnLogRelease = listOf(
++    Triple("1.0", "Первый выпуск", listOf(WnItem(Icons.Rounded.Palette, Kx.accent, "Новый дизайн kiroX: тёмный с мягким зелёным"), WnItem(Icons.Rounded.FormatPaint, Kx.accent, "Темы, свой вид для каждого чата, ночной режим"),
++        WnItem(Icons.Rounded.FolderOpen, Kx.accent, "Файлы, музыка и загрузки в одном месте"), WnItem(Icons.Rounded.ShieldMoon, Color(0xFF6FA9D8), "Проверка файлов перед открытием, код-пароль, скрытые чаты"),
++        WnItem(Icons.Rounded.GraphicEq, Kx.accent, "Голосовые, кружки и звонки прямо из чата"))),
++)
++private val WnLogDemo = listOf(
+     Triple("1.0.0-rc.1", "Сегодня", listOf(WnItem(Icons.Rounded.Palette, Kx.accent, "Свой вид для отдельного чата"), WnItem(Icons.Rounded.FormatPaint, Kx.accent, "Готовые темы и конструктор"),
+         WnItem(Icons.Rounded.ShieldMoon, Color(0xFF6FA9D8), "Инструменты админов"), WnItem(Icons.Rounded.BugReport, Kx.warning, "Исправлены вылеты при открытии файлов"))),
+     Triple("0.9.5", "10 ноября", listOf(WnItem(Icons.Rounded.Redeem, Kx.warning, "Подарки за звёзды"), WnItem(Icons.Rounded.GraphicEq, Kx.accent, "Расшифровка голосовых"),
+@@ -126,7 +131,7 @@ fun WhatsNewScreen(ctx: KxScreenCtx) {
+             }
+             Text("Все изменения", style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 18.dp, bottom = 8.dp))
+             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(20.dp))) {
+-                WnLog.forEachIndexed { k, (ver, date, items) ->
++                (if (ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) WnLogDemo else WnLogRelease).forEachIndexed { k, (ver, date, items) ->
+                     val isOpen = open == k
+                     val rot by animateFloatAsState(if (isOpen) 180f else 0f, tween(250), label = "r$k")
+                     if (k > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Kx.w(.06f)))
+diff --git a/app/src/main/java/com/kirox/app/ui/v3/screens/tools/NightModeScreen.kt b/app/src/main/java/com/kirox/app/ui/v3/screens/tools/NightModeScreen.kt
+index 0de6f2e..6b5c4b7 100644
+--- a/app/src/main/java/com/kirox/app/ui/v3/screens/tools/NightModeScreen.kt
++++ b/app/src/main/java/com/kirox/app/ui/v3/screens/tools/NightModeScreen.kt
+@@ -125,7 +125,7 @@ fun NightModeScreen(ctx: KxScreenCtx) {
+                 track = Brush.horizontalGradient(0f to Color(0xFFF2C66A), .45f to Color(0xFFC0587E), .7f to Color(0xFF2C2F6E), 1f to Color(0xFF0D0F22))) { hour = it.toInt() }
+             Row {
+                 Text("00:00", style = KxType.style(11.sp, color = Kx.text4)); Spacer(Modifier.weight(1f))
+-                Text("Макет: время суток", style = KxType.style(11.sp, color = Kx.text4)); Spacer(Modifier.weight(1f))
++                Text(if (demo) "Макет: время суток" else "Проверка по времени", style = KxType.style(11.sp, color = Kx.text4)); Spacer(Modifier.weight(1f))
+                 Text("23:00", style = KxType.style(11.sp, color = Kx.text4))
+             }
+         }

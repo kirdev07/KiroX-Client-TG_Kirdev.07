@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.model.KxChatHeader
 import com.kirox.app.ui.v3.model.KxChatKind
+import com.kirox.app.ui.v3.model.KxComposer
 import com.kirox.app.ui.v3.theme.Kx
 import com.kirox.app.ui.v3.theme.KxMotion
 import com.kirox.app.ui.v3.theme.KxType
@@ -42,7 +43,7 @@ private val ChatMenuGlass = Brush.verticalGradient(listOf(Color(0xF22E3A34), Col
 internal class ChatMenuExtra(val icon: ImageVector, val label: String, val danger: Boolean = false, val onClick: () -> Unit)
 
 @Composable
-internal fun ChatMenuSheet(h: KxChatHeader, onDismiss: () -> Unit, onOpen: (String) -> Unit, extra: List<ChatMenuExtra> = emptyList()) {
+internal fun ChatMenuSheet(h: KxChatHeader, onDismiss: () -> Unit, onOpen: (String) -> Unit, extra: List<ChatMenuExtra> = emptyList(), forum: Boolean = false) {
     val id = h.chatId
     androidx.activity.compose.BackHandler(onBack = onDismiss)
     val appear = remember { Animatable(0f) }
@@ -52,6 +53,11 @@ internal fun ChatMenuSheet(h: KxChatHeader, onDismiss: () -> Unit, onOpen: (Stri
         add(Triple(Icons.Outlined.Search, "Поиск по чату", "ChatSearch:$id"))
         add(Triple(Icons.Outlined.PhotoLibrary, "Медиа и файлы", "SharedMedia:$id"))
         add(Triple(Icons.Outlined.CalendarMonth, "Перейти к дате", "JumpDate:$id"))
+        // wave5: scheduled messages list and forum topics had no entry on the real account.
+        if (h.composer == KxComposer.Write) add(Triple(Icons.Outlined.Schedule, "Отложенные", "Schedule:$id"))
+        if (forum) add(Triple(Icons.Outlined.Forum, "Темы", "Topics:$id"))
+        if (h.kind == KxChatKind.Private || h.kind == KxChatKind.Group || h.kind == KxChatKind.Channel) add(Triple(Icons.Outlined.Translate, "Перевести чат", "Translate:$id"))
+        add(Triple(Icons.Outlined.Download, "Экспорт переписки", "Export:$id"))
         if (h.kind != KxChatKind.Saved) add(Triple(Icons.Outlined.NotificationsNone, "Уведомления", "ChatNotify:$id"))
         if (group) add(Triple(Icons.Outlined.AlternateEmail, "Упоминания", "Mentions:$id"))
         if (group) add(Triple(Icons.Outlined.PushPin, "Закреплённые", "PinnedMsgs:$id"))

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material.icons.outlined.*
@@ -66,7 +67,7 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
                     )
                     rows.forEachIndexed { i, r ->
                         val shape = when (i) { 0 -> RoundedCornerShape(22.dp, 22.dp, 6.dp, 6.dp); rows.lastIndex -> RoundedCornerShape(6.dp, 6.dp, 22.dp, 22.dp); else -> RoundedCornerShape(6.dp) }
-                        Row(Modifier.fillMaxWidth().height(58.dp).clip(shape).background(Kx.w(.045f)).kxClick { onOpen(r.route) }.padding(horizontal = 14.dp),
+                        Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).clip(shape).background(Kx.w(.045f)).kxClick { onOpen(r.route) }.padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                             Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(r.bg), contentAlignment = Alignment.Center) { Icon(r.icon, null, Modifier.size(20.dp), tint = r.fg) }
                             Text(r.title, style = KxType.style(15.sp, FontWeight.Normal), modifier = Modifier.weight(1f))
@@ -94,8 +95,8 @@ fun SettingsScreen(store: KxStore, onOpen: (String) -> Unit, bottomPadding: Dp =
             Column(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(top = 58.dp, end = 16.dp).width(210.dp)
                 .clip(RoundedCornerShape(20.dp)).background(Brush.verticalGradient(listOf(Color(0xF22E3A34), Color(0xF5181E1B)))).border(1.dp, Kx.stroke, RoundedCornerShape(20.dp)).topHighlight(Kx.w(.22f)).padding(6.dp)) {
                 listOf(androidx.compose.material.icons.Icons.Outlined.AccountCircle to "Мой профиль", androidx.compose.material.icons.Icons.Outlined.SwitchAccount to "Аккаунты", androidx.compose.material.icons.Icons.Outlined.Contacts to "Контакты",
-                    androidx.compose.material.icons.Icons.Outlined.Devices to "Устройства", androidx.compose.material.icons.Icons.Outlined.Folder to "Чаты и папки", androidx.compose.material.icons.Icons.Outlined.VisibilityOff to "Скрытые чаты", androidx.compose.material.icons.Icons.Outlined.History to "Старый дизайн").filter { store !is com.kirox.app.ui.v3.demo.KxDemoStore || it.second != "Старый дизайн" }.forEach { (ic, t) ->
-                    Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick { menu = false; onOpen(mapOf("Мой профиль" to "EditProfile", "Аккаунты" to "Accounts", "Контакты" to "Contacts", "Устройства" to "Devices", "Чаты и папки" to "Folders", "Скрытые чаты" to "Hidden")[t] ?: t) }.padding(horizontal = 12.dp),
+                    androidx.compose.material.icons.Icons.Outlined.Devices to "Устройства", androidx.compose.material.icons.Icons.Outlined.Folder to "Чаты и папки", androidx.compose.material.icons.Icons.Outlined.VisibilityOff to "Скрытые чаты", androidx.compose.material.icons.Icons.Outlined.AutoStories to "Архив историй", androidx.compose.material.icons.Icons.Outlined.History to "Старый дизайн", androidx.compose.material.icons.Icons.AutoMirrored.Outlined.Logout to "Выйти").filter { store !is com.kirox.app.ui.v3.demo.KxDemoStore || it.second != "Старый дизайн" }.forEach { (ic, t) ->
+                    Row(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(14.dp)).kxClick { menu = false; onOpen(mapOf("Мой профиль" to "EditProfile", "Аккаунты" to "Accounts", "Контакты" to "Contacts", "Устройства" to "Devices", "Чаты и папки" to "Folders", "Скрытые чаты" to "Hidden", "Архив историй" to "StoryArchive", "Выйти" to "Logout")[t] ?: t) }.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(ic, null, Modifier.size(20.dp), tint = Kx.accent); Text(t, style = KxType.style(15.sp))
                     }
@@ -109,7 +110,7 @@ private data class Row5(val icon: ImageVector, val title: String, val value: Str
 
 @Composable
 private fun GlassRound(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Box(Modifier.size(42.dp).clip(CircleShape).background(Kx.fill).border(1.dp, Kx.w(.09f), CircleShape).topHighlight(Kx.w(.14f)).kxClick(label, onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.kxHitClick(label, onClick = onClick).size(42.dp).clip(CircleShape).background(Kx.fill).border(1.dp, Kx.w(.09f), CircleShape).topHighlight(Kx.w(.14f)), contentAlignment = Alignment.Center) {
         Icon(icon, null, Modifier.size(22.dp), tint = Kx.text2)
     }
 }

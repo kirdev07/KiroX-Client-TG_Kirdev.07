@@ -76,7 +76,7 @@ internal fun THeader(title: String, onBack: () -> Unit, bottom: Dp = 6.dp, sub: 
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = onBack)
         Column(Modifier.weight(1f)) {
-            Text(title, style = KxType.style(titleSize.sp, FontWeight.ExtraBold), maxLines = 1)
+            Text(title, style = KxType.style(titleSize.sp, FontWeight.ExtraBold), maxLines = 1, modifier = Modifier.kxHeading())
             if (sub != null) Text(sub, style = KxType.style(12.sp, color = Kx.text3), maxLines = 1)
         }
         actions()
@@ -87,7 +87,7 @@ internal fun THeader(title: String, onBack: () -> Unit, bottom: Dp = 6.dp, sub: 
 @Composable
 internal fun TCap(text: String, modifier: Modifier = Modifier, top: Dp = 16.dp, trailing: String? = null) {
     Row(modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = top, bottom = 6.dp), verticalAlignment = Alignment.Bottom) {
-        Text(text, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.weight(1f))
+        Text(text, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.weight(1f).kxHeading())
         if (trailing != null) Text(trailing, style = KxType.style(12.sp, color = Kx.text4))
     }
 }
@@ -110,7 +110,7 @@ internal fun Modifier.topLine(show: Boolean, a: Float = .06f): Modifier =
 @Composable
 internal fun TRadio(on: Boolean, size: Dp = 22.dp, dot: Dp = 10.dp, off: Color = Kx.dashed) {
     val d by animateColorAsState(if (on) Kx.accent else Color.Transparent, tween(200), label = "dot")
-    Box(Modifier.size(size).border(2.dp, if (on) Kx.accent else off, CircleShape), contentAlignment = Alignment.Center) {
+    Box(Modifier.kxSelectedState(on).size(size).border(2.dp, if (on) Kx.accent else off, CircleShape), contentAlignment = Alignment.Center) {
         Box(Modifier.size(dot).clip(CircleShape).background(d))
     }
 }
@@ -123,7 +123,7 @@ internal fun TSwitch(on: Boolean, trackOn: Color = Kx.accent, trackOff: Color = 
     val reduced = LocalKxReducedMotion.current
     val x by animateDpAsState(if (on) w - knob - pad * 2 else 0.dp, if (reduced) tween(0) else tween(350, easing = TSpring), label = "knob")
     val track by animateColorAsState(if (on) trackOn else trackOff, tween(if (reduced) 0 else 300), label = "track")
-    Box(Modifier.size(w, h).clip(RoundedCornerShape(h / 2)).background(track)) {
+    Box(Modifier.kxToggleState(on).size(w, h).clip(RoundedCornerShape(h / 2)).background(track)) {
         Box(Modifier.offset(pad + x, pad).size(knob).then(if (shadow) Modifier.shadow(3.dp, CircleShape) else Modifier)
             .clip(CircleShape).background(if (on) knobOn else knobOff))
     }

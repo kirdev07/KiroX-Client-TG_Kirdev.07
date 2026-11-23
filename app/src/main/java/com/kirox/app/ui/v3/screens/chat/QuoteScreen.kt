@@ -144,7 +144,7 @@ fun QuoteScreen(ctx: KxScreenCtx) {
                         Box(Modifier.size(34.dp).clip(CircleShape).background(Kx.w(.07f)).kxClick("Ответить в другом чате") { other = !other }, contentAlignment = Alignment.Center) {
                             Icon(Icons.AutoMirrored.Outlined.Forward, null, Modifier.size(18.dp), tint = Kx.text2)
                         }
-                        Box(Modifier.size(34.dp).clip(CircleShape).kxClick("Убрать цитату") { clear() }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text3) }
+                        Box(Modifier.kxHitClick("Убрать цитату") { clear() }.size(34.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text3) }
                     }
                 }
                 AnimatedVisibility(other && hasSel, enter = fadeIn(tween(200)), exit = fadeOut(tween(150))) {

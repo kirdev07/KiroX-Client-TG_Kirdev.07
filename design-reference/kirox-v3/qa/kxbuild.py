@@ -6,6 +6,7 @@ Usage (from anywhere):
   python design-reference/kirox-v3/qa/kxbuild.py test "com.kirox.app.v3.*"
   python design-reference/kirox-v3/qa/kxbuild.py install          -> installV3preview on the Xiaomi only
   python design-reference/kirox-v3/qa/kxbuild.py installtest      -> installQadc = com.kirox.app.testdc (Telegram test servers) on the Xiaomi only
+  python design-reference/kirox-v3/qa/kxbuild.py installrel       -> installQarelease = com.kirox.app.qarel (minified release, debug key) on the Xiaomi only
   python design-reference/kirox-v3/qa/kxbuild.py raw <gradle args...>
   python design-reference/kirox-v3/qa/kxbuild.py rawonline <gradle args...>   (fetches new dependencies once)
 
@@ -42,6 +43,8 @@ def main():
     elif cmd == 'install': args = [':app:installV3preview']; env['ANDROID_SERIAL'] = '79ed61c9'
     # Telegram test-server build (com.kirox.app.testdc, qa/testdc.md): Xiaomi only, never the real app.
     elif cmd == 'installtest': args = [':app:installQadc']; env['ANDROID_SERIAL'] = '79ed61c9'
+    # Release-candidate check (qarelease = R8 release build, debug key, com.kirox.app.qarel): Xiaomi only, never the real app.
+    elif cmd == 'installrel': args = [':app:installQarelease']; env['ANDROID_SERIAL'] = '79ed61c9'
     elif cmd == 'raw': args = rest
     # Same as raw but without --offline: only to fetch a newly added dependency once (never installs).
     elif cmd == 'rawonline':

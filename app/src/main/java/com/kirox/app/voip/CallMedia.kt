@@ -62,6 +62,8 @@ object CallMedia {
                 play()
             }
         }.getOrNull()
+        // wave5 (fixer-media): Android 7–8.1 — start the ringtone again whenever it ends, until answered/declined.
+        if (android.os.Build.VERSION.SDK_INT < 28) ringLoop.postDelayed(ringAgain, 1000)
         vibrator = app.getSystemService(Vibrator::class.java)?.also { v ->
             runCatching {
                 if (android.os.Build.VERSION.SDK_INT >= 26) v.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 600, 900), 0))
@@ -70,7 +72,17 @@ object CallMedia {
         }
     }
 
+    private val ringLoop = android.os.Handler(android.os.Looper.getMainLooper())
+    private val ringAgain: Runnable = object : Runnable {
+        override fun run() {
+            val r = ringtone ?: return
+            runCatching { if (!r.isPlaying) r.play() }
+            ringLoop.postDelayed(this, 1000)
+        }
+    }
+
     fun stopRinging() {
+        ringLoop.removeCallbacks(ringAgain)
         runCatching { ringtone?.stop() }
         ringtone = null
         runCatching { vibrator?.cancel() }

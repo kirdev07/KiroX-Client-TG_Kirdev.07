@@ -215,6 +215,12 @@ fun KiroXApp() {
     // Chats left by following a link from them, newest last: Back walks this trail before the list.
     val chatTrail = remember { mutableStateListOf<Long>() }
     fun openChat(id: Long) {
+        // wave5: with «Новый дизайн» the chat opens in the v3 host (notification, banner, links, music), not the old conversation.
+        if (newDesign == true) {
+            if (stack.current != Screen.Chats) stack.resetTo(Screen.Chats)
+            com.kirox.app.ui.v3.KxNavRequests.requestChat(id)
+            return
+        }
         val fromChat = Screen.Conversation in stack || Screen.Thread in stack
         if (!fromChat) chatTrail.clear() else if (openChatId != 0L && openChatId != id) chatTrail.add(openChatId)
         openChatId = id

@@ -143,7 +143,7 @@ fun JumpDateScreen(ctx: KxScreenCtx) {
                     }
                     val key = "${ym.year}-${ym.monthValue}-$sel"
                     Row(Modifier.padding(top = 12.dp).fillMaxWidth().height(48.dp).clip(RoundedCornerShape(24.dp)).cssGradient(135f, Kx.accentMid, Kx.accentDeep)
-                        .kxClick { jumped = key; if (chatId != 0L) { ctx.openChat(chatId); foundId?.takeIf { it > 0 }?.let { store.jumpTo(chatId, it) } } }, horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+                        .kxClick { jumped = key; if (chatId != 0L) { if (store.historyChatId == chatId) ctx.back() else ctx.openChat(chatId); foundId?.takeIf { it > 0 }?.let { store.jumpTo(chatId, it) } } }, horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.MoveDown, null, tint = Kx.onAccent)
                         Text(if (jumped == key) "Открываем…" else if (live) "Перейти к этому дню" else "Перейти к первому сообщению", style = ts(15, W800, Kx.onAccent))
                     }

@@ -60,6 +60,12 @@ internal object KxAccountMapping {
     fun filterWords(own: List<String>, presetBits: Int, presets: List<List<String>>): List<String> =
         (own + presets.filterIndexed { i, _ -> presetBits and (1 shl i) != 0 }.flatten()).distinctBy { it.lowercase() }
 
+    /** The other way round: the words of [all] that the chosen sets don't add (what the user typed, here or in the old screen). */
+    fun ownWords(all: List<String>, presetBits: Int, presets: List<List<String>>): List<String> {
+        val fromSets = presets.filterIndexed { i, _ -> presetBits and (1 shl i) != 0 }.flatten().map { it.lowercase() }.toSet()
+        return all.filter { it.isNotBlank() && it.lowercase() !in fromSets }
+    }
+
     /**
      * Do-not-disturb: the switch (until [until], 0 = until off) or the nightly window [from]..[to] (hours).
      * Chats in [people] still alert.
@@ -116,6 +122,23 @@ object KxDnd {
     internal const val SCHED_SET = "dnd.schedSet"
 }
 
+/**
+ * «Скрытые чаты» ids, kept per Telegram account (the session name): account A's hidden ids never apply in B.
+ * Notifications ask [contains] so a hidden chat alerts only with a neutral «Новое сообщение».
+ * The old app-wide key (before wave5) moves to the first account that reads it.
+ */
+object KxHidden {
+    fun key(session: String) = KxPrefsAccount.HIDDEN_CHATS + "@" + session
+    internal fun read(p: android.content.SharedPreferences, session: String): String {
+        val k = key(session)
+        if (!p.contains(k) && p.contains(KxPrefsAccount.HIDDEN_CHATS)) p.edit { putString(k, p.getString(KxPrefsAccount.HIDDEN_CHATS, "")); remove(KxPrefsAccount.HIDDEN_CHATS) }
+        return p.getString(k, "").orEmpty()
+    }
+    fun ids(context: Context, session: String): Set<Long> =
+        read(context.getSharedPreferences(KxDnd.PREFS, Context.MODE_PRIVATE), session).split('\n').mapNotNull { it.trim().toLongOrNull() }.toSet()
+    fun contains(context: Context, session: String, chatId: Long) = chatId in ids(context, session)
+}
+
 internal class KxAccountBinder(private val app: Context, private val services: TelegramServices, private val scope: CoroutineScope, private val onError: (String) -> Unit) {
     private val client get() = services.client
     private val prefs = app.getSharedPreferences(KxDnd.PREFS, Context.MODE_PRIVATE)
@@ -146,14 +169,16 @@ internal class KxAccountBinder(private val app: Context, private val services: T
     }
 
     private fun readTexts(): Map<String, String> {
-        val own = prefs.getString(KxPrefsAccount.FILTER_LIST, null)
-            ?: com.kirox.app.settings.MessageFilters.state.value.words.joinToString("\n") // first open: the app's words are the own words
+        // wave5: one source — the app's MessageFilters words; «own» = those words minus the chosen ready-made sets.
+        // (Was a separate v3 list that wiped words added elsewhere on the next v3 change.)
+        val own = ownWords().joinToString("\n")
         return textKeys.associateWith { prefs.getString(it, "").orEmpty() } + (KxPrefsAccount.FILTER_LIST to own) +
+            (KxPrefsAccount.HIDDEN_CHATS to KxHidden.read(prefs, client.activeSession)) +
             (KxPrefsAccount.USAGE_DAYS to usageDays().joinToString(",")) + (KxPrefsAccount.USAGE_SINCE to prefs.getString(USAGE_SINCE_KEY, "").orEmpty())
     }
 
     fun start() {
-        scope.launch { com.kirox.app.settings.MessageFilters.state.collect { values = readInts() } }
+        scope.launch { com.kirox.app.settings.MessageFilters.state.collect { values = readInts(); texts = readTexts() } }
         // Archive flags as Telegram has them (another device may have changed them).
         scope.launch {
             runCatching { client.query(org.drinkless.tdlib.TdApi.GetArchiveChatListSettings()) }.getOrNull()?.let { a ->
@@ -173,13 +198,16 @@ internal class KxAccountBinder(private val app: Context, private val services: T
             }
         }
         scope.launch { services.notificationPrefs.settings.collect { values = readInts() } }
+        // Account switch: the per-account texts (hidden chats) are read again once the new account is ready.
+        scope.launch { client.ready.collect { if (it) texts = readTexts() } }
     }
 
     fun put(key: String, value: Int) {
         if (key in readOnly) return
         when (key) {
             KxPrefsAccount.FILTER_ON -> filters { it.copy(enabled = value != 0) }
-            KxPrefsAccount.FILTER_PRESETS -> { prefs.edit { putInt(key, value) }; syncFilterWords(value, prefs.getString(KxPrefsAccount.FILTER_LIST, null)) }
+            // Own words are read with the OLD sets before the new sets are saved.
+            KxPrefsAccount.FILTER_PRESETS -> { val own = ownWords(); prefs.edit { putInt(key, value) }; syncFilterWords(value, own) }
             KxPrefsAccount.DND_UNTIL -> prefs.edit { putLong(KxDnd.UNTIL_LONG, value.toLong()) }
             KxPrefsAccount.DND_SCHED -> prefs.edit { putInt(key, value); putBoolean(KxDnd.SCHED_SET, true) }
             // «Счётчик на иконке» is the app's notification badge setting.
@@ -211,14 +239,17 @@ internal class KxAccountBinder(private val app: Context, private val services: T
 
     fun putText(key: String, value: String) {
         if (key !in textKeys) return
-        prefs.edit { putString(key, value) }
-        if (key == KxPrefsAccount.FILTER_LIST) syncFilterWords(prefs.getInt(KxPrefsAccount.FILTER_PRESETS, 0), value)
+        prefs.edit { putString(if (key == KxPrefsAccount.HIDDEN_CHATS) KxHidden.key(client.activeSession) else key, value) }
+        if (key == KxPrefsAccount.FILTER_LIST) syncFilterWords(prefs.getInt(KxPrefsAccount.FILTER_PRESETS, 0), value.split('\n').filter { it.isNotBlank() })
         texts = texts + (key to value)
     }
 
+    /** Own words = the app filter's words that are not in the currently chosen ready-made sets. */
+    private fun ownWords(): List<String> =
+        KxAccountMapping.ownWords(com.kirox.app.settings.MessageFilters.state.value.words, prefs.getInt(KxPrefsAccount.FILTER_PRESETS, 0), FILTER_PRESET_WORDS)
+
     /** The app's filter gets own words + chosen sets (the board's sets, same order). */
-    private fun syncFilterWords(presetBits: Int, ownText: String?) {
-        val own = (ownText ?: texts[KxPrefsAccount.FILTER_LIST].orEmpty()).split('\n').filter { it.isNotBlank() }
+    private fun syncFilterWords(presetBits: Int, own: List<String>) {
         filters { it.copy(words = KxAccountMapping.filterWords(own, presetBits, FILTER_PRESET_WORDS)) }
     }
     private fun filters(change: (com.kirox.app.settings.Filters) -> com.kirox.app.settings.Filters) =

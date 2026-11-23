@@ -55,6 +55,24 @@ private val RDurs = listOf(RDur("1 ч", "1 час", "19:20"), RDur("1 дн", "1 
 private val RReasons = listOf("Спам", "Реклама", "Оскорбления", "Флуд", "Другое")
 private val Red = Color(0xFFE5534B)
 
+/** wave5: unix end time of the term chip (1 h, 1 day, 1 week, 1 month; «∞» = 0 = forever). */
+private fun rUntil(dur: Int): Int {
+    val sec = when (dur) { 0 -> 3600L; 1 -> 86_400L; 2 -> 7 * 86_400L; 3 -> 30 * 86_400L; else -> return 0 }
+    return (System.currentTimeMillis() / 1000 + sec).toInt()
+}
+/** The same end time as the board writes it: «19:20», «завтра в 18:20», «29 ноября». */
+private fun rUntilText(dur: Int): String {
+    val at = java.util.Calendar.getInstance().apply { timeInMillis = rUntil(dur) * 1000L }
+    val now = java.util.Calendar.getInstance()
+    val hm = java.text.SimpleDateFormat("HH:mm", java.util.Locale("ru")).format(at.time)
+    val sameDay = at.get(java.util.Calendar.DAY_OF_YEAR) == now.get(java.util.Calendar.DAY_OF_YEAR) && at.get(java.util.Calendar.YEAR) == now.get(java.util.Calendar.YEAR)
+    return when {
+        sameDay -> hm
+        dur == 1 || (dur == 0) -> "завтра в $hm"
+        else -> java.text.SimpleDateFormat("d MMMM", java.util.Locale("ru")).format(at.time)
+    }
+}
+
 /** Board «Ограничить участника»: offending message card with stamp, mute/ban switch, permissions, duration, note, confirm + undo toast. */
 @Composable
 fun RestrictScreen(ctx: KxScreenCtx) {
@@ -142,7 +160,7 @@ fun RestrictScreen(ctx: KxScreenCtx) {
                     Row(Modifier.padding(top = 14.dp).gxRise(0, 200, 8.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color(0x14E5534B)).border(1.dp, Color(0x40E5534B), RoundedCornerShape(20.dp))
                         .padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(Icons.Outlined.Block, null, Modifier.size(24.dp), tint = Kx.danger)
-                        Text("Crypto Max больше не будет в группе и не сможет вернуться по ссылке, пока срок не истечёт.", style = KxType.style(13.sp, color = Color(0xFFE4C3BF), lineHeight = 18.9.sp))
+                        Text("${if (real) who else "Crypto Max"} больше не будет в группе и не сможет вернуться по ссылке, пока срок не истечёт.", style = KxType.style(13.sp, color = Color(0xFFE4C3BF), lineHeight = 18.9.sp))
                     }
                     Row(Modifier.padding(top = 8.dp).gxRise(0, 200, 8.dp).fillMaxWidth().kxClick(role = Role.Checkbox) { wipe = !wipe }.padding(horizontal = 4.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -150,7 +168,7 @@ fun RestrictScreen(ctx: KxScreenCtx) {
                             contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Check, null, Modifier.size(18.dp).alpha(if (wipe) 1f else 0f), tint = Color.White) }
                         Column(Modifier.weight(1f)) {
                             Text("Удалить все сообщения участника", style = KxType.style(15.sp, FontWeight.SemiBold))
-                            Text("14 сообщений за последние 2 дня", style = KxType.style(12.sp, color = Kx.text4))
+                            Text(if (real) "Все сообщения в этом чате, без возврата" else "14 сообщений за последние 2 дня", style = KxType.style(12.sp, color = Kx.text4))
                         }
                     }
                 }
@@ -158,7 +176,9 @@ fun RestrictScreen(ctx: KxScreenCtx) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     RDurs.forEachIndexed { i, r -> RChip(r.chip, dur == i, ban, Modifier.weight(1f).height(44.dp), 16, 12, FontWeight.Bold) { dur = i } }
                 }
-                val until = if (d.until.isNotEmpty()) (if (ban) "Сможет вернуться " else "Ограничения снимутся ") + (if (':' in d.until && !d.until.startsWith("завтра")) "в " + d.until else d.until)
+                // Real store: the real end time (the board's «19:20 / 29 ноября» are the mockup's).
+                val dUntil = if (real && dur < 4) rUntilText(dur) else d.until
+                val until = if (dUntil.isNotEmpty()) (if (ban) "Сможет вернуться " else "Ограничения снимутся ") + (if (':' in dUntil && !dUntil.startsWith("завтра")) "в " + dUntil else dUntil)
                     else if (ban) "Пока вы сами не разблокируете" else "Пока вы сами не снимете"
                 Text(until, style = KxType.style(12.sp, color = Kx.text4), modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 8.dp))
                 Text("Заметка для себя · хранится только в kiroX", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp, bottom = 8.dp))
@@ -188,8 +208,13 @@ fun RestrictScreen(ctx: KxScreenCtx) {
         GxConfirm(confirm, "Применить ограничения?", "Если выбрано удаление всех сообщений участника, вернуть их будет нельзя.", confirm = "Применить",
             onCancel = { confirm = false }) {
             confirm = false
-            if (real) { appliedBan = ban; if (ban) store.ban(chatId!!, userId!!, true) else store.restrict(chatId!!, userId!!, true) }
-            toastText = if (ban) "Блокировка · $who" else if (allow.isNotEmpty() && !real) "Ограничения включены" else "$who в муте"
+            // wave5: the chosen permissions, the term and «delete all messages» go to Telegram (was read-only forever).
+            if (real) {
+                appliedBan = ban
+                val until = rUntil(dur)
+                if (ban) store.banFor(chatId!!, userId!!, until, wipe) else store.restrictWith(chatId!!, userId!!, allow, until)
+            }
+            toastText = if (ban) "Блокировка · $who" else if (allow.isNotEmpty()) "Ограничения включены · $who" else "$who в муте"
             done = true; toastId++
         }
     }

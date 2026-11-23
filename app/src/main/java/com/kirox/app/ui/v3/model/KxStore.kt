@@ -46,6 +46,8 @@ interface KxStore {
     fun openChat(chatId: Long) {}
     fun closeChat(chatId: Long) {}
     fun setPinned(chatId: Long, pinned: Boolean)
+    /** wave5: pin inside the folder shown in the list ([folderId] > 0 = a TDLib folder; else the chat's own main/archive list). */
+    fun setPinnedIn(chatId: Long, pinned: Boolean, folderId: Int) = setPinned(chatId, pinned)
     fun setMuted(chatId: Long, muted: Boolean)
     fun setArchived(chatId: Long, archived: Boolean)
     /** Also clears unread mentions and reactions, like Telegram's «Прочитать». */
@@ -151,6 +153,8 @@ interface KxStore {
     /** Opens a new account slot: the app goes to the sign-in screens. */
     fun addAccount() {}
     fun logout() {}
+    /** wave5: clears the cache, waits for it, then logs out (clearCache alone is async and raced the logout). */
+    fun logoutClearingCache() { clearCache(); logout() }
 
     // Premium
     val starsBalance: Long? get() = null
@@ -180,10 +184,27 @@ interface KxStore {
     // Search
     suspend fun searchChats(query: String): List<KxChat> = emptyList()
     suspend fun searchMessages(query: String): List<KxFound> = emptyList()
+    /** wave5: global search limited to [kind] 0 photos/videos, 1 links, 2 files (Search tabs «Медиа», «Ссылки», «Файлы»). */
+    suspend fun searchMessagesOf(query: String, kind: Int): List<KxFound> = emptyList()
     /** Message ids in the open chat, newest first. */
     suspend fun searchInChat(chatId: Long, query: String): List<Long> = emptyList()
     /** Loads around [messageId] in the open chat; the history then contains it. */
     fun jumpTo(chatId: Long, messageId: Long) {}
+    /** wave5: message the open chat [chatId] should scroll to now (loaded), 0 = none; the screen calls [jumpDone] after scrolling. */
+    fun jumpTarget(chatId: Long): Long = 0
+    fun jumpDone() {}
+    /** wave5: the chat's synced Telegram draft once its history is loaded (null = not known yet); the composer restores it once. */
+    fun chatDraft(chatId: Long): String? = null
+    /** wave5: text of an own message for editing with its formatting written back as markdown (null = use the plain text). */
+    fun editableText(chatId: Long, messageId: Long): String? = null
+    /** wave5 (kiroX «Сохранять удалённые»): messages of [chatId] deleted after the switch was on, newest first: (title line, text). */
+    suspend fun keptDeleted(chatId: Long): List<Pair<String, String>> = emptyList()
+    /** wave5: «Экспорт переписки» as text into Downloads/kiroX (old UI's export); [onProgress] = messages read. null = saved. */
+    suspend fun exportChat(chatId: Long, onProgress: (Int) -> Unit = {}): String? = "Недоступно"
+    /** Share sheet for the last exported file; null = shown. */
+    suspend fun shareLastExport(): String? = "Недоступно"
+    /** wave5 (kiroX «Сохранять историю правок»): earlier texts of a message, oldest first: («до <время>», text). */
+    suspend fun editHistory(chatId: Long, messageId: Long): List<Pair<String, String>> = emptyList()
 
     // Chat tools (open chat)
     fun sendQuote(chatId: Long, text: String, replyTo: Long, quote: String) {}
@@ -248,6 +269,15 @@ interface KxStore {
     /** Read-only member (cannot write). */
     fun restrict(chatId: Long, userId: Long, restricted: Boolean) {}
     fun ban(chatId: Long, userId: Long, banned: Boolean) {}
+    // wave5: the AdminRights / Restrict boards send what they show.
+    /** Admin with the board's rows (0 info, 1 delete, 2 ban, 3 invite, 4 pin, 5 topics, 6 calls, 7 anonymous, 8 add admins) and title (0–16). */
+    fun promoteWith(chatId: Long, userId: Long, rights: Set<Int>, title: String) = promote(chatId, userId)
+    /** The admin's current rows (same numbering), null when not an admin / unknown. */
+    suspend fun adminRights(chatId: Long, userId: Long): Set<Int>? = null
+    /** Restricted until [untilSec] (unix, 0 = forever); [allow] rows stay allowed (0 text, 1 media, 2 stickers/GIF, 3 links, 4 polls, 5 invite). */
+    fun restrictWith(chatId: Long, userId: Long, allow: Set<Int>, untilSec: Int) = restrict(chatId, userId, true)
+    /** Banned until [untilSec] (0 = forever); [deleteMessages] deletes all their messages in the chat. */
+    fun banFor(chatId: Long, userId: Long, untilSec: Int, deleteMessages: Boolean) = ban(chatId, userId, true)
     fun removeMember(chatId: Long, userId: Long) {}
     suspend fun inviteLinks(chatId: Long): List<KxInviteLink> = emptyList()
     /** [days] 0 = no expiry, [limit] 0 = no limit. */
@@ -299,6 +329,8 @@ interface KxStore {
     val passcodeSet: Boolean get() = false
     /** «Разблокировка отпечатком» is allowed. */
     val passcodeBiometric: Boolean get() = true
+    /** wave5: the code is a graphic key (dots joined), not 4 digits — boards show a pattern pad then. */
+    val passcodePattern: Boolean get() = false
     /** True when [code] is right (unlocks the app). After 5 wrong codes the lock waits 30 s. */
     suspend fun checkPasscode(code: String): Boolean = false
     /** The system accepted the fingerprint. */
@@ -351,6 +383,8 @@ interface KxStore {
     suspend fun shareFile(fileId: Int): String? = "Недоступно"
     /** Opens a downloaded file in another app (copy via FileProvider); null = opened. */
     suspend fun openFile(fileId: Int): String? = "Недоступно"
+    /** wave5: FileGuard check of a downloaded file before [openFile]; [name] = the name shown in the chat. null = not checked (check off, not downloaded, demo). */
+    suspend fun fileCheck(fileId: Int, name: String = ""): KxFileCheck? = null
 
     // Music (old music library + VoicePlayer)
     /** Music sent in all chats (newest first); [query] filters by title / performer on Telegram's side. */
@@ -365,6 +399,10 @@ interface KxStore {
     fun playerRepeat() {}
     /** Plays (or pauses) one voice message. */
     fun playVoice(fileId: Int) {}
+    /** wave5: downloads the file of a chat message and puts it into Telegram's download list (AddFileToDownloads → Downloads / Files boards). */
+    fun downloadMessageFile(chatId: Long, messageId: Long, fileId: Int) = download(fileId)
+    /** wave5: GIFs play by themselves in chats («Автовоспроизведение GIF» in Данные и память). */
+    val autoplayGifs: Boolean get() = true
 
     // Downloads / files
     /** Telegram's download list, newest first. */

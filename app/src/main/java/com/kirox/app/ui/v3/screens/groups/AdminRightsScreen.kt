@@ -35,7 +35,7 @@ import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.theme.*
 
 // Board demo (no ids). With "AdminRights:<chatId>:<userId>": save = store.promote, «Снять» = store.demote.
-// demo: needs store (per-right toggles and the custom title are not sent yet: the repository promotes with a default set)
+// wave5: real store sends the toggled rights + title (store.promoteWith) and starts from the admin's current rights (store.adminRights).
 private data class ARight(val icon: ImageVector, val label: String, val sub: String? = null)
 private val ARights = listOf(
     ARight(Icons.Outlined.Info, "Менять название и фото"),
@@ -65,10 +65,15 @@ fun AdminRightsScreen(ctx: KxScreenCtx) {
     val name = if (chatId == null || userId == null) "Мария" else member?.name ?: ""
     val sub = if (chatId == null || userId == null) "в сети · в группе с марта" else member?.status ?: ""
     StoreErrorToasts(ctx)
+    val real = chatId != null && userId != null
     var on by remember { mutableStateOf(setOf(1, 2, 4)) }
-    var init by remember { mutableStateOf(setOf(1, 2, 4)) }
-    var title by remember { mutableStateOf("модератор") }
-    var initTitle by remember { mutableStateOf("модератор") }
+    var init by remember { mutableStateOf(if (real) emptySet() else setOf(1, 2, 4)) }
+    var title by remember { mutableStateOf(if (real) "" else "модератор") }
+    var initTitle by remember { mutableStateOf(if (real) "" else "модератор") }
+    // wave5: an existing admin starts from the rights Telegram has for them (a new one from the moderator set).
+    LaunchedEffect(chatId, userId) {
+        if (chatId != null && userId != null) store.adminRights(chatId, userId)?.let { on = it; init = it }
+    }
     var confirm by remember { mutableStateOf(false) }
     var removed by remember { mutableStateOf(false) }
     val tip = rememberGxTip()
@@ -153,7 +158,7 @@ fun AdminRightsScreen(ctx: KxScreenCtx) {
             GxPillButton(if (changed) "Сохранить права" else "Изменений нет", Modifier.fillMaxWidth(), height = 54.dp, brush = bgBrush,
                 ink = if (changed) Kx.onAccent else Color(0xFF5C6661), size = 16, weight = FontWeight.ExtraBold, icon = Icons.Rounded.AdminPanelSettings) {
                 if (changed) {
-                    if (chatId != null && userId != null) store.promote(chatId, userId)
+                    if (chatId != null && userId != null) store.promoteWith(chatId, userId, on, title)
                     init = on; initTitle = title; tip.say("Права обновлены · $name", Icons.Rounded.AdminPanelSettings)
                 }
             }

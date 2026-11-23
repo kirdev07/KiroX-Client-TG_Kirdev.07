@@ -73,7 +73,10 @@ fun KxMessageSwipe(onLeft: (() -> Unit)?, onRight: (() -> Unit)?, content: @Comp
 
 /** The word that hides [m] in a chat of [kind], or null (own and service messages never). */
 fun KxStore.filterHit(kind: KxChatKind, m: KxMessage): String? {
-    if (m.out || m.kind == KxMsgKind.Service || m.text.isBlank() || !prefOn(KxPrefsAccount.FILTER_ON)) return null
+    if (m.out || m.kind == KxMsgKind.Service || !prefOn(KxPrefsAccount.FILTER_ON)) return null
+    // wave5: «Скрывать сообщения автора» (message menu of the old chat / app filter) hides everything that person writes.
+    if (this !is com.kirox.app.ui.v3.demo.KxDemoStore && m.senderId != 0L) com.kirox.app.settings.MessageFilters.state.value.people[m.senderId]?.let { return it.ifBlank { m.sender.orEmpty() } }
+    if (m.text.isBlank()) return null
     val bit = when (kind) { KxChatKind.Group -> 1; KxChatKind.Channel -> 2; KxChatKind.Private, KxChatKind.Bot, KxChatKind.Secret -> 4; else -> 0 }
     if (pref(KxPrefsAccount.FILTER_SCOPE) and bit == 0) return null
     val presets = pref(KxPrefsAccount.FILTER_PRESETS)
@@ -87,7 +90,8 @@ fun KxFilteredMessage(store: KxStore, kind: KxChatKind, m: KxMessage, content: @
     val hit = store.filterHit(kind, m)
     if (hit == null) { content(); return }
     var shown by remember(m.id) { mutableStateOf(false) }
-    val action = store.pref(KxPrefsAccount.FILTER_ACTION)
+    // wave5: Modifier.blur does nothing below Android 12 — «Размыть» folds the message there instead of showing it clear.
+    val action = store.pref(KxPrefsAccount.FILTER_ACTION).let { if (it == 1 && android.os.Build.VERSION.SDK_INT < 31) 0 else it }
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
         when {
             action == 0 && !shown -> Row(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.w(.05f)).kxClick("Показать сообщение") { shown = true }.padding(horizontal = 12.dp),

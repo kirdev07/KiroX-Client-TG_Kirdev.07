@@ -64,6 +64,8 @@ class TelegramKxStore(
     private val vm: TelegramViewModel,
     private val startCall: (userId: Long, video: Boolean, start: () -> Unit) -> Unit = { _, _, start -> start() },
     private val requestMicrophone: () -> Unit = {},
+    /** wave5: asks the user for one runtime permission (storage on Android 7–9 before saving to the gallery). */
+    private val requestPermission: (String) -> Unit = {},
 ) : KxStore {
     private val app: android.app.Application = vm.getApplication()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -72,10 +74,14 @@ class TelegramKxStore(
         private set
     override var folders by mutableStateOf(listOf(KxFolder(0, "Все")))
         private set
-    override var chats by mutableStateOf(emptyList<KxChat>())
-        private set
-    override var archivedChats by mutableStateOf(emptyList<KxChat>())
-        private set
+    // wave5: hidden chats («Скрытые чаты», per account) leave every list the v3 UI reads — main list, folders, archive,
+    // search, forward/share pickers — not only the main list. The Hidden board finds them by header(id).
+    private var allChats by mutableStateOf(emptyList<KxChat>())
+    private var allArchived by mutableStateOf(emptyList<KxChat>())
+    private val hiddenIds: Set<Long> get() = prefTexts[com.kirox.app.ui.v3.model.KxPrefsAccount.HIDDEN_CHATS].orEmpty().split('\n').mapNotNull { it.trim().toLongOrNull() }.toSet()
+    private fun List<KxChat>.visible(): List<KxChat> { val h = hiddenIds; return if (h.isEmpty()) this else filter { it.id !in h } }
+    override val chats: List<KxChat> get() = allChats.visible()
+    override val archivedChats: List<KxChat> get() = allArchived.visible()
     override var stories by mutableStateOf(emptyList<KxStoryPeer>())
         private set
     override var calls by mutableStateOf(emptyList<KxCall>())
@@ -147,6 +153,15 @@ class TelegramKxStore(
     )
 
     init {
+        // wave5 (fixer-media): TDLib deleted a file from the phone (cache clean / storage optimizer) → drop the stale path,
+        // so avatars/photos download again and save/open/play do not get a missing file.
+        scope.launch {
+            vm.files.removed.collect { id ->
+                if (paths.value.containsKey(id)) paths.update { it - id }
+                watched.remove(id)
+                mediaBinderOrNull?.forget(id)
+            }
+        }
         // Chat lists + typing + stories + avatars → KxChat.
         scope.launch {
             combine(vm.chats.lists, vm.activity.linesV3, vm.stories.storyChats, pathsDaily, combine(vm.chats.folderUnread, vm.chats.unreadUnmutedChats) { f, t -> f to t }) { lists, lines, storyChats, p, unread ->
@@ -154,7 +169,7 @@ class TelegramKxStore(
             }
                 .flowOn(Dispatchers.Default)
                 .collect { l ->
-                    items = l.items; chats = l.main; archivedChats = l.archive; folders = l.folders; folderChats = l.byFolder; chatsLoading = l.loading
+                    items = l.items; allChats = l.main; allArchived = l.archive; folders = l.folders; folderChats = l.byFolder; chatsLoading = l.loading
                     // Folder lists load only when asked: ask once for each folder that appears.
                     l.folders.filter { it.id != 0 && requestedFolders.add(it.id) }.forEach { vm.chats.loadMore(TelegramChatListKey.Folder(it.id)) }
                 }
@@ -186,6 +201,7 @@ class TelegramKxStore(
                 .flowOn(Dispatchers.Default)
                 .collect { (h, mapped) ->
                     history = h; historyMessages = mapped
+                    pendingJump?.let { (c, m) -> if (h.chatId == c && h.loaded) { pendingJump = null; vm.messages.jumpTo(m) } }
                     fillFirstPage(h)
                     fetchRights(h)
                 }
@@ -220,7 +236,7 @@ class TelegramKxStore(
         vm.chats.clearError(); vm.messages.clearError()
     }
 
-    override fun chatsIn(folderId: Int): List<KxChat> = if (folderId == 0) chats else folderChats[folderId].orEmpty()
+    override fun chatsIn(folderId: Int): List<KxChat> = if (folderId == 0) chats else folderChats[folderId].orEmpty().visible()
 
     override fun messages(chatId: Long): List<KxMessage> = if (history.chatId == chatId) historyMessages else emptyList()
 
@@ -321,8 +337,12 @@ class TelegramKxStore(
         vm.chats.setPinned(key, chatId, pinned)
     }
 
+    override fun setPinnedIn(chatId: Long, pinned: Boolean, folderId: Int) {
+        if (folderId > 0) vm.chats.setPinned(TelegramChatListKey.Folder(folderId), chatId, pinned) else setPinned(chatId, pinned)
+    }
+
     override fun setMuted(chatId: Long, muted: Boolean) {
-        scope.launch { runCatching { vm.chats.setMuted(chatId, muted) } }
+        scope.launch { runCatching { vm.chats.setMuted(chatId, muted) }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; showError(it) } }
     }
 
     override fun setArchived(chatId: Long, archived: Boolean) = vm.chats.setArchived(chatId, archived)
@@ -419,13 +439,13 @@ class TelegramKxStore(
     }
 
     override fun forward(fromChatId: Long, messageIds: List<Long>, toChatId: Long) {
-        // The repository forwards from the open chat.
-        if (history.chatId == fromChatId && messageIds.isNotEmpty()) vm.messages.forward(toChatId, messageIds)
+        // wave5: explicit source chat, so boards opened outside the chat (or after it closed) forward too.
+        if (messageIds.isNotEmpty()) vm.messages.forwardFrom(fromChatId, toChatId, messageIds)
     }
 
     override fun saveToFavorites(chatId: Long, messageIds: List<Long>) {
-        if (history.chatId != chatId || messageIds.isEmpty()) return
-        scope.launch { runCatching { vm.users.savedMessagesChatId() }.onSuccess { vm.messages.forward(it, messageIds) }.onFailure { showError(it) } }
+        if (messageIds.isEmpty()) return
+        scope.launch { runCatching { vm.users.savedMessagesChatId() }.onSuccess { vm.messages.forwardFrom(chatId, it, messageIds) }.onFailure { showError(it) } }
     }
 
     override fun translate(chatId: Long, messageId: Long, show: Boolean) {
@@ -481,9 +501,10 @@ class TelegramKxStore(
         }
         val ids = vm.stories.storyChats.value.firstOrNull { it.chatId == peerId }?.storyIds.orEmpty()
         val next = ids.getOrNull(ids.indexOf(storyId) + 1)
+        // wave5: the next story's video is fetched ahead only when «Автозагрузка медиа» allows story preload on this network.
         listOfNotNull(storyId, next).forEach { id ->
             fetchStory(peerId, id)
-            storyCache.value[peerId to id]?.video?.let { ref -> vm.files.download(ref); watchFile(ref) }
+            if (id == storyId || vm.autoDownload.rule.value.preloadStories) storyCache.value[peerId to id]?.video?.let { ref -> vm.files.download(ref); watchFile(ref) }
         }
     }
 
@@ -513,7 +534,7 @@ class TelegramKxStore(
     /** [peerId] is a user id (a private chat's id equals its user's id in TDLib). */
     override fun call(peerId: Long, video: Boolean) = startCall(peerId, video) {
         vm.groupCalls.leave()
-        vm.voip.start(peerId, video)
+        vm.voip.start(peerId, video && granted(android.Manifest.permission.CAMERA)) // camera refused → voice call
     }
 
     // ---- Files -------------------------------------------------------------------------------
@@ -675,7 +696,18 @@ class TelegramKxStore(
         val media = media
         // Photos and voice notes keep their file in `photo` (TelegramMessage.photo), other contents in media.file.
         val mainFile = when (msgKind) { KxMsgKind.Photo, KxMsgKind.Voice -> photo; else -> media?.file }
-        val autoDownload = msgKind == KxMsgKind.Photo || msgKind == KxMsgKind.Sticker
+        // wave5 (fixer-media): «Автозагрузка медиа» of the current network (AutoDownloadPolicy, as the old chat does):
+        // photos only when allowed, GIFs up to 8 MB when autoplay is on, files/music up to the network's file limit.
+        val rule = vm.autoDownload.rule.value
+        val size = media?.size ?: 0L
+        val autoDownload = when (msgKind) {
+            KxMsgKind.Photo -> rule.photos
+            KxMsgKind.Sticker -> true
+            KxMsgKind.Gif -> rule.gifs && size in 1..GIF_AUTO_BYTES
+            KxMsgKind.File, KxMsgKind.Music -> size in 1..rule.maxOtherBytes
+            KxMsgKind.VideoNote -> size in 1..rule.maxVideoBytes
+            else -> false
+        }
         val aspect = when {
             photoAspect > 0f -> photoAspect
             media != null && media.width > 0 && media.height > 0 -> media.width.toFloat() / media.height
@@ -733,7 +765,8 @@ class TelegramKxStore(
             // Telegram sends voice loudness as 5-bit values (0..31).
             waveform = media?.waveform.orEmpty().map { it.coerceIn(0, 31) / 31f },
             dayHeader = dayHeader,
-            media = if (autoDownload) autoPath(mainFile, known) else knownPath(mainFile, known),
+            // View-once media is not fetched for the bubble (only when the user opens it).
+            media = if (selfDestruct) null else if (autoDownload) autoPath(mainFile, known) else knownPath(mainFile, known),
             thumb = autoPath(thumbnail, known),
             aspect = aspect,
             fileId = mainFile?.id ?: 0,
@@ -752,6 +785,8 @@ class TelegramKxStore(
             pinned = pinned,
             translation = translation,
             poll = poll?.let { KxExtrasMapping.poll(it) },
+            spoiler = hasSpoiler,
+            viewOnce = selfDestruct,
         )
     }
 
@@ -1011,6 +1046,12 @@ class TelegramKxStore(
     }
     override fun addAccount() = services.client.addAccount()
     override fun logout() = vm.auth.logOut()
+    override fun logoutClearingCache() {
+        scope.launch {
+            try { services.settings.clearCache() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { /* logging out matters more */ }
+            vm.auth.logOut()
+        }
+    }
 
     // Premium
     private var stars by mutableStateOf<Long?>(null)
@@ -1053,12 +1094,20 @@ class TelegramKxStore(
     override suspend fun searchChats(query: String): List<KxChat> {
         if (query.isBlank()) return emptyList()
         val known = paths.value
-        return orNull { vm.chats.search(query.trim()) }.orEmpty().map { it.toKx(null, false, known) }
+        return orNull { vm.chats.search(query.trim()) }.orEmpty().map { it.toKx(null, false, known) }.visible()
     }
     override suspend fun searchMessages(query: String): List<KxFound> {
         if (query.isBlank()) return emptyList()
         val known = paths.value
-        return orNull { vm.chats.searchMessages(query.trim()) }.orEmpty().map {
+        return orNull { vm.chats.searchMessages(query.trim()) }.orEmpty().filter { it.chatId !in hiddenIds }.map {
+            KxFound(it.chatId, it.messageId, it.chatTitle, it.text.replace('\n', ' '), KxFormat.chatTime(it.date), autoPath(it.photo, known))
+        }
+    }
+    override suspend fun searchMessagesOf(query: String, kind: Int): List<KxFound> {
+        if (query.isBlank()) return emptyList()
+        val filter: org.drinkless.tdlib.TdApi.SearchMessagesFilter = when (kind) { 0 -> org.drinkless.tdlib.TdApi.SearchMessagesFilterPhotoAndVideo(); 1 -> org.drinkless.tdlib.TdApi.SearchMessagesFilterUrl(); else -> org.drinkless.tdlib.TdApi.SearchMessagesFilterDocument() }
+        val known = paths.value
+        return orNull { vm.chats.searchMessages(query.trim(), filter) }.orEmpty().filter { it.chatId !in hiddenIds }.map {
             KxFound(it.chatId, it.messageId, it.chatTitle, it.text.replace('\n', ' '), KxFormat.chatTime(it.date), autoPath(it.photo, known))
         }
     }
@@ -1066,7 +1115,35 @@ class TelegramKxStore(
         if (history.chatId != chatId || query.isBlank()) return emptyList()
         return orNull { vm.messages.search(query.trim()).first }.orEmpty().map { it.id }
     }
-    override fun jumpTo(chatId: Long, messageId: Long) { if (history.chatId == chatId) vm.messages.jumpTo(messageId) }
+    // wave5: a jump asked right after openChat (search hit, JumpDate, SharedMedia) waits until that chat's history is open.
+    @Volatile private var pendingJump: Pair<Long, Long>? = null
+    override fun jumpTo(chatId: Long, messageId: Long) {
+        if (history.chatId == chatId && history.loaded) { pendingJump = null; vm.messages.jumpTo(messageId) } else pendingJump = chatId to messageId
+    }
+    override fun jumpTarget(chatId: Long): Long = if (history.chatId == chatId) history.jumpTo else 0L
+    override fun jumpDone() { vm.messages.jumpDone() }
+    override fun editableText(chatId: Long, messageId: Long): String? = if (history.chatId == chatId) runCatching { vm.messages.editableText(messageId) }.getOrNull() else null
+    private var lastExport: Pair<String, String>? = null
+    override suspend fun exportChat(chatId: Long, onProgress: (Int) -> Unit): String? = try {
+        val text = services.chats.exportText(chatId) { onProgress(it) }
+        val file = kotlinx.coroutines.withContext(Dispatchers.IO) { java.io.File(app.cacheDir, "export").apply { mkdirs() }.resolve("chat.txt").apply { writeText(text) } }
+        val name = header(chatId).title.ifBlank { "chat" }.map { c -> if (c.code == 92 || c in "/:*?<>|" || c == '"') '_' else c }.joinToString("") + ".txt"
+        lastExport = file.path to name
+        if (com.kirox.app.ui.chat.saveToDownloads(app, file.path, name, "text/plain")) null else "Не удалось сохранить переписку"
+    } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { "Не удалось сохранить переписку" }
+    override suspend fun shareLastExport(): String? {
+        val (path, name) = lastExport ?: return "Сначала экспортируйте чат"
+        return if (com.kirox.app.ui.chat.shareFile(app, path, name, "text/plain")) null else "Нет приложения, чтобы поделиться"
+    }
+    override suspend fun keptDeleted(chatId: Long): List<Pair<String, String>> = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        runCatching { services.archive.deleted(chatId) }.getOrDefault(emptyList()).map { k ->
+            listOf(k.sender, KxFormat.dateTime(k.date)).filter { it.isNotBlank() }.joinToString(" · ") + " · удалено " + KxFormat.dateTime(k.deletedAt) to k.text
+        }
+    }
+    override suspend fun editHistory(chatId: Long, messageId: Long): List<Pair<String, String>> = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        runCatching { services.archive.versions(chatId, messageId) }.getOrDefault(emptyList()).map { "до " + KxFormat.dateTime(it.editedAt) to it.text }
+    }
+    override fun chatDraft(chatId: Long): String? = if (history.chatId == chatId && history.loaded) history.draft else null
 
     // Chat tools: TelegramMessageRepository sends these to its open chat only.
     private fun inOpen(chatId: Long, block: () -> Unit) {
@@ -1097,7 +1174,7 @@ class TelegramKxStore(
     override fun sendPhoto(chatId: Long, path: String, caption: String, spoiler: Boolean) = inOpen(chatId) { vm.messages.sendPhoto(path, caption, spoiler) }
     override fun sendFile(chatId: Long, path: String, caption: String) = inOpen(chatId) { vm.messages.sendDocument(path, caption) }
     override fun forward(fromChatId: Long, messageIds: List<Long>, toChatId: Long, hideSender: Boolean, dropCaption: Boolean) {
-        if (history.chatId == fromChatId && messageIds.isNotEmpty()) vm.messages.forward(toChatId, messageIds, asCopy = hideSender, removeCaption = hideSender && dropCaption)
+        if (messageIds.isNotEmpty()) vm.messages.forwardFrom(fromChatId, toChatId, messageIds, asCopy = hideSender, removeCaption = hideSender && dropCaption)
     }
     override suspend fun messageLink(chatId: Long, messageId: Long): String? = orNull { services.admin.messageLink(chatId, messageId) }
     override suspend fun pressButton(chatId: Long, messageId: Long, row: Int, column: Int): String? {
@@ -1216,6 +1293,10 @@ class TelegramKxStore(
     override fun restrict(chatId: Long, userId: Long, restricted: Boolean) = act { if (restricted) services.admin.restrict(chatId, userId) else services.admin.unrestrict(chatId, userId) }
     override fun ban(chatId: Long, userId: Long, banned: Boolean) = act { if (banned) services.admin.ban(chatId, userId) else services.admin.unban(chatId, userId) }
     override fun removeMember(chatId: Long, userId: Long) = act { services.admin.remove(chatId, userId) }
+    override fun promoteWith(chatId: Long, userId: Long, rights: Set<Int>, title: String) = act { services.admin.promoteWith(chatId, userId, isChannel(chatId), rights, title) }
+    override suspend fun adminRights(chatId: Long, userId: Long): Set<Int>? = ask { services.admin.adminRows(chatId, userId) }
+    override fun restrictWith(chatId: Long, userId: Long, allow: Set<Int>, untilSec: Int) = act { services.admin.restrictWith(chatId, userId, allow, untilSec) }
+    override fun banFor(chatId: Long, userId: Long, untilSec: Int, deleteMessages: Boolean) = act { services.admin.banFor(chatId, userId, untilSec, deleteMessages) }
     private fun com.kirox.app.telegram.InviteLink.toKx() = KxInviteLink(link, name, isPrimary, memberCount,
         if (expires > 0) "до " + KxFormat.futureTime(expires) else "", memberLimit)
     override suspend fun inviteLinks(chatId: Long): List<KxInviteLink> = ask { services.admin.inviteLinks(chatId) }.orEmpty().map { it.toKx() }
@@ -1360,6 +1441,7 @@ class TelegramKxStore(
     override fun renameTab(index: Int, name: String) = local.renameTab(index, name)
     override val passcodeSet: Boolean get() = local.passcodeSet
     override val passcodeBiometric: Boolean get() = local.passcodeBiometric
+    override val passcodePattern: Boolean get() = com.kirox.app.security.PasscodeLock.settings.value.pattern
     override suspend fun checkPasscode(code: String): Boolean = local.checkPasscode(code)
     override fun passcodeBiometricOk() = local.biometricOk()
     override fun passcodeWait(): Int = local.passcodeWait()
@@ -1371,14 +1453,24 @@ class TelegramKxStore(
     }
 
     // ---- wave3-media (TelegramKxMedia.kt) ----
-    private val mediaBinder by lazy { KxMediaBinder(app, vm, scope) { autoPath(it, paths.value) }.also { it.start() } }
+    private val mediaBinderLazy = lazy { KxMediaBinder(app, vm, scope) { autoPath(it, paths.value) }.also { it.start() } }
+    private val mediaBinder by mediaBinderLazy
+    private val mediaBinderOrNull: KxMediaBinder? get() = if (mediaBinderLazy.isInitialized()) mediaBinder else null
     override suspend fun chatMedia(chatId: Long, aroundMessageId: Long) = mediaBinder.chatMedia(chatId, aroundMessageId)
     override suspend fun albumOf(chatId: Long, messageId: Long) = mediaBinder.albumOf(chatId, messageId)
     override fun fileState(fileId: Int) = mediaBinder.fileState(fileId)
     override fun cancelDownload(fileId: Int) = mediaBinder.cancelDownload(fileId)
-    override suspend fun saveToGallery(fileId: Int, video: Boolean) = mediaBinder.saveToGallery(fileId, video)
+    override suspend fun saveToGallery(fileId: Int, video: Boolean): String? {
+        // wave5 (fixer-media): Android 7–9 write the gallery copy only with WRITE_EXTERNAL_STORAGE — ask instead of failing silently.
+        if (android.os.Build.VERSION.SDK_INT < 29 && !granted(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            requestPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            return "Разрешите доступ к памяти и сохраните ещё раз"
+        }
+        return mediaBinder.saveToGallery(fileId, video)
+    }
     override suspend fun shareFile(fileId: Int) = mediaBinder.shareFile(fileId)
     override suspend fun openFile(fileId: Int) = mediaBinder.openFile(fileId)
+    override suspend fun fileCheck(fileId: Int, name: String) = mediaBinder.fileCheck(fileId, name)
     override suspend fun musicLibrary(query: String) = mediaBinder.musicLibrary(query)
     override val player: KxPlayerState get() = mediaBinder.player
     override fun playTracks(tracks: List<KxTrack>, index: Int) = mediaBinder.playTracks(tracks, index)
@@ -1389,6 +1481,8 @@ class TelegramKxStore(
     override fun playerShuffle() = mediaBinder.playerShuffle()
     override fun playerRepeat() = mediaBinder.playerRepeat()
     override fun playVoice(fileId: Int) = mediaBinder.playVoice(fileId)
+    override fun downloadMessageFile(chatId: Long, messageId: Long, fileId: Int) { mediaBinder.addToDownloads(fileId, chatId, messageId); if (fileId != 0) watchFile(TelegramFileRef(fileId, null)) }
+    override val autoplayGifs: Boolean get() = vm.autoDownload.autoplayGifs.value
     override suspend fun downloads(query: String) = mediaBinder.downloads(query)
     override fun pauseDownload(fileId: Int, paused: Boolean) = mediaBinder.pauseDownload(fileId, paused)
     override fun removeDownloads(fileIds: List<Int>) = mediaBinder.removeDownloads(fileIds)
@@ -1409,16 +1503,19 @@ class TelegramKxStore(
     override val activeCall: KxCallState? get() = mediaBinder.activeCall
     override val groupCall: KxGroupCallState? get() = mediaBinder.groupCall
     override val lastCall: KxCallState? get() = mediaBinder.lastCall
-    override fun answerCall() = mediaBinder.answerCall()
+    // wave5 (fixer-media): answer / camera / video chat go through the host's permission ask like an outgoing call;
+    // without the camera a video call or camera switch stays voice only (no capture without permission).
+    private fun granted(p: String) = androidx.core.content.ContextCompat.checkSelfPermission(app, p) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    override fun answerCall() { val video = activeCall?.video == true; startCall(activeCall?.peerId ?: 0, video) { if (granted(android.Manifest.permission.RECORD_AUDIO)) { vm.groupCalls.leave(); mediaBinder.answerCall() } else error = "Нужен доступ к микрофону" } }
     override fun hangUp() = mediaBinder.hangUp()
     override fun muteCallMic(muted: Boolean) = mediaBinder.muteCallMic(muted)
-    override fun turnCallCamera(on: Boolean) = mediaBinder.turnCallCamera(on)
+    override fun turnCallCamera(on: Boolean) { if (!on) mediaBinder.turnCallCamera(false) else startCall(activeCall?.peerId ?: 0, true) { if (granted(android.Manifest.permission.CAMERA)) mediaBinder.turnCallCamera(true) else error = "Нужен доступ к камере" } }
     override fun flipCallCamera() = mediaBinder.flipCallCamera()
     override fun attachCallVideo(remote: Any?, local: Any?) = mediaBinder.attachCallVideo(remote, local)
-    override fun joinGroupCall(chatId: Long) = mediaBinder.joinGroupCall(chatId)
+    override fun joinGroupCall(chatId: Long) { startCall(0, false) { if (granted(android.Manifest.permission.RECORD_AUDIO)) mediaBinder.joinGroupCall(chatId) else error = "Нужен доступ к микрофону" } }
     override fun leaveGroupCall() = mediaBinder.leaveGroupCall()
     override fun muteGroupMic(muted: Boolean) = mediaBinder.muteGroupMic(muted)
-    override fun turnGroupCamera(on: Boolean) = mediaBinder.turnGroupCamera(on)
+    override fun turnGroupCamera(on: Boolean) { if (!on) mediaBinder.turnGroupCamera(false) else startCall(0, true) { if (granted(android.Manifest.permission.CAMERA)) mediaBinder.turnGroupCamera(true) else error = "Нужен доступ к камере" } }
     override suspend fun rateCall(callId: Int, rating: Int, comment: String, problems: List<String>) = mediaBinder.rateCall(callId, rating, comment, problems)
     override suspend fun planVideoChat(chatId: Long, title: String, startAt: Int, rtmp: Boolean) = mediaBinder.planVideoChat(chatId, title, startAt, rtmp)
     override suspend fun networkStats() = mediaBinder.networkStats()
@@ -1557,6 +1654,8 @@ class TelegramKxStore(
     private companion object {
         const val DRAFT_DELAY_MS = 500L
         const val FIRST_PAGE = 20
+        /** GIFs up to this size download and loop by themselves (old chat: AUTO_ANIMATION_BYTES). */
+        const val GIF_AUTO_BYTES = 8L * 1024 * 1024
         val DEFAULT_REACTIONS = listOf("❤", "🔥", "👍", "😂", "😮", "😢", "🎉")
     }
 }

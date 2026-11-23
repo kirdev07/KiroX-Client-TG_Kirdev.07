@@ -121,7 +121,7 @@ fun LogoutScreen(ctx: KxScreenCtx) {
                     Box(Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Kx.w(.08f)).kxClick("Остаться") { dialog = false }, contentAlignment = Alignment.Center) {
                         Text("Остаться", style = ts(15.sp, FontWeight.Bold))
                     }
-                    Box(Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Kx.dangerSolid).kxClick("Выйти") { dialog = false; out = true; if (cache) store.clearCache(); store.logout() }, contentAlignment = Alignment.Center) {
+                    Box(Modifier.weight(1f).height(50.dp).clip(RoundedCornerShape(25.dp)).background(Kx.dangerSolid).kxClick("Выйти") { dialog = false; out = true; if (cache) store.logoutClearingCache() else store.logout() }, contentAlignment = Alignment.Center) {
                         Text("Выйти", style = ts(15.sp, FontWeight.ExtraBold, Color.White))
                     }
                 }

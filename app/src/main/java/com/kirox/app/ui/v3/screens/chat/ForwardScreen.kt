@@ -50,7 +50,9 @@ import kotlinx.coroutines.delay
 fun ForwardScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val fromChat = ctx.arg?.substringBefore(':')?.toLongOrNull()
-    val msgId = ctx.arg?.substringAfter(':', "")?.toLongOrNull()
+    // wave5: several messages as "chatId:id,id,id" (MultiSelect «Переслать»).
+    val msgIds = ctx.arg?.substringAfter(':', "")?.split(',')?.mapNotNull { it.trim().toLongOrNull() }.orEmpty()
+    val msgId = msgIds.firstOrNull()
     val src = if (fromChat != null && msgId != null) store.messages(fromChat).firstOrNull { it.id == msgId } else null
     val srcHeader = fromChat?.let { store.header(it) }
     var sheet by remember { mutableStateOf(true) }
@@ -137,7 +139,7 @@ fun ForwardScreen(ctx: KxScreenCtx) {
                                     val names = sel.mapNotNull { id -> targets.firstOrNull { it.id == id } }
                                     names.forEach { t ->
                                         if (note.isNotBlank()) store.send(t.id, note.trim())
-                                        if (fromChat != null && msgId != null) store.forward(fromChat, listOf(msgId), t.id, hideSender = hide, dropCaption = noCap)
+                                        if (fromChat != null && msgId != null) store.forward(fromChat, msgIds, t.id, hideSender = hide, dropCaption = noCap)
                                     }
                                     val text = if (names.size == 1) (if (names[0].kind == KxChatKind.Saved) "Сохранено в «Избранное»" else "Переслано: ${names[0].title}")
                                         else "Переслано в ${names.size} ${plural(names.size, "чат", "чата", "чатов")}: " + names.take(2).joinToString(", ") { it.title } + if (names.size > 2) "…" else ""

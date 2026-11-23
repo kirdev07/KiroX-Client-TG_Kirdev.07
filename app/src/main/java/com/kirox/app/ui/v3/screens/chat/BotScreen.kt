@@ -93,7 +93,7 @@ fun BotScreen(ctx: KxScreenCtx) {
                     Icon(Icons.Rounded.LocalPizza, null, Modifier.size(22.dp), tint = Color(0xFF2A1A04))
                 }
                 Column(Modifier.weight(1f)) { Text("Пицца рядом", style = ts(16, W800)); Text("бот · 12 400 пользователей", style = ts(12, color = Kx.text3)) }
-                Box(Modifier.size(42.dp).clip(CircleShape).kxClick("Ещё") { if (botChat != null) botMenu = true else ctx.toast("Меню бота — на реальном аккаунте") }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.MoreVert, null, tint = Kx.text) }
+                Box(Modifier.kxHitClick("Ещё") { if (botChat != null) botMenu = true else ctx.toast("Меню бота — на реальном аккаунте") }.size(42.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.MoreVert, null, tint = Kx.text) }
             }
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (fresh) item {

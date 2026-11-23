@@ -513,6 +513,12 @@ class TelegramMessageRepository(
     fun forward(toChatId: Long, messageIds: List<Long>, asCopy: Boolean = false, removeCaption: Boolean = false) =
         act { id -> TdApi.ForwardMessages(toChatId, null, id, messageIds.toLongArray(), null, asCopy, asCopy && removeCaption) }
 
+    /** wave5: forwards from an explicit source chat (not only the open one), e.g. from a board opened outside the chat. */
+    fun forwardFrom(fromChatId: Long, toChatId: Long, messageIds: List<Long>, asCopy: Boolean = false, removeCaption: Boolean = false) = client.post {
+        if (fromChatId == 0L || messageIds.isEmpty()) return@post
+        client.send(TdApi.ForwardMessages(toChatId, null, fromChatId, messageIds.toLongArray(), null, asCopy, asCopy && removeCaption)) { result -> if (result is TdApi.Error) _error.value = humanError(result) }
+    }
+
     /**
      * Saves [text] as the Telegram draft of [chatId] (any chat, not only the open one), or clears it
      * when blank. Skipped when the draft already holds this text, so leaving a chat is not a request.
@@ -849,6 +855,8 @@ class TelegramMessageRepository(
             media = mediaInfo.first,
             thumbnail = mediaInfo.second,
             albumId = mediaAlbumId,
+            hasSpoiler = when (content) { is TdApi.MessagePhoto -> content.hasSpoiler; is TdApi.MessageVideo -> content.hasSpoiler; is TdApi.MessageAnimation -> content.hasSpoiler; else -> false },
+            selfDestruct = selfDestructType != null || (content as? TdApi.MessagePhoto)?.isSecret == true || (content as? TdApi.MessageVideo)?.isSecret == true || content is TdApi.MessageVideoNote && content.isSecret,
             poll = pollOf(content),
             buttons = inlineButtonsOf(replyMarkup),
             commentCount = interactionInfo?.replyInfo?.replyCount?.takeIf { isChannelPost },

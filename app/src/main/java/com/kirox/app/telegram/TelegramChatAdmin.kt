@@ -124,6 +124,63 @@ class TelegramChatAdmin(private val client: TelegramClient) {
         setStatus(chatId, userId, TdApi.ChatMemberStatusAdministrator(true, rights))
     }
 
+    /**
+     * wave5: admin with exactly the rights the v3 «Права администратора» board shows, by its rows:
+     * 0 info, 1 delete messages, 2 restrict/ban, 3 invite, 4 pin, 5 topics, 6 video chats, 7 anonymous, 8 add admins;
+     * then the custom title (0–16 chars, groups only; a refused title doesn't undo the rights).
+     */
+    suspend fun promoteWith(chatId: Long, userId: Long, isChannel: Boolean, rows: Set<Int>, title: String) {
+        val rights = TdApi.ChatAdministratorRights().apply {
+            canManageChat = true
+            canChangeInfo = 0 in rows
+            canPostMessages = isChannel; canEditMessages = isChannel
+            canDeleteMessages = 1 in rows
+            canRestrictMembers = 2 in rows
+            canInviteUsers = 3 in rows
+            canPinMessages = 4 in rows && !isChannel
+            canManageTopics = 5 in rows && !isChannel
+            canManageVideoChats = 6 in rows
+            isAnonymous = 7 in rows && !isChannel
+            canPromoteMembers = 8 in rows
+            canPostStories = isChannel; canEditStories = isChannel; canDeleteStories = isChannel
+        }
+        setStatus(chatId, userId, TdApi.ChatMemberStatusAdministrator(true, rights))
+        if (!isChannel) runCatching { client.query(TdApi.SetChatMemberTag(chatId, userId, title.trim().take(16))) }
+    }
+
+    /** wave5: the board rows an admin has now (see [promoteWith]), null when [userId] is not an admin. */
+    suspend fun adminRows(chatId: Long, userId: Long): Set<Int>? {
+        val status = client.query(TdApi.GetChatMember(chatId, TdApi.MessageSenderUser(userId))).status as? TdApi.ChatMemberStatusAdministrator ?: return null
+        val r = status.rights
+        return buildSet {
+            if (r.canChangeInfo) add(0); if (r.canDeleteMessages) add(1); if (r.canRestrictMembers) add(2); if (r.canInviteUsers) add(3)
+            if (r.canPinMessages) add(4); if (r.canManageTopics) add(5); if (r.canManageVideoChats) add(6); if (r.isAnonymous) add(7); if (r.canPromoteMembers) add(8)
+        }
+    }
+
+    /**
+     * wave5: restricted until [untilSec] (unix time, 0 = forever) with what stays allowed, by the v3 «Ограничить» rows:
+     * 0 text, 1 photos/videos/files/voice, 2 stickers and GIFs, 3 link previews, 4 polls, 5 invite users.
+     */
+    suspend fun restrictWith(chatId: Long, userId: Long, allow: Set<Int>, untilSec: Int) {
+        val media = 1 in allow
+        val p = TdApi.ChatPermissions().apply {
+            canSendBasicMessages = 0 in allow
+            canSendAudios = media; canSendDocuments = media; canSendPhotos = media; canSendVideos = media; canSendVideoNotes = media; canSendVoiceNotes = media
+            canSendOtherMessages = 2 in allow
+            canAddLinkPreviews = 3 in allow
+            canSendPolls = 4 in allow
+            canInviteUsers = 5 in allow
+            canReactToMessages = true
+        }
+        setStatus(chatId, userId, TdApi.ChatMemberStatusRestricted(true, untilSec, p))
+    }
+
+    /** wave5: banned until [untilSec] (0 = forever); [deleteMessages] also deletes everything they wrote in the chat. */
+    suspend fun banFor(chatId: Long, userId: Long, untilSec: Int, deleteMessages: Boolean) {
+        client.query(TdApi.BanChatMember(chatId, TdApi.MessageSenderUser(userId), untilSec, deleteMessages))
+    }
+
     suspend fun demote(chatId: Long, userId: Long) = setStatus(chatId, userId, TdApi.ChatMemberStatusMember(0))
 
     /** Removes from the group; they can come back by an invite link. */

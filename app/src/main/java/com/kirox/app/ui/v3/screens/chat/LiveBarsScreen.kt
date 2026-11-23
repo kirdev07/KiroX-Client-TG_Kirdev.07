@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.chat
 
+import com.kirox.app.ui.v3.components.kxHitClick
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -103,7 +104,7 @@ fun LiveBarsScreen(ctx: KxScreenCtx) {
                         Box(Modifier.size(38.dp).clip(CircleShape).kxClick(if (playing) "Пауза" else "Играть") { playing = !playing }, contentAlignment = Alignment.Center) {
                             Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, tint = Kx.text)
                         }
-                        Box(Modifier.size(32.dp).clip(CircleShape).kxClick("Закрыть плеер") { music = false }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.kxHitClick("Закрыть плеер") { music = false }.size(32.dp).clip(CircleShape), contentAlignment = Alignment.Center) {
                             Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text3)
                         }
                     }

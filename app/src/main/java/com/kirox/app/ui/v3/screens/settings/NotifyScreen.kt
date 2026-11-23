@@ -70,7 +70,20 @@ fun NotifyScreen(ctx: KxScreenCtx) {
     }
     var open by rememberSaveable { mutableStateOf<String?>("users") }
     var sound by rememberSaveable { mutableStateOf("Нота") }
-    var app by remember { mutableStateOf(mapOf("sound" to true, "vibrate" to true, "banner" to true, "badge" to true)) }
+    var demoApp by remember { mutableStateOf(mapOf("sound" to true, "vibrate" to true, "banner" to true, "badge" to true)) }
+    // wave5: on the real account the «В приложении» switches are the app's notification prefs (were local, lost on leave);
+    // reactions / calls / sounds / exceptions / reset live in the old working screen (hybrid 1.0, KxLegacy).
+    val legacy = com.kirox.app.ui.v3.KxLegacy.Local.current
+    val real = store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val localPrefs = if (real) (androidx.compose.ui.platform.LocalContext.current.applicationContext as com.kirox.app.KiroXApplication).telegram.notificationPrefs else null
+    val local = localPrefs?.settings?.collectAsState()?.value
+    val app = if (local != null) mapOf("sound" to local.inAppSound, "vibrate" to local.inAppVibrate, "banner" to local.inAppPreview, "badge" to local.badge) else demoApp
+    fun setApp(key: String, v: Boolean) {
+        if (localPrefs == null || local == null) { demoApp = demoApp + (key to v); return }
+        localPrefs.update(when (key) { "sound" -> local.copy(inAppSound = v); "vibrate" -> local.copy(inAppVibrate = v); "banner" -> local.copy(inAppPreview = v); else -> local.copy(badge = v) })
+    }
+    // Real account: only the three Telegram scopes have real switches here (reactions / calls were local fakes).
+    val cats = if (real) NotifyCats.filter { it.key != "reactions" && it.key != "calls" } else NotifyCats
     var banner by remember { mutableLongStateOf(0L) }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
@@ -81,7 +94,7 @@ fun NotifyScreen(ctx: KxScreenCtx) {
             }
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp).navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                NotifyCats.forEachIndexed { i, c ->
+                cats.forEachIndexed { i, c ->
                     val isOn = on[c.key] == true
                     val isOpen = open == c.key
                     val border by animateColorAsState(if (isOpen) Kx.accent.copy(alpha = .3f) else Color.Transparent, tween(300), label = "bd")
@@ -96,7 +109,7 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                                 }
                                 Column(Modifier.weight(1f)) {
                                     Text(c.label, style = KxType.style(15.sp, FontWeight.SemiBold))
-                                    Text(if (!isOn) "Выключены" else if (c.key == "calls") "Мелодия · вибрация" else "Звук «$sound» · превью",
+                                    Text(if (!isOn) "Выключены" else if (c.key == "calls") "Мелодия · вибрация" else if (real) (if (scopeOf(c.key)?.preview != false) "С текстом сообщения" else "Без текста") else "Звук «$sound» · превью",
                                         style = KxType.style(12.sp, color = if (isOn) Kx.text3 else Kx.danger))
                                 }
                                 Icon(Icons.Rounded.ExpandMore, null, Modifier.size(20.dp).graphicsLayer { rotationZ = chev }, tint = Kx.text4)
@@ -106,7 +119,8 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                             }
                         }
                         if (isOpen) Column(Modifier.sRise(0, 250, (-6).dp).padding(start = 64.dp, end = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // Sound names were never applied: the demo only; real sounds are per Android channel (old screen).
+                            if (!real) Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 listOf("Нота", "Капля", "Звон", "Без звука").forEach { s ->
                                     val sel = s == sound
                                     Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(if (sel) Kx.accent else Kx.w(.07f)).kxClick { sound = s }.padding(horizontal = 10.dp),
@@ -118,7 +132,7 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                             Row { Text("Текст сообщения", style = KxType.style(13.sp, color = Kx.text2), modifier = Modifier.weight(1f)); val sc = scopeOf(c.key); val pv = sc?.preview ?: true
                                 Text(if (pv) "Показывать" else "Скрывать", style = KxType.style(13.sp, color = if (pv) Kx.accent else Kx.text3),
                                     modifier = Modifier.kxClick { if (sc != null) store.setNotifyScope(sc.key, sc.enabled, !pv) }) }
-                            Row { Text("Исключения", style = KxType.style(13.sp, color = Kx.text2), modifier = Modifier.weight(1f)); Text(excText(c.key, c.exc), style = KxType.style(13.sp, color = Kx.text3)) }
+                            Row(if (legacy != null) Modifier.kxClick { ctx.open("Old:notifyExceptions") } else Modifier) { Text("Исключения", style = KxType.style(13.sp, color = Kx.text2), modifier = Modifier.weight(1f)); Text(excText(c.key, c.exc), style = KxType.style(13.sp, color = if (legacy != null) Kx.accent else Kx.text3)) }
                         }
                     }
                 }
@@ -128,13 +142,20 @@ fun NotifyScreen(ctx: KxScreenCtx) {
                         Triple("banner", Icons.Outlined.WebAsset, "Баннер сверху"), Triple("badge", Icons.Outlined.LooksOne, "Счётчик на иконке"))
                     defs.forEachIndexed { i, (key, icon, label) ->
                         val v = app[key] == true
-                        Row(Modifier.fillMaxWidth().height(50.dp).clip(groupShape(i, defs.size, 20.dp)).background(TileBg).kxClick(role = Role.Switch) { app = app + (key to !v) }.padding(horizontal = 14.dp),
+                        Row(Modifier.fillMaxWidth().height(50.dp).clip(groupShape(i, defs.size, 20.dp)).background(TileBg).kxClick(role = Role.Switch) { setApp(key, !v) }.padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Icon(icon, null, Modifier.size(20.dp), tint = Kx.text4)
                             Text(label, style = KxType.style(15.sp), modifier = Modifier.weight(1f))
                             SSwitch(v, w = 44.dp, h = 26.dp, knob = 20.dp, highlight = false)
                         }
                     }
+                }
+                // wave5: boards that had no entry.
+                Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    val n = if (legacy != null) 3 else 2
+                    SNavRow(Icons.Rounded.Bedtime, "Не беспокоить", "Тишина по расписанию и исключения", groupShape(0, n, 20.dp)) { ctx.open("Dnd") }
+                    SNavRow(Icons.Rounded.MusicNote, "Звуки уведомлений", "Свои звуки из чатов", groupShape(1, n, 20.dp)) { ctx.open("Sounds") }
+                    if (legacy != null) SNavRow(Icons.Rounded.Tune, "Все настройки уведомлений", "Реакции, звонки, мелодии, исключения, сброс", groupShape(2, n, 20.dp)) { ctx.open("Old:notifications") }
                 }
             }
         }

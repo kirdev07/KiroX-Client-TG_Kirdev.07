@@ -136,7 +136,7 @@ private fun Modifier.topLine(on: Boolean) = if (!on) this else drawBehind { draw
 
 @Composable
 private fun PollToggle(icon: ImageVector, label: String, sub: String, on: Boolean, line: Boolean, enabled: Boolean, tap: () -> Unit) {
-    Row(Modifier.fillMaxWidth().topLine(line).alpha(if (enabled) 1f else .4f).kxClick(label, onClick = tap).padding(horizontal = 16.dp, vertical = 13.dp),
+    Row(Modifier.fillMaxWidth().topLine(line).alpha(if (enabled) 1f else .4f).kxClick(label, role = androidx.compose.ui.semantics.Role.Switch, onClick = tap).padding(horizontal = 16.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Icon(icon, null, tint = Kx.accent)
         Column(Modifier.weight(1f)) { Text(label, style = ts(15, W600)); Text(sub, style = ts(12, color = Kx.text3), modifier = Modifier.padding(top = 2.dp)) }

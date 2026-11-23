@@ -195,7 +195,11 @@ data class TelegramMessage(
     /** Who sent it: a user id, or a chat id (negative) for channels and anonymous admins. */
     val senderId: Long = 0,
     /** Service message ("Анна добавила Олега", "Группа создана"): its line; null for ordinary messages. Read by the v3 UI. */
-    val serviceText: String? = null
+    val serviceText: String? = null,
+    /** Photo/video/GIF sent «под спойлером»: hidden until tapped. Read by the v3 UI. */
+    val hasSpoiler: Boolean = false,
+    /** View-once / self-destructing media (selfDestructType, secret photo/video): opened once, kept out of galleries. Read by the v3 UI. */
+    val selfDestruct: Boolean = false
 )
 
 /** A poll or quiz in a message. */

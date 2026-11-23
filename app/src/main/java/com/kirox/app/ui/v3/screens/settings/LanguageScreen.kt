@@ -46,7 +46,9 @@ import com.kirox.app.ui.v3.theme.*
 @Composable
 fun LanguageScreen(ctx: KxScreenCtx) {
     val store = ctx.store
-    val lang = if (store.pref(KxPrefs.LANGUAGE) == 1) "en" else "ru"
+    // Release 1.0 is Russian only (owner decision): the real account shows no RU/EN choice; the code stays for later.
+    val ruOnly = store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val lang = if (!ruOnly && store.pref(KxPrefs.LANGUAGE) == 1) "en" else "ru"
     val tr = store.prefOn(KxPrefs.TRANSLATE)
     // Typed text stays local while editing (a blank field must not snap back to the saved name).
     var names by remember { mutableStateOf(store.tabNames) }
@@ -73,7 +75,7 @@ fun LanguageScreen(ctx: KxScreenCtx) {
                 Text(if (en) "Language" else "Язык", style = KxType.h1)
             }
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!ruOnly) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(Triple("ru", "RU", "Русский"), Triple("en", "EN", "English")).forEach { (k, code, name) ->
                         LangCard(code, name, lang == k, Modifier.weight(1f)) {
                             store.putPref(KxPrefs.LANGUAGE, if (k == "en") 1 else 0)

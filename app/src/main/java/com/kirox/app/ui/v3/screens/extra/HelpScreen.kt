@@ -144,7 +144,7 @@ fun HelpScreen(ctx: KxScreenCtx) {
                     }
                     Column(Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Kx.w(.04f)).border(1.dp, Kx.w(.08f), RoundedCornerShape(22.dp))) {
                         listOf(Icons.Outlined.NewReleases to "Что нового", Icons.Outlined.Policy to "Политика конфиденциальности", Icons.Outlined.Description to "Лицензии открытых библиотек").forEach { (ic, label) ->
-                            Row(Modifier.fillMaxWidth().height(52.dp).kxClick(label) { if (label == "Что нового") ctx.open("WhatsNew") else toast.show("Откроется «$label»", ic) }.padding(horizontal = 16.dp),
+                            Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).kxClick(label) { if (label == "Что нового") ctx.open("WhatsNew") else toast.show("Откроется «$label»", ic) }.padding(horizontal = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon(ic, null, Modifier.size(24.dp), tint = Kx.text3)
                                 Text(label, style = ts(15.sp), modifier = Modifier.weight(1f))

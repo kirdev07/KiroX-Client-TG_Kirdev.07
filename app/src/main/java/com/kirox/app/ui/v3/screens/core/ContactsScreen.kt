@@ -109,7 +109,7 @@ fun ContactsScreen(ctx: KxScreenCtx) {
             groups.forEach { (head, items) ->
                 item(key = "h$head") { Text(head, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)) }
                 items(items, key = { it.id }) { c ->
-                    Row(Modifier.fillMaxWidth().height(62.dp).kxRise(0, 400).kxClick(c.name) { sheet = c }.padding(horizontal = 16.dp),
+                    Row(Modifier.fillMaxWidth().heightIn(min = 62.dp).kxRise(0, 400).kxClick(c.name) { sheet = c }.padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
                         KxAvatar(c.name, c.id, size = 46.dp, online = c.online, colorIndex = c.colorIndex, photo = c.avatar)
                         Column(Modifier.weight(1f)) {

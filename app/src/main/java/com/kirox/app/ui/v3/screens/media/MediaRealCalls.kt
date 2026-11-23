@@ -349,7 +349,7 @@ internal fun RealPlanCall(ctx: KxScreenCtx) {
                 busy = true
                 scope.launch { val err = ctx.store.planVideoChat(chatId, title, startAt(), rtmp); busy = false; if (err == null) done = "Звонок запланирован: ${days[day]}, %02d:00".format(hour) else ctx.toast(err) }
             },
-            onNow = { ctx.store.joinGroupCall(chatId); ctx.open("GroupCall") })
+            onNow = { ctx.store.joinGroupCall(chatId); ctx.back() })
     }
 }
 

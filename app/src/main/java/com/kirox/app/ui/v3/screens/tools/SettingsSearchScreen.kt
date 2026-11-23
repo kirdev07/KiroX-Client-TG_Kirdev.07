@@ -54,7 +54,15 @@ private val SS_ITEMS = listOf(
     SsItem("Ночной режим по расписанию", "Настройки › Кастомизация › Ночной режим", Icons.Rounded.DarkMode, Kx.premium, "тема ночь тёмная", "NightMode"),
     SsItem("Очистить кэш", "Настройки › Данные и память", Icons.Rounded.CleaningServices, Kx.danger, "память кэш место", "Storage"),
     SsItem("Автозагрузка медиа", "Настройки › Данные и память", Icons.Rounded.Download, Kx.danger, "память загрузка трафик", "Storage"),
-    SsItem("Размер текста", "Настройки › Специальные возможности", Icons.Rounded.FormatSize, Kx.text3, "шрифт текст размер", "Access"))
+    SsItem("Размер текста", "Настройки › Специальные возможности", Icons.Rounded.FormatSize, Kx.text3, "шрифт текст размер", "Access"),
+    // wave5: boards that had no search entry.
+    SsItem("Прокси", "Настройки › Данные и память", Icons.Rounded.VpnLock, Kx.danger, "прокси сеть vpn подключение", "Proxy"),
+    SsItem("Трафик", "Настройки › Данные и память", Icons.Rounded.DataUsage, Kx.danger, "трафик сеть мобильная", "Traffic"),
+    SsItem("Энергосбережение", "Настройки › Функции kiroX", Icons.Rounded.BatterySaver, Kx.accent, "батарея заряд энергия", "Power"),
+    SsItem("Обновления", "Настройки › О приложении", Icons.Rounded.SystemUpdate, Kx.accent, "обновление версия", "Update"),
+    SsItem("Значок приложения", "Настройки › Кастомизация", Icons.Rounded.Apps, Kx.premium, "иконка значок", "AppIcon"))
+/** Night mode needs a light v3 theme that 1.0 doesn't have: its board is searchable only in the demo. */
+private fun ssItems(demo: Boolean) = if (demo) SS_ITEMS else SS_ITEMS.filter { it.board != "NightMode" }
 private val SS_FAQ = mapOf("звук" to listOf("Почему не приходят уведомления?"), "пароль" to listOf("Что делать, если забыли облачный пароль?"), "память" to listOf("Куда делось место на телефоне?"))
 private val SS_TRIES = listOf("звук", "пароль", "тема", "память", "шрифт")
 
@@ -69,7 +77,7 @@ fun SettingsSearchScreen(ctx: KxScreenCtx) {
     fun saveRecent(list: List<String>) = store.putPrefList(com.kirox.app.ui.v3.model.KxPrefsAccount.SEARCH_RECENT, list)
     var k by remember { mutableIntStateOf(0) }
     val qq = q.trim().lowercase()
-    val res = if (qq.isEmpty()) emptyList() else SS_ITEMS.filter { it.title.lowercase().contains(qq) || it.keys.contains(qq) }
+    val res = if (qq.isEmpty()) emptyList() else ssItems(store is com.kirox.app.ui.v3.demo.KxDemoStore).filter { it.title.lowercase().contains(qq) || it.keys.contains(qq) }
     val faq = if (qq.isEmpty()) emptyList() else SS_FAQ.entries.firstOrNull { it.key.startsWith(qq) || qq.startsWith(it.key) }?.value ?: emptyList()
     fun openItem(x: SsItem) { saveRecent((listOf(x.title) + recent.filter { it != x.title }).take(3)); ctx.open(x.board) }
     val focus = remember { FocusRequester() }

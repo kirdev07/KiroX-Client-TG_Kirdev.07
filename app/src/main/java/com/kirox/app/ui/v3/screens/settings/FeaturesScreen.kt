@@ -106,10 +106,18 @@ fun FeaturesScreen(ctx: KxScreenCtx) {
                 val links = listOf(
                     L(Icons.Outlined.TouchApp, "Двойной тап по сообщению", tapOpts[tap]) { store.putPref(KxPrefs.DOUBLE_TAP, (tap + 1) % tapOpts.size) },
                     L(Icons.AutoMirrored.Outlined.Help, "Спрашивать перед отправкой", confOpts[confirm]) { val next = confirmSets[(confirm + 1) % confOpts.size]; confKeys.forEach { store.setTweak(it, it in next) } },
-                    L(Icons.Outlined.BatterySaver, "Энергосбережение", powerOpts[power]) { store.putPref(KxPrefs.POWER_MODE, (power + 1) % powerOpts.size) },
+                    // wave5 (1.0 = v3 only): opens the Power board (threshold covers Как в системе / Всегда / Никогда) instead of cycling.
+                    L(Icons.Outlined.BatterySaver, "Энергосбережение", powerOpts[power]) { ctx.open("Power") },
                     L(Icons.Outlined.FilterAlt, "Фильтры сообщений", if (words == 0) "" else "$words ${if (words % 10 == 1 && words % 100 != 11) "слово" else if (words % 10 in 2..4 && words % 100 !in 12..14) "слова" else "слов"}") { ctx.open("WordFilter") },
                     L(Icons.Outlined.Backup, "Резервная копия настроек", "") { ctx.open("Backup") },
-                )
+                    L(Icons.Outlined.FolderOpen, "Файлы Telegram", "") { ctx.open("Files") },
+                    L(Icons.Outlined.HourglassEmpty, "Время в kiroX", "") { ctx.open("Wellbeing") },
+                ) + (if (com.kirox.app.ui.v3.KxLegacy.Local.current == null) emptyList() else listOf(
+                    // wave5 (hybrid 1.0): kiroX tools v3 has no board for — the old working screens.
+                    L(Icons.Outlined.Public, "Встроенный браузер", "") { ctx.open("Old:browser") },
+                    L(Icons.Outlined.EmojiEmotions, "Наборы стикеров", "") { ctx.open("Old:stickerSets") },
+                    L(Icons.Outlined.Build, "Ещё инструменты", "") { ctx.open("Old:advanced") },
+                ))
                 Column(Modifier.sRise(120), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     links.forEachIndexed { i, l ->
                         Row(Modifier.fillMaxWidth().height(50.dp).clip(groupShape(i, links.size, 20.dp)).background(TileBg).kxClick(onClick = l.next).padding(horizontal = 14.dp),
@@ -198,7 +206,7 @@ internal fun MiniSwitch(on: Boolean) {
     val reduced = LocalKxReducedMotion.current
     val x by animateDpAsState(if (on) 14.dp else 0.dp, if (reduced) tween(0) else tween(300, easing = SpringEase), label = "mk")
     val track by animateColorAsState(if (on) Kx.accent else Kx.badgeMuted, tween(300), label = "mt")
-    Box(Modifier.size(34.dp, 20.dp).clip(RoundedCornerShape(10.dp)).background(track)) {
+    Box(Modifier.kxToggleState(on).size(34.dp, 20.dp).clip(RoundedCornerShape(10.dp)).background(track)) {
         Box(Modifier.offset(2.dp + x, 2.dp).size(16.dp).clip(RoundedCornerShape(8.dp)).background(Color.White))
     }
 }

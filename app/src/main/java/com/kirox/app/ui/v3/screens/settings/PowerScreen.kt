@@ -176,7 +176,7 @@ internal fun DarkKnobSwitch(on: Boolean) {
     val reduced = LocalKxReducedMotion.current
     val x by animateDpAsState(if (on) 20.dp else 0.dp, if (reduced) tween(0) else tween(250, easing = CubicBezierEasing(.34f, 1.45f, .5f, 1f)), label = "k")
     val track by animateColorAsState(if (on) Kx.accent else Kx.w(.12f), tween(200), label = "t")
-    Box(Modifier.size(50.dp, 30.dp).clip(RoundedCornerShape(15.dp)).background(track)) {
+    Box(Modifier.kxToggleState(on).size(50.dp, 30.dp).clip(RoundedCornerShape(15.dp)).background(track)) {
         Box(Modifier.offset(3.dp + x, 3.dp).size(24.dp).clip(CircleShape).background(if (on) Kx.onAccent else Kx.text4))
     }
 }

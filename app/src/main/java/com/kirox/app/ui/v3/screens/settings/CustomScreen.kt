@@ -54,6 +54,23 @@ internal val CustomThemes = listOf(
     KxThemeLook("Своя", Color(0xFFE6C3FF), Color(0xFF2E6B4B), Color(0xFF6A48B8), Color(170, 120, 230).copy(alpha = .2f)),
 )
 
+/**
+ * wave5: «Своя» on the real account = the user's own theme from the theme editor (settings/CustomThemes: selected own one,
+ * else the first own one), not a fixed colour; null when there is none. The demo keeps the board's colour.
+ */
+internal fun ownThemeLook(real: Boolean): KxThemeLook? {
+    if (!real) return CustomThemes.last()
+    val all = com.kirox.app.settings.CustomThemes.themes.value
+    val t = com.kirox.app.settings.CustomThemes.find(com.kirox.app.settings.CustomThemes.selectedId.value, all)?.takeIf { !it.isPreset }
+        ?: all.firstOrNull { !it.isPreset } ?: return null
+    val c = t.colors()
+    return KxThemeLook(t.name, c.accent, c.outgoingBubble, androidx.compose.ui.graphics.lerp(c.outgoingBubble, Color.Black, .35f), c.accent.copy(alpha = .2f))
+}
+
+/** The look of swatch [i] (the last one is «Своя»: own theme, or the first look when there is none). */
+internal fun themeLook(i: Int, real: Boolean): KxThemeLook =
+    if (i == CustomThemes.lastIndex) ownThemeLook(real) ?: CustomThemes[0] else CustomThemes.getOrElse(i) { CustomThemes[0] }
+
 /** Board «Кастомизация»: live preview card, 12 colour swatches, look rows, dock tab switches. */
 @Composable
 fun CustomScreen(ctx: KxScreenCtx) {
@@ -63,7 +80,12 @@ fun CustomScreen(ctx: KxScreenCtx) {
     val calls = store.tweaks["hideCallsTab"] != true
     val stories = store.tweaks["hideStoriesTab"] != true
     val looks = store.pref(KxPrefs.CHAT_LOOKS)
-    val t = CustomThemes[theme]
+    val real = store !is com.kirox.app.ui.v3.demo.KxDemoStore
+    val ownThemes by com.kirox.app.settings.CustomThemes.themes.collectAsState()
+    val own = remember(ownThemes, real) { ownThemeLook(real) }
+    val ownCount = if (real) ownThemes.count { !it.isPreset } else store.pref(KxPrefs.OWN_THEMES)
+    val legacy = com.kirox.app.ui.v3.KxLegacy.Local.current
+    val t = if (theme == CustomThemes.lastIndex) own ?: CustomThemes[0] else CustomThemes[theme]
     val accent by animateColorAsState(t.accent, tween(400), label = "accent")
     val glow by animateColorAsState(t.glow, tween(600), label = "glow")
     val b1 by animateColorAsState(t.b1, tween(500), label = "b1")
@@ -81,14 +103,20 @@ fun CustomScreen(ctx: KxScreenCtx) {
                 Column(Modifier.kxRise(60)) {
                     Row(Modifier.padding(start = 2.dp, end = 2.dp, bottom = 10.dp), verticalAlignment = Alignment.Bottom) {
                         Text("Цвет · ${t.name}", style = KxType.style(14.sp, FontWeight.Bold, Kx.text2), modifier = Modifier.weight(1f))
-                        Text("Своих: ${store.pref(KxPrefs.OWN_THEMES)}", style = KxType.style(12.sp, color = Kx.text4))
+                        // Real account: own themes are made/imported/exported in the theme editor (old working screen, hybrid 1.0).
+                        Text(if (legacy != null) "Свои темы: $ownCount ›" else "Своих: $ownCount", style = KxType.style(12.sp, color = if (legacy != null) Kx.accent else Kx.text4),
+                            modifier = if (legacy != null) Modifier.kxClick("Свои темы") { ctx.open("Old:themes") } else Modifier)
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         CustomThemes.chunked(6).forEachIndexed { r, row ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEachIndexed { c, look ->
                                     val i = r * 6 + c
-                                    Swatch(look, i == theme, i == 11, Modifier.weight(1f)) { store.putPref(KxPrefs.THEME, i) }
+                                    // «Своя» without an own theme opens the theme editor instead of picking a colour that isn't the user's.
+                                    if (i == 11 && own == null && legacy == null && real) Spacer(Modifier.weight(1f))
+                                    else Swatch(if (i == 11) own ?: look else look, i == theme, i == 11, Modifier.weight(1f)) {
+                                        if (i == 11 && own == null) ctx.open("Old:themes") else store.putPref(KxPrefs.THEME, i)
+                                    }
                                 }
                             }
                         }
@@ -106,6 +134,15 @@ fun CustomScreen(ctx: KxScreenCtx) {
                     SCaption("Нижняя панель")
                     SSwitchRow(Icons.Outlined.Call, "Вкладка «Звонки»", calls, groupShape(0, 2), trackOn = accent) { store.setTweak("hideCallsTab", calls) }
                     SSwitchRow(Icons.Outlined.MotionPhotosOn, "Вкладка «Истории»", stories, groupShape(1, 2), trackOn = accent) { store.setTweak("hideStoriesTab", stories) }
+                }
+
+                // wave5: gesture / reaction / name-colour boards that had no entry.
+                Column(Modifier.kxRise(220), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    SCaption("Жесты и реакции")
+                    SNavRow(Icons.Rounded.TouchApp, "Жесты в переписке", "Двойное касание, свайп для ответа", groupShape(0, 4), accent) { ctx.open("ChatGestures") }
+                    SNavRow(Icons.Rounded.SwipeLeft, "Свайпы в списке чатов", "Что делает свайп вправо и влево", groupShape(1, 4), accent) { ctx.open("Swipe") }
+                    SNavRow(Icons.Rounded.FavoriteBorder, "Быстрая реакция", "Реакция по двойному касанию", groupShape(2, 4), accent) { ctx.open("QuickReact") }
+                    SNavRow(Icons.Rounded.Palette, "Мой цвет", "Цвет имени и обложки профиля", groupShape(3, 4), accent) { ctx.open("NameColor") }
                 }
             }
         }

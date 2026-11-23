@@ -207,7 +207,7 @@ fun CommentsScreen(ctx: KxScreenCtx) {
                         withStyle(SpanStyle(color = Kx.accent, fontWeight = FontWeight.Bold)) { append(if (rp?.second == "себе") "Вы" else rp?.second.orEmpty()) }
                         withStyle(SpanStyle(color = Kx.text3)) { append(" ${rp?.third.orEmpty()}") }
                     }, style = ts(13), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    Box(Modifier.size(28.dp).clip(CircleShape).kxClick("Отменить ответ") { reply = null }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text3) }
+                    Box(Modifier.kxHitClick("Отменить ответ") { reply = null }.size(28.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text3) }
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

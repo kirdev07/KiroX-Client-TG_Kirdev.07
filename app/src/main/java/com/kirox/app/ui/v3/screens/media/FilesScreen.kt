@@ -95,7 +95,11 @@ fun FilesScreen(ctx: KxScreenCtx) {
     var shown by remember { mutableStateOf<TgFile?>(null) }
     var checked by remember { mutableStateOf(false) }
     val confirm = remember { MConfirmState() }
-    LaunchedEffect(sheet) { if (sheet != null) { shown = sheet; checked = false; delay(1300); checked = true } }
+    // wave5: real account → the sheet shows the real «Проверка файлов» (FileGuard) verdict, not a guess from the extension.
+    var verdict by remember { mutableStateOf<com.kirox.app.ui.v3.model.KxFileCheck?>(null) }
+    val opener = rememberKxFileOpener(ctx.store)
+    LaunchedEffect(sheet) { val f = sheet ?: return@LaunchedEffect; shown = f; checked = false; verdict = null
+        if (real) { verdict = ctx.store.fileCheck(f.fileId, f.name); delay(400) } else delay(1300); checked = true }
     val q = query.trim().lowercase()
     val list = files.orEmpty().filter { (cat == "Все" || (if (cat == "Опасные") it.danger else it.cat == cat)) && (q.isEmpty() || it.name.lowercase().contains(q)) }
         .sortedWith(if (big) compareByDescending { it.mb } else compareBy { it.order })
@@ -158,8 +162,9 @@ fun FilesScreen(ctx: KxScreenCtx) {
 
         MSheet(sheet != null, { sheet = null }) {
             val f = shown ?: return@MSheet
-            FileSheet(f, checked,
-                onOpen = { if (real) scope.launch { ctx.store.openFile(f.fileId)?.let { ctx.toast(it) } } },
+            FileSheet(f, checked, verdict,
+                // The verdict is on screen once checked; before that the opener checks and asks itself.
+                onOpen = { if (real) { if (checked) scope.launch { ctx.store.openFile(f.fileId)?.let { ctx.toast(it) } } else opener.open(f.fileId, f.name) } },
                 onShare = { if (real) scope.launch { ctx.store.shareFile(f.fileId)?.let { ctx.toast(it) } } }) {
                 confirm.ask("Удалить файл?", "Файл удалится из памяти телефона. Сообщение в чате останется, файл можно будет скачать снова.", "Удалить") {
                     if (real) { ctx.store.removeDownloads(listOf(f.fileId)); sheet = null; files = files?.filter { it.fileId != f.fileId }; ctx.store.refreshStorage() }
@@ -167,6 +172,7 @@ fun FilesScreen(ctx: KxScreenCtx) {
             }
         }
         MConfirmHost(confirm)
+        opener.Dialog()
     }
 }
 
@@ -205,8 +211,8 @@ private fun StorageCard(total: Long? = null, byType: List<Pair<String, Long>> = 
 }
 
 @Composable
-private fun FileSheet(f: TgFile, checked: Boolean, onOpen: () -> Unit = {}, onShare: () -> Unit = {}, onDelete: () -> Unit) {
-    val danger = f.danger; val risky = f.ext == "APK"
+private fun FileSheet(f: TgFile, checked: Boolean, verdict: com.kirox.app.ui.v3.model.KxFileCheck? = null, onOpen: () -> Unit = {}, onShare: () -> Unit = {}, onDelete: () -> Unit) {
+    val danger = verdict?.let { it.level >= 2 } ?: f.danger; val risky = verdict?.let { it.level == 1 } ?: (f.ext == "APK")
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(Modifier.size(56.dp, 62.dp).clip(RoundedCornerShape(14.dp)).tile(f), contentAlignment = Alignment.Center) { T(f.ext, 12.sp, FontWeight.ExtraBold, f.ink) }
         Column(Modifier.weight(1f)) {
@@ -240,7 +246,8 @@ private fun FileSheet(f: TgFile, checked: Boolean, onOpen: () -> Unit = {}, onSh
                     Modifier.graphicsLayer { scaleX = sc; scaleY = sc; alpha = (pop.value / .7f).coerceAtMost(1f) }, tint = checkColor)
                 Column(Modifier.weight(1f)) {
                     T(if (danger) "Опасный файл" else if (risky) "Будьте осторожны" else "Обычный файл", 14.sp, FontWeight.Bold, checkColor)
-                    T(if (danger) "Программа для Windows — открывайте, только если доверяете отправителю" else if (risky) "Установщик приложения — ставьте только из надёжных источников"
+                    T(verdict?.reasons?.firstOrNull()?.takeIf { danger || risky }
+                      ?: if (danger) "Программа для Windows — открывайте, только если доверяете отправителю" else if (risky) "Установщик приложения — ставьте только из надёжных источников"
                       else "kiroX смотрит только на тип файла и отправителя — это не антивирус", 12.sp, color = Kx.text3)
                 }
             }

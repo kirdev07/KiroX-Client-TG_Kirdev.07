@@ -125,7 +125,7 @@ fun GroupScreen(ctx: KxScreenCtx) {
                     if (chatId != null) ctx.store.setMuted(chatId, !muted) else mutedLocal = !mutedLocal
                 }
                 GAction(Icons.Outlined.Search, "Поиск", Modifier.weight(1f)) { ctx.open(if (chatId != null) "ChatSearch:$chatId" else "ChatSearch") }
-                GAction(Icons.Rounded.Videocam, "Видеочат", Modifier.weight(1f)) { ctx.open("GroupCall") }
+                GAction(Icons.Rounded.Videocam, "Видеочат", Modifier.weight(1f)) { if (chatId != null && ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) ctx.store.joinGroupCall(chatId) else ctx.open("GroupCall") }
                 Column(Modifier.weight(1f).height(60.dp).clip(RoundedCornerShape(20.dp))
                     .cssLinear(150f, Color(0x593F9A6C), Color(0x1F3F9A6C)).border(1.dp, Color(0x598FD3AC), RoundedCornerShape(20.dp))
                     .kxClick("Управление") { manage = true },

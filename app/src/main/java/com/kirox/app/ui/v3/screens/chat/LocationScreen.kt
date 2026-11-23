@@ -70,10 +70,12 @@ fun LocationScreen(ctx: KxScreenCtx) {
     var zoom by remember { mutableStateOf(false) }
     val sel = Places.getOrNull(place)
     val total = Durs[dur].second
-    LaunchedEffect(live, sent) { while (live && sent) { delay(1000); left = maxOf(0, left - 60) } }
+    val realSend = store !is com.kirox.app.ui.v3.demo.KxDemoStore && ctx.arg?.toLongOrNull() != null
+    LaunchedEffect(live, sent) { while (live && sent) { delay(1000); left = maxOf(0, left - (if (store !is com.kirox.app.ui.v3.demo.KxDemoStore && ctx.arg?.toLongOrNull() != null) 1 else 60)) } }
     BackHandler(sent || sheet) { if (sheet) sheet = false else sent = false }
     val context = androidx.compose.ui.platform.LocalContext.current
-    val realSend = store !is com.kirox.app.ui.v3.demo.KxDemoStore && ctx.arg?.toLongOrNull() != null
+    // wave5 (fixer-media): «Начать трансляцию» on the real account = the app's LiveLocationService (sends the live location, moves it, stops it).
+    var wantLive by remember { mutableStateOf(false) }
     fun sendMine() {
         if (!realSend) { live = false; place = -1; sent = true; return }
         val manager = context.getSystemService(android.location.LocationManager::class.java)
@@ -82,6 +84,10 @@ fun LocationScreen(ctx: KxScreenCtx) {
                 .mapNotNull { manager.getLastKnownLocation(it) }.maxByOrNull { it.time }
         }.getOrNull()
         if (last == null) { ctx.toast("Не удалось определить местоположение — включите геолокацию"); return }
+        if (wantLive) {
+            com.kirox.app.location.LiveLocationService.start(context, chatId, if (total > 0) total else 0x7FFFFFFF, last)
+            wantLive = false; live = true; left = if (total > 0) total else 3600; place = -1; sent = true; return
+        }
         store.sendLocation(chatId, last.latitude, last.longitude)
         live = false; place = -1; sent = true
     }
@@ -174,7 +180,7 @@ fun LocationScreen(ctx: KxScreenCtx) {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(Icons.Rounded.ShareLocation, null, Modifier.size(20.dp), tint = Kx.accent)
                 Text("Вы транслируете геопозицию · ${if (total > 0) "ещё " + fmt(left) else "без ограничения"}", style = ts(13, W600), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).kxClick { live = false }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).kxClick { live = false; if (realSend) com.kirox.app.location.LiveLocationService.stop(context, chatId) }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                     Text("Остановить", style = ts(13, W700, Kx.danger))
                 }
             }
@@ -226,7 +232,7 @@ fun LocationScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Box(Modifier.padding(top = 14.dp).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).cssGradient(100f, Kx.accentMid, Kx.accentDeep)
-                    .kxClick { sheet = false; live = true; place = -1; left = if (total > 0) total else 3600; sent = true }, contentAlignment = Alignment.Center) {
+                    .kxClick { sheet = false; if (realSend) { wantLive = true; askAndSend() } else { live = true; place = -1; left = if (total > 0) total else 3600; sent = true } }, contentAlignment = Alignment.Center) {
                     Text("Начать трансляцию", style = ts(15, W700, Kx.onAccent))
                 }
             }

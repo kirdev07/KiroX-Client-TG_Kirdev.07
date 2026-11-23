@@ -37,6 +37,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.*
@@ -54,6 +59,8 @@ fun ChatsScreen(
     onNewMessage: () -> Unit,
     onSelectionChange: (Boolean) -> Unit = {},
     bottomPadding: androidx.compose.ui.unit.Dp = 110.dp,
+    /** wave5: opens a board by name («+ Папка» → FolderEdit for a new folder). */
+    onOpen: (String) -> Unit = {},
 ) {
     var folder by rememberSaveable { mutableIntStateOf(0) }
     val hiddenIds = store.prefList(KxPrefsAccount.HIDDEN_CHATS).mapNotNull { it.toLongOrNull() }.toSet() // wave3-account: Hidden board
@@ -62,6 +69,12 @@ fun ChatsScreen(
     val selected = remember { mutableStateListOf<Long>() }
     var confirm by remember { mutableStateOf<KxConfirm?>(null) }
     val toast = LocalKxToast.current
+    // wave5: deleting chats waits 5 s with «Отменить» (old list did the same); leaving the screen commits it.
+    var undoDel by remember { mutableStateOf<Pair<List<Long>, Long>?>(null) }
+    val latestUndo by rememberUpdatedState(undoDel)
+    LaunchedEffect(undoDel?.second) { val u = undoDel ?: return@LaunchedEffect; kotlinx.coroutines.delay(5000); u.first.forEach { store.deleteChat(it) }; if (undoDel?.second == u.second) undoDel = null }
+    DisposableEffect(Unit) { onDispose { latestUndo?.first?.forEach { store.deleteChat(it) } } }
+    val deleteWithUndo: (List<Long>) -> Unit = { ids -> undoDel?.first?.forEach { store.deleteChat(it) }; undoDel = ids to System.nanoTime() }
     LaunchedEffect(selected.isEmpty()) { onSelectionChange(selected.isNotEmpty()) }
     androidx.activity.compose.BackHandler(enabled = selected.isNotEmpty()) { selected.clear() }
     fun toggle(id: Long) { if (id in selected) selected.remove(id) else selected.add(id) }
@@ -84,26 +97,47 @@ fun ChatsScreen(
             store.folders.forEach { f ->
                 KxChip(if (f.unread > 0) "${f.title} · ${f.unread}" else f.title, selected = folder == f.id) { folder = f.id }
             }
-            KxChip("+ Папка", selected = false, dashed = true) {}
+            KxChip("+ Папка", selected = false, dashed = true) { onOpen("FolderEdit") }
         }
         store.connection?.let { Text(it, style = KxType.caption.copy(color = Kx.accent), modifier = Modifier.padding(start = 20.dp, top = 8.dp)) }
         LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp).kxRise(200), state = androidx.compose.foundation.lazy.rememberLazyListState(), contentPadding = PaddingValues(bottom = bottomPadding)) {
             if (folder == 0 && store.archivedChats.isNotEmpty()) item("archive") { ArchiveRow(store.archivedChats, onOpenArchive) }
-            itemsIndexed(chats, key = { _, c -> c.id }) { i, chat ->
+            itemsIndexed(chats.filter { undoDel?.first?.contains(it.id) != true }, key = { _, c -> c.id }) { i, chat ->
                 if (i >= chats.size - 10) LaunchedEffect(chats.size, folder) { store.loadMoreChats(folder) }
-                ChatSwipe(store, chat, toast = { toast(it) }, ask = { confirm = it }) { // wave3-account: Swipe board actions
-                    ChatRow(chat, onClick = { if (selected.isNotEmpty()) toggle(chat.id) else onOpenChat(chat.id) }, onLongClick = { toggle(chat.id) }, selected = chat.id in selected)
+                ChatSwipe(store, chat, toast = { toast(it) }, ask = { confirm = it }, onDelete = { deleteWithUndo(listOf(it.id)) }, folder = folder) { // wave3-account: Swipe board actions
+                    ChatRow(chat, onClick = { if (selected.isNotEmpty()) toggle(chat.id) else if (chat.forum && store !is com.kirox.app.ui.v3.demo.KxDemoStore) onOpen("Topics:${chat.id}")
+                        // wave5: Избранное opens the «Избранное» board (tags, «По чатам», notes) as on the mockup.
+                        else if (chat.kind == KxChatKind.Saved && store !is com.kirox.app.ui.v3.demo.KxDemoStore) onOpen("Saved") else onOpenChat(chat.id) }, onLongClick = { toggle(chat.id) }, selected = chat.id in selected)
                 }
             }
         }
     }
-    if (selected.isNotEmpty()) SelectionBar(store, chats.filter { it.id in selected }, onDone = { selected.clear() }, toast = toast, ask = { confirm = it })
+    if (selected.isNotEmpty()) SelectionBar(store, chats.filter { it.id in selected }, onDone = { selected.clear() }, toast = toast, ask = { confirm = it }, onDelete = deleteWithUndo, folder = folder)
+    undoDel?.let { u -> ChatUndoBar(u.first.size, u.second, bottomPadding) { undoDel = null } }
     confirm?.let { KxConfirmDialog(it) { confirm = null } }
+}
+
+/** wave5: «Чат удалён · Отменить» bar above the dock (same look as the chat's message undo bar). */
+@Composable
+private fun ChatUndoBar(n: Int, id: Long, bottom: androidx.compose.ui.unit.Dp, onUndo: () -> Unit) {
+    var left by remember(id) { mutableIntStateOf(5) }
+    LaunchedEffect(id) { while (left > 1) { kotlinx.coroutines.delay(1000); left-- } }
+    Box(Modifier.fillMaxSize()) {
+        Row(Modifier.align(Alignment.BottomCenter).padding(start = 12.dp, end = 12.dp, bottom = bottom).fillMaxWidth().height(52.dp).clip(RoundedCornerShape(18.dp))
+            .background(Color(0xF7283229)).border(1.dp, Kx.w(.12f), RoundedCornerShape(18.dp)).padding(start = 14.dp, end = 6.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(left.toString(), style = KxType.style(14.sp, FontWeight.ExtraBold, Kx.accent).copy(fontFeatureSettings = "tnum"))
+            Text(if (n == 1) "Чат удалён" else "Удалено чатов: $n", style = KxType.style(14.sp, FontWeight.SemiBold), modifier = Modifier.weight(1f))
+            Box(Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).kxClick("Отменить удаление", onClick = onUndo).padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
+                Text("Отменить", style = KxType.style(14.sp, FontWeight.ExtraBold, Kx.accent))
+            }
+        }
+    }
 }
 
 /** Glass action bar of the selection (left/right 10, bottom 14, 5 actions). */
 @Composable
-private fun SelectionBar(store: KxStore, sel: List<KxChat>, onDone: () -> Unit, toast: (String) -> Unit, ask: (KxConfirm) -> Unit) {
+private fun SelectionBar(store: KxStore, sel: List<KxChat>, onDone: () -> Unit, toast: (String) -> Unit, ask: (KxConfirm) -> Unit, onDelete: (List<Long>) -> Unit, folder: Int = 0) {
     val n = sel.size
     val word = plural(n, "чат", "чата", "чатов")
     val allMuted = sel.all { it.muted }; val allPinned = sel.all { it.pinned }
@@ -115,9 +149,9 @@ private fun SelectionBar(store: KxStore, sel: List<KxChat>, onDone: () -> Unit, 
             listOf(
                 A(Icons.Rounded.MarkChatRead, "Прочитать", Kx.text) { sel.forEach { store.markRead(it.id) }; toast("Прочитано: $n $word"); onDone() },
                 A(if (allMuted) Icons.Rounded.Notifications else Icons.Rounded.NotificationsOff, if (allMuted) "Звук" else "Без звука", Kx.text) { sel.forEach { store.setMuted(it.id, !allMuted) }; toast(if (allMuted) "Звук включён" else "Без звука: $n $word"); onDone() },
-                A(Icons.Rounded.PushPin, if (allPinned) "Открепить" else "Закрепить", Kx.text) { sel.forEach { store.setPinned(it.id, !allPinned) }; onDone() },
+                A(Icons.Rounded.PushPin, if (allPinned) "Открепить" else "Закрепить", Kx.text) { sel.forEach { store.setPinnedIn(it.id, !allPinned, folder) }; onDone() },
                 A(Icons.Rounded.Archive, "В архив", Kx.text) { sel.forEach { store.setArchived(it.id, true) }; toast("В архиве: $n $word"); onDone() },
-                A(Icons.Rounded.Delete, "Удалить", Kx.danger) { ask(KxConfirm("Удалить выбранные чаты?", "Личные чаты удалятся у вас, из групп и каналов вы выйдете.", "Удалить") { sel.forEach { store.deleteChat(it.id) }; onDone() }) },
+                A(Icons.Rounded.Delete, "Удалить", Kx.danger) { ask(KxConfirm("Удалить выбранные чаты?", "Личные чаты удалятся у вас, из групп и каналов вы выйдете.", "Удалить") { onDelete(sel.map { it.id }); onDone() }) },
             ).forEach { a ->
                 Column(Modifier.weight(1f).height(58.dp).clip(RoundedCornerShape(18.dp)).kxClick(a.label, onClick = a.run),
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically)) {
@@ -159,7 +193,7 @@ private fun ChatsHeader(store: KxStore, onOpenStories: () -> Unit, onSearch: () 
 
 @Composable
 private fun ArchiveRow(chats: List<KxChat>, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().height(60.dp).kxClick("Архив", onClick = onClick).padding(horizontal = 16.dp),
+    Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).kxClick("Архив", onClick = onClick).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
         Box(Modifier.padding(horizontal = 4.dp).size(46.dp).clip(CircleShape).background(Kx.surface2), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Inventory2, null, tint = Kx.text3)
@@ -179,8 +213,14 @@ private fun ArchiveRow(chats: List<KxChat>, onClick: () -> Unit) {
 @Composable
 fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected: Boolean = false) {
     Row(
-        Modifier.fillMaxWidth().height(72.dp).background(if (selected) Kx.accent.copy(alpha = .08f) else Color.Transparent)
-            .combinedClickable(interactionSource = null, indication = ripple(color = Kx.accent), onClick = onClick, onLongClick = onLongClick)
+        Modifier.fillMaxWidth().heightIn(min = 72.dp).background(if (selected) Kx.accent.copy(alpha = .08f) else Color.Transparent)
+            .combinedClickable(interactionSource = null, indication = ripple(color = Kx.accent), onClick = onClick, onLongClick = onLongClick,
+                onClickLabel = "Открыть чат", onLongClickLabel = "Выбрать")
+            // a11y (P1-3/P1-4): one spoken description for the row + the swipe actions from ChatSwipe.
+            .then(LocalKxRowActions.current.let { acts -> Modifier.semantics {
+                contentDescription = chatRowDescription(chat); if (selected) this.selected = true
+                if (acts.isNotEmpty()) customActions = acts
+            } })
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)
     ) {
@@ -238,7 +278,7 @@ fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected
                     }
                 }
                 if (chat.unreadMention) Box(Modifier.size(22.dp).clip(CircleShape).background(Kx.warning), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.AlternateEmail, "Упоминание", Modifier.size(15.dp), tint = Kx.warningInk)
+                    Icon(Icons.Rounded.AlternateEmail, null, Modifier.size(15.dp), tint = Kx.warningInk)
                 }
                 if (chat.unread > 0) KxBadge(if (chat.unread > 999) "999+" else chat.unread.toString(), muted = chat.muted)
                 else if (chat.markedUnread) KxBadge("", muted = chat.muted, size = 14.dp)
@@ -246,6 +286,31 @@ fun ChatRow(chat: KxChat, onClick: () -> Unit, onLongClick: () -> Unit, selected
         }
     }
 }
+
+/** a11y (P1-3): «Анна. Закреплён. Без звука. 2 непрочитанных. Вы: текст. 21:58. Прочитано». */
+internal fun chatRowDescription(chat: KxChat): String = buildList {
+    add(when (chat.kind) { KxChatKind.Secret -> "Секретный чат ${chat.title}"; KxChatKind.Group -> "Группа ${chat.title}"; KxChatKind.Saved -> "Избранное"; else -> chat.title })
+    if (chat.verified) add("Подтверждён")
+    if (chat.scam) add("Мошенник") else if (chat.fake) add("Фейк")
+    if (chat.online) add("В сети")
+    if (chat.pinned) add("Закреплён")
+    if (chat.muted) add("Без звука")
+    if (chat.unread > 0) add("${chat.unread} ${plural(chat.unread, "непрочитанное", "непрочитанных", "непрочитанных")}")
+    else if (chat.markedUnread) add("Отмечен непрочитанным")
+    if (chat.unreadMention) add("Есть упоминание")
+    if (chat.unreadReaction) add("Новая реакция")
+    when {
+        chat.typing != null -> add(chat.typing)
+        chat.draft != null -> add("Черновик: ${chat.draft}")
+        chat.preview.isNotEmpty() -> add(chat.previewSender?.let { "$it: ${chat.preview}" } ?: chat.preview)
+    }
+    if (chat.time.isNotEmpty()) add(chat.time)
+    when (chat.out) {
+        KxOutState.Read -> add("Прочитано"); KxOutState.Sent -> add("Отправлено")
+        KxOutState.Sending -> add("Отправляется"); KxOutState.Failed -> add("Не отправлено")
+        KxOutState.None -> {}
+    }
+}.joinToString(". ")
 
 /** Swipe right to mark read (green "Прочитано" strip behind the row, as on the mockup). */
 @Composable
@@ -265,7 +330,7 @@ fun SwipeToRead(enabled: Boolean, onRead: () -> Unit, content: @Composable () ->
                 onDragEnd = { scope.launch { if (x.value > limit * .8f) onRead(); x.animateTo(0f, tween(250, easing = KxMotion.rise)) } },
                 onDragCancel = { scope.launch { x.animateTo(0f) } }
             ) { _, d -> scope.launch { x.snapTo((x.value + d).coerceIn(0f, limit * 1.2f)) } }
-        }) { content() }
+        }) { CompositionLocalProvider(LocalKxRowActions provides listOf(CustomAccessibilityAction("Прочитано") { onRead(); true })) { content() } }
     }
 }
 

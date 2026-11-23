@@ -178,7 +178,7 @@ fun SharedMediaScreen(ctx: KxScreenCtx) {
                 }
                 BarAct(Icons.AutoMirrored.Outlined.Chat, "В чате", Kx.text) {
                     val first = picked.firstOrNull { it.messageId != 0L }
-                    selMode = false; sel.clear(); ctx.openChat(chatId); first?.let { store.jumpTo(chatId, it.messageId) }
+                    selMode = false; sel.clear(); if (store.historyChatId == chatId) ctx.back() else ctx.openChat(chatId); first?.let { store.jumpTo(chatId, it.messageId) }
                 }
                 BarAct(Icons.Outlined.Delete, "Удалить", Kx.danger) { confirm = true }
             }

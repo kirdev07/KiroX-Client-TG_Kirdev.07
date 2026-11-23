@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.chat
 
+import com.kirox.app.ui.v3.components.kxHitClick
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -121,7 +122,7 @@ fun AgendaScreen(ctx: KxScreenCtx) {
                                         Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(Kx.w(.06f)).kxClick { say("Откроется сообщение в «${e.chat}»", Icons.AutoMirrored.Rounded.Chat) }
                                             .padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("В чат", style = ts(12, W700, Kx.text2)) }
                                         Spacer(Modifier.weight(1f))
-                                        Box(Modifier.size(30.dp).clip(CircleShape).kxClick("Это не событие") { hidden += e.id; say("Больше не покажем", Icons.Rounded.VisibilityOff) }, contentAlignment = Alignment.Center) {
+                                        Box(Modifier.kxHitClick("Это не событие") { hidden += e.id; say("Больше не покажем", Icons.Rounded.VisibilityOff) }.size(30.dp).clip(CircleShape), contentAlignment = Alignment.Center) {
                                             Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text4)
                                         }
                                     }

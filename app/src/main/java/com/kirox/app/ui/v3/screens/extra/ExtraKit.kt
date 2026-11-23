@@ -179,7 +179,7 @@ internal fun ExHeader(title: String, onBack: () -> Unit, modifier: Modifier = Mo
     Row(modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         ExRoundBtn(icon, label, onClick = onBack)
         Column(Modifier.weight(1f)) {
-            KxLine(title, ts(size, FontWeight.ExtraBold))
+            KxLine(title, ts(size, FontWeight.ExtraBold), Modifier.kxHeading())
             if (sub != null) KxLine(sub, ts(12.sp, color = Kx.text4))
         }
         actions()

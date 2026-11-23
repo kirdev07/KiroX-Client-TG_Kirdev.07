@@ -227,7 +227,7 @@ internal fun PrivacyScreen(onBack: () -> Unit, onNotice: (String) -> Unit, onOpe
  * hiding the content, lock now, turn it off (current code first).
  */
 @Composable
-private fun PasscodeSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
+internal fun PasscodeSettingsScreen(onBack: () -> Unit, onNotice: (String) -> Unit) {
     val context = LocalContext.current
     val settings by com.kirox.app.security.PasscodeLock.settings.collectAsState()
     // "" settings; "new" / "repeat" setting a code; "off" / "change" checking the current one first.

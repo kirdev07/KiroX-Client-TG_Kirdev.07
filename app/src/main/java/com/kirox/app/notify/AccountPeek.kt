@@ -66,7 +66,9 @@ class AccountPeek(context: Context) {
                     update.addedNotifications.forEach { notification ->
                         val type = notification.type as? TdApi.NotificationTypeNewMessage ?: return@forEach
                         if (notification.isSilent) return@forEach
-                        show(account, update.notificationGroupId, titles[update.chatId].orEmpty(), if (type.showPreview) messagePreview(type.message) else com.kirox.app.i18n.I18n.t("Новое сообщение"))
+                        // wave5: a chat hidden in that account («Скрытые чаты») shows no name and no text.
+                        val secret = runCatching { com.kirox.app.ui.v3.data.KxHidden.contains(appContext, account.session, update.chatId) }.getOrDefault(false)
+                        show(account, update.notificationGroupId, if (secret) "kiroX" else titles[update.chatId].orEmpty(), if (type.showPreview && !secret) messagePreview(type.message) else com.kirox.app.i18n.I18n.t("Новое сообщение"))
                     }
                     // Read on another device: the group is empty, its notification goes away.
                     if (update.totalCount == 0) runCatching { NotificationManagerCompat.from(appContext).cancel(tagOf(account), update.notificationGroupId) }

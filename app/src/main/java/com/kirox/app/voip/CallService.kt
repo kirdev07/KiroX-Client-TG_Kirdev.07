@@ -205,6 +205,8 @@ object CallNotifications {
             .setFullScreenIntent(openApp(context), true)
             .addAction(0, com.kirox.app.i18n.I18n.t("Отклонить"), hangUp(context))
             .addAction(0, com.kirox.app.i18n.I18n.t("Открыть"), openApp(context))
+            // wave5 (fixer-media): Android 7.x has no channels — sound and vibration go on the notification itself (else a background call is silent).
+            .apply { if (android.os.Build.VERSION.SDK_INT < 26) { setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_RINGTONE), android.media.AudioManager.STREAM_RING); setVibrate(longArrayOf(0, 800, 600, 800, 600)) } }
             .build()
             // Rings until answered or declined, not just once.
             .apply { flags = flags or Notification.FLAG_INSISTENT }

@@ -29,11 +29,21 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.composed
+import androidx.compose.foundation.indication
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.constrainWidth
+import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.theme.*
@@ -47,16 +57,57 @@ fun Modifier.kxClick(label: String? = null, role: Role = Role.Button, enabled: B
             enabled = enabled, role = role, onClick = onClick
         )
 
-/** Round icon button (44dp): plain glass fill or the accent gradient. */
+/**
+ * a11y (P1-5): a click whose touch and TalkBack box is at least [min] (48dp) while the drawn element
+ * keeps its size and the parent still lays it out at the drawn size — nothing visible changes.
+ * Put it FIRST in the chain, before the element's own size/clip/background; [shape] clips the ripple
+ * exactly like a `clip(shape).kxClick()` would.
+ */
+fun Modifier.kxHitClick(label: String?, shape: androidx.compose.ui.graphics.Shape = CircleShape, min: Dp = 48.dp, role: Role = Role.Button,
+                        enabled: Boolean = true, onClick: () -> Unit): Modifier = composed {
+    val src = remember { MutableInteractionSource() }
+    val drawn = remember { IntArray(2) }
+    this.layout { m, c ->
+        val minPx = min.roundToPx()
+        val p = m.measure(c.copy(maxWidth = maxOf(c.maxWidth, minPx), maxHeight = maxOf(c.maxHeight, minPx)))
+        val w = c.constrainWidth(drawn[0]); val h = c.constrainHeight(drawn[1])
+        layout(w, h) { p.place((w - p.width) / 2, (h - p.height) / 2) }
+    }
+        .then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier)
+        .clickable(interactionSource = src, indication = null, enabled = enabled, role = role, onClick = onClick)
+        .layout { m, c ->
+            val minPx = min.roundToPx()
+            val p = m.measure(c)
+            drawn[0] = p.width; drawn[1] = p.height
+            val w = c.constrainWidth(maxOf(p.width, minPx)); val h = c.constrainHeight(maxOf(p.height, minPx))
+            layout(w, h) { p.place((w - p.width) / 2, (h - p.height) / 2) }
+        }
+        .clip(shape).indication(src, ripple(color = Kx.accent))
+}
+
+/** a11y: the drawn switch/checkbox reports on/off to the (merged) row around it — TalkBack says «Вкл/Выкл». */
+fun Modifier.kxToggleState(on: Boolean): Modifier = this.semantics { toggleableState = ToggleableState(on) }
+/** a11y: the drawn radio/selection mark reports «выбрано» to the (merged) row around it. */
+fun Modifier.kxSelectedState(on: Boolean): Modifier = this.semantics { selected = on }
+/** a11y: TalkBack heading (jump by headings). */
+fun Modifier.kxHeading(): Modifier = this.semantics { heading() }
+
+/**
+ * a11y (P1-4): TalkBack custom actions for the row drawn inside — ChatSwipe/SwipeToRead provide the
+ * swipe actions here and ChatRow puts them on its merged node.
+ */
+val LocalKxRowActions = staticCompositionLocalOf<List<CustomAccessibilityAction>> { emptyList() }
+
+/** Round icon button (44dp drawn, 48dp touch/TalkBack box): plain glass fill or the accent gradient. */
 @Composable
 fun KxIconButton(icon: ImageVector, label: String, modifier: Modifier = Modifier, size: Dp = 44.dp, iconSize: Dp = 22.dp,
                  accent: Boolean = false, filled: Boolean = true, glass: Boolean = false, tint: Color = if (accent) Kx.onAccent else Kx.text2, onClick: () -> Unit) {
     Box(
-        modifier.size(if (Kx.look.bigButtons) maxOf(size, 52.dp) else size).clip(CircleShape)
+        modifier.kxHitClick(label, CircleShape, onClick = onClick)
+            .size(if (Kx.look.bigButtons) maxOf(size, 52.dp) else size).clip(CircleShape)
             .then(if (accent) Modifier.background(Kx.accentGradient) else if (filled || glass) Modifier.background(Kx.fill) else Modifier)
             .then(if (glass) Modifier.border(1.dp, Kx.w(.09f), CircleShape).topHighlight(Kx.w(.14f)) else Modifier)
-            .then(if (Kx.look.outlines) Modifier.border(1.5.dp, Kx.w(.55f), CircleShape) else Modifier)
-            .kxClick(label, onClick = onClick),
+            .then(if (Kx.look.outlines) Modifier.border(1.5.dp, Kx.w(.55f), CircleShape) else Modifier),
         contentAlignment = Alignment.Center
     ) { Icon(icon, null, Modifier.size(iconSize), tint = tint) }
 }
@@ -66,7 +117,8 @@ fun KxIconButton(icon: ImageVector, label: String, modifier: Modifier = Modifier
 fun KxChip(text: String, selected: Boolean, modifier: Modifier = Modifier, dashed: Boolean = false, onClick: () -> Unit) {
     val shape = RoundedCornerShape(18.dp)
     Box(
-        modifier.height(36.dp).clip(shape)
+        modifier.kxHitClick(null, shape, onClick = onClick).then(if (dashed) Modifier else Modifier.kxSelectedState(selected))
+            .height(36.dp).clip(shape)
             .then(
                 when {
                     selected -> Modifier.background(Kx.accent)
@@ -74,7 +126,7 @@ fun KxChip(text: String, selected: Boolean, modifier: Modifier = Modifier, dashe
                     else -> Modifier.background(Kx.w(.05f)).border(1.dp, Kx.line, shape)
                 }
             )
-            .kxClick(onClick = onClick).padding(horizontal = if (dashed) 12.dp else 14.dp),
+            .padding(horizontal = if (dashed) 12.dp else 14.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(text, style = KxType.chip.copy(
@@ -242,7 +294,7 @@ fun KxSwitch(checked: Boolean, modifier: Modifier = Modifier, width: Dp = 48.dp,
              trackOn: Color = Kx.accentDeep, trackOff: Color = Kx.w(.14f), knobOn: Color = Kx.text, knobOff: Color = Kx.text3, shadow: Boolean = false) {
     val pad = (height - knob) / 2
     val x by animateDpAsState(if (checked) width - knob - pad else pad, spring(dampingRatio = .55f, stiffness = 700f), label = "knob")
-    Box(modifier.size(width, height).clip(RoundedCornerShape(height / 2)).background(if (checked) trackOn else trackOff)) {
+    Box(modifier.kxToggleState(checked).size(width, height).clip(RoundedCornerShape(height / 2)).background(if (checked) trackOn else trackOff)) {
         Box(Modifier.offset(x, pad).size(knob).then(if (shadow) Modifier.shadow(3.dp, CircleShape) else Modifier).clip(CircleShape).background(if (checked) knobOn else knobOff))
     }
 }
@@ -278,7 +330,7 @@ fun KxCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() ->
 
 @Composable
 fun KxSectionTitle(text: String, modifier: Modifier = Modifier) =
-    Text(text, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.text2), modifier = modifier.padding(start = 20.dp, top = 18.dp, bottom = 8.dp))
+    Text(text, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.text2), modifier = modifier.kxHeading().padding(start = 20.dp, top = 18.dp, bottom = 8.dp))
 
 /** The purple "PREMIUM" chip. */
 @Composable
@@ -296,7 +348,7 @@ fun KxTopBar(title: String, modifier: Modifier = Modifier, subtitle: String? = n
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (onBack != null) KxIconButton(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, onClick = onBack)
         Column(Modifier.weight(1f)) {
-            KxLine(title, KxType.h1)
+            KxLine(title, KxType.h1, Modifier.kxHeading())
             if (subtitle != null) Text(subtitle, style = KxType.caption.copy(fontSize = 13.sp, lineHeight = 18.sp), maxLines = 2)
         }
         actions()

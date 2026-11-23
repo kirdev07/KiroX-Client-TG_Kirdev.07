@@ -156,7 +156,12 @@ private fun RealViewerPages(ctx: KxScreenCtx, list: List<KxMediaItem>, start: In
             }
             Row(Modifier.fillMaxWidth().height(58.dp).clip(RoundedCornerShape(29.dp)).background(Kx.surface.copy(alpha = .6f)).background(Brush.verticalGradient(listOf(Kx.w(.14f), Kx.w(.05f))))
                 .border(1.dp, Kx.w(.16f), RoundedCornerShape(29.dp)).topHighlight(Kx.w(.18f)), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
-                RAct(Icons.Outlined.FavoriteBorder, "Реакция ❤") { ctx.store.react(m.chatId, m.messageId, "❤"); toast.show("Реакция ❤ поставлена") }
+                RAct(Icons.Outlined.FavoriteBorder, "Реакция ❤") {
+                    // wave5: only a reaction the chat allows (❤ when it can); failures come back as the store error, not a fake «поставлена».
+                    val allowed = ctx.store.availableReactions(m.chatId, m.messageId)
+                    val emoji = if ("❤" in allowed || allowed.isEmpty() && ctx.store is com.kirox.app.ui.v3.demo.KxDemoStore) "❤" else allowed.firstOrNull()
+                    if (emoji == null) toast.show("Реакции в этом чате выключены") else { ctx.store.react(m.chatId, m.messageId, emoji); toast.show("Реакция $emoji") }
+                }
                 RAct(Icons.AutoMirrored.Outlined.Chat, "Показать в чате") { ctx.store.jumpTo(m.chatId, m.messageId); ctx.back() }
                 RAct(Icons.AutoMirrored.Outlined.Forward, "Переслать", m.canForward) { ctx.open("Forward:${m.chatId}:${m.messageId}") }
                 RAct(Icons.Outlined.Download, "Сохранить", m.canSave) { save(m) }
@@ -274,6 +279,9 @@ private fun rememberTgPlayer(fileId: Int, path: String?): ExoPlayer {
         com.kirox.app.ui.chat.VoicePlayer.stop()
         ExoPlayer.Builder(context.applicationContext)
             .setMediaSourceFactory(com.kirox.app.media.TelegramStream.mediaSourceFactory(context))
+            // wave5: takes audio focus (music pauses, a call pauses the video) and stops sound when headphones are pulled out.
+            .setAudioAttributes(androidx.media3.common.AudioAttributes.Builder().setUsage(androidx.media3.common.C.USAGE_MEDIA).setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
+            .setHandleAudioBecomingNoisy(true)
             .build().apply {
                 val uri = path?.let { android.net.Uri.fromFile(java.io.File(it)) } ?: com.kirox.app.media.TelegramStream.uri(fileId)
                 setMediaItem(MediaItem.fromUri(uri)); playWhenReady = true; prepare()

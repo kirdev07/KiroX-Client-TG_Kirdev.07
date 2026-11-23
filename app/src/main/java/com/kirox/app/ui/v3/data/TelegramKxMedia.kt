@@ -136,6 +136,8 @@ internal class KxMediaBinder(
     // ---- Viewer / Album ----
     private suspend fun item(m: TdApi.Message): KxMediaItem? {
         val video = when (m.content) { is TdApi.MessagePhoto -> false; is TdApi.MessageVideo -> true; else -> return null }
+        // wave5: view-once / self-destructing media never joins the Viewer / Album paging.
+        if (m.selfDestructType != null || (m.content as? TdApi.MessagePhoto)?.isSecret == true || (m.content as? TdApi.MessageVideo)?.isSecret == true) return null
         val (media, thumb) = mediaOf(m.content)
         media ?: return null
         val full = if (video) fileState(media.file.id).path ?: media.file.localPath else autoPath(media.file)
@@ -214,6 +216,18 @@ internal class KxMediaBinder(
         return if (com.kirox.app.ui.chat.shareFile(app, path, name, com.kirox.app.ui.chat.mimeTypeOf(name, "application/octet-stream"))) null else "Нет приложения, чтобы поделиться"
     }
 
+    /** wave5: «Проверка файлов» (Настройки → Функции kiroX) — the same FileGuard check the old file viewer runs. */
+    suspend fun fileCheck(fileId: Int, name: String): com.kirox.app.ui.v3.model.KxFileCheck? {
+        if (!com.kirox.app.settings.KiroxTweaks.current.fileGuard) return null
+        val path = pathOf(fileId) ?: return null
+        val file = java.io.File(path)
+        val shown = name.ifBlank { file.name }
+        val report = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { com.kirox.app.files.FileGuard.check(app, file, shown) }.getOrNull() } ?: return null
+        val ext = com.kirox.app.files.FileGuard.extension(shown)
+        return com.kirox.app.ui.v3.model.KxFileCheck(report.level.ordinal, report.reasons, report.kind,
+            installer = ext in setOf("apk", "xapk", "apks", "apkm") || report.kind == "APK")
+    }
+
     suspend fun openFile(fileId: Int): String? {
         val path = pathOf(fileId) ?: return "Файл ещё не скачан"
         val name = java.io.File(path).name
@@ -277,9 +291,9 @@ internal class KxMediaBinder(
         scope.launch {
             while (isActive) {
                 val playing = VoicePlayer.isPlaying
-                val pos = VoicePlayer.positionMs.toLong(); val dur = VoicePlayer.durationMs
-                if (playing != player.playing || pos != player.positionMs || dur != player.durationMs) player = player.copy(playing = playing, positionMs = pos, durationMs = dur)
-                delay(if (player.track != null || playing) 500 else 1500)
+                val pos = VoicePlayer.positionMs.toLong(); val dur = VoicePlayer.durationMs; val path = VoicePlayer.playingPath.value
+                if (playing != player.playing || pos != player.positionMs || dur != player.durationMs || path != player.path) player = player.copy(playing = playing, positionMs = pos, durationMs = dur, path = path)
+                delay(if (player.track != null || playing) 250 else 1000)
             }
         }
     }
@@ -313,6 +327,12 @@ internal class KxMediaBinder(
                 chatTitle = chatTitle(m.chatId), time = KxFormat.chatTime(if (d.completeDate > 0) d.completeDate else d.addDate), addedAt = d.addDate,
             )
         }
+    }
+    /** wave5: a chat file goes into Telegram's download list (it shows on the Downloads / Files boards), then downloads. */
+    fun addToDownloads(fileId: Int, chatId: Long, messageId: Long) {
+        if (fileId == 0) return
+        if (chatId == 0L || messageId == 0L) { vm.files.download(TelegramFileRef(fileId, null)); return }
+        client.send(TdApi.AddFileToDownloads(fileId, chatId, messageId, 30)) { r -> if (r is TdApi.Error) vm.files.download(TelegramFileRef(fileId, null)) }
     }
     fun pauseDownload(fileId: Int, paused: Boolean) { client.send(TdApi.ToggleDownloadIsPaused(fileId, paused)) }
     fun removeDownloads(fileIds: List<Int>) {
@@ -429,13 +449,18 @@ internal class KxMediaBinder(
         runCatching {
             val dir = java.io.File(app.cacheDir, "v3-picked").apply { mkdirs() }
             dir.listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 24 * 3600_000L }?.forEach { it.delete() }
-            val out = java.io.File(dir, "${media.uri.hashCode().toUInt()}.${if (media.video) "mp4" else "jpg"}")
+            // wave5: keep the real type (HEIC/PNG/WEBP/3GP/MKV…) — the extension tells Telegram and other apps what it is.
+            val mime = runCatching { app.contentResolver.getType(android.net.Uri.parse(media.uri)) }.getOrNull()
+            val ext = mime?.let { android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }?.takeIf { it.isNotBlank() } ?: if (media.video) "mp4" else "jpg"
+            val out = java.io.File(dir, "${media.uri.hashCode().toUInt()}.$ext")
             app.contentResolver.openInputStream(android.net.Uri.parse(media.uri))!!.use { input -> out.outputStream().use { input.copyTo(it) } }
             out.absolutePath
         }.getOrNull()
     }
 
     suspend fun postStory(media: KxDeviceMedia, caption: String, audience: Int): String? {
+        // wave5: Telegram takes story videos up to 60 s — cutting only the length field made a broken story.
+        if (media.video && media.durationMs > 60_999) return "Видео истории — до 60 с. Обрежьте его и попробуйте снова"
         val path = localCopy(media) ?: return "Не удалось открыть файл"
         val aud = com.kirox.app.telegram.StoryAudience.entries.getOrElse(audience) { com.kirox.app.telegram.StoryAudience.Everyone }
         return attempt { services.stories.postStory(path, media.video, ((media.durationMs + 999) / 1000).toInt().coerceIn(1, 60).takeIf { media.video } ?: 0, caption, aud) }
@@ -445,14 +470,42 @@ internal class KxMediaBinder(
         val path = localCopy(media) ?: return "Не удалось открыть файл"
         val text = caption.takeIf { it.isNotBlank() }?.let { TdApi.FormattedText(it, emptyArray()) }
         val seconds = ((media.durationMs + 999) / 1000).toInt()
+        // wave5: width/height/duration + a preview frame for videos (other clients showed 0×0 and no preview).
+        val meta = if (media.video) videoMeta(path) else null
         val content: TdApi.InputMessageContent = if (media.video) TdApi.InputMessageVideo().apply {
-            video = TdApi.InputVideo().apply { video = TdApi.InputFileLocal(path); addedStickerFileIds = IntArray(0); duration = seconds; supportsStreaming = true }
+            video = TdApi.InputVideo().apply { video = TdApi.InputFileLocal(path); addedStickerFileIds = IntArray(0); duration = meta?.seconds?.takeIf { it > 0 } ?: seconds; supportsStreaming = true
+                meta?.let { m -> width = m.width; height = m.height; m.thumb?.let { t -> thumbnail = TdApi.InputThumbnail(TdApi.InputFileLocal(t), m.thumbW, m.thumbH) } } }
             this.caption = text
         } else TdApi.InputMessagePhoto().apply {
             photo = TdApi.InputPhoto().apply { photo = TdApi.InputFileLocal(path); addedStickerFileIds = IntArray(0) }
             this.caption = text
         }
         return attempt { client.query(TdApi.SendMessage(chatId, null, null, null, null, content)) }
+    }
+
+    private class VideoMeta(val width: Int, val height: Int, val seconds: Int, val thumb: String?, val thumbW: Int, val thumbH: Int)
+
+    /** Size (rotation applied), length and a ≤320 px JPEG frame of a local video; null when the phone cannot read it. */
+    private suspend fun videoMeta(path: String): VideoMeta? = withContext(Dispatchers.IO) {
+        val r = android.media.MediaMetadataRetriever()
+        try {
+            r.setDataSource(path)
+            var w = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+            var h = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+            val rot = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+            if (rot == 90 || rot == 270) { val x = w; w = h; h = x }
+            val ms = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+            var thumb: String? = null; var tw = 0; var th = 0
+            runCatching {
+                val frame = r.frameAtTime ?: return@runCatching
+                val scale = 320f / maxOf(frame.width, frame.height).coerceAtLeast(1)
+                val small = if (scale < 1f) android.graphics.Bitmap.createScaledBitmap(frame, (frame.width * scale).toInt().coerceAtLeast(1), (frame.height * scale).toInt().coerceAtLeast(1), true) else frame
+                val f = java.io.File(path + ".thumb.jpg")
+                f.outputStream().use { small.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, it) }
+                thumb = f.absolutePath; tw = small.width; th = small.height
+            }
+            VideoMeta(w, h, ((ms + 999) / 1000).toInt(), thumb, tw, th)
+        } catch (e: Exception) { null } finally { runCatching { r.release() } }
     }
 
     suspend fun closeFriends(): Set<Long> = services.extras.closeFriends()
@@ -492,7 +545,8 @@ internal class KxMediaBinder(
     fun turnCallCamera(on: Boolean) = vm.voip.setCamera(on)
     fun flipCallCamera() = vm.voip.switchCamera()
     fun attachCallVideo(remote: Any?, local: Any?) = vm.voip.setVideoSinks(remote as? org.webrtc.VideoSink, local as? org.webrtc.VideoSink)
-    fun joinGroupCall(chatId: Long) = vm.groupCalls.join(chatId)
+    /** A failed call is kept until dismissed — clear it first, or every later join does nothing. */
+    fun joinGroupCall(chatId: Long) { vm.groupCalls.dismiss(); vm.groupCalls.join(chatId) }
     fun leaveGroupCall() = vm.groupCalls.leave()
     fun muteGroupMic(muted: Boolean) = vm.groupCalls.setMuted(muted)
     fun turnGroupCamera(on: Boolean) = vm.groupCalls.setCamera(on)
@@ -583,6 +637,9 @@ internal class KxMediaBinder(
             runCatching { android.media.MediaPlayer().apply { setDataSource(path); setOnCompletionListener { it.release() }; prepare(); start() } }
         }
     }
+
+    /** wave5: a file TDLib deleted from the phone loses its state here too (watched again on the next read). */
+    fun forget(fileId: Int) { fileStates.remove(fileId); watching.remove(fileId) }
 
     fun start() { startPlayer(); startCalls() }
 }

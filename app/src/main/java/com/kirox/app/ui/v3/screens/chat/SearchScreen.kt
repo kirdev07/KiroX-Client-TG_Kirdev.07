@@ -29,7 +29,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.KxScreenCtx
+import androidx.compose.ui.focus.focusRequester
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.kirox.app.ui.v3.components.*
 import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.theme.Kx
@@ -46,9 +48,11 @@ private class MsgHit(val chat: KxChat, val text: AnnotatedString, val time: Stri
 @Composable
 fun SearchScreen(ctx: KxScreenCtx) {
     val store = ctx.store
+    val pScope = rememberCoroutineScope()
     var query by rememberSaveable { mutableStateOf("") }
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    var recent by remember { mutableStateOf(RecentQueries) }
+    // wave5: the board's sample queries only in the demo (the real account keeps no chat-search history yet).
+    var recent by remember { mutableStateOf(if (store is com.kirox.app.ui.v3.demo.KxDemoStore) RecentQueries else emptyList()) }
     val q = query.trim()
     val chats = store.chats
 
@@ -81,8 +85,15 @@ fun SearchScreen(ctx: KxScreenCtx) {
             }
         }
     }
+    // wave5: «Медиа», «Ссылки», «Файлы» search Telegram with a type filter (were always empty).
+    val typed by produceState(emptyList<com.kirox.app.ui.v3.model.KxFound>(), q, tab) { value = if (q.isEmpty() || tab < 3) emptyList() else { delay(300); store.searchMessagesOf(q, tab - 3) } }
+    val typedHits = remember(typed, chats) { typed.map { f ->
+        val c = chats.firstOrNull { it.id == f.chatId } ?: KxChat(f.chatId, f.chatTitle, avatar = f.avatar)
+        MsgHit(c, splitHit(f.text, q) ?: AnnotatedString(f.text), f.time, "${f.chatId}:${f.messageId}")
+    } }
     val showChats = (tab == 0 || tab == 1) && chatHits.isNotEmpty()
-    val showMsgs = (tab == 0 || tab == 2) && msgHits.isNotEmpty()
+    val shownMsgs = if (tab >= 3) typedHits else msgHits
+    val showMsgs = (tab == 0 || tab == 2 || tab >= 3) && shownMsgs.isNotEmpty()
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         KxGlow(diameter = 380.dp, x = (-90).dp, y = (-110).dp, alpha = .16f)
@@ -96,7 +107,10 @@ fun SearchScreen(ctx: KxScreenCtx) {
                     .topHighlight(Kx.w(.2f)).padding(start = 14.dp, end = 6.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = Kx.accent)
-                    ChInput(query, { query = it }, "Чаты, сообщения, люди", Modifier.weight(1f), size = 16)
+                    // wave5: the field is focused with the keyboard up when Search opens (Telegram does so).
+                    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+                    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+                    ChInput(query, { query = it }, "Чаты, сообщения, люди", Modifier.weight(1f).focusRequester(focus), size = 16)
                     if (q.isNotEmpty()) Box(Modifier.size(32.dp).clip(CircleShape).background(Kx.w(.1f)).kxClick("Очистить") { query = "" },
                         contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Close, null, Modifier.size(18.dp), tint = Kx.text) }
                 }
@@ -128,7 +142,7 @@ fun SearchScreen(ctx: KxScreenCtx) {
                             Text("Очистить", style = ts(12, W700, Kx.accent), modifier = Modifier.kxClick { recent = emptyList() })
                         }
                         recent.forEach { r ->
-                            Row(Modifier.fillMaxWidth().height(46.dp).kxClick(r) { query = r }, verticalAlignment = Alignment.CenterVertically,
+                            Row(Modifier.fillMaxWidth().heightIn(min = 46.dp).kxClick(r) { query = r }, verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon(Icons.Outlined.History, null, Modifier.size(20.dp), tint = Kx.text4)
                                 Text(r, style = ts(15, color = Kx.text2), modifier = Modifier.weight(1f))
@@ -142,7 +156,7 @@ fun SearchScreen(ctx: KxScreenCtx) {
                     if (showChats) {
                         item { ChCaption("Чаты и люди · ${chatHits.size}") }
                         items(chatHits, key = { "c" + it.chat.id }) { h ->
-                            Row(Modifier.fillMaxWidth().height(58.dp).chIn().clip(RoundedCornerShape(16.dp)).kxClick { ctx.openChat(h.chat.id) }.padding(horizontal = 4.dp),
+                            Row(Modifier.fillMaxWidth().height(58.dp).chIn().clip(RoundedCornerShape(16.dp)).kxClick { val id = h.chat.id; if (chats.any { it.id == id } || remoteChats.any { it.id == id }) ctx.openChat(id) else pScope.launch { store.privateChat(id)?.let { ctx.openChat(it) } } }.padding(horizontal = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 ChatAvatar(h.chat, 44.dp)
                                 Column(Modifier.weight(1f)) {
@@ -153,8 +167,8 @@ fun SearchScreen(ctx: KxScreenCtx) {
                         }
                     }
                     if (showMsgs) {
-                        item { ChCaption("Сообщения · ${msgHits.size}", Modifier.padding(top = 10.dp)) }
-                        items(msgHits, key = { "m" + it.key }) { h ->
+                        item { ChCaption((if (tab >= 3) SearchTabs[tab] else "Сообщения") + " · ${shownMsgs.size}", Modifier.padding(top = 10.dp)) }
+                        items(shownMsgs, key = { "m" + it.key }) { h ->
                             Row(Modifier.fillMaxWidth().chIn().clip(RoundedCornerShape(16.dp)).kxClick {
                                 ctx.openChat(h.chat.id); h.key.substringAfter(':').toLongOrNull()?.let { store.jumpTo(h.chat.id, it) }
                             }.padding(horizontal = 4.dp, vertical = 8.dp),

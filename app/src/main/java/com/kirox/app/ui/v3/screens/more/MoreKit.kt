@@ -161,7 +161,7 @@ internal fun MoTitleHeader(title: String, onBack: () -> Unit, sub: String? = nul
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         MoBack(onBack)
         Column(Modifier.weight(1f)) {
-            Text(title, style = mts(size, W8), maxLines = 1)
+            Text(title, style = mts(size, W8), maxLines = 1, modifier = Modifier.kxHeading())
             if (sub != null) Text(sub, style = mts(12, color = MoSub), maxLines = 1)
         }
         actions()

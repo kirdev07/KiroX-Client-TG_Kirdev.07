@@ -120,7 +120,7 @@ fun MultiSelectScreen(ctx: KxScreenCtx) {
                     if (n > 0) { if (live) clipboard.setText(androidx.compose.ui.text.AnnotatedString(ids.joinToString("\n") { msgs[it].first })); toast.show("Скопировано $n ${msWord(n)}", Icons.Rounded.ContentCopy) }
                 }
                 MsAct(Icons.Outlined.Forward, "Переслать", n > 0) {
-                    if (n > 0 && live) { if (realIds.size == 1) ctx.open("Forward:$chatId:${realIds[0]}") else toast.show("Пересылается по одному сообщению", Icons.Rounded.Forward) }
+                    if (n > 0 && live) { ctx.open("Forward:$chatId:${realIds.joinToString(",")}") }
                     else if (n > 0) toast.show("Выберите, кому переслать", Icons.Rounded.Forward)
                 }
                 MsAct(Icons.Outlined.Bookmark, "В Избранное", n > 0) { if (n > 0) { if (live) ctx.store.saveToFavorites(chatId!!, realIds); toast.show("Сохранено в Избранное", Icons.Rounded.Bookmark) } }

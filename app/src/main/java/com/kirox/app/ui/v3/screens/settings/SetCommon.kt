@@ -70,7 +70,7 @@ internal fun SHeader(title: String, onBack: () -> Unit, bottom: Dp = 4.dp, actio
     Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = bottom),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         KxIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Назад", glass = true, tint = Kx.text, iconSize = 24.dp, onClick = onBack)
-        Text(title, style = KxType.h1, maxLines = 1, modifier = Modifier.weight(1f))
+        Text(title, style = KxType.h1, maxLines = 1, modifier = Modifier.weight(1f).kxHeading())
         actions()
     }
 }
@@ -99,7 +99,7 @@ internal fun SHint(text: String, modifier: Modifier = Modifier) =
 @Composable
 internal fun SNavRow(icon: ImageVector, title: String, sub: String?, shape: Shape, tint: Color = Kx.accent, tileBg: Color = Kx.w(.07f),
                      height: Dp = 58.dp, value: String? = null, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().height(height).clip(shape).background(TileBg).kxClick(onClick = onClick).padding(horizontal = 14.dp),
+    Row(Modifier.fillMaxWidth().heightIn(min = height).clip(shape).background(TileBg).kxClick(onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(tileBg), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(20.dp), tint = tint)
@@ -123,7 +123,7 @@ internal fun SSwitch(on: Boolean, trackOn: Color = Kx.accent, trackOff: Color = 
     val reduced = LocalKxReducedMotion.current
     val x by animateDpAsState(if (on) w - knob - pad * 2 else 0.dp, if (reduced) tween(0) else tween(350, easing = SpringEase), label = "knob")
     val track by animateColorAsState(if (on) trackOn else trackOff, tween(if (reduced) 0 else 300), label = "track")
-    Box(Modifier.size(w, h).clip(RoundedCornerShape(h / 2)).background(track).then(if (highlight) Modifier.topHighlight(Kx.w(.15f)) else Modifier)) {
+    Box(Modifier.kxToggleState(on).size(w, h).clip(RoundedCornerShape(h / 2)).background(track).then(if (highlight) Modifier.topHighlight(Kx.w(.15f)) else Modifier)) {
         Box(Modifier.offset(pad + x, pad).size(knob).then(if (knobShadow) Modifier.shadow(3.dp, CircleShape, ambientColor = Color.Black, spotColor = Color.Black) else Modifier)
             .clip(CircleShape).background(Color.White))
     }

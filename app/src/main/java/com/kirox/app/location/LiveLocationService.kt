@@ -131,12 +131,18 @@ class LiveLocationService : Service(), LocationListener {
                     }
                 }
             }
+            // wave5 (fixer-media): the foreground service starts now, while the app is on screen — started after the async
+            // send, Android 12+ may already count the app as background and refuse it (the share would never move or end).
+            val until = System.currentTimeMillis() / 1000 + seconds
+            _active.value = _active.value + (chatId to LiveShare(chatId, 0, until))
+            runCatching { androidx.core.content.ContextCompat.startForegroundService(context, Intent(context, LiveLocationService::class.java)) }
             scope.launch {
                 runCatching {
                     client.query(TdApi.SendMessage(chatId, null, null, null, null, TdApi.InputMessageLiveLocation(TdApi.LiveLocation(location.toTd(), seconds, 0, 0))))
                 }.onSuccess { message ->
-                    _active.value = _active.value + (chatId to LiveShare(chatId, message.id, System.currentTimeMillis() / 1000 + seconds))
-                    runCatching { androidx.core.content.ContextCompat.startForegroundService(context, Intent(context, LiveLocationService::class.java)) }
+                    if (_active.value.containsKey(chatId)) _active.value = _active.value + (chatId to LiveShare(chatId, message.id, until))
+                }.onFailure {
+                    if (_active.value[chatId]?.messageId == 0L) stop(context, chatId)
                 }
             }
         }

@@ -12,7 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -99,7 +99,10 @@ fun StorageScreen(ctx: KxScreenCtx) {
         mapOf("photo" to true, "video" to false, "file" to false, "music" to false),
         mapOf("photo" to false, "video" to false, "file" to false, "music" to false))) }
     val done = state == "done"
-    LaunchedEffect(state) { if (state == "busy") { freed = total; store.clearCache(); delay(1400); state = "done" } }
+    // wave5 (fixer-media): «Освобождено» = size before − size Telegram reports after the clean (it keeps some files), not the whole cache.
+    LaunchedEffect(state) { if (state == "busy") { val before = total; val was = store.storage; store.clearCache(); delay(1400)
+        if (store !is com.kirox.app.ui.v3.demo.KxDemoStore) for (k in 0 until 16) { val now = store.storage; if (now !== was && now?.loadingDetails != true) break; delay(500) } // wait for the re-read
+        freed = if (store is com.kirox.app.ui.v3.demo.KxDemoStore) before else (before - (store.storage?.totalBytes ?: 0L)).coerceAtLeast(0L); state = "done" } }
 
     Box(Modifier.fillMaxSize().background(Kx.bg)) {
         SGlow(glowGreen(.18f), alignEnd = true)
@@ -140,7 +143,12 @@ fun StorageScreen(ctx: KxScreenCtx) {
                 }
                 ClearButton(state, sBytes(freed)) { when (state) { "busy" -> Unit; "done" -> state = "idle"; else -> state = "busy" } }
 
-                Column(Modifier.sRise(80)) {
+                // wave5 (hybrid 1.0): the real account has no v3 auto-download model (the switches below were local, lost on leave);
+                // its row opens the old working «Данные и память» (per-network auto-download, cache limit, GIF autoplay, gallery, calls).
+                if (com.kirox.app.ui.v3.KxLegacy.Local.current != null) Column(Modifier.sRise(80), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    GroupLabel("Автозагрузка медиа")
+                    SNavRow(Icons.Rounded.Download, "Автозагрузка и кэш", "По сетям, размер кэша, GIF, сохранение в галерею", groupShape(0, 1, 20.dp)) { ctx.open("Old:storage") }
+                } else Column(Modifier.sRise(80)) {
                     GroupLabel("Автозагрузка медиа")
                     SSegment(listOf("Wi-Fi", "Мобильная", "Роуминг"), net, listOf(Icons.Outlined.Wifi, Icons.Outlined.SignalCellularAlt, Icons.Outlined.Luggage)) { net = it }
                     val kDefs = listOf(listOf("photo", "Фото", "До 5 МБ"), listOf("video", "Видео", "До 50 МБ"), listOf("file", "Файлы", "До 10 МБ"), listOf("music", "Музыка", "До 20 МБ"))
@@ -169,6 +177,20 @@ fun StorageScreen(ctx: KxScreenCtx) {
                     }
                     Spacer(Modifier.height(10.dp))
                     SPills(keepOpts, keep) { store.setKeepMedia(it) }
+                }
+                // wave5: «Данные и память» is the parent of the file / network boards (old UI had them here too).
+                Column(Modifier.sRise(160), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    GroupLabel("Файлы и сеть")
+                    val rows = listOf(
+                        Triple(Icons.Rounded.FolderOpen, "Файлы Telegram", "Скачанные файлы с проверкой") to "Files",
+                        Triple(Icons.Rounded.Download, "Загрузки", "Что скачивается сейчас") to "Downloads",
+                        Triple(Icons.Rounded.CleaningServices, "Чистка подписок", "Каналы и группы, которые вы не читаете") to "Cleanup",
+                        Triple(Icons.Rounded.DataUsage, "Трафик", "Сколько потрачено по сетям") to "Traffic",
+                        Triple(Icons.Rounded.Call, "Звонки", "Экономия трафика в звонках") to "CallSettings",
+                        Triple(Icons.Rounded.VpnLock, "Прокси", "Подключение через прокси-сервер") to "Proxy",
+                        Triple(Icons.Rounded.NetworkCheck, "Проверка сети", "Почему не подключается") to "NetCheck",
+                    )
+                    rows.forEachIndexed { i, (r, board) -> SNavRow(r.first, r.second, r.third, groupShape(i, rows.size, 20.dp)) { ctx.open(board) } }
                 }
             }
         }

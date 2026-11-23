@@ -112,7 +112,7 @@ fun AwayScreen(ctx: KxScreenCtx) {
 }
 
 @Composable
-internal fun AwTitle(t: String, top: Int = 0) = Text(t, style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = top.dp, bottom = 8.dp))
+internal fun AwTitle(t: String, top: Int = 0) = Text(t, style = ts(13.sp, FontWeight.Bold, Kx.accent), modifier = Modifier.kxHeading().padding(start = 4.dp, end = 4.dp, top = top.dp, bottom = 8.dp))
 
 @Composable
 internal fun AwChip(label: String, icon: ImageVector?, on: Boolean, onClick: () -> Unit) {
@@ -137,7 +137,7 @@ internal fun AwRadio(label: String, sub: String, icon: ImageVector, on: Boolean,
             Text(label, style = ts(15.sp, FontWeight.Bold))
             Text(sub, style = ts(12.sp, color = Kx.text4))
         }
-        Box(Modifier.size(22.dp).border(2.dp, if (on) Kx.accent else Kx.w(.3f), CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.kxSelectedState(on).size(22.dp).border(2.dp, if (on) Kx.accent else Kx.w(.3f), CircleShape), contentAlignment = Alignment.Center) {
             if (on) Box(Modifier.size(10.dp).clip(CircleShape).background(Kx.accent))
         }
     }

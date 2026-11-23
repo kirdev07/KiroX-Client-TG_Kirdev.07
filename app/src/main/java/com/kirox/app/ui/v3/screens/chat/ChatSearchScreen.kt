@@ -113,7 +113,7 @@ fun ChatSearchScreen(ctx: KxScreenCtx) {
                         }
                     } }
                     ChInput(q, { q = it; cur = -1 }, "Поиск в чате", Modifier.weight(1f))
-                    if (q.isNotEmpty()) Box(Modifier.size(30.dp).clip(CircleShape).kxClick("Очистить") { q = ""; cur = -1 }, contentAlignment = Alignment.Center) {
+                    if (q.isNotEmpty()) Box(Modifier.kxHitClick("Очистить") { q = ""; cur = -1 }.size(30.dp).clip(CircleShape), contentAlignment = Alignment.Center) {
                         Icon(Icons.Outlined.Cancel, null, Modifier.size(18.dp), tint = Kx.text4)
                     }
                 }

@@ -76,12 +76,14 @@ class KxDemoStore : KxStore {
         -3 -> list.filter { it.kind == KxChatKind.Channel }
         4 -> list.filter { it.id == 12L || it.id == 17L }
         else -> list
-    }
+    }.sortedByDescending { it.pinned } // wave5: pinned chats first (stable: the rest keep their order)
 
     private val pinnedMsg = mutableStateMapOf<Long, KxReply?>(11L to KxReply("Анна", "Встречаемся у кинотеатра в 19:15", 0))
 
     override fun header(chatId: Long): KxChatHeader {
-        val c = (list + archive).firstOrNull { it.id == chatId } ?: list[1]
+        // wave5: a contact without a chat (Новое сообщение) gets its own empty private chat header, not «Анна».
+        val c = (list + archive).firstOrNull { it.id == chatId }
+            ?: contacts.firstOrNull { it.id == chatId }?.let { p -> KxChat(p.id, p.name, online = p.online, colorIndex = p.colorIndex) } ?: list[1]
         val status = when (c.kind) {
             KxChatKind.Saved -> ""
             KxChatKind.Group -> "8 участников, 3 в сети"

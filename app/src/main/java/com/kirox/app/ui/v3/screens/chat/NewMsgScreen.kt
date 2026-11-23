@@ -127,7 +127,7 @@ fun NewMsgScreen(ctx: KxScreenCtx) {
                         val on = p.id in picked
                         val rowBg by animateColorAsState(if (on) Kx.accent.copy(alpha = .08f) else Color.Transparent, tween(200), label = "row")
                         Row(Modifier.padding(horizontal = 12.dp).fillMaxWidth().height(58.dp).clip(RoundedCornerShape(16.dp)).background(rowBg)
-                            .kxClick(p.name) { if (multi) picked = if (on) picked - p.id else picked + p.id else if (mode == "msg") ctx.openChat(p.id) }
+                            .kxClick(p.name) { if (multi) picked = if (on) picked - p.id else picked + p.id else if (mode == "msg") scope.launch { store.privateChat(p.id)?.let { ctx.openChat(it) } } }
                             .padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(Modifier.size(44.dp)) {
                                 KxAvatar(p.name, p.id, size = 44.dp, colorIndex = p.colorIndex)

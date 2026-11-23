@@ -317,9 +317,15 @@ internal class KxChat3(private val services: TelegramServices, private val app: 
         val viewers = orNull { client.query(TdApi.GetMessageViewers(chatId, messageId)) }?.viewers.orEmpty()
         val reactions = orNull { client.query(TdApi.GetMessageAddedReactions(chatId, messageId, null, "", 100)) }?.reactions.orEmpty()
             .mapNotNull { r -> ((r.senderId as? TdApi.MessageSenderUser)?.userId ?: return@mapNotNull null) to ((r.type as? TdApi.ReactionTypeEmoji)?.emoji ?: "⭐") }.toMap()
-        return viewers.sortedByDescending { it.viewDate }.map { v ->
+        val seen = viewers.sortedByDescending { it.viewDate }.map { v ->
             val u = orNull { client.query(TdApi.GetUser(v.userId)) }
             KxViewer(v.userId, userName(v.userId), KxFormat.dateTime(v.viewDate), reactions[v.userId].orEmpty(), small(u?.profilePhoto?.small))
+        }
+        // wave5 («Кто отреагировал»): people who reacted but are not in the viewer list (big groups, channels, older messages).
+        val seenIds = seen.map { it.userId }.toSet()
+        return seen + reactions.filterKeys { it !in seenIds }.map { (uid, emoji) ->
+            val u = orNull { client.query(TdApi.GetUser(uid)) }
+            KxViewer(uid, userName(uid), "", emoji, small(u?.profilePhoto?.small))
         }
     }
 

@@ -71,6 +71,8 @@ fun DevicesScreen(ctx: KxScreenCtx) {
     val ttl = ttlDays.indices.minByOrNull { kotlin.math.abs(ttlDays[it] - store.sessionTtlDays) } ?: 2
     // demo: needs store (the QR scanner has no camera yet; store.confirmQrLogin(link) takes the scanned link)
     var qr by rememberSaveable { mutableStateOf(false) }
+    // wave5 (hybrid 1.0): the real account scans with the old working QR login (camera + confirm); the v3 scanner is the demo's.
+    val legacyQr = com.kirox.app.ui.v3.KxLegacy.Local.current != null
     LaunchedEffect(Unit) { store.refreshSessions() }
     StoreErrorToasts(ctx)
     LaunchedEffect(leaving) { val id = leaving ?: return@LaunchedEffect; delay(350); store.terminateSession(id); leaving = null }
@@ -87,7 +89,7 @@ fun DevicesScreen(ctx: KxScreenCtx) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 val qShape = RoundedCornerShape(20.dp)
                 Row(Modifier.fillMaxWidth().height(60.dp).clip(qShape).cssGradient(150f, 0f to Kx.accentDeep.copy(alpha = .28f), 1f to Kx.w(.03f))
-                    .border(1.dp, Kx.accent.copy(alpha = .25f), qShape).kxClick { qr = true }.padding(horizontal = 14.dp),
+                    .border(1.dp, Kx.accent.copy(alpha = .25f), qShape).kxClick { if (legacyQr) ctx.open("Old:qrLogin") else qr = true }.padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(Kx.accent.copy(alpha = .2f)), contentAlignment = Alignment.Center) {
                         Icon(Icons.Outlined.QrCodeScanner, null, tint = Kx.accent)

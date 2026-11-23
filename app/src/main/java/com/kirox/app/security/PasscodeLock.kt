@@ -64,9 +64,24 @@ object PasscodeLock {
         _locked.value = _settings.value.enabled
         // Wrong-code counter and block survive a process kill (no brute force by swiping the app away).
         failures = prefs.getInt(FAILURES_KEY, 0)
-        val left = prefs.getLong(BLOCKED_WALL_KEY, 0L) - System.currentTimeMillis()
-        if (left > 0) blockedUntil = SystemClock.elapsedRealtime() + left.coerceAtMost(blockMs(prefs.getInt(BLOCKS_KEY, 1)))
+        // wave5: the block is kept on the boot clock (elapsedRealtime), so moving the wall clock forward doesn't end it.
+        // Same boot → the saved end as is; after a reboot (boot clock restarted) a block not seen ending runs again in full.
+        if (prefs.contains(BLOCKED_ELAPSED_KEY)) {
+            val end = prefs.getLong(BLOCKED_ELAPSED_KEY, 0L)
+            val now = SystemClock.elapsedRealtime()
+            val full = blockMs(prefs.getInt(BLOCKS_KEY, 1))
+            when {
+                prefs.getInt(BOOT_KEY, -2) == bootCount(context) -> if (end > now) blockedUntil = end.coerceAtMost(now + full) else prefs.edit { remove(BLOCKED_ELAPSED_KEY) }
+                else -> { blockedUntil = now + full; prefs.edit { putLong(BLOCKED_ELAPSED_KEY, blockedUntil); putInt(BOOT_KEY, bootCount(context)) } }
+            }
+        }
+        boot = bootCount(context)
     }
+
+    private var boot = -1
+    /** Boot number (Android 7+ global setting); -1 when unknown, then every start counts as a new boot. */
+    private fun bootCount(context: Context): Int =
+        runCatching { android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.BOOT_COUNT) }.getOrDefault(-1)
 
     /** From AppVisibility: going to the background starts the timer, coming back checks it. */
     fun onVisibilityChanged(visible: Boolean) {
@@ -80,6 +95,7 @@ object PasscodeLock {
     /** Checks [code] on the lock screen; true unlocks. */
     fun unlock(code: String): Boolean {
         if (SystemClock.elapsedRealtime() < blockedUntil) return false
+        if (blockedUntil > 0 && prefs.contains(BLOCKED_ELAPSED_KEY)) prefs.edit { remove(BLOCKED_ELAPSED_KEY) } // the block ran out
         if (matches(code)) { resetFailures(); _locked.value = false; return true }
         failures++
         if (failures >= MAX_FAILURES) {
@@ -88,7 +104,7 @@ object PasscodeLock {
             val ms = blockMs(blocks)
             failures = 0
             blockedUntil = SystemClock.elapsedRealtime() + ms
-            prefs.edit { putInt(BLOCKS_KEY, blocks); putLong(BLOCKED_WALL_KEY, System.currentTimeMillis() + ms) }
+            prefs.edit { putInt(BLOCKS_KEY, blocks); putLong(BLOCKED_ELAPSED_KEY, blockedUntil); putInt(BOOT_KEY, boot); remove(BLOCKED_WALL_KEY) }
         }
         prefs.edit { putInt(FAILURES_KEY, failures) }
         return false
@@ -99,7 +115,7 @@ object PasscodeLock {
 
     private fun resetFailures() {
         failures = 0
-        if (prefs.contains(FAILURES_KEY) || prefs.contains(BLOCKS_KEY)) prefs.edit { remove(FAILURES_KEY); remove(BLOCKS_KEY); remove(BLOCKED_WALL_KEY) }
+        if (prefs.contains(FAILURES_KEY) || prefs.contains(BLOCKS_KEY)) prefs.edit { remove(FAILURES_KEY); remove(BLOCKS_KEY); remove(BLOCKED_WALL_KEY); remove(BLOCKED_ELAPSED_KEY); remove(BOOT_KEY) }
     }
 
     private fun blockMs(blocks: Int): Long = BLOCKS_MS[(blocks - 1).coerceIn(0, BLOCKS_MS.lastIndex)]
@@ -153,6 +169,8 @@ object PasscodeLock {
     private const val FAILURES_KEY = "failures"
     private const val BLOCKS_KEY = "blocks"
     private const val BLOCKED_WALL_KEY = "blocked_until_wall"
+    private const val BLOCKED_ELAPSED_KEY = "blocked_until_elapsed"
+    private const val BOOT_KEY = "blocked_boot"
     private const val ITERATIONS = 20_000
     private const val SALT_KEY = "salt"
     private const val ALG_KEY = "alg"

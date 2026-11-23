@@ -32,6 +32,7 @@ import com.kirox.app.ui.v3.components.KxLine
 import com.kirox.app.ui.v3.components.kxClick
 import com.kirox.app.ui.v3.theme.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private data class ExKind(val label: String, val icon: ImageVector, val iconOn: ImageVector, val mb: Float, val media: Boolean)
 private val EX_KINDS = listOf(
@@ -57,9 +58,17 @@ fun ExportScreen(ctx: KxScreenCtx) {
     var phase by remember { mutableStateOf("setup") }
     var prog by remember { mutableFloatStateOf(0f) }
     val toast = remember { TToast() }
+    val shareScope = rememberCoroutineScope()
+    // wave5: real account → the old UI's text export (all messages → Downloads/kiroX), real progress; the demo keeps the board's run.
+    val realChat = ctx.arg?.toLongOrNull()?.takeIf { ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore }
     LaunchedEffect(phase) {
         if (phase != "run") return@LaunchedEffect
         prog = 0f
+        if (realChat != null) {
+            val err = ctx.store.exportChat(realChat) { n -> prog = 95f * (1f - 1f / (1f + n / 500f)) }
+            if (err != null) { toast.show(err, Icons.Rounded.Info); phase = "setup" } else { prog = 100f; phase = "done" }
+            return@LaunchedEffect
+        }
         while (true) { delay(220); val p = minOf(100f, prog + 3f + (Math.random() * 4).toFloat()); if (p >= 100f) { prog = 100f; phase = "done"; break } else prog = p }
     }
     val k = EX_PERIODS[per].second
@@ -151,7 +160,7 @@ fun ExportScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Text(if (done) "Готово" else "Сохраняем чат…", style = KxType.style(22.sp, FontWeight.ExtraBold), modifier = Modifier.padding(top = 22.dp))
-                Text(if (done) "Архив лежит в «Загрузки/kiroX Export»" else "Можно свернуть kiroX — экспорт продолжится", style = KxType.style(14.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
+                Text(if (done) (if (realChat != null) "Переписка сохранена в «Загрузки/kiroX»" else "Архив лежит в «Загрузки/kiroX Export»") else "Можно свернуть kiroX — экспорт продолжится", style = KxType.style(14.sp, color = Kx.text3), textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
                 val w by animateFloatAsState(prog / 100f, tween(400, easing = LinearEasing), label = "w")
                 Box(Modifier.padding(top = 22.dp).fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Kx.w(.08f))) {
                     Box(Modifier.fillMaxHeight().fillMaxWidth(w).clip(RoundedCornerShape(5.dp)).background(Brush.horizontalGradient(listOf(Kx.accentMid, Kx.accentDeep))))
@@ -180,13 +189,13 @@ fun ExportScreen(ctx: KxScreenCtx) {
             .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             when (phase) {
                 "setup" -> TPill("Экспортировать · ≈ " + exFmt(total), Modifier.weight(1f).shadow(14.dp, RoundedCornerShape(27.dp), spotColor = Kx.accentDeep, ambientColor = Kx.accentDeep),
-                    Icons.Rounded.Download, 54.dp, green, size = 16) { if (on.none { it }) toast.show("Выберите, что сохранить", Icons.Rounded.Info) else if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore) toast.show("Экспорт чатов в kiroX v3 пока не готов — это предпросмотр", Icons.Rounded.Info) else phase = "run" }
+                    Icons.Rounded.Download, 54.dp, green, size = 16) { if (on.none { it }) toast.show("Выберите, что сохранить", Icons.Rounded.Info) else if (ctx.store !is com.kirox.app.ui.v3.demo.KxDemoStore && realChat == null) toast.show("Откройте экспорт из меню чата", Icons.Rounded.Info) else phase = "run" }
                 "run" -> TPill("Отменить", Modifier.weight(1f), h = 54.dp, bg = solid(Kx.w(.07f)), ink = Kx.text, size = 16, weight = FontWeight.Bold) {
                     phase = "setup"; prog = 0f; toast.show("Экспорт отменён", Icons.Rounded.Close)
                 }
                 else -> {
-                    TPill("Папка", icon = Icons.Outlined.FolderOpen, h = 54.dp, bg = solid(Kx.w(.07f)), ink = Kx.text, weight = FontWeight.Bold) { toast.show("Откроется папка с архивом", Icons.Rounded.FolderOpen) }
-                    TPill("Поделиться", Modifier.weight(1f), Icons.Rounded.Share, 54.dp, green, size = 16) { toast.show("Откроется меню «Поделиться»", Icons.Rounded.Share) }
+                    TPill("Папка", icon = Icons.Outlined.FolderOpen, h = 54.dp, bg = solid(Kx.w(.07f)), ink = Kx.text, weight = FontWeight.Bold) { toast.show(if (realChat != null) "Файл в «Загрузки/kiroX»" else "Откроется папка с архивом", Icons.Rounded.FolderOpen) }
+                    TPill("Поделиться", Modifier.weight(1f), Icons.Rounded.Share, 54.dp, green, size = 16) { if (realChat != null) shareScope.launch { ctx.store.shareLastExport()?.let { toast.show(it, Icons.Rounded.Info) } } else toast.show("Откроется меню «Поделиться»", Icons.Rounded.Share) }
                 }
             }
         }

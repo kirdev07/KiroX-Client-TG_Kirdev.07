@@ -420,8 +420,8 @@ class TelegramChatRepository(private val client: TelegramClient) {
     private fun sizeText(bytes: Long) = when { bytes >= 1_048_576 -> "%.1f МБ".format(bytes / 1_048_576.0); bytes >= 1024 -> "${bytes / 1024} КБ"; else -> "$bytes Б" }
 
     /** Messages matching [query] in all chats of the main list, newest first. */
-    suspend fun searchMessages(query: String): List<TelegramFoundMessage> {
-        val found = runCatching { client.query(TdApi.SearchMessages(TdApi.ChatListMain(), query, "", SEARCH_LIMIT, null, null, 0, 0)) }.getOrNull() ?: return emptyList()
+    suspend fun searchMessages(query: String, filter: TdApi.SearchMessagesFilter? = null): List<TelegramFoundMessage> {
+        val found = runCatching { client.query(TdApi.SearchMessages(TdApi.ChatListMain(), query, "", SEARCH_LIMIT, filter, null, 0, 0)) }.getOrNull() ?: return emptyList()
         return onDispatcher {
             found.messages.filterNotNull().mapNotNull { message ->
                 val chat = chatsById[message.chatId] ?: return@mapNotNull null

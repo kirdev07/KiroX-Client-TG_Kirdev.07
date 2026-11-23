@@ -104,7 +104,7 @@ fun TopicsScreen(ctx: KxScreenCtx) {
                 if (t == null) {
                     Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).cssGradient(140f, Kx.accentDeep, Color(0xFF1B2E3A)), contentAlignment = Alignment.Center) { Text((header?.title ?: "A").take(1).uppercase(), style = ts(16, W800, Color(0xFFDFF5E8))) }
                     Column(Modifier.weight(1f)) { Text(header?.title ?: "Android-разработка", style = ts(16, W800), maxLines = 1); Text(if (header != null) "форум · ${header.status}" else "форум · 2 140 участников", style = ts(12, color = Kx.text3)) }
-                    Box(Modifier.size(42.dp).clip(CircleShape).kxClick("Поиск") { ctx.open(if (chatId != null) "ChatSearch:$chatId" else "ChatSearch") }, contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Search, null, tint = Kx.text) }
+                    Box(Modifier.kxHitClick("Поиск") { ctx.open(if (chatId != null) "ChatSearch:$chatId" else "ChatSearch") }.size(42.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Search, null, tint = Kx.text) }
                 } else {
                     Box(Modifier.size(40.dp).clip(CircleShape).background(TCol[t.c].second), contentAlignment = Alignment.Center) { Icon(TIcons[t.icon], null, Modifier.size(22.dp), tint = Color.White) }
                     Column(Modifier.weight(1f)) { Text(t.name, style = ts(16, W800), maxLines = 1); Text("тема в «Android-разработка»", style = ts(12, color = Kx.text3), maxLines = 1) }
@@ -210,7 +210,7 @@ fun TopicsScreen(ctx: KxScreenCtx) {
                 TIcons.indices.chunked(8).forEach { row ->
                     Row(Modifier.padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         row.forEach { i ->
-                            Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp)).background(if (i == ni) TCol[nc].second.copy(alpha = .27f) else Kx.w(.04f)).kxClick { ni = i; nKey++ },
+                            Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp)).background(if (i == ni) TCol[nc].second.copy(alpha = .27f) else Kx.w(.04f)).kxClick("Значок ${i + 1}", role = androidx.compose.ui.semantics.Role.RadioButton) { ni = i; nKey++ },
                                 contentAlignment = Alignment.Center) { Icon(TIcons[i], null, Modifier.size(21.dp), tint = if (i == ni) Color.White else Kx.text3) }
                         }
                     }

@@ -126,7 +126,7 @@ fun PasswordScreen(ctx: KxScreenCtx) {
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.height(40.dp).kxClick { hint = !hint }.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.heightIn(min = 40.dp).kxClick { hint = !hint }.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Outlined.Lightbulb, null, Modifier.size(18.dp), tint = Kx.accent)
                     Text(if (hint) "Скрыть подсказку" else "Подсказка", style = KxType.style(14.sp, FontWeight.Medium, Kx.accent))
                 }
@@ -286,7 +286,7 @@ private fun BoxScope.RecoverySheet(step: String, mail: String, auth: com.kirox.a
 
 @Composable
 private fun BackLink(onClick: () -> Unit) {
-    Box(Modifier.padding(top = 8.dp).fillMaxWidth().height(44.dp).kxClick(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.padding(top = 8.dp).fillMaxWidth().heightIn(min = 44.dp).kxClick(onClick = onClick), contentAlignment = Alignment.Center) {
         Text("Назад", style = KxType.style(14.sp, color = Kx.text3))
     }
 }

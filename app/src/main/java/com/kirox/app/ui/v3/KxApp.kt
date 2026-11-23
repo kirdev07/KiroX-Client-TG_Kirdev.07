@@ -41,7 +41,9 @@ class KxNav(start: KxRoute = KxRoute.Home, restored: List<KxRoute> = emptyList()
     val stack = mutableStateListOf<KxRoute>().apply { if (restored.isEmpty()) add(start) else addAll(restored) }
     var forward by mutableStateOf(true); private set
     val current: KxRoute get() = stack.last()
-    fun push(r: KxRoute) { forward = true; stack.add(r) }
+    /** Hybrid 1.0 (KxLegacy): the real-account host serves some board routes with an old working screen; null in the demo. */
+    var legacy: ((String) -> Boolean)? = null
+    fun push(r: KxRoute) { if (r is KxRoute.Screen && legacy?.invoke(r.name) == true) return; forward = true; stack.add(r) }
     fun pop(): Boolean { if (stack.size <= 1) return false; forward = false; stack.removeAt(stack.lastIndex); return true }
 
     companion object {
@@ -82,11 +84,23 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
     val themeIdx = store.pref(com.kirox.app.ui.v3.model.KxPrefs.THEME)
     val accessFlags = store.pref(com.kirox.app.ui.v3.model.KxPrefsAccount.ACCESS_FLAGS)
     val accessPalette = store.pref(com.kirox.app.ui.v3.model.KxPrefsAccount.ACCESS_PALETTE)
-    remember(themeIdx, accessFlags, accessPalette) {
-        val t = com.kirox.app.ui.v3.screens.settings.CustomThemes.getOrNull(themeIdx)
+    // wave5: «Своя» = the user's own theme from the theme editor (re-applied when it changes).
+    val ownThemes by com.kirox.app.settings.CustomThemes.themes.collectAsState()
+    val ownSelected by com.kirox.app.settings.CustomThemes.selectedId.collectAsState()
+    remember(themeIdx, accessFlags, accessPalette, ownThemes, ownSelected) {
+        val t = if (themeIdx in com.kirox.app.ui.v3.screens.settings.CustomThemes.indices) com.kirox.app.ui.v3.screens.settings.themeLook(themeIdx, store !is com.kirox.app.ui.v3.demo.KxDemoStore) else null
         com.kirox.app.ui.v3.theme.Kx.look = com.kirox.app.ui.v3.theme.KxLookMapping.look(themeIdx, t?.let { Triple(it.accent, it.b1, it.b2) }, accessFlags, accessPalette)
     }
     val nav = androidx.compose.runtime.saveable.rememberSaveable(saver = KxNav.saver) { KxNav() }
+    nav.legacy = KxLegacy.Local.current
+    // wave5: a chat asked for from outside v3 (notification tap, banner, t.me link) opens here.
+    val outsideChat by KxNavRequests.openChat.collectAsState()
+    LaunchedEffect(outsideChat) {
+        val id = outsideChat ?: return@LaunchedEffect
+        KxNavRequests.openChat.value = null
+        store.openChat(id)
+        if ((nav.stack.lastOrNull() as? KxRoute.Chat)?.chatId != id) nav.push(KxRoute.Chat(id))
+    }
     // Each route (and each Home tab) keeps its saveable state — list scroll, queries, chips — while it is under another screen.
     val saveables = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     val savedKeys = remember { mutableSetOf<String>() }
@@ -116,15 +130,15 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
     // New Telegram terms (popup ones): the TermsUpdate board opens once per terms id.
     val termsId = store.termsUpdate?.id
     LaunchedEffect(termsId) { if (termsId != null) nav.push(KxRoute.Screen("TermsUpdate")) }
-    // Calls: the demo keeps its scripted CallingScreen; the real account opens the board that reads store.activeCall
-    // (VideoCall = real timer, mic/camera, hangUp). An incoming ringing call opens the Incoming board by itself.
+    // Calls: the demo keeps its scripted CallingScreen. wave5 (fixer-media): on the real account the app's call
+    // overlays (ui/call/CallScreen + GroupCallScreen, drawn by KiroXApp over both designs) own every call — ringtone,
+    // vibration, earpiece/speaker/Bluetooth, proximity, minimize chip, permissions, screen share. The v3 call boards are
+    // no longer pushed on top of them (two call UIs stacked; minimizing showed the v3 board under the chip).
     val demoStore = store is com.kirox.app.ui.v3.demo.KxDemoStore
     fun startCall(peerId: Long, name: String, video: Boolean, colorIndex: Int) {
         store.call(peerId, video)
-        nav.push(if (demoStore) KxRoute.Call(peerId, name, video, colorIndex) else KxRoute.Screen("VideoCall"))
+        if (demoStore) nav.push(KxRoute.Call(peerId, name, video, colorIndex))
     }
-    val ringing = store.activeCall?.takeIf { !demoStore && it.phase == com.kirox.app.ui.v3.model.KxCallPhase.Incoming }?.id
-    LaunchedEffect(ringing) { if (ringing != null && (nav.current as? KxRoute.Screen)?.name != "Incoming") nav.push(KxRoute.Screen("Incoming")) }
     BackHandler(enabled = nav.stack.size > 1 || tab != KxTab.Chats) { if (!nav.pop()) tab = KxTab.Chats }
     KxScreen(modifier) { KxToastHost {
         val toast = com.kirox.app.ui.v3.components.LocalKxToast.current
@@ -149,8 +163,9 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                                 onSearch = { nav.push(KxRoute.Screen("Search")) },
                                 onNewMessage = { nav.push(KxRoute.Screen("NewMsg")) },
                                 onSelectionChange = { selecting = it },
+                                onOpen = { nav.push(KxRoute.Screen(it)) },
                             )
-                            KxTab.Calls -> CallsScreen(store, onCall = { c, v -> if (c.group && !demoStore) { store.joinGroupCall(c.peerId); nav.push(KxRoute.Screen("GroupCall:${c.peerId}")) } else startCall(c.peerId, c.name, v, c.colorIndex) }, onOpen = { nav.push(KxRoute.Screen(it)) })
+                            KxTab.Calls -> CallsScreen(store, onCall = { c, v -> if (c.group && !demoStore) store.joinGroupCall(c.peerId) else startCall(c.peerId, c.name, v, c.colorIndex) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                             KxTab.Stories -> StoriesScreen(store, onOpenViewer = { nav.push(KxRoute.Story(it)) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                             KxTab.Settings -> SettingsScreen(store, onOpen = { if (it == "Старый дизайн") KxNewDesign.set(context, false) else nav.push(KxRoute.Screen(it)) })
                             else -> KxTabPlaceholder(t)
@@ -170,7 +185,7 @@ fun KxApp(store: KxStore, modifier: Modifier = Modifier, reducedMotion: Boolean 
                     onOpen = { nav.push(KxRoute.Screen(it)) }, onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) })
                 is KxRoute.Profile -> ProfileScreen(store, route.chatId, onBack = { nav.pop() },
                     onCall = { v -> val p = store.peer(route.chatId); startCall(route.chatId, p.name, v, p.colorIndex) },
-                    onSearch = { nav.push(KxRoute.Screen("ChatSearch")) }, onOpen = { nav.push(KxRoute.Screen(it)) })
+                    onSearch = { nav.push(KxRoute.Screen("ChatSearch:${route.chatId}")) }, onOpen = { nav.push(KxRoute.Screen(it)) })
                 KxRoute.Archive -> ArchiveScreen(store, onBack = { nav.pop() }, onOpenChat = { store.openChat(it); nav.push(KxRoute.Chat(it)) })
                 is KxRoute.Screen -> {
                     val name = route.name.substringBefore(':')

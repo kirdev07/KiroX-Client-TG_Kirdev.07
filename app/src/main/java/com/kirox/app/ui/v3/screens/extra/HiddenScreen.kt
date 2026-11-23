@@ -147,7 +147,17 @@ fun HiddenScreen(ctx: KxScreenCtx) {
                     }
                 }
                 Spacer(Modifier.weight(1f))
-                Column(Modifier.width(290.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // wave5: the app's code is a graphic key → draw it (4 digits could never match and only fed the lockout).
+                if (!demo && store.passcodeSet && store.passcodePattern) {
+                    com.kirox.app.ui.auth.PatternPad(enabled = st == "locked", resetKey = bad) { drawn ->
+                        scope.launch {
+                            if (store.passcodeWait() == 0 && store.checkPasscode(drawn)) unlock() else { bad++; tries++ }
+                        }
+                    }
+                    if (canFinger) Box(Modifier.size(70.dp).clip(RoundedCornerShape(35.dp)).kxClick("Открыть по отпечатку") { press("fp") }, contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.Fingerprint, null, Modifier.size(34.dp), tint = Kx.accent)
+                    }
+                } else Column(Modifier.width(290.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "fp", "0", "del").chunked(3).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                             row.forEach { k ->
@@ -253,7 +263,7 @@ fun HiddenScreen(ctx: KxScreenCtx) {
 /** Settings row of these boards: icon #9AA59F, title 15 600, sub 12 #8A958F, 48×28 switch, bottom line .05. */
 @Composable
 internal fun ExSwitchRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, sub: String, on: Boolean, padV: Int = 14, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().kxClick(title, onClick = onClick).drawBehind { drawLine(Kx.w(.05f), Offset(0f, size.height - .5f), Offset(size.width, size.height - .5f), 1f) }
+    Row(Modifier.fillMaxWidth().kxClick(title, role = androidx.compose.ui.semantics.Role.Switch, onClick = onClick).drawBehind { drawLine(Kx.w(.05f), Offset(0f, size.height - .5f), Offset(size.width, size.height - .5f), 1f) }
         .padding(horizontal = 16.dp, vertical = padV.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Icon(icon, null, Modifier.size(24.dp), tint = Kx.text3)
         Column(Modifier.weight(1f)) {

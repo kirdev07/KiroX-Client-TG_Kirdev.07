@@ -1,5 +1,6 @@
 package com.kirox.app.ui.v3.screens.chat
 
+import com.kirox.app.ui.v3.components.kxSelectedState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
@@ -152,7 +153,7 @@ internal fun BTextArea(value: String, onValue: (String) -> Unit, placeholder: St
 /** Radio dot: 22 ring 2px, 10 dot. */
 @Composable
 internal fun BRadio(on: Boolean, onColor: Color = Kx.accent, offColor: Color = Kx.w(.3f), size: Dp = 22.dp, dot: Dp = 10.dp) {
-    Box(Modifier.size(size).border(2.dp, if (on) onColor else offColor, CircleShape), contentAlignment = Alignment.Center) {
+    Box(Modifier.kxSelectedState(on).size(size).border(2.dp, if (on) onColor else offColor, CircleShape), contentAlignment = Alignment.Center) {
         Box(Modifier.size(dot).clip(CircleShape).background(if (on) onColor else Color.Transparent))
     }
 }

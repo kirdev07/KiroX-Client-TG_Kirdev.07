@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kirox.app.ui.v3.components.KxConfirm
+import com.kirox.app.ui.v3.components.LocalKxRowActions
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import com.kirox.app.ui.v3.model.*
 import com.kirox.app.ui.v3.theme.Kx
 import com.kirox.app.ui.v3.theme.KxMotion
@@ -39,7 +41,7 @@ private val SWIPE_ACTS = listOf(
  * SWIPE_RIGHT, left for SWIPE_LEFT. Delete asks first through [ask].
  */
 @Composable
-fun ChatSwipe(store: KxStore, chat: KxChat, toast: (String) -> Unit, ask: (KxConfirm) -> Unit, content: @Composable () -> Unit) {
+fun ChatSwipe(store: KxStore, chat: KxChat, toast: (String) -> Unit, ask: (KxConfirm) -> Unit, onDelete: ((KxChat) -> Unit)? = null, folder: Int = 0, content: @Composable () -> Unit) {
     val left = store.pref(KxPrefsAccount.SWIPE_LEFT).coerceIn(0, SWIPE_ACTS.lastIndex)
     val right = store.pref(KxPrefsAccount.SWIPE_RIGHT).coerceIn(0, SWIPE_ACTS.lastIndex)
     val x = remember { Animatable(0f) }
@@ -50,14 +52,31 @@ fun ChatSwipe(store: KxStore, chat: KxChat, toast: (String) -> Unit, ask: (KxCon
         val c = latest
         when (action) {
             0 -> if (c.unread > 0 || c.markedUnread) { store.markRead(c.id); toast("Отмечено прочитанным") } else { store.markUnread(c.id); toast("Отмечено непрочитанным") }
-            1 -> store.setPinned(c.id, !c.pinned) // no toast: TDLib may refuse over the pin limit (store.error says why)
+            1 -> store.setPinnedIn(c.id, !c.pinned, folder) // no toast: TDLib may refuse over the pin limit (store.error says why)
             2 -> { store.setMuted(c.id, !c.muted); toast(if (c.muted) "Звук включён" else "Без звука") }
             3 -> { store.setArchived(c.id, !c.archived); toast(if (c.archived) "Чат вернулся из архива" else "Чат в архиве") }
-            4 -> ask(KxConfirm("Удалить чат «${c.title}»?", if (c.kind == KxChatKind.Private) "Чат удалится у вас." else "Вы выйдете из чата.", "Удалить") { store.deleteChat(c.id) })
+            4 -> ask(KxConfirm("Удалить чат «${c.title}»?", if (c.kind == KxChatKind.Private) "Чат удалится у вас." else "Вы выйдете из чата.", "Удалить") { onDelete?.invoke(c) ?: store.deleteChat(c.id) })
             else -> toast("Добавить чат в папку можно в настройках папок")
         }
     }
-    val act = if (x.value > 0f) SWIPE_ACTS[right] else SWIPE_ACTS[left]
+    val act = (if (x.value > 0f) SWIPE_ACTS[right] else SWIPE_ACTS[left]).let { a ->
+        // wave5: the strip says what the swipe will do now (the action toggles).
+        when (a.label) {
+            "Прочитано" -> if (chat.unread > 0 || chat.markedUnread) a else a.copy(label = "Непрочитано", icon = Icons.Rounded.MarkChatUnread)
+            "Закрепить" -> if (chat.pinned) a.copy(label = "Открепить") else a
+            "Без звука" -> if (chat.muted) a.copy(label = "Со звуком", icon = Icons.Rounded.Notifications) else a
+            "В архив" -> if (chat.archived) a.copy(label = "Из архива", icon = Icons.Rounded.Unarchive) else a
+            else -> a
+        }
+    }
+    // a11y (P1-4): every swipe action (whatever the Swipe board set) as a TalkBack custom action, labelled by what it does now.
+    val a11yActions = listOf(
+        (if (chat.unread > 0 || chat.markedUnread) "Отметить прочитанным" else "Отметить непрочитанным") to 0,
+        (if (chat.pinned) "Открепить" else "Закрепить") to 1,
+        (if (chat.muted) "Включить звук" else "Без звука") to 2,
+        (if (chat.archived) "Вернуть из архива" else "В архив") to 3,
+        "Удалить чат" to 4,
+    ).map { (label, i) -> CustomAccessibilityAction(label) { run(i); true } }
     Box(Modifier.height(72.dp)) {
         if (x.value != 0f) Row(Modifier.matchParentSize().background(act.color).padding(horizontal = 22.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp, if (x.value > 0f) Alignment.Start else Alignment.End)) {
@@ -75,6 +94,6 @@ fun ChatSwipe(store: KxStore, chat: KxChat, toast: (String) -> Unit, ask: (KxCon
                 },
                 onDragCancel = { scope.launch { x.animateTo(0f) } }
             ) { _, d -> scope.launch { x.snapTo((x.value + d).coerceIn(-limit * 1.2f, limit * 1.2f)) } }
-        }) { content() }
+        }) { CompositionLocalProvider(LocalKxRowActions provides a11yActions) { content() } }
     }
 }

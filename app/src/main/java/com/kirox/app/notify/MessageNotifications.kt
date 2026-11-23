@@ -81,11 +81,13 @@ class MessageNotifications(
         val removedSet = removed.toHashSet()
         group.items.removeAll { it.id in removedSet }
         var fresh = false
+        // wave5: a chat in «Скрытые чаты» (this account) alerts without its name or text.
+        val hidden = hidden(chatId)
         for (notification in added) {
             val type = notification.type as? TdApi.NotificationTypeNewMessage ?: continue
             group.items.removeAll { it.id == notification.id }
             val topic = type.message.topicId?.takeIf { it is TdApi.MessageTopicForum || it is TdApi.MessageTopicThread }
-            group.items += Item(notification.id, notification.date, senderName(type.message), if (type.showPreview) preview(type.message) else com.kirox.app.i18n.I18n.t("Новое сообщение"), topic)
+            group.items += Item(notification.id, notification.date, if (hidden) "" else senderName(type.message), if (type.showPreview && !hidden) preview(type.message) else com.kirox.app.i18n.I18n.t("Новое сообщение"), topic)
             if (!notification.isSilent) fresh = true
         }
         group.items.sortBy { it.date }
@@ -103,10 +105,13 @@ class MessageNotifications(
     }
 
     /** New message while kiroX is open: sound, vibration and banner as chosen; the open chat gets none. */
+    private fun hidden(chatId: Long) = runCatching { com.kirox.app.ui.v3.data.KxHidden.contains(context, client.activeSession, chatId) }.getOrDefault(false)
+
     private fun alertInApp(group: Group) {
         val local = prefs.current
         val last = group.items.lastOrNull() ?: return
-        if (local.inAppPreview) {
+        // A hidden chat gets no banner (it would name the chat and open it past the Hidden lock).
+        if (local.inAppPreview && !hidden(group.chatId)) {
             val title = chats.chat(group.chatId)?.title.orEmpty().ifBlank { last.sender }
             InAppAlerts.emit(InAppAlert(group.chatId, title, if (last.sender.isNotBlank() && last.sender != title) "${last.sender}: ${last.text}" else last.text))
         }
@@ -128,7 +133,8 @@ class MessageNotifications(
     }
 
     private fun show(groupId: Int, group: Group, alert: Boolean, quiet: Boolean = false) {
-        val title = chats.chat(group.chatId)?.title.orEmpty().ifBlank { "Telegram" }
+        val secret = hidden(group.chatId)
+        val title = if (secret) "kiroX" else chats.chat(group.chatId)?.title.orEmpty().ifBlank { "Telegram" }
         val style = NotificationCompat.MessagingStyle(Person.Builder().setName(com.kirox.app.i18n.I18n.t("Вы")).build())
             // In a private chat the sender already names it; a title there shows up as "Name: Name".
             .setConversationTitle(title.takeIf { group.items.any { it.sender.isNotBlank() && it.sender != title } })
@@ -162,7 +168,8 @@ class MessageNotifications(
             .setContentIntent(
                 PendingIntent.getActivity(
                     context, groupId, Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        .putExtra(EXTRA_OPEN_CHAT, group.chatId),
+                        // A hidden chat opens the app, not the chat (it stays behind the Hidden lock).
+                        .apply { if (!secret) putExtra(EXTRA_OPEN_CHAT, group.chatId) },
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
             )

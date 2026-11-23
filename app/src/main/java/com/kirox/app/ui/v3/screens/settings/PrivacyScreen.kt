@@ -12,6 +12,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.automirrored.outlined.Forward
 import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.AlternateEmail
+import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Contacts
 import androidx.compose.material.icons.rounded.Devices
@@ -57,8 +60,8 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
     val store = ctx.store
     val rules = store.privacy
     val vals = PrivDefs.associate { d -> d.key to (rules.firstOrNull { it.key == d.storeKey }?.level ?: 0) }
-    // demo: needs store (kiroX passcode is local, not in the store yet)
-    val pin = true
+    // wave5: the real kiroX passcode state (was always «Включён»).
+    val pin = store.passcodeSet
     val cloud = store.cloudPassword?.has == true
     var picking by rememberSaveable { mutableStateOf<String?>(null) }
     val readTime = store.showReadDate
@@ -123,6 +126,20 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                     SSwitchRow(null, "Время прочтения", readTime, groupShape(0, 2, 20.dp), sub = "Показывать, когда вы прочитали сообщение", small = true, subSize = 11) { store.setShowReadDate(!readTime) }
                     SSwitchRow(null, "Новые чаты — в архив", archive, groupShape(1, 2, 20.dp), sub = "Сообщения от незнакомцев не мешают", small = true, subSize = 11) { store.setArchiveNewChats(!archive) }
                 }
+                // wave5 (hybrid 1.0): the remaining Telegram rules live in the old working screen.
+                if (com.kirox.app.ui.v3.KxLegacy.Local.current != null) Column(Modifier.sRise(170), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    SNavRow(Icons.Rounded.Tune, "Все правила конфиденциальности", "О себе, день рождения, голосовые, подарки, поиск по номеру, звонки P2P, контакты, срок аккаунта", groupShape(0, 1, 20.dp)) { ctx.open("Old:privacy") }
+                }
+                // wave5: account security boards that had no entry.
+                Column(Modifier.sRise(200), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    GroupLabel("Аккаунт")
+                    // wave5: a new sign-in waiting for confirmation (LoginAlert board) shows here while it exists.
+                    if (store.sessions.any { it.passwordPending && !it.current })
+                        SNavRow(Icons.Rounded.Devices, "Новый вход в аккаунт", "Проверьте: это вы?", groupShape(0, 1, 20.dp), tint = Kx.warning) { ctx.open("LoginAlert") }
+                    SNavRow(Icons.Rounded.Shield, "Проверка безопасности", "Что ещё можно защитить", groupShape(0, 3, 20.dp)) { ctx.open("SecurityCheck") }
+                    SNavRow(Icons.Rounded.AlternateEmail, "Почта для входа", "Код для входа придёт на почту", groupShape(1, 3, 20.dp)) { ctx.open("LoginEmail") }
+                    SNavRow(Icons.Rounded.DeleteForever, "Удалить аккаунт", "Самоуничтожение и удаление", groupShape(2, 3, 20.dp), tint = Kx.danger) { ctx.open("DeleteAccount") }
+                }
             }
         }
         val cur = PrivDefs.firstOrNull { it.key == picking }
@@ -135,7 +152,8 @@ fun PrivacyScreen(ctx: KxScreenCtx) {
                     SChoice(icons[i].first, icons[i].second, label, vals[cur.key] == i) { store.setPrivacy(cur.storeKey, i) }
                 }
             }
-            Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // wave5: no people picker exists (old UI neither) — the real account doesn't offer the buttons that only toasted.
+            if (store is com.kirox.app.ui.v3.demo.KxDemoStore) Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Всегда разрешать…", "Никогда не разрешать…").forEach { t ->
                     Box(Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(16.dp)).background(Kx.fill).kxClick { ctx.toast("Выбор людей ещё переносится") },
                         contentAlignment = Alignment.Center) { Text(t, style = KxType.style(13.sp, FontWeight.SemiBold)) }
@@ -151,7 +169,7 @@ internal val CssEaseInOut = CubicBezierEasing(.42f, 0f, .58f, 1f)
 /** Group label: 13sp/800 accent, padding 0 4 6. */
 @Composable
 internal fun GroupLabel(text: String) =
-    Text(text, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 6.dp))
+    Text(text, style = KxType.style(13.sp, FontWeight.ExtraBold, Kx.accent), modifier = Modifier.kxHeading().padding(start = 4.dp, end = 4.dp, bottom = 6.dp))
 
 @Composable
 private fun SecTile(icon: ImageVector, tint: Color, state: String, stateColor: Color, title: String, modifier: Modifier, onClick: () -> Unit) {

@@ -18,7 +18,7 @@ object SettingsBackup {
 
     /** Keys that never leave this phone (the backup lands in Saved Messages, readable on every device): hidden chats,
      *  recent searches, usage counts. Restore keeps the phone's own values of these. */
-    private val LOCAL_ONLY = mapOf("kirox_v3_prefs" to { key: String -> key == "hidden.chats" || key == "search.recent" || key == "dnd.people" || key.startsWith("usage.") })
+    private val LOCAL_ONLY = mapOf("kirox_v3_prefs" to { key: String -> key.startsWith("hidden.chats") || key == "search.recent" || key == "dnd.people" || key.startsWith("usage.") })
     private fun localOnly(file: String, key: String) = LOCAL_ONLY[file]?.invoke(key) == true
 
     suspend fun export(context: Context): String {
