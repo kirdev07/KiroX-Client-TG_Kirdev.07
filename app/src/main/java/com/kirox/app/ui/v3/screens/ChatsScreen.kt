@@ -67,8 +67,7 @@ fun ChatsScreen(
     var folder by rememberSaveable { mutableIntStateOf(0) }
     val hiddenIds = store.prefList(KxPrefsAccount.HIDDEN_CHATS).mapNotNull { it.toLongOrNull() }.toSet() // wave3-account: Hidden board
     val chats = store.chatsIn(folder).let { all -> if (hiddenIds.isEmpty()) all else all.filter { it.id !in hiddenIds } }
-    // port-nav: «Архив · N | Сообщения» sections as in the old chats tab (Archive on the left, Messages by default),
-    // switched by tap or a horizontal swipe. The archive row of the list moved here.
+    // port-nav: page 0 = Archive (left), page 1 = the chat list of the current folder; switched by the chip row or a horizontal swipe.
     val sections = androidx.compose.foundation.pager.rememberPagerState(initialPage = 1) { 2 }
     val scope = rememberCoroutineScope()
     val archived = store.archivedChats.let { all -> if (hiddenIds.isEmpty()) all else all.filter { it.id !in hiddenIds } }
@@ -90,7 +89,7 @@ fun ChatsScreen(
     LaunchedEffect(onArchivePage) { selected.clear() }
     androidx.activity.compose.BackHandler(enabled = selected.isNotEmpty()) { selected.clear() }
     androidx.activity.compose.BackHandler(enabled = archiveSettings) { archiveSettings = false }
-    // Back from the Archive page returns to Messages.
+    // Back from the Archive page returns to the chat list (the folder that was shown before).
     androidx.activity.compose.BackHandler(enabled = active && onArchivePage && selected.isEmpty() && !archiveSettings) { scope.launch { sections.animateScrollToPage(1) } }
     fun toggle(id: Long) { if (id in selected) selected.remove(id) else selected.add(id) }
     val pageChats = if (onArchivePage) archived else chats
@@ -106,7 +105,24 @@ fun ChatsScreen(
             Box(Modifier.height(36.dp).clip(RoundedCornerShape(18.dp)).background(Kx.fill).kxClick { if (all) selected.clear() else { selected.clear(); selected.addAll(pageChats.map { it.id }) } }.padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center) { Text(if (all) "Снять выбор" else "Выбрать все", style = KxType.style(13.sp, FontWeight.Bold, Kx.accent)) }
         }
-        ChatSections(sections, archived.count { it.unread > 0 || it.markedUnread }) { scope.launch { sections.animateScrollToPage(it) } }
+        // Owner: no «Архив | Сообщения» pill — the chip row (above the pager, on both pages) starts with «Архив · N», then «Все»,
+        // the folders and «+ Папка». The Archive page stays to the left of the list; the highlight follows the swipe.
+        val showArchive by remember { derivedStateOf { sections.currentPage + sections.currentPageOffsetFraction < .5f } }
+        val chipScroll = rememberScrollState()
+        LaunchedEffect(showArchive) { if (showArchive) chipScroll.animateScrollTo(0) }
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(chipScroll).padding(start = 16.dp, end = 16.dp, top = 8.dp).kxRise(140),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val archiveUnread = archived.count { it.unread > 0 || it.markedUnread }
+            KxChip(if (archiveUnread > 0) "Архив · $archiveUnread" else "Архив", selected = showArchive) { scope.launch { sections.animateScrollToPage(0) } }
+            store.folders.forEach { f ->
+                KxChip(if (f.unread > 0) "${f.title} · ${f.unread}" else f.title, selected = !showArchive && folder == f.id) {
+                    folder = f.id; scope.launch { sections.animateScrollToPage(1) }
+                }
+            }
+            KxChip("+ Папка", selected = false, dashed = true) { onOpen("FolderEdit") }
+        }
         store.connection?.let { Text(it, style = KxType.caption.copy(color = Kx.accent), modifier = Modifier.padding(start = 20.dp, top = 8.dp)) }
         val openRow: (KxChat) -> Unit = { chat ->
             if (selected.isNotEmpty()) toggle(chat.id) else if (chat.forum && store !is com.kirox.app.ui.v3.demo.KxDemoStore) onOpen("Topics:${chat.id}")
@@ -120,15 +136,6 @@ fun ChatsScreen(
                 onSettings = { archiveSettings = true }, onRow = openRow, onLong = { toggle(it.id) },
                 toast = { toast(it) }, ask = { confirm = it }, onDelete = { deleteWithUndo(listOf(it.id)) })
             else Column(Modifier.fillMaxSize()) {
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp).kxRise(140),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    store.folders.forEach { f ->
-                        KxChip(if (f.unread > 0) "${f.title} · ${f.unread}" else f.title, selected = folder == f.id) { folder = f.id }
-                    }
-                    KxChip("+ Папка", selected = false, dashed = true) { onOpen("FolderEdit") }
-                }
                 LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp).kxRise(200), state = androidx.compose.foundation.lazy.rememberLazyListState(), contentPadding = PaddingValues(bottom = bottomPadding)) {
                     itemsIndexed(chats.filter { undoDel?.first?.contains(it.id) != true }, key = { _, c -> c.id }) { i, chat ->
                         if (i >= chats.size - 10) LaunchedEffect(chats.size, folder) { store.loadMoreChats(folder) }
@@ -145,33 +152,6 @@ fun ChatsScreen(
     undoDel?.let { u -> ChatUndoBar(u.first.size, u.second, bottomPadding) { undoDel = null } }
     if (archiveSettings) ArchiveSettingsSheet(store) { archiveSettings = false }
     confirm?.let { KxConfirmDialog(it) { confirm = null } }
-}
-
-/**
- * port-nav: «Архив · N | Сообщения» — a segmented pill in the v3 chip look (selected = accent fill like KxChip);
- * the accent lens follows the pager offset, so it slides with the finger.
- */
-@Composable
-private fun ChatSections(pager: androidx.compose.foundation.pager.PagerState, archiveUnread: Int, onPick: (Int) -> Unit) {
-    val shape = RoundedCornerShape(20.dp)
-    val labels = listOf(if (archiveUnread > 0) "Архив · $archiveUnread" else "Архив", "Сообщения")
-    val current by remember { derivedStateOf { (pager.currentPage + pager.currentPageOffsetFraction).let { if (it < .5f) 0 else 1 } } }
-    BoxWithConstraints(Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp).fillMaxWidth().height(40.dp).clip(shape)
-        .background(Kx.w(.05f)).border(1.dp, Kx.line, shape).padding(3.dp).kxRise(100)) {
-        val half = maxWidth / 2
-        Box(Modifier.offset { androidx.compose.ui.unit.IntOffset(((pager.currentPage + pager.currentPageOffsetFraction).coerceIn(0f, 1f) * half.toPx()).toInt(), 0) }
-            .width(half).fillMaxHeight().clip(RoundedCornerShape(17.dp)).background(Kx.accent))
-        Row(Modifier.fillMaxSize()) {
-            labels.forEachIndexed { i, label ->
-                val on = current == i
-                Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(17.dp)).kxClick(label, androidx.compose.ui.semantics.Role.Tab) { onPick(i) }
-                    .semantics { this.selected = on }, contentAlignment = Alignment.Center) {
-                    Text(label, style = KxType.chip.copy(color = if (on) Kx.onAccent else Kx.text2, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium),
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-        }
-    }
 }
 
 /** port-nav: the Archive page of the Chats tab — tip, «Настройки архива», the real archive with swipe actions, selection and paging. */
